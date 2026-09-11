@@ -12,7 +12,7 @@ Conditional GO for bounded foundation work. Full enforced three-way readiness is
 VERIFIED: connected wbdevworld, admin permission, private WB-DevWorld/cetech-pwa-pos, ID 1366623006; initially empty with no branches. One visible repository returned for the organization filter. Membership lookup returned no team/member identities. Ruleset read returned plan-restricted 403; repository remains private.
 
 ## 4. Actions performed
-CREATED: initial engineering-authority commit 026abb210af24108c9cf907a6071ec22fbe80cd9, AGENTS.md. CREATED: 30 actual GitHub issues #1–#30; core assigned to confirmed wbdevworld; other identities unresolved. CREATED locally: complete control plane, 10 ADRs, 10 Cursor rules, three eight-file workstream packages, canonical schemas/ports/OpenAPI, CI, reference snapshot, plans/runbooks and governance metadata/script. Full-foundation remote commit and CI verification are recorded in the completion addendum after publication.
+CREATED: initial engineering-authority commit 026abb210af24108c9cf907a6071ec22fbe80cd9, AGENTS.md. CREATED: 30 actual GitHub issues #1–#30; core assigned to confirmed wbdevworld; other identities unresolved. COMMITTED and remotely hash-VERIFIED: complete control plane, 10 ADRs, 10 Cursor rules, three eight-file workstream packages, canonical schemas/ports/OpenAPI, CI, reference snapshot, plans/runbooks and governance metadata/script. Full-foundation commit: 9229334a994760c715a546392eb8f80623708218; 165 files. GitHub Actions control-plane run 34643828253 completed successfully.
 
 ## 5. Resulting repository tree
 
@@ -70,7 +70,7 @@ Same eight required documents, specific to seven bridge tasks BR-01–07. Health
 Same eight documents for core/governance/integration tasks. Owns schema/RLS/auth/BFF/local journal, payment finalizer/cash evidence, CI/integration and release gates. Must not duplicate Woo commerce truth.
 
 ## 13. GitHub collaboration setup
-CREATED engineering authority and issues; full-foundation file publication/CI evidence follows below. Main-based short-lived task branches, one worktree per concurrent assignment and PR integration; no unnecessary staging branch. PREPARED: CODEOWNERS, PR/issue templates, control-plane CI, 17 labels, four milestones and main-protection payload. Labels/milestones/settings/protection are not configured by merely committing these files. GitHub setup script is dry-run by default and awaits an authenticated user's supported CLI environment.
+COMMITTED engineering control plane and VERIFIED CI success; 30 issues created. Main-based short-lived task branches, one worktree per concurrent assignment and PR integration; no unnecessary staging branch. COMMITTED: CODEOWNERS, PR/issue templates and functioning control-plane CI. PREPARED ONLY: 17 labels, four milestones and main-protection payload. Labels/milestones/settings/protection are not configured by merely committing these files. GitHub setup script is dry-run by default and awaits an authenticated user's supported CLI environment.
 
 ## 14. Initial task queue
 Senior: CP-04 audit and CP-05 scaffold after contract baseline; Developer 1: FE-01 reference mapping then FE-02; Developer 2: verified staging facts then BR-01/BR-02. All 30 GitHub issues are linked in docs/plans/TASK-INDEX.md; exact allowed files/tests/acceptance in workstream TASKS.md.
@@ -86,3 +86,12 @@ Clone canonical repo and run `python3 scripts/verify_control_plane.py`. Each Cur
 
 ## Verification limits
 Local foundation check passed: three packages, 30-task acyclic dependency graph, 28 immutable source files, 61 schemas, 22 structural contract fixtures, common OpenAPI refs, generated types, error/state consistency, local links and secret tripwires. YAML files parsed; GitHub setup dry-run reports 17 labels/four milestones. These checks do not certify production secrets scanning, full JSON Schema semantics, PHP/Next build, real pricing, RLS, payments, installed devices or hardware.
+
+## Completion evidence
+
+- Initial authority commit: [026abb2](https://github.com/WB-DevWorld/cetech-pwa-pos/commit/026abb210af24108c9cf907a6071ec22fbe80cd9).
+- Full 165-file foundation: [9229334](https://github.com/WB-DevWorld/cetech-pwa-pos/commit/9229334a994760c715a546392eb8f80623708218), confirmed on main. Every remote file blob SHA matched the local expected value; no extra files.
+- [GitHub Actions run 34643828253](https://github.com/WB-DevWorld/cetech-pwa-pos/actions/runs/34643828253): completed, success, control-plane.
+- [Issues #1–#30](https://github.com/WB-DevWorld/cetech-pwa-pos/issues) confirmed individually; exact mapping in TASK-INDEX.
+- Final documentation adds FRESH-AGENT-REVIEW.md and records readiness/evidence, yielding 166 files. Its subsequent commit retains the same runtime limitations.
+- No production app/bridge/schema, live sale, branch protection, custom labels or milestones are claimed as implemented/configured.
