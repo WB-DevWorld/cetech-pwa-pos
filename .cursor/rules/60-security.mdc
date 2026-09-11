@@ -1,0 +1,7 @@
+---
+description: Trust boundaries and secrets
+globs: "apps/pos-web/src/**,wordpress/**,supabase/**"
+alwaysApply: false
+---
+
+Read SECURITY.md. No privileged secrets in client/logs/prompts. Resolve actor/scope/customer server-side. Browser callback is not payment proof. CSRF/schema validation/rate limits and least privilege.

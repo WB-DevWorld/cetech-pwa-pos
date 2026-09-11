@@ -1,0 +1,7 @@
+---
+description: Project authority
+globs: ""
+alwaysApply: true
+---
+
+Read AGENTS.md, SOURCE-OF-TRUTH.md and current ADRs. Repository truth outranks memory; generated code never redefines architecture. Follow approved task scope. Done = evidence.

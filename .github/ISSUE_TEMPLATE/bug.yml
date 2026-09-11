@@ -1,0 +1,22 @@
+name: Bug / failed invariant
+description: Evidence-first investigation, with remediation separately scoped
+title: "[BUG] "
+body:
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Observed result, expected result, commit and reproduction
+    validations:
+      required: true
+  - type: textarea
+    id: risk
+    attributes:
+      label: Money, stock, security or data-loss impact and redacted evidence
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Owner, allowed investigation paths, acceptance and remediation authorization
+    validations:
+      required: true

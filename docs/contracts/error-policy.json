@@ -1,0 +1,104 @@
+[
+  {
+    "code": "VALIDATION_ERROR",
+    "httpStatus": 400,
+    "retryable": false,
+    "nextAction": "none"
+  },
+  {
+    "code": "AUTH_REQUIRED",
+    "httpStatus": 401,
+    "retryable": false,
+    "nextAction": "reauthenticate"
+  },
+  {
+    "code": "FORBIDDEN",
+    "httpStatus": 403,
+    "retryable": false,
+    "nextAction": "none"
+  },
+  {
+    "code": "NOT_FOUND",
+    "httpStatus": 404,
+    "retryable": false,
+    "nextAction": "none"
+  },
+  {
+    "code": "QUOTE_CHANGED",
+    "httpStatus": 409,
+    "retryable": false,
+    "nextAction": "review_quote"
+  },
+  {
+    "code": "QUOTE_EXPIRED",
+    "httpStatus": 409,
+    "retryable": false,
+    "nextAction": "review_quote"
+  },
+  {
+    "code": "STOCK_CHANGED",
+    "httpStatus": 409,
+    "retryable": false,
+    "nextAction": "review_quote"
+  },
+  {
+    "code": "SHIFT_REQUIRED",
+    "httpStatus": 409,
+    "retryable": false,
+    "nextAction": "contact_manager"
+  },
+  {
+    "code": "SHIFT_CONFLICT",
+    "httpStatus": 409,
+    "retryable": false,
+    "nextAction": "resolve"
+  },
+  {
+    "code": "PAYMENT_PENDING",
+    "httpStatus": 409,
+    "retryable": false,
+    "nextAction": "resolve"
+  },
+  {
+    "code": "PAYMENT_NOT_VERIFIED",
+    "httpStatus": 409,
+    "retryable": false,
+    "nextAction": "resolve"
+  },
+  {
+    "code": "INTEGRATION_UNAVAILABLE",
+    "httpStatus": 503,
+    "retryable": true,
+    "nextAction": "resolve"
+  },
+  {
+    "code": "IDEMPOTENCY_CONFLICT",
+    "httpStatus": 409,
+    "retryable": false,
+    "nextAction": "contact_manager"
+  },
+  {
+    "code": "OPERATION_IN_PROGRESS",
+    "httpStatus": 202,
+    "retryable": true,
+    "nextAction": "resolve"
+  },
+  {
+    "code": "REQUIRES_ATTENTION",
+    "httpStatus": 409,
+    "retryable": false,
+    "nextAction": "contact_manager"
+  },
+  {
+    "code": "RATE_LIMITED",
+    "httpStatus": 429,
+    "retryable": true,
+    "nextAction": "retry_same_key"
+  },
+  {
+    "code": "UNSUPPORTED_VERSION",
+    "httpStatus": 426,
+    "retryable": false,
+    "nextAction": "none"
+  }
+]

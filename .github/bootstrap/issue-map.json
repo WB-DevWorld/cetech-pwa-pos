@@ -1,0 +1,122 @@
+{
+  "BR-01": {
+    "number": 13,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/13"
+  },
+  "BR-02": {
+    "number": 14,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/14"
+  },
+  "BR-03": {
+    "number": 15,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/15"
+  },
+  "BR-04": {
+    "number": 16,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/16"
+  },
+  "BR-05": {
+    "number": 17,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/17"
+  },
+  "BR-06": {
+    "number": 18,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/18"
+  },
+  "BR-07": {
+    "number": 19,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/19"
+  },
+  "CORE-01": {
+    "number": 20,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/20"
+  },
+  "CORE-02": {
+    "number": 21,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/21"
+  },
+  "CORE-03": {
+    "number": 22,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/22"
+  },
+  "CORE-04": {
+    "number": 23,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/23"
+  },
+  "CORE-05": {
+    "number": 24,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/24"
+  },
+  "CORE-06": {
+    "number": 25,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/25"
+  },
+  "CORE-07": {
+    "number": 28,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/28"
+  },
+  "CP-01": {
+    "number": 1,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/1"
+  },
+  "CP-02": {
+    "number": 2,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/2"
+  },
+  "CP-03": {
+    "number": 3,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/3"
+  },
+  "CP-04": {
+    "number": 4,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/4"
+  },
+  "CP-05": {
+    "number": 5,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/5"
+  },
+  "FE-01": {
+    "number": 6,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/6"
+  },
+  "FE-02": {
+    "number": 7,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/7"
+  },
+  "FE-03": {
+    "number": 8,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/8"
+  },
+  "FE-04": {
+    "number": 9,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/9"
+  },
+  "FE-05": {
+    "number": 10,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/10"
+  },
+  "FE-06": {
+    "number": 11,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/11"
+  },
+  "FE-07": {
+    "number": 12,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/12"
+  },
+  "PAY-01": {
+    "number": 26,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/26"
+  },
+  "QA-01": {
+    "number": 29,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/29"
+  },
+  "REL-01": {
+    "number": 30,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/30"
+  },
+  "RT-01": {
+    "number": 27,
+    "url": "https://github.com/WB-DevWorld/cetech-pwa-pos/issues/27"
+  }
+}

@@ -1,0 +1,59 @@
+CETECH POS Frontend Prototype — Package Manifest
+
+Primary preview:
+- index.html
+- styles.css
+- js/mock-data.js
+- js/mock-adapters.js
+- js/state.js
+- js/components.js
+- js/app.js
+
+Production handoff:
+- frontend-contracts.ts
+- frontend-decision-ledger.md
+- design-tokens.md
+- screen-state-matrix.md
+- nextjs-handoff.md
+- cursor-handoff.md
+- demo-scenarios.md
+- verification.md
+- README.md
+
+Expanded documentation is also available under docs/.
+
+Verification screenshots:
+- verification-sell-desktop.png
+- verification-mobile-cart.png
+- verification-desktop.png
+
+This browser preview is simulated. It does not contain production credentials or call real WooCommerce, Supabase, WoodMart, B2BKing, Paystack, or MoneyMove APIs.
+
+SHA-256:
+31cf685900a8b216d5dd5b0dd2c399aa114c13c1ee7f4c977a39fb63c18ad9f9  README.md
+ba398e3fb93109956e2ec7226994679769dedc0b037156a7d6de0b7329a2639f  cursor-handoff.md
+7bd3a015f92f1e957b9aadc7d7848ce2f4d634c7c90abb9b5da66763fb5816c8  demo-scenarios.md
+c1da5b6a9bfc2cd1b577e6ff6bd1f06addd4b652599d60420517a4ab7cec523a  design-tokens.md
+ba398e3fb93109956e2ec7226994679769dedc0b037156a7d6de0b7329a2639f  docs/cursor-handoff.md
+7bd3a015f92f1e957b9aadc7d7848ce2f4d634c7c90abb9b5da66763fb5816c8  docs/demo-scenarios.md
+c1da5b6a9bfc2cd1b577e6ff6bd1f06addd4b652599d60420517a4ab7cec523a  docs/design-tokens.md
+5fcae3af0c4011777f7fe2314e709636bda9294e0af5a8d290e85898a4e387cc  docs/frontend-decision-ledger.md
+66a8ea90df3b95150a4b7fddd58d177132aedc40fc840def48601d8ed212cc44  docs/frontend-spec.md
+8f0edd01807100edf38ff276fee227cdf37f7ad65489f6b67b23bba1e5ef093f  docs/nextjs-handoff.md
+6bfc7aeb2b7af110c878ecc79b3c7992b71cba99684a3f23e3388ba2e050dc1f  docs/screen-state-matrix.md
+b7eac270df803ee6c4595c0cd7196c26d07e3ee7ba2c6d981cd8c17f6ac59714  docs/verification.md
+9f446d3563cafdb7c1ef503c76a1377fa3200ca70a335bbb64efe95c12a460b4  frontend-contracts.ts
+5fcae3af0c4011777f7fe2314e709636bda9294e0af5a8d290e85898a4e387cc  frontend-decision-ledger.md
+aaa0f5292fa5a768d60801e66be16916882e6f8faa47034111cf4900b3b53405  index.html
+4afc5c3426416e922406e7f19a5cc0b2fe65e2862e89f328d9283593e7c79ca5  js/app.js
+b434052927140bdc60825b96c201b9b28e666a5f8c3b35dc754550a6db156714  js/components.js
+ef8bc20c3a189bf604917ca7c6de4da6f3057239cd4e587c35f9c55a5f7812b5  js/mock-adapters.js
+e810d7d65840ea64df65846452b9a060414207077d6c28389a39e8affb516d70  js/mock-data.js
+3b6972ac1fdea6b2df810c47fe647afd19b1c00040f5b2a2e394c7c56d2f093b  js/state.js
+8f0edd01807100edf38ff276fee227cdf37f7ad65489f6b67b23bba1e5ef093f  nextjs-handoff.md
+6bfc7aeb2b7af110c878ecc79b3c7992b71cba99684a3f23e3388ba2e050dc1f  screen-state-matrix.md
+d1a93975c3b338058d711cdab9d02d15b90b6aa50a7fffa98a4edb59364340eb  styles.css
+8e825c67c252092c397a630bd280a908400ec679c47628f9bec49500843b3788  verification-desktop.png
+bd793f2897da089ab0d1c04b18b7b97e9a69d2c63f1f97b1004cdada89f595c0  verification-mobile-cart.png
+cf3730f2f980419bf399acad6af23c7f6385269d26f0518013880fde85131b2b  verification-sell-desktop.png
+b7eac270df803ee6c4595c0cd7196c26d07e3ee7ba2c6d981cd8c17f6ac59714  verification.md

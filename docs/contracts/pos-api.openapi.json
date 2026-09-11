@@ -1,0 +1,1647 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "CETECH POS BFF",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/api/pos/v1"
+    }
+  ],
+  "security": [
+    {
+      "staffSession": []
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "getStoreHealth",
+        "summary": "getStoreHealth",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "$ref": "./pos-domain.schema.json#/$defs/StoreHealth"
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/session": {
+      "get": {
+        "operationId": "getSession",
+        "summary": "getSession",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Session"
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/catalog": {
+      "get": {
+        "operationId": "searchCatalog",
+        "summary": "searchCatalog",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          {
+            "name": "barcode",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "productId",
+            "in": "query",
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Id"
+            }
+          },
+          {
+            "name": "parentId",
+            "in": "query",
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "$ref": "./pos-domain.schema.json#/$defs/CatalogPage"
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/customers": {
+      "get": {
+        "operationId": "searchCustomers",
+        "summary": "searchCustomers",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "./pos-domain.schema.json#/$defs/CustomerSummary"
+                      }
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/quotes": {
+      "post": {
+        "operationId": "quote",
+        "summary": "quote",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Quote"
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./pos-domain.schema.json#/$defs/QuoteRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sales/prepare": {
+      "post": {
+        "operationId": "prepareSale",
+        "summary": "prepareSale",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "$ref": "./pos-domain.schema.json#/$defs/PreparedSale"
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted/in progress; retain key and resolve. Not proof of completion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./pos-domain.schema.json#/$defs/PrepareSaleRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sales/{transactionId}": {
+      "get": {
+        "operationId": "resolveSale",
+        "summary": "resolveSale",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          },
+          {
+            "name": "transactionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "$ref": "./pos-domain.schema.json#/$defs/SaleResolution"
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sales/finalize": {
+      "post": {
+        "operationId": "finalizeSale",
+        "summary": "finalizeSale",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "$ref": "./pos-domain.schema.json#/$defs/SaleResolution"
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted/in progress; retain key and resolve. Not proof of completion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./pos-domain.schema.json#/$defs/FinalizeSaleRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sales/cancel": {
+      "post": {
+        "operationId": "cancelSale",
+        "summary": "cancelSale",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "$ref": "./pos-domain.schema.json#/$defs/SaleResolution"
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted/in progress; retain key and resolve. Not proof of completion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./pos-domain.schema.json#/$defs/CancelSaleRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/initialize": {
+      "post": {
+        "operationId": "initializePayment",
+        "summary": "initializePayment",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "$ref": "./pos-domain.schema.json#/$defs/PaymentState"
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted/in progress; retain key and resolve. Not proof of completion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./pos-domain.schema.json#/$defs/InitializePaymentRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/cash": {
+      "post": {
+        "operationId": "confirmCash",
+        "summary": "confirmCash",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "$ref": "./pos-domain.schema.json#/$defs/PaymentState"
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted/in progress; retain key and resolve. Not proof of completion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./pos-domain.schema.json#/$defs/CashPaymentRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/resolve": {
+      "post": {
+        "operationId": "resolvePayment",
+        "summary": "resolvePayment",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "$ref": "./pos-domain.schema.json#/$defs/PaymentState"
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./pos-domain.schema.json#/$defs/PaymentLookup"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/receipts/{transactionId}": {
+      "get": {
+        "operationId": "getReceipt",
+        "summary": "getReceipt",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          },
+          {
+            "name": "transactionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "$ref": "./pos-domain.schema.json#/$defs/ReceiptSnapshot"
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/registers/{registerId}": {
+      "get": {
+        "operationId": "getRegister",
+        "summary": "getRegister",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          },
+          {
+            "name": "registerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Register"
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/registers/{registerId}/active-shift": {
+      "get": {
+        "operationId": "getActiveShift",
+        "summary": "getActiveShift",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          },
+          {
+            "name": "registerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "oneOf": [
+                        {
+                          "$ref": "./pos-domain.schema.json#/$defs/Shift"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shifts/open": {
+      "post": {
+        "operationId": "openShift",
+        "summary": "openShift",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Shift"
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted/in progress; retain key and resolve. Not proof of completion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./pos-domain.schema.json#/$defs/OpenShiftRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shifts/cash-movements": {
+      "post": {
+        "operationId": "recordCashMovement",
+        "summary": "recordCashMovement",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "$ref": "./pos-domain.schema.json#/$defs/CashMovement"
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted/in progress; retain key and resolve. Not proof of completion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./pos-domain.schema.json#/$defs/CashMovementRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shifts/close": {
+      "post": {
+        "operationId": "closeShift",
+        "summary": "closeShift",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Shift"
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted/in progress; retain key and resolve. Not proof of completion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./pos-domain.schema.json#/$defs/CloseShiftRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shifts/{shiftId}/report": {
+      "get": {
+        "operationId": "getShiftReport",
+        "summary": "getShiftReport",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          },
+          {
+            "name": "shiftId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "X",
+                "Z"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "$ref": "./pos-domain.schema.json#/$defs/ShiftReport"
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/returns/preview": {
+      "post": {
+        "operationId": "previewReturn",
+        "summary": "previewReturn",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "$ref": "./pos-domain.schema.json#/$defs/ReturnPreview"
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./pos-domain.schema.json#/$defs/ReturnPreviewRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/returns/execute": {
+      "post": {
+        "operationId": "executeReturn",
+        "summary": "executeReturn",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "$ref": "./pos-domain.schema.json#/$defs/ReturnResolution"
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted/in progress; retain key and resolve. Not proof of completion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./pos-domain.schema.json#/$defs/ReturnExecuteRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/returns/{returnId}": {
+      "get": {
+        "operationId": "resolveReturn",
+        "summary": "resolveReturn",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          },
+          {
+            "name": "returnId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "$ref": "./pos-domain.schema.json#/$defs/ReturnResolution"
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "staffSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "pos_session",
+        "description": "BFF-owned HttpOnly Secure session; verify server scope and same-origin/CSRF on mutations."
+      }
+    }
+  }
+}

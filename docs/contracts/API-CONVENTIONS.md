@@ -1,0 +1,15 @@
+# API convention v1
+
+JSON UTF-8 only. Prefixes: browser `/api/pos/v1`, bridge `/wp-json/cetech-pos/v1`. Schemas reject unexpected request fields. Validate at both trust boundaries with a maintained validator; TypeScript is not runtime validation.
+
+Success: `{ok:true,data:T,correlationId}`. Failure: `{ok:false,error:{code,message,retryable,nextAction,details?},correlationId}`. Sanitize messages/details; no traces, credentials or provider payload dumps. Every response echoes validated X-Correlation-ID; generate a new UUID if a missing/invalid inbound ID must be rejected. Also put correlation ID in structured logs. It is not an idempotency key.
+
+Every side-effecting command requires Idempotency-Key UUID. Reads, quote, return preview and resolve do not create a new financial effect. Quote may persist a short-lived immutable snapshot. GET never creates orders/charges/reports with financial effects. Retrying GET cannot alter money/stock. All responses containing customer/session/quote/payment data use Cache-Control: no-store; service worker must exclude these routes.
+
+Idempotency uniqueness: organization + operation type + key, with separate unique transaction-to-Woo mapping and tender/refund keys. Canonicalize semantic request before SHA-256 (sorted object keys, normalized quantity/money, stable ordered lines; exclude correlation ID and transport fields). Same key/same request returns previous outcome; same key/different request → 409 conflict. In-progress → 202 failure envelope OPERATION_IN_PROGRESS with resolve/retry-same-key guidance. PaymentState pending can return 200 success carrying pending state; it is not 'paid'. Preserve original result correlation separately in audit and echo current request correlation.
+
+Reauthorize every replay before returning stored result. Keep financial deduplication evidence through the operational/audit retention window; do not expire keys while delayed delivery is possible. Rate-limit reads/quotes; bounded retries with jitter and Retry-After. A retryable flag never authorizes a new charge key. Ambiguous transport failure always resolves first.
+
+BFF sessions use server-managed HttpOnly/Secure cookie and server session mapping through IdentityPort. SameSite/CSRF + origin checks apply; session implementation is CORE-02. Bridge uses dedicated application-password service identity over TLS with a bridge-specific capability, network restrictions where available, bounded input and no public CORS. Service identity never impersonates the selected buyer's staff permissions; buyer context is isolated only for pricing.
+
+Version changes: incompatible semantic/required-field/enum changes need new major/API path or an explicit coordinated preproduction freeze revision before any deployed client. Additive fields still require reader compatibility tests because current schemas are closed. Never silently change v1 under an installed PWA; preserve old APIs/assets during upgrade window.

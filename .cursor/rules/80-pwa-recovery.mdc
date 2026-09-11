@@ -1,0 +1,7 @@
+---
+description: Local state and controlled updates
+globs: "apps/pos-web/src/local/**,apps/pos-web/public/**,apps/pos-web/src/features/**"
+alwaysApply: false
+---
+
+Preserve drafts/journal/auth; separate projections/cache. No routine IndexedDB/global cache reset. Safe-point update, passive tabs, migration block UX. Offline browse/drafts only at launch.

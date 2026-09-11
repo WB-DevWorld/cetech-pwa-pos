@@ -1,0 +1,7 @@
+---
+description: POS operational data and migration owner
+globs: "supabase/**,apps/pos-web/src/server/**"
+alwaysApply: false
+---
+
+WS3 migration captain; append new migrations, grants plus RLS, deny tests, no duplicate commerce master. Service-role bypass still needs server authorization. Cash/audit history append-only.

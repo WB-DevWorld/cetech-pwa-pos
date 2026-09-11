@@ -1,0 +1,7 @@
+---
+description: Evidence matching risk
+globs: "tests/**,supabase/tests/**,wordpress/cetech-pos-bridge/**"
+alwaysApply: false
+---
+
+No done without exact commands/runtime evidence. Mock passes do not prove parity or RLS. Test concurrency, replay, partial failure and installed PWA retention. Run real scaffold checks; missing runtime means blocked.

@@ -1,0 +1,87 @@
+[
+  {
+    "name": "workstream:frontend",
+    "color": "1d76db",
+    "description": "workstream: frontend"
+  },
+  {
+    "name": "workstream:commerce",
+    "color": "0e8a16",
+    "description": "workstream: commerce"
+  },
+  {
+    "name": "workstream:core",
+    "color": "5319e7",
+    "description": "workstream: core"
+  },
+  {
+    "name": "priority:P0",
+    "color": "b60205",
+    "description": "priority: P0"
+  },
+  {
+    "name": "priority:P1",
+    "color": "d93f0b",
+    "description": "priority: P1"
+  },
+  {
+    "name": "priority:P2",
+    "color": "fbca04",
+    "description": "priority: P2"
+  },
+  {
+    "name": "type:architecture",
+    "color": "5319e7",
+    "description": "type: architecture"
+  },
+  {
+    "name": "type:contract",
+    "color": "0052cc",
+    "description": "type: contract"
+  },
+  {
+    "name": "type:implementation",
+    "color": "1d76db",
+    "description": "type: implementation"
+  },
+  {
+    "name": "type:bug",
+    "color": "d73a4a",
+    "description": "type: bug"
+  },
+  {
+    "name": "type:test",
+    "color": "bfd4f2",
+    "description": "type: test"
+  },
+  {
+    "name": "type:security",
+    "color": "b60205",
+    "description": "type: security"
+  },
+  {
+    "name": "type:docs",
+    "color": "0075ca",
+    "description": "type: docs"
+  },
+  {
+    "name": "gate:blocker",
+    "color": "b60205",
+    "description": "gate: blocker"
+  },
+  {
+    "name": "needs:architecture",
+    "color": "c2e0c6",
+    "description": "needs: architecture"
+  },
+  {
+    "name": "needs:integration",
+    "color": "c5def5",
+    "description": "needs: integration"
+  },
+  {
+    "name": "status:blocked",
+    "color": "f9d0c4",
+    "description": "status: blocked"
+  }
+]

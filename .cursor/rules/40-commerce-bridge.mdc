@@ -1,0 +1,7 @@
+---
+description: Woo pricing HPOS and bridge
+globs: "wordpress/cetech-pos-bridge/**,tests/bridge/**,tests/fixtures/commerce/**"
+alwaysApply: false
+---
+
+Isolated actual Woo/WoodMart/B2BKing pricing; no copied formula. HPOS-safe Woo CRUD, service capability, unique idempotency and stock race proof. Pricing parity precedes checkout. Shared schemas owned by WS3.

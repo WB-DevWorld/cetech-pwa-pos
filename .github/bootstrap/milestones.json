@@ -1,0 +1,22 @@
+[
+  {
+    "key": "M0",
+    "title": "M0 \u2014 Engineering Control Plane",
+    "description": "Governance, frozen contracts, verified live inputs and toolchain"
+  },
+  {
+    "key": "M1",
+    "title": "M1 \u2014 Real Sale Vertical Slice",
+    "description": "Staff/register/scan/customer/authoritative quote/prepare/cash/stock/receipt"
+  },
+  {
+    "key": "M2",
+    "title": "M2 \u2014 Production Hardening",
+    "description": "Electronic payment, returns, shifts, security, PWA, reconciliation"
+  },
+  {
+    "key": "M3",
+    "title": "M3 \u2014 Production Rehearsal & Cutover",
+    "description": "Failure/restore/hardware/tax evidence, human-approved pilot and rollback"
+  }
+]

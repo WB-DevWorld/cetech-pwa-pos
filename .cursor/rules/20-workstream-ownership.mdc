@@ -1,0 +1,7 @@
+---
+description: File ownership and central serialization
+globs: ""
+alwaysApply: true
+---
+
+Read OWNERSHIP.md and assigned workstream BOUNDARIES/TASKS. Only assigned paths; WS3 single editor for contracts/migrations/root/CI/local schema. Record scoped delegation; no shared worktree.

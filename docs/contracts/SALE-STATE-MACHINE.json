@@ -1,0 +1,85 @@
+{
+  "version": "1.0.0",
+  "terminal": [
+    "completed",
+    "cancelled"
+  ],
+  "sameStateReplay": "Allowed only with identical idempotent outcome; never execute effects twice.",
+  "transitions": [
+    {
+      "from": "not_found",
+      "to": "preparing",
+      "guard": "Unique transaction/key acquired; no prior authoritative sale"
+    },
+    {
+      "from": "preparing",
+      "to": "prepared",
+      "guard": "One Woo order plus verified stock commitment"
+    },
+    {
+      "from": "preparing",
+      "to": "requires_attention",
+      "guard": "Order result remains ambiguous after bounded resolution"
+    },
+    {
+      "from": "prepared",
+      "to": "payment_pending",
+      "guard": "Tender initiated for exact prepared total"
+    },
+    {
+      "from": "prepared",
+      "to": "finalizing",
+      "guard": "Cash tender verified and journaled"
+    },
+    {
+      "from": "payment_pending",
+      "to": "finalizing",
+      "guard": "Provider/server evidence verified for exact sale amount"
+    },
+    {
+      "from": "finalizing",
+      "to": "completed",
+      "guard": "Woo finalization + POS evidence + unique receipt durable"
+    },
+    {
+      "from": "finalizing",
+      "to": "requires_attention",
+      "guard": "Repair required; never re-charge"
+    },
+    {
+      "from": "prepared",
+      "to": "cancelled",
+      "guard": "Verified no successful/pending/unknown payment; stock effect safely reversed"
+    },
+    {
+      "from": "payment_pending",
+      "to": "prepared",
+      "guard": "Provider definitively failed/cancelled, no successful tender"
+    },
+    {
+      "from": "payment_pending",
+      "to": "requires_attention",
+      "guard": "Ambiguous tender, expiry or mismatch"
+    },
+    {
+      "from": "requires_attention",
+      "to": "prepared",
+      "guard": "Authorized reconciliation proves prepared sale and no verified payment"
+    },
+    {
+      "from": "requires_attention",
+      "to": "finalizing",
+      "guard": "Authorized reconciliation recovered verified tender"
+    },
+    {
+      "from": "requires_attention",
+      "to": "completed",
+      "guard": "Authoritative effects proven and repaired"
+    },
+    {
+      "from": "requires_attention",
+      "to": "cancelled",
+      "guard": "Authorized reconciliation proves no money due and safe stock reversal"
+    }
+  ]
+}

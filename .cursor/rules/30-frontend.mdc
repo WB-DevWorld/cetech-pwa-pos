@@ -1,0 +1,7 @@
+---
+description: Approved frontend preservation
+globs: "apps/pos-web/src/features/**,apps/pos-web/src/ui/**,tests/frontend/**"
+alwaysApply: false
+---
+
+Implement from immutable reference; preserve responsive UX/tokens/copy/cart revision/pending states. No Woo/Supabase/provider privileged imports. Use mocks against frozen contracts; do not edit core or app routing.

@@ -1,0 +1,25 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  control-plane:
+    name: control-plane
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2, pinned
+        with:
+          persist-credentials: false
+      - name: Verify foundation and contracts
+        run: python3 scripts/verify_control_plane.py
+# CP-05/BR-01/CORE-01 add real lockfile install, lint/typecheck/unit/build,
+# PHP/contract/RLS and Playwright checks when scaffolds exist. No fake skipped gates.

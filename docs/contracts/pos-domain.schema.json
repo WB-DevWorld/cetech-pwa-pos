@@ -1,0 +1,1956 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CETECH POS v1 shared contracts",
+  "description": "Frozen baseline 2026-09-11; specification, not implemented services.",
+  "$defs": {
+    "Id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "Uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "Timestamp": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,6})?Z$"
+    },
+    "Currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "Quantity": {
+      "type": "string",
+      "pattern": "^(0\\.[0-9]{0,5}[1-9]|[1-9][0-9]{0,8}(\\.[0-9]{0,5}[1-9])?)$"
+    },
+    "Money": {
+      "type": "object",
+      "properties": {
+        "minor": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "currency": {
+          "$ref": "#/$defs/Currency"
+        }
+      },
+      "required": [
+        "minor",
+        "currency"
+      ],
+      "additionalProperties": false
+    },
+    "SignedMoney": {
+      "type": "object",
+      "properties": {
+        "minor": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "currency": {
+          "$ref": "#/$defs/Currency"
+        }
+      },
+      "required": [
+        "minor",
+        "currency"
+      ],
+      "additionalProperties": false
+    },
+    "CustomerContext": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "walkin"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "retail",
+                "b2b"
+              ]
+            },
+            "customerId": {
+              "$ref": "#/$defs/Id"
+            }
+          },
+          "required": [
+            "kind",
+            "customerId"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CustomerSummary": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "retail",
+            "b2b"
+          ]
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "company": {
+          "type": "string"
+        },
+        "phoneMasked": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "displayName"
+      ],
+      "additionalProperties": false
+    },
+    "StockStatus": {
+      "type": "string",
+      "enum": [
+        "in_stock",
+        "low_stock",
+        "out_of_stock",
+        "backorder",
+        "unknown"
+      ]
+    },
+    "CatalogItem": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "sku": {
+          "type": "string"
+        },
+        "barcodes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "simple",
+            "variable",
+            "variation"
+          ]
+        },
+        "parentId": {
+          "$ref": "#/$defs/Id"
+        },
+        "variationLabel": {
+          "type": "string"
+        },
+        "displayPrice": {
+          "$ref": "#/$defs/Money"
+        },
+        "stockStatus": {
+          "$ref": "#/$defs/StockStatus"
+        },
+        "projectionUpdatedAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "barcodes",
+        "kind",
+        "stockStatus",
+        "projectionUpdatedAt"
+      ],
+      "additionalProperties": false
+    },
+    "CatalogPage": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CatalogItem"
+          }
+        },
+        "nextCursor": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "additionalProperties": false
+    },
+    "QuoteRequestLine": {
+      "type": "object",
+      "properties": {
+        "lineId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "productId": {
+          "$ref": "#/$defs/Id"
+        },
+        "variationId": {
+          "$ref": "#/$defs/Id"
+        },
+        "quantity": {
+          "$ref": "#/$defs/Quantity"
+        }
+      },
+      "required": [
+        "lineId",
+        "productId",
+        "quantity"
+      ],
+      "additionalProperties": false
+    },
+    "QuoteRequest": {
+      "type": "object",
+      "properties": {
+        "cartId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "cartRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "customer": {
+          "$ref": "#/$defs/CustomerContext"
+        },
+        "locationId": {
+          "$ref": "#/$defs/Id"
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/QuoteRequestLine"
+          },
+          "minItems": 1,
+          "maxItems": 200
+        }
+      },
+      "required": [
+        "cartId",
+        "cartRevision",
+        "customer",
+        "locationId",
+        "lines"
+      ],
+      "additionalProperties": false
+    },
+    "QuoteProblem": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "PRODUCT_NOT_PURCHASABLE",
+            "OUT_OF_STOCK",
+            "MINIMUM_QUANTITY",
+            "MAXIMUM_QUANTITY",
+            "REQUIRED_MULTIPLE",
+            "COMMERCIAL_RULE_VIOLATION",
+            "PRICING_UNAVAILABLE"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "lineId": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "additionalProperties": false
+    },
+    "QuoteLine": {
+      "type": "object",
+      "properties": {
+        "lineId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "productId": {
+          "$ref": "#/$defs/Id"
+        },
+        "variationId": {
+          "$ref": "#/$defs/Id"
+        },
+        "quantity": {
+          "$ref": "#/$defs/Quantity"
+        },
+        "unitPrice": {
+          "$ref": "#/$defs/Money"
+        },
+        "subtotal": {
+          "$ref": "#/$defs/Money"
+        },
+        "discount": {
+          "$ref": "#/$defs/Money"
+        },
+        "tax": {
+          "$ref": "#/$defs/Money"
+        },
+        "total": {
+          "$ref": "#/$defs/Money"
+        },
+        "stockStatus": {
+          "$ref": "#/$defs/StockStatus"
+        },
+        "purchasable": {
+          "type": "boolean"
+        },
+        "pricingLabel": {
+          "type": "string"
+        },
+        "problems": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/QuoteProblem"
+          }
+        }
+      },
+      "required": [
+        "lineId",
+        "productId",
+        "quantity",
+        "unitPrice",
+        "subtotal",
+        "discount",
+        "tax",
+        "total",
+        "stockStatus",
+        "purchasable",
+        "problems"
+      ],
+      "additionalProperties": false
+    },
+    "Quote": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "fingerprint": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 128
+        },
+        "cartId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "cartRevision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "customer": {
+          "$ref": "#/$defs/CustomerContext"
+        },
+        "locationId": {
+          "$ref": "#/$defs/Id"
+        },
+        "currency": {
+          "$ref": "#/$defs/Currency"
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/QuoteLine"
+          },
+          "minItems": 1
+        },
+        "subtotal": {
+          "$ref": "#/$defs/Money"
+        },
+        "discount": {
+          "$ref": "#/$defs/Money"
+        },
+        "tax": {
+          "$ref": "#/$defs/Money"
+        },
+        "total": {
+          "$ref": "#/$defs/Money"
+        },
+        "calculatedAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "purchasable": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "fingerprint",
+        "cartId",
+        "cartRevision",
+        "customer",
+        "locationId",
+        "currency",
+        "lines",
+        "subtotal",
+        "discount",
+        "tax",
+        "total",
+        "calculatedAt",
+        "expiresAt",
+        "purchasable"
+      ],
+      "additionalProperties": false
+    },
+    "CommandContext": {
+      "type": "object",
+      "properties": {
+        "idempotencyKey": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "correlationId": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "idempotencyKey",
+        "correlationId"
+      ],
+      "additionalProperties": false
+    },
+    "PrepareSaleRequest": {
+      "type": "object",
+      "properties": {
+        "transactionId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "registerId": {
+          "$ref": "#/$defs/Id"
+        },
+        "shiftId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "deviceId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "quoteId": {
+          "$ref": "#/$defs/Id"
+        },
+        "quoteFingerprint": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "transactionId",
+        "registerId",
+        "shiftId",
+        "deviceId",
+        "quoteId",
+        "quoteFingerprint"
+      ],
+      "additionalProperties": false
+    },
+    "PreparedSale": {
+      "type": "object",
+      "properties": {
+        "transactionId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "saleId": {
+          "$ref": "#/$defs/Id"
+        },
+        "orderReference": {
+          "type": "string"
+        },
+        "quoteFingerprint": {
+          "type": "string"
+        },
+        "total": {
+          "$ref": "#/$defs/Money"
+        },
+        "status": {
+          "const": "prepared"
+        },
+        "stockCommitment": {
+          "type": "string",
+          "enum": [
+            "reserved",
+            "reduced"
+          ]
+        },
+        "preparedAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "transactionId",
+        "saleId",
+        "orderReference",
+        "quoteFingerprint",
+        "total",
+        "status",
+        "stockCommitment",
+        "preparedAt",
+        "expiresAt"
+      ],
+      "additionalProperties": false
+    },
+    "SaleStatus": {
+      "type": "string",
+      "enum": [
+        "not_found",
+        "preparing",
+        "prepared",
+        "payment_pending",
+        "finalizing",
+        "completed",
+        "cancelled",
+        "requires_attention"
+      ]
+    },
+    "SaleResolution": {
+      "type": "object",
+      "properties": {
+        "transactionId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "status": {
+          "$ref": "#/$defs/SaleStatus"
+        },
+        "saleId": {
+          "$ref": "#/$defs/Id"
+        },
+        "orderReference": {
+          "type": "string"
+        },
+        "receiptId": {
+          "$ref": "#/$defs/Id"
+        },
+        "paymentId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "transactionId",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "CancelSaleRequest": {
+      "type": "object",
+      "properties": {
+        "transactionId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "transactionId",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "ElectronicTender": {
+      "type": "string",
+      "enum": [
+        "mobile_money",
+        "card",
+        "external_electronic"
+      ]
+    },
+    "PaymentTender": {
+      "type": "string",
+      "enum": [
+        "cash",
+        "mobile_money",
+        "card",
+        "external_electronic"
+      ]
+    },
+    "InitializePaymentRequest": {
+      "type": "object",
+      "properties": {
+        "transactionId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "tender": {
+          "$ref": "#/$defs/ElectronicTender"
+        }
+      },
+      "required": [
+        "transactionId",
+        "tender"
+      ],
+      "additionalProperties": false
+    },
+    "CashPaymentRequest": {
+      "type": "object",
+      "properties": {
+        "transactionId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "cashReceived": {
+          "$ref": "#/$defs/Money"
+        }
+      },
+      "required": [
+        "transactionId",
+        "cashReceived"
+      ],
+      "additionalProperties": false
+    },
+    "PaymentState": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "transactionId": {
+              "$ref": "#/$defs/Uuid"
+            },
+            "paymentId": {
+              "$ref": "#/$defs/Uuid"
+            },
+            "tender": {
+              "$ref": "#/$defs/PaymentTender"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "initializing",
+                "awaiting_customer",
+                "pending",
+                "cancelled",
+                "failed",
+                "reconciling",
+                "requires_attention"
+              ]
+            },
+            "amount": {
+              "$ref": "#/$defs/Money"
+            },
+            "verifiedAt": {
+              "$ref": "#/$defs/Timestamp"
+            },
+            "displayReference": {
+              "type": "string"
+            },
+            "nextAction": {
+              "type": "string",
+              "enum": [
+                "wait",
+                "resolve",
+                "present_payment",
+                "none",
+                "contact_manager"
+              ]
+            }
+          },
+          "required": [
+            "transactionId",
+            "paymentId",
+            "tender",
+            "status",
+            "amount",
+            "nextAction"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "transactionId": {
+              "$ref": "#/$defs/Uuid"
+            },
+            "paymentId": {
+              "$ref": "#/$defs/Uuid"
+            },
+            "tender": {
+              "$ref": "#/$defs/PaymentTender"
+            },
+            "status": {
+              "const": "verified"
+            },
+            "amount": {
+              "$ref": "#/$defs/Money"
+            },
+            "verifiedAt": {
+              "$ref": "#/$defs/Timestamp"
+            },
+            "displayReference": {
+              "type": "string"
+            },
+            "nextAction": {
+              "type": "string",
+              "enum": [
+                "wait",
+                "resolve",
+                "present_payment",
+                "none",
+                "contact_manager"
+              ]
+            }
+          },
+          "required": [
+            "transactionId",
+            "paymentId",
+            "tender",
+            "status",
+            "amount",
+            "nextAction",
+            "verifiedAt"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "PaymentLookup": {
+      "type": "object",
+      "properties": {
+        "transactionId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "paymentId": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "transactionId"
+      ],
+      "additionalProperties": false
+    },
+    "FinalizeSaleRequest": {
+      "type": "object",
+      "properties": {
+        "transactionId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "paymentId": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "transactionId",
+        "paymentId"
+      ],
+      "additionalProperties": false
+    },
+    "VerifiedPaymentEvidence": {
+      "type": "object",
+      "properties": {
+        "evidenceId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "transactionId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "paymentId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "saleId": {
+          "$ref": "#/$defs/Id"
+        },
+        "amount": {
+          "$ref": "#/$defs/Money"
+        },
+        "tender": {
+          "$ref": "#/$defs/PaymentTender"
+        },
+        "verifiedAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "verificationSource": {
+          "type": "string",
+          "enum": [
+            "cash_ledger",
+            "provider_server_verification",
+            "approved_external_attestation"
+          ]
+        }
+      },
+      "required": [
+        "evidenceId",
+        "transactionId",
+        "paymentId",
+        "saleId",
+        "amount",
+        "tender",
+        "verifiedAt",
+        "verificationSource"
+      ],
+      "additionalProperties": false
+    },
+    "BridgeFinalizeRequest": {
+      "type": "object",
+      "properties": {
+        "transactionId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "payment": {
+          "$ref": "#/$defs/VerifiedPaymentEvidence"
+        }
+      },
+      "required": [
+        "transactionId",
+        "payment"
+      ],
+      "additionalProperties": false
+    },
+    "ReceiptLine": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "variationLabel": {
+          "type": "string"
+        },
+        "quantity": {
+          "$ref": "#/$defs/Quantity"
+        },
+        "unitPrice": {
+          "$ref": "#/$defs/Money"
+        },
+        "subtotal": {
+          "$ref": "#/$defs/Money"
+        },
+        "discount": {
+          "$ref": "#/$defs/Money"
+        },
+        "tax": {
+          "$ref": "#/$defs/Money"
+        },
+        "total": {
+          "$ref": "#/$defs/Money"
+        }
+      },
+      "required": [
+        "name",
+        "quantity",
+        "unitPrice",
+        "subtotal",
+        "discount",
+        "tax",
+        "total"
+      ],
+      "additionalProperties": false
+    },
+    "ReceiptSnapshot": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "transactionId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "receiptNumber": {
+          "type": "string"
+        },
+        "orderReference": {
+          "type": "string"
+        },
+        "issuedAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "locationName": {
+          "type": "string"
+        },
+        "registerName": {
+          "type": "string"
+        },
+        "cashierName": {
+          "type": "string"
+        },
+        "customerLabel": {
+          "type": "string"
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ReceiptLine"
+          },
+          "minItems": 1
+        },
+        "subtotal": {
+          "$ref": "#/$defs/Money"
+        },
+        "discount": {
+          "$ref": "#/$defs/Money"
+        },
+        "tax": {
+          "$ref": "#/$defs/Money"
+        },
+        "total": {
+          "$ref": "#/$defs/Money"
+        },
+        "tender": {
+          "$ref": "#/$defs/PaymentTender"
+        },
+        "cashReceived": {
+          "$ref": "#/$defs/Money"
+        },
+        "changeDue": {
+          "$ref": "#/$defs/Money"
+        },
+        "documentKind": {
+          "const": "operational_pos_receipt"
+        }
+      },
+      "required": [
+        "id",
+        "transactionId",
+        "receiptNumber",
+        "orderReference",
+        "issuedAt",
+        "locationName",
+        "registerName",
+        "cashierName",
+        "customerLabel",
+        "lines",
+        "subtotal",
+        "discount",
+        "tax",
+        "total",
+        "tender",
+        "documentKind"
+      ],
+      "additionalProperties": false
+    },
+    "PrintRequest": {
+      "type": "object",
+      "properties": {
+        "receiptId": {
+          "$ref": "#/$defs/Id"
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "initial",
+            "reprint"
+          ]
+        }
+      },
+      "required": [
+        "receiptId",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "PrintResult": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "dialog_opened",
+            "failed",
+            "unsupported"
+          ]
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "Register": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "type": "string"
+        },
+        "locationId": {
+          "$ref": "#/$defs/Id"
+        },
+        "currency": {
+          "$ref": "#/$defs/Currency"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "disabled",
+            "maintenance"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "locationId",
+        "currency",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "OpenShiftRequest": {
+      "type": "object",
+      "properties": {
+        "registerId": {
+          "$ref": "#/$defs/Id"
+        },
+        "deviceId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "openingFloat": {
+          "$ref": "#/$defs/Money"
+        }
+      },
+      "required": [
+        "registerId",
+        "deviceId",
+        "openingFloat"
+      ],
+      "additionalProperties": false
+    },
+    "Shift": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "registerId": {
+          "$ref": "#/$defs/Id"
+        },
+        "deviceId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "cashierId": {
+          "$ref": "#/$defs/Id"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "open",
+            "closing",
+            "closed",
+            "requires_attention"
+          ]
+        },
+        "openingFloat": {
+          "$ref": "#/$defs/Money"
+        },
+        "expectedCash": {
+          "$ref": "#/$defs/Money"
+        },
+        "countedCash": {
+          "$ref": "#/$defs/Money"
+        },
+        "variance": {
+          "$ref": "#/$defs/SignedMoney"
+        },
+        "openedAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "closedAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "zReportId": {
+          "$ref": "#/$defs/Id"
+        }
+      },
+      "required": [
+        "id",
+        "registerId",
+        "deviceId",
+        "cashierId",
+        "status",
+        "openingFloat",
+        "openedAt"
+      ],
+      "additionalProperties": false
+    },
+    "CashMovementRequest": {
+      "type": "object",
+      "properties": {
+        "shiftId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "pay_in",
+            "pay_out",
+            "cash_pickup",
+            "correction"
+          ]
+        },
+        "amount": {
+          "$ref": "#/$defs/Money"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "approvalId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "correctsMovementId": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "shiftId",
+        "kind",
+        "amount",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "CashMovement": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "shiftId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "opening_float",
+            "cash_sale",
+            "cash_refund",
+            "pay_in",
+            "pay_out",
+            "cash_pickup",
+            "correction"
+          ]
+        },
+        "signedAmount": {
+          "$ref": "#/$defs/SignedMoney"
+        },
+        "actorId": {
+          "$ref": "#/$defs/Id"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "transactionId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "shiftId",
+        "kind",
+        "signedAmount",
+        "actorId",
+        "createdAt"
+      ],
+      "additionalProperties": false
+    },
+    "CloseShiftRequest": {
+      "type": "object",
+      "properties": {
+        "shiftId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "countedCash": {
+          "$ref": "#/$defs/Money"
+        },
+        "approvalId": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "shiftId",
+        "countedCash"
+      ],
+      "additionalProperties": false
+    },
+    "ShiftReport": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "shiftId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "X",
+            "Z"
+          ]
+        },
+        "expectedCash": {
+          "$ref": "#/$defs/Money"
+        },
+        "countedCash": {
+          "$ref": "#/$defs/Money"
+        },
+        "variance": {
+          "$ref": "#/$defs/SignedMoney"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "id",
+        "shiftId",
+        "kind",
+        "expectedCash",
+        "createdAt"
+      ],
+      "additionalProperties": false
+    },
+    "Session": {
+      "type": "object",
+      "properties": {
+        "actorId": {
+          "$ref": "#/$defs/Id"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "organizationId": {
+          "$ref": "#/$defs/Id"
+        },
+        "locationIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          }
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "actorId",
+        "displayName",
+        "organizationId",
+        "locationIds",
+        "capabilities",
+        "expiresAt"
+      ],
+      "additionalProperties": false
+    },
+    "HealthCheck": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "healthy",
+            "degraded",
+            "unavailable",
+            "unverified"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "checkedAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "message",
+        "checkedAt"
+      ],
+      "additionalProperties": false
+    },
+    "StoreHealth": {
+      "type": "object",
+      "properties": {
+        "checks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HealthCheck"
+          }
+        },
+        "contractVersion": {
+          "const": "1.0.0"
+        },
+        "pendingOperationCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "attentionCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "buildId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "checks",
+        "contractVersion",
+        "pendingOperationCount",
+        "attentionCount",
+        "buildId"
+      ],
+      "additionalProperties": false
+    },
+    "BridgeHealth": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "healthy",
+            "degraded",
+            "unavailable"
+          ]
+        },
+        "contractVersion": {
+          "const": "1.0.0"
+        },
+        "wooDetected": {
+          "type": "boolean"
+        },
+        "woodmartDetected": {
+          "type": "boolean"
+        },
+        "b2bkingDetected": {
+          "type": "boolean"
+        },
+        "pricingParityVerified": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "status",
+        "contractVersion",
+        "wooDetected",
+        "woodmartDetected",
+        "b2bkingDetected",
+        "pricingParityVerified"
+      ],
+      "additionalProperties": false
+    },
+    "PendingOperation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "transactionId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "operation": {
+          "type": "string",
+          "enum": [
+            "sale.prepare",
+            "sale.finalize",
+            "sale.cancel",
+            "payment.initialize",
+            "payment.cash",
+            "payment.resolve",
+            "shift.open",
+            "shift.close",
+            "cash.movement",
+            "refund.resolve"
+          ]
+        },
+        "idempotencyKey": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "requestHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "payloadVersion": {
+          "const": "1.0.0"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "sent",
+            "response_unknown",
+            "acknowledged",
+            "requires_attention"
+          ]
+        },
+        "attempts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "createdAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "lastAttemptAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "lastErrorCode": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "operation",
+        "idempotencyKey",
+        "requestHash",
+        "payloadVersion",
+        "status",
+        "attempts",
+        "createdAt"
+      ],
+      "additionalProperties": false
+    },
+    "ApiErrorCode": {
+      "type": "string",
+      "enum": [
+        "VALIDATION_ERROR",
+        "AUTH_REQUIRED",
+        "FORBIDDEN",
+        "NOT_FOUND",
+        "QUOTE_CHANGED",
+        "QUOTE_EXPIRED",
+        "STOCK_CHANGED",
+        "SHIFT_REQUIRED",
+        "SHIFT_CONFLICT",
+        "PAYMENT_PENDING",
+        "PAYMENT_NOT_VERIFIED",
+        "INTEGRATION_UNAVAILABLE",
+        "IDEMPOTENCY_CONFLICT",
+        "OPERATION_IN_PROGRESS",
+        "REQUIRES_ATTENTION",
+        "RATE_LIMITED",
+        "UNSUPPORTED_VERSION"
+      ]
+    },
+    "ApiFailure": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "const": false
+        },
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "$ref": "#/$defs/ApiErrorCode"
+            },
+            "message": {
+              "type": "string"
+            },
+            "retryable": {
+              "type": "boolean"
+            },
+            "nextAction": {
+              "type": "string",
+              "enum": [
+                "reauthenticate",
+                "review_quote",
+                "resolve",
+                "retry_same_key",
+                "contact_manager",
+                "none"
+              ]
+            },
+            "details": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "operationId": {
+                  "$ref": "#/$defs/Uuid"
+                },
+                "currentQuoteId": {
+                  "$ref": "#/$defs/Id"
+                }
+              },
+              "required": [],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "code",
+            "message",
+            "retryable",
+            "nextAction"
+          ],
+          "additionalProperties": false
+        },
+        "correlationId": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "ok",
+        "error",
+        "correlationId"
+      ],
+      "additionalProperties": false
+    },
+    "ReturnLineRequest": {
+      "type": "object",
+      "properties": {
+        "orderLineId": {
+          "$ref": "#/$defs/Id"
+        },
+        "quantity": {
+          "$ref": "#/$defs/Quantity"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "condition": {
+          "type": "string",
+          "enum": [
+            "resellable",
+            "opened_resellable",
+            "damaged",
+            "defective",
+            "quarantine",
+            "not_physically_returned"
+          ]
+        }
+      },
+      "required": [
+        "orderLineId",
+        "quantity",
+        "reason",
+        "condition"
+      ],
+      "additionalProperties": false
+    },
+    "ReturnPreviewRequest": {
+      "type": "object",
+      "properties": {
+        "saleId": {
+          "$ref": "#/$defs/Id"
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ReturnLineRequest"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "saleId",
+        "lines"
+      ],
+      "additionalProperties": false
+    },
+    "ReturnPreview": {
+      "type": "object",
+      "properties": {
+        "returnId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "saleId": {
+          "$ref": "#/$defs/Id"
+        },
+        "refundTotal": {
+          "$ref": "#/$defs/Money"
+        },
+        "approvalRequired": {
+          "type": "boolean"
+        },
+        "fingerprint": {
+          "type": "string"
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "returnId",
+        "saleId",
+        "refundTotal",
+        "approvalRequired",
+        "fingerprint",
+        "expiresAt"
+      ],
+      "additionalProperties": false
+    },
+    "ReturnExecuteRequest": {
+      "type": "object",
+      "properties": {
+        "returnId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "fingerprint": {
+          "type": "string"
+        },
+        "approvalId": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "returnId",
+        "fingerprint"
+      ],
+      "additionalProperties": false
+    },
+    "ReturnResolution": {
+      "type": "object",
+      "properties": {
+        "returnId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "previewed",
+            "approval_required",
+            "refund_pending",
+            "completed",
+            "requires_attention"
+          ]
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "returnId",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "RefundRequest": {
+      "type": "object",
+      "properties": {
+        "refundId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "paymentId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "transactionId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "amount": {
+          "$ref": "#/$defs/Money"
+        },
+        "approvalId": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "refundId",
+        "paymentId",
+        "transactionId",
+        "amount"
+      ],
+      "additionalProperties": false
+    },
+    "RefundState": {
+      "type": "object",
+      "properties": {
+        "refundId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "verified",
+            "failed",
+            "requires_attention"
+          ]
+        },
+        "amount": {
+          "$ref": "#/$defs/Money"
+        }
+      },
+      "required": [
+        "refundId",
+        "status",
+        "amount"
+      ],
+      "additionalProperties": false
+    },
+    "CartDraft": {
+      "type": "object",
+      "properties": {
+        "cartId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "customer": {
+          "$ref": "#/$defs/CustomerContext"
+        },
+        "locationId": {
+          "$ref": "#/$defs/Id"
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/QuoteRequestLine"
+          }
+        },
+        "updatedAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "cartId",
+        "revision",
+        "customer",
+        "locationId",
+        "lines",
+        "updatedAt"
+      ],
+      "additionalProperties": false
+    },
+    "QuoteState": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "missing",
+                "stale",
+                "expired",
+                "offline"
+              ]
+            }
+          },
+          "required": [
+            "status"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "const": "quoting"
+            },
+            "revision": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "status",
+            "revision"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "const": "confirmed"
+            },
+            "revision": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "quote": {
+              "$ref": "#/$defs/Quote"
+            }
+          },
+          "required": [
+            "status",
+            "revision",
+            "quote"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "const": "changed"
+            },
+            "revision": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "previous": {
+              "$ref": "#/$defs/Quote"
+            },
+            "current": {
+              "$ref": "#/$defs/Quote"
+            }
+          },
+          "required": [
+            "status",
+            "revision",
+            "previous",
+            "current"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "const": "failed"
+            },
+            "revision": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "code": {
+              "$ref": "#/$defs/ApiErrorCode"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "status",
+            "revision",
+            "code",
+            "message"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CheckoutEligibility": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "allowed": {
+              "const": true
+            }
+          },
+          "required": [
+            "allowed"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "allowed": {
+              "const": false
+            },
+            "reason": {
+              "type": "string",
+              "enum": [
+                "NO_ACTIVE_SHIFT",
+                "CART_EMPTY",
+                "QUOTE_REQUIRED",
+                "QUOTE_STALE",
+                "QUOTE_EXPIRED",
+                "CONNECTION_REQUIRED",
+                "PRODUCT_UNAVAILABLE",
+                "CRITICAL_RECOVERY_PENDING",
+                "PASSIVE_WINDOW",
+                "UNSUPPORTED_APP_VERSION"
+              ]
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "allowed",
+            "reason",
+            "message"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ReleasePolicy": {
+      "type": "object",
+      "properties": {
+        "latestBuild": {
+          "type": "string"
+        },
+        "recommendedBuild": {
+          "type": "string"
+        },
+        "minimumSupportedBuild": {
+          "type": "string"
+        },
+        "criticalBuild": {
+          "type": "string"
+        },
+        "minimumApiVersion": {
+          "type": "string"
+        },
+        "minimumLocalSchema": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "latestBuild",
+        "recommendedBuild",
+        "minimumSupportedBuild",
+        "minimumApiVersion",
+        "minimumLocalSchema"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

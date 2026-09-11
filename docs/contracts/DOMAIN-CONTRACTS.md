@@ -1,0 +1,37 @@
+# Domain semantics — v1.0.0
+
+## Money, IDs and quantities
+Money uses safe integer minor units and ISO-style three-letter currency codes. P0 settlement currency must match the configured store; GHS expected but live currency/precision remains UNVERIFIED. Monetary amounts are nonnegative; SignedMoney is for variance/ledger deltas. Server adapters do exact decimal conversion from Woo/provider strings and apply authoritative Woo rounding; never binary floating-point price arithmetic. UnitPrice is display-rounded, so do not derive line total by multiplying it. For each line and quote: total = subtotal - discount + tax; quote fields equal summed line fields; all currencies agree. No new fees/shipping/split tender in v1 without contract change. GHS uses two decimal minor units; reject an incompatible live currency/precision instead of guessing conversion.
+
+Quantities are canonical positive decimal strings, max nine integer and six fractional digits, no leading/trailing zero padding. Examples: '1', '12', '0.25'. Exact decimal arithmetic; validate actual product unit/min/max/multiples in Woo. This does not authorize fractional products where Woo forbids them. Barcode/SKU are strings, preserving leading zeroes. Product/customer/sale IDs are opaque strings. POS transaction/command/correlation/shift/device IDs are lowercase UUIDs. Provider numeric IDs map server-side, never reused as tenant authorization.
+
+## Quote and prepare
+CustomerContext is either walkin or retail/b2b + opaque customerId. Server verifies customer visibility and actual commercial group/terms. Client kind is only a requested UI mode; server refuses mismatch rather than granting wholesale rights. Quote binds cartId/revision, exact lines, customer, location, tax context and current runtime rules. Fingerprint is server generated, opaque, and tied to an immutable server-held quote snapshot. Client cannot submit authoritative totals.
+
+Changed cart/customer/location invalidates quote. Drop responses with obsolete revision. Quote expiry is server-defined; clocks are checked server-side. Prepare receives quoteId/fingerprint and current authenticated register/shift/device; BFF loads stored lines/context and bridge re-evaluates them. Mismatch returns QUOTE_CHANGED/STOCK_CHANGED before payment; a new reviewed quote is required. A quote never reserves inventory.
+
+Bridge must store/retrieve the quote snapshot or validate a BFF-owned signed snapshot; current wire assumes shared opaque quote ID is issued by bridge and propagated unchanged. Do not use a browser-created quoteId. Prepare atomically claims transaction idempotency before creating Woo order. Recovery searches authoritative transaction mapping after uncertain write; metadata alone is not a unique constraint.
+
+## Sale versus payment
+PaymentPort executes/verifies tender only. Cash confirmation records one append-only movement for amount applied and tender/change evidence, atomically with verified cash evidence in POS storage. Electronic status comes from server provider verification/webhooks; callback/browser success is not proof. Initialize derives amount/currency from prepared sale, not UI.
+
+FinalizeSale BFF use case receives only transactionId/paymentId. Load verified evidence, check organization/location, transaction, sale, amount, currency, no previous assignment/refund, then call server-only SalesPort.confirmPayment. Bridge maps sale IDs to Woo, checks order totals and applies payment_complete-equivalent exactly once via approved Woo runtime. The payment adapter never calls Woo directly. Different payment IDs cannot finalize the same sale twice.
+
+Woo commercial completion, POS operational completion and receipt creation may commit separately. Use durable intent/outbox, stable unique keys and reconciliation. A successful Woo finalization followed by POS outage stays finalizing/requires_attention until repair; never charge/create another order. Receipt creation is unique per transaction; return it only when required POS cash/payment/workflow evidence is consistent. Verified money cannot be undone by cancelling a UI flow.
+
+Cancellation requires authoritative no-success evidence; pending/unknown payment blocks cancellation/stock release. Late payment after expiry/cancellation routes to attention/refund policy, never silently creates a new order. Automated expiry must query provider first; Woo's generic hold timer is not sufficient proof.
+
+## Registers, receipts and journal
+One active/closing shift per register with atomic constraint; authorized device/actor membership. Close freezes new movements through server transaction/lock, resolves pending work, preserves blind count and variance, applies manager policy, creates immutable Z exactly once. X is a live report, not closure. Corrections append; expected cash and permissions are never browser authority.
+
+Receipt snapshots include original line/tax/tender context and are immutable. PrintPort only loads authorized receipt and opens print flow; dialog_opened is not physical printer success. Failed print cannot undo or repeat the sale. Reprint is audited separately.
+
+OperationJournal append precedes network effects. Store canonical versioned request payload, request hash, scoped key, state and retry history atomically in Dexie; payload excludes secrets and unnecessary PII. Identical intents reuse keys; acknowledged state follows durable server result. Unknown result triggers resolve. Do not erase journal entries during upgrade or sign-out; protect sensitive local data per approved retention/session policy.
+
+## Returns
+Return intake, original commercial economics, provider refund and physical stock disposition are separate. Never trust client refundAmount/restockQuantity. Return preview calculates from historical sold/refunded quantities. Approval binds preview fingerprint, actor and scope. RT-01 must refine bridge refund/restock wire commands and durable independent refund/restock keys before execution; damaged/quarantine/nonreturned goods never auto-restock.
+
+## Definitive rejection and corrections
+If quote/stock validation definitively rejects preparation before any Woo order exists, retain the failed command outcome. A newly reviewed quote may use a new command key under the same cart intent only after resolution proves no prepared sale/effect; never rotate keys to escape an unknown result. POS transaction/order uniqueness still applies. Cash correction requires an approved reference to the original movement and an exact reversing effect; a replacement amount is a new separately audited movement, not an edit to history. Reject unsupported correction semantics until its explicit task refines the contract.
+
+Catalog items use a flat shape: a variation has its own id plus parentId; CatalogPort.search(parentId) returns authorized child variations, and productId selects one exact item. Barcode results may return multiple matches for explicit disambiguation. A variation quote line uses the parent productId plus variationId; adapter mapping preserves this invariant. No provider numeric ID leaks into selection logic.

@@ -1,0 +1,7 @@
+---
+description: Reviewable task completion
+globs: ""
+alwaysApply: true
+---
+
+Use docs/ai/HANDOFF-TEMPLATE.md; files/contracts/migrations/ADRs/tests/runtime/assumptions/risks/reviewer/next task. Audit first; no silent unrelated fix or redesign. CI/staging is not human production approval.

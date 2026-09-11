@@ -1,0 +1,7 @@
+---
+description: Provider neutral application boundaries
+globs: "apps/pos-web/src/**,wordpress/**,supabase/**"
+alwaysApply: false
+---
+
+Use docs/architecture and v1 contracts. UI→use cases→ports→adapters. No duplicate commerce truth, browser pricing or P0 InventoryPort. Server-only payment finalization; receipt/print separate.

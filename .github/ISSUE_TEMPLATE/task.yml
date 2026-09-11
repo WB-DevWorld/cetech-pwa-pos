@@ -1,0 +1,50 @@
+name: Bounded implementation task
+description: A scope and evidence contract for one developer/agent session
+title: "[TASK] "
+body:
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective and context
+    validations:
+      required: true
+  - type: dropdown
+    id: workstream
+    attributes:
+      label: Workstream
+      options:
+        - WS1 Frontend
+        - WS2 Commerce Bridge
+        - WS3 Core Data Integration
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Owner, allowed files and forbidden files
+    validations:
+      required: true
+  - type: textarea
+    id: inputs
+    attributes:
+      label: Contracts, version and dependencies
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Implementation steps and expected changes
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance, exact tests and definition of done
+    validations:
+      required: true
+  - type: textarea
+    id: handoff
+    attributes:
+      label: Risks, STOP conditions and handoff
+    validations:
+      required: true

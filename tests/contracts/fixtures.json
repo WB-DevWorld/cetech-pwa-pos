@@ -1,0 +1,239 @@
+[
+  {
+    "name": "money in pesewas",
+    "schema": "Money",
+    "valid": true,
+    "value": {
+      "minor": 1250,
+      "currency": "GHS"
+    }
+  },
+  {
+    "name": "fractional minor units denied",
+    "schema": "Money",
+    "valid": false,
+    "value": {
+      "minor": 1.25,
+      "currency": "GHS"
+    }
+  },
+  {
+    "name": "unsafe integer denied",
+    "schema": "Money",
+    "valid": false,
+    "value": {
+      "minor": 9007199254740992,
+      "currency": "GHS"
+    }
+  },
+  {
+    "name": "negative tender denied",
+    "schema": "Money",
+    "valid": false,
+    "value": {
+      "minor": -1,
+      "currency": "GHS"
+    }
+  },
+  {
+    "name": "signed variance allowed",
+    "schema": "SignedMoney",
+    "valid": true,
+    "value": {
+      "minor": -100,
+      "currency": "GHS"
+    }
+  },
+  {
+    "name": "fractional quantity exact string",
+    "schema": "Quantity",
+    "valid": true,
+    "value": "0.25"
+  },
+  {
+    "name": "quantity integer string",
+    "schema": "Quantity",
+    "valid": true,
+    "value": "12"
+  },
+  {
+    "name": "zero quantity denied",
+    "schema": "Quantity",
+    "valid": false,
+    "value": "0"
+  },
+  {
+    "name": "quantity float denied",
+    "schema": "Quantity",
+    "valid": false,
+    "value": 0.25
+  },
+  {
+    "name": "noncanonical trailing zero denied",
+    "schema": "Quantity",
+    "valid": false,
+    "value": "1.00"
+  },
+  {
+    "name": "walkin context",
+    "schema": "CustomerContext",
+    "valid": true,
+    "value": {
+      "kind": "walkin"
+    }
+  },
+  {
+    "name": "b2b context needs customer",
+    "schema": "CustomerContext",
+    "valid": false,
+    "value": {
+      "kind": "b2b"
+    }
+  },
+  {
+    "name": "client cannot assert wholesale group",
+    "schema": "CustomerContext",
+    "valid": false,
+    "value": {
+      "kind": "b2b",
+      "customerId": "c1",
+      "groupId": "wholesale"
+    }
+  },
+  {
+    "name": "whole cart request",
+    "schema": "QuoteRequest",
+    "valid": true,
+    "value": {
+      "cartId": "00000000-0000-4000-8000-000000000001",
+      "cartRevision": 1,
+      "customer": {
+        "kind": "walkin"
+      },
+      "locationId": "store-1",
+      "lines": [
+        {
+          "lineId": "00000000-0000-4000-8000-000000000001",
+          "productId": "product-1",
+          "quantity": "1"
+        }
+      ]
+    }
+  },
+  {
+    "name": "no client price in quote request",
+    "schema": "QuoteRequest",
+    "valid": false,
+    "value": {
+      "cartId": "00000000-0000-4000-8000-000000000001",
+      "cartRevision": 1,
+      "customer": {
+        "kind": "walkin"
+      },
+      "locationId": "store-1",
+      "lines": [
+        {
+          "lineId": "00000000-0000-4000-8000-000000000001",
+          "productId": "product-1",
+          "quantity": "1"
+        }
+      ],
+      "total": {
+        "minor": 1250,
+        "currency": "GHS"
+      }
+    }
+  },
+  {
+    "name": "finalize only refers to payment",
+    "schema": "FinalizeSaleRequest",
+    "valid": true,
+    "value": {
+      "transactionId": "00000000-0000-4000-8000-000000000001",
+      "paymentId": "00000000-0000-4000-8000-000000000001"
+    }
+  },
+  {
+    "name": "browser cannot assert verified",
+    "schema": "FinalizeSaleRequest",
+    "valid": false,
+    "value": {
+      "transactionId": "00000000-0000-4000-8000-000000000001",
+      "paymentId": "00000000-0000-4000-8000-000000000001",
+      "verified": true
+    }
+  },
+  {
+    "name": "cash amount not staff assertion",
+    "schema": "CashPaymentRequest",
+    "valid": false,
+    "value": {
+      "transactionId": "00000000-0000-4000-8000-000000000001",
+      "cashReceived": {
+        "minor": 1250,
+        "currency": "GHS"
+      },
+      "actorId": "admin"
+    }
+  },
+  {
+    "name": "negative count denied",
+    "schema": "CloseShiftRequest",
+    "valid": false,
+    "value": {
+      "shiftId": "00000000-0000-4000-8000-000000000001",
+      "countedCash": {
+        "minor": -1,
+        "currency": "GHS"
+      }
+    }
+  },
+  {
+    "name": "standard pending error",
+    "schema": "ApiFailure",
+    "valid": true,
+    "value": {
+      "ok": false,
+      "error": {
+        "code": "PAYMENT_PENDING",
+        "message": "Check existing payment before retry.",
+        "retryable": false,
+        "nextAction": "resolve"
+      },
+      "correlationId": "00000000-0000-4000-8000-000000000001"
+    }
+  },
+  {
+    "name": "verified tender needs verification timestamp",
+    "schema": "PaymentState",
+    "valid": false,
+    "value": {
+      "transactionId": "00000000-0000-4000-8000-000000000001",
+      "paymentId": "00000000-0000-4000-8000-000000000002",
+      "tender": "cash",
+      "status": "verified",
+      "amount": {
+        "minor": 1250,
+        "currency": "GHS"
+      },
+      "nextAction": "none"
+    }
+  },
+  {
+    "name": "verified tender schema",
+    "schema": "PaymentState",
+    "valid": true,
+    "value": {
+      "transactionId": "00000000-0000-4000-8000-000000000001",
+      "paymentId": "00000000-0000-4000-8000-000000000002",
+      "tender": "cash",
+      "status": "verified",
+      "amount": {
+        "minor": 1250,
+        "currency": "GHS"
+      },
+      "nextAction": "none",
+      "verifiedAt": "2026-09-11T12:00:00Z"
+    }
+  }
+]
