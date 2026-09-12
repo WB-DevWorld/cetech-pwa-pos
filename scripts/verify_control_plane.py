@@ -99,9 +99,12 @@ for id in table:visit(id)
 for t in tasks:require(t['ws'] in [1,2,3] and all(t[k] for k in ['allowed','contracts','steps','acceptance','risk']),'Incomplete task '+t['id'])
 for issue in read('.github/bootstrap/issues.json'):
     for heading in ['Objective','Context','Workstream','Owner','Allowed Files','Forbidden Files','Contracts','Dependencies','Implementation Steps','Acceptance Criteria','Required Tests','Risks','Definition of Done','Handoff']:require('## '+heading in issue['body'],'Incomplete issue '+issue['task_id']+': '+heading)
+SKIP_WALK_PARTS={'.git','artifact','node_modules','.next','playwright-report','test-results','coverage','dist','out'}
+def skipped(path):
+    return any(part in SKIP_WALK_PARTS for part in path.parts)
 # Actual Markdown local file links outside the immutable source must resolve.
 for p in ROOT.rglob('*.md'):
-    if 'artifact' in p.parts or '.git' in p.parts:continue
+    if skipped(p):continue
     for link in re.findall(r'\]\(([^)]+)\)',p.read_text(encoding='utf-8')):
         if link.startswith(('http:','https:','#','mailto:')):continue
         link=link.split('#')[0]
@@ -109,7 +112,7 @@ for p in ROOT.rglob('*.md'):
 # Obvious secret patterns are a tripwire, not a complete secret scanner.
 patterns=[r'ghp_[A-Za-z0-9]{30,}',r'github_pat_[A-Za-z0-9_]{30,}',r'sk_live_[A-Za-z0-9]{16,}',r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----']
 for p in ROOT.rglob('*'):
-    if not p.is_file() or '.git' in p.parts or p.suffix in ['.png','.zip','.pyc']:continue
+    if not p.is_file() or skipped(p) or p.suffix in ['.png','.zip','.pyc']:continue
     text=p.read_text(encoding='utf-8',errors='ignore')
     for pat in patterns:require(re.search(pat,text)is None,'Possible secret in '+str(p.relative_to(ROOT)))
 if errors:
