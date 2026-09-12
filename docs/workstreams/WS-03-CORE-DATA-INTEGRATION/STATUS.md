@@ -1,5 +1,13 @@
 # WS3 current status
 
+Snapshot 2026-09-12. Main `aa08d74f2cb99301817e5995f01486acb7e2169f`. R1/#40 APPROVED / MERGED / VERIFIED. ADR-012 ACTIVE. R2 draft [#43](https://github.com/WB-DevWorld/cetech-pwa-pos/pull/43). CORE-02 CHECKPOINTED `2f6c0b50cd7889e83df93b87af0b7c165152b5db` (issue #21). BR-01 exact SHA `280a73d…` imported as `0ac2e38…` (**INTEGRATED_AND_TESTED**, **LIVE_ACCEPTANCE_PENDING**). CORE-03 **CODE_COMPLETE_REMOTE_ACCEPTANCE_PENDING** (issue #22). Continuation START_FRESHNESS_SNAPSHOT `2026-09-12T23:15:17Z`. Do not recreate R1 or CORE-01. Do not start R3. Keep #43 draft.
+
+CURRENT-WORK holds the central R2 lease.
+
+## Previous snapshot (historical; current section above controls)
+
+# WS3 current status
+
 Snapshot 2026-09-12. Main `aa08d74f2cb99301817e5995f01486acb7e2169f`. R1/#40 APPROVED / MERGED / VERIFIED. ADR-012 ACTIVE. R2 draft [#43](https://github.com/WB-DevWorld/cetech-pwa-pos/pull/43). CORE-02 CHECKPOINTED `2f6c0b50cd7889e83df93b87af0b7c165152b5db` (issue #21). CORE-03 ADAPTER CHECKPOINTED; Next `/health` unattached; not COMPLETE (issue #22). BR-01 `fbbf0ea7…` PROVISIONAL_TEST / unaccepted (`STALE_REQUIRES_OWNER_REFRESH`). Continuation START_FRESHNESS_SNAPSHOT `2026-09-12T22:22:20Z`. Do not recreate R1 or CORE-01. Do not start R3.
 
 CURRENT-WORK holds the central R2 lease.
@@ -22,7 +30,7 @@ Control-plane/contracts implemented and verified. CP-05 is MERGED / VERIFIED on 
 | CI-01 | MERGED / VERIFIED; lease RELEASED | PR #38; merge `8e058d679bb02e96374c0e79cc32d025b6a9ed03`; @Ben-001-sys APPROVED |
 | CORE-01 | ACCEPTED / MERGED / VERIFIED; lease RELEASED | PR #40 merge `aa08d74f…`; @Ben-001-sys APPROVED `260be7f…`. Do not recreate. |
 | CORE-02 | CHECKPOINTED | R2 `batch/r2-auth-bridge-bff` `2f6c0b5…`; issue #21. Durable production session store remains a runtime gate |
-| CORE-03 | ADAPTER CHECKPOINTED; Next route unattached; not COMPLETE | Same R2 branch; issue #22. Injected BR-01 envelope adapter. Detection is not pricing parity. Live attach gated. |
+| CORE-03 | CODE_COMPLETE_REMOTE_ACCEPTANCE_PENDING | Same R2 branch; issue #22. BR-01 imported `0ac2e38…`. Composed BFF health + correlation integrity. Live attach gated on CP04-W4. Detection is not pricing parity. |
 | CORE-04 | SPECIFIED | See TASKS.md; GitHub mapping in ../../plans/TASK-INDEX.md |
 | CORE-05 | SPECIFIED | See TASKS.md; GitHub mapping in ../../plans/TASK-INDEX.md |
 | CORE-06 | SPECIFIED | See TASKS.md; GitHub mapping in ../../plans/TASK-INDEX.md |

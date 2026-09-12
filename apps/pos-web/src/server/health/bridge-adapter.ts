@@ -5,7 +5,12 @@ import { detectionMessage, withoutClaimedPricingParity, type HealthProbe } from 
 export type BridgeFetchLike = (
   input: string,
   init: { readonly headers: Record<string, string>; readonly signal?: AbortSignal },
-) => Promise<{ readonly ok: boolean; readonly status: number; readonly json: () => Promise<unknown> }>;
+) => Promise<{
+  readonly ok: boolean;
+  readonly status: number;
+  readonly json: () => Promise<unknown>;
+  readonly header?: (name: string) => string | null;
+}>;
 
 export type BridgeServiceIdentity = {
   readonly authorizationHeader: string;
@@ -143,7 +148,15 @@ async function inspectBridgeHealth(input: {
         ),
       };
     }
-    const health = mapBridgeHealth(await response.json());
+    const body = await response.json();
+    if (!correlationMatchesRequest(input.correlationId, body, response.header)) {
+      const health = unavailableHealth();
+      return {
+        health,
+        check: checkOf(input.now, "bridge correlation mismatch; not trusted access"),
+      };
+    }
+    const health = mapBridgeHealth(body);
     const storeStatus = health.status === "unavailable" ? "unavailable" : "unverified";
     return {
       health,
@@ -185,6 +198,30 @@ function checkOf(now: Date, message: string): HealthCheck {
     message,
     checkedAt: toIsoTimestamp(now),
   };
+}
+
+function correlationMatchesRequest(
+  requestId: Uuid,
+  body: unknown,
+  header?: (name: string) => string | null,
+): boolean {
+  const echoed = envelopeCorrelationId(body);
+  if (echoed !== requestId) {
+    return false;
+  }
+  if (!header) {
+    return true;
+  }
+  const headerId = header("x-correlation-id") ?? header("X-Correlation-ID");
+  return headerId === null || headerId === requestId;
+}
+
+function envelopeCorrelationId(body: unknown): string | undefined {
+  if (body === null || typeof body !== "object") {
+    return undefined;
+  }
+  const id = (body as Record<string, unknown>).correlationId;
+  return typeof id === "string" ? id : undefined;
 }
 
 function unwrap(body: unknown): Record<string, unknown> {

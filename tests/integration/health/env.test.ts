@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { readServerEnv } from "../../../apps/pos-web/src/config/env";
+import { readBridgeServiceEnv, readServerEnv } from "../../../apps/pos-web/src/config/env";
 
 describe("CORE-03 server env boundary", () => {
   test("public service-role aliases are rejected", () => {
@@ -18,6 +18,14 @@ describe("CORE-03 server env boundary", () => {
     ).toThrow(/must not be exposed/);
   });
 
+  test("public bridge username aliases are rejected", () => {
+    expect(() =>
+      readServerEnv({
+        NEXT_PUBLIC_BRIDGE_USERNAME: "bridge-service",
+      }),
+    ).toThrow(/must not be exposed/);
+  });
+
   test("server-only names stay readable without becoming public env", () => {
     const env = readServerEnv({
       APP_ORIGIN: "https://pos.example.test",
@@ -25,6 +33,8 @@ describe("CORE-03 server env boundary", () => {
       BRIDGE_BASE_URL: "https://staging-shop.example.invalid/wp-json/cetech-pos/v1",
       BUILD_ID: "build-fixture",
       SUPABASE_SERVICE_ROLE_KEY: "server-only",
+      BRIDGE_USERNAME: "bridge-service",
+      BRIDGE_APPLICATION_PASSWORD: "app-pass-fixture",
     });
     expect(env.appOrigin).toBe("https://pos.example.test");
     expect(env.supabaseUrl).toBe("https://example.supabase.co");
@@ -32,5 +42,24 @@ describe("CORE-03 server env boundary", () => {
     expect(env.buildId).toBe("build-fixture");
     expect(JSON.stringify(env)).not.toMatch(/SERVICE_ROLE/i);
     expect(JSON.stringify(env)).not.toMatch(/server-only/);
+    expect(JSON.stringify(env)).not.toMatch(/bridge-service/);
+    expect(JSON.stringify(env)).not.toMatch(/app-pass-fixture/);
+  });
+
+  test("bridge service identity is server-only and ignores placeholders", () => {
+    expect(
+      readBridgeServiceEnv({
+        BRIDGE_BASE_URL: "https://staging-shop.example.invalid/wp-json/cetech-pos/v1",
+        BRIDGE_USERNAME: "REPLACE_WITH_DEDICATED_SERVICE_USER",
+        BRIDGE_APPLICATION_PASSWORD: "REPLACE_WITH_SERVER_ONLY_PASSWORD",
+      }),
+    ).toBeNull();
+    const identity = readBridgeServiceEnv({
+      BRIDGE_BASE_URL: "https://staging-shop.example.invalid/wp-json/cetech-pos/v1",
+      BRIDGE_USERNAME: "bridge-service",
+      BRIDGE_APPLICATION_PASSWORD: "app-pass-fixture",
+    });
+    expect(identity?.username).toBe("bridge-service");
+    expect(identity?.applicationPassword).toBe("app-pass-fixture");
   });
 });

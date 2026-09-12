@@ -9,6 +9,9 @@ export const SERVER_ONLY_SECRET_NAMES = [
   "BRIDGE_APPLICATION_PASSWORD",
 ] as const;
 
+/** Server-only config names that must not be copied to NEXT_PUBLIC_*. */
+export const SERVER_ONLY_CONFIG_NAMES = ["BRIDGE_USERNAME"] as const;
+
 const PUBLIC_PREFIX = "NEXT_PUBLIC_";
 
 export function publicEnvLeaksServerSecret(
@@ -20,7 +23,11 @@ export function publicEnvLeaksServerSecret(
       continue;
     }
     const upper = `${key} ${value}`.toUpperCase();
-    if (upper.includes("SERVICE_ROLE") || SERVER_ONLY_SECRET_NAMES.some((name) => upper.includes(name))) {
+    if (
+      upper.includes("SERVICE_ROLE") ||
+      SERVER_ONLY_SECRET_NAMES.some((name) => upper.includes(name)) ||
+      SERVER_ONLY_CONFIG_NAMES.some((name) => upper.includes(name))
+    ) {
       leaks.push(key);
     }
   }

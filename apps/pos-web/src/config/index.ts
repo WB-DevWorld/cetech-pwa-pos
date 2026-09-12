@@ -1,4 +1,9 @@
-export { assertNoPublicServiceRole, publicEnvLeaksServerSecret, SERVER_ONLY_SECRET_NAMES } from "./secrets";
+export {
+  assertNoPublicServiceRole,
+  publicEnvLeaksServerSecret,
+  SERVER_ONLY_CONFIG_NAMES,
+  SERVER_ONLY_SECRET_NAMES,
+} from "./secrets";
 export {
   AUTH_COOKIE_OPTIONS,
   parseAllowedOrigins,
@@ -6,4 +11,4 @@ export {
   STAFF_CSRF_HEADER,
   STAFF_SESSION_COOKIE,
 } from "./auth";
-export { readServerEnv, type ServerEnv } from "./env";
+export { readBridgeServiceEnv, readServerEnv, type BridgeServiceEnv, type ServerEnv } from "./env";

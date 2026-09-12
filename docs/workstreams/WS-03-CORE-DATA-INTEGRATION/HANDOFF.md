@@ -1,4 +1,43 @@
-# WS3 current handoff — R2 SESSION_COMPLETION (CORE-02 + CORE-03 adapter; not the R2 gate)
+# WS3 current handoff — R2 PROGRESS_CHECKPOINT (BR-01 import + CORE-03 composition)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-12 (BR-01 exact-SHA import + CORE-03 composition; two-pass freshness follows push)
+Task / batch / workstream: R2 — Authentication, bridge health and BFF; WS3 CORE-02 (#21) + CORE-03 (#22) + imported BR-01 (#13)
+Owner / integration editor / requested human reviewer: @wbdevworld / same / @Ben-001-sys (draft #43 only; do not request review while live health remains unproven)
+Branch: `batch/r2-auth-bridge-bff`
+Starting/base SHA: `origin/main` `aa08d74f2cb99301817e5995f01486acb7e2169f`
+Start R2 SHA: `8369c442026ce2fc133f13186c0bc697eb3bc7e6`
+CORE-02 checkpoint: `2f6c0b50cd7889e83df93b87af0b7c165152b5db`
+CORE-03 adapter checkpoint: `88a840c72a01463f78de8df77dd8a04bb7ee1431`
+BR-01 source SHA: `280a73dbcd53ac0e03883775b4fabdec7465a4a8`
+Combined/import SHA: `0ac2e38befb54c9ada404e6854a80285bebb69b9`
+Commit(s) / contributor source SHAs: import `0ac2e38…` from `280a73d…`; CORE-03 composition on this checkpoint (hash after commit)
+Allowed / forbidden paths and central leases: CURRENT-WORK R2 lease; imported wordpress snapshot consumed; no semantic WS2 plugin edits; no contracts edit; no lockfile; no supabase schema
+Files changed this continuation: exact-SHA BR-01 import; BFF composition + correlation integrity; health/env tests; R2 ledger/evidence
+Contracts changed: none (v1.0.0 consumed)
+Database migrations: none
+Architecture decisions: none (ADR-011 CURRENT; ADR-012 ACTIVE)
+Completed/current/remaining tasks: CORE-02 CHECKPOINTED. BR-01 INTEGRATED_AND_TESTED / LIVE_ACCEPTANCE_PENDING. CORE-03 CODE_COMPLETE_REMOTE_ACCEPTANCE_PENDING. Remaining for the R2 gate: authorized CP04-W4 live health + independent review. R3 not started.
+Dependencies: CP-05 ACCEPTED; CORE-01 ACCEPTED through R1; BR-01 local code imported; live bridge identity BLOCKED_REMOTE_ACCEPTANCE
+Tests executed (exact; Windows Node v24.21.0 / pnpm 12.4.1 / Python 3.14.4 / PHP 8.5.0 / GNU Make 4.4.1):
+- `python scripts/verify_control_plane.py` EXIT 0
+- `python -m unittest discover -s tests/tooling -v` EXIT 0 (48)
+- `make -C wordpress/cetech-pos-bridge check` EXIT 0
+- `make -C wordpress/cetech-pos-bridge test` EXIT 0 (**67 passed / 0 failed**)
+- `pnpm install --frozen-lockfile` EXIT 0
+- `pnpm --dir apps/pos-web lint` EXIT 0
+- `pnpm --dir apps/pos-web typecheck` EXIT 0
+- `pnpm --dir apps/pos-web test` EXIT 0 (15 files / 79 tests)
+- `pnpm --dir apps/pos-web build` EXIT 0 (`ƒ /api/pos/v1/health`)
+- `pnpm --dir apps/pos-web test:e2e` EXIT 0 (1 passed; scaffold smoke only)
+- `git diff --check` EXIT 0
+Runtime verification and tested combined SHA/environment: composed R2 tree after `0ac2e38` + CORE-03 composition. No live Woo/WordPress/Supabase. No plugin install. No Application Password created.
+Remote effects performed: none beyond repository commits/pushes/draft PR metadata intended after this checkpoint. No WP install, live credentials, Woo/stock/payment/email, remote migration, or deploy.
+Assumptions / limitations / unresolved risks: ephemeral session store is process-local and refused for production/staging; live health remains CP04-W4; detection is not pricing parity.
+Next exact action: push this checkpoint; two-pass freshness; STOP. Keep #43 draft. Do not request Ben. Do not start R3. Do not merge main.
+
+Freshness protocol of this continuation starts at `2026-09-12T23:15:17Z`; Pass 1 / Pass 2 follow push.
+
+## Previous current handoff — R2 SESSION_COMPLETION (CORE-02 + CORE-03 adapter; not the R2 gate)
 
 Kind / UTC: SESSION_COMPLETION / 2026-09-12T22:47:47Z (Pass-2 cutoff of this continuation; R2 milestone gate is not complete)
 Task / batch / workstream: R2 — Authentication, bridge health and BFF; WS3 CORE-02 (#21) + CORE-03 adapter (#22)

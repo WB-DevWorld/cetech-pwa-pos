@@ -6,6 +6,7 @@ import { toIsoTimestamp } from "../auth/ids";
 import type { StaffSessionStore } from "../auth/session-store";
 import { resolveCorrelationId } from "../http/correlation";
 import { httpStatusFor } from "../http/status";
+import type { BridgeInspect } from "./compose-bridge-health";
 import {
   assembleStoreHealth,
   assertPrepOnlyBridgeHealth,
@@ -23,8 +24,10 @@ export type StoreHealthRequest = {
   readonly sessionStore: StaffSessionStore;
   readonly supabaseProbe?: HealthProbe;
   readonly bridgeProbe?: HealthProbe;
-  /** Mapped BridgeHealth from an injected adapter. Next `/health` does not supply this. */
+  /** Mapped BridgeHealth from an injected adapter when inspectBridge is not used. */
   readonly bridgeHealth?: BridgeHealth;
+  /** Composed BR-01 inspect. When set, it owns the bridge check and mapped health. */
+  readonly inspectBridge?: BridgeInspect;
   readonly supabaseConfigured: boolean;
   readonly bridgeConfigured: boolean;
   readonly buildId: string;
@@ -59,24 +62,8 @@ export async function handleStoreHealth(input: StoreHealthRequest): Promise<Stor
         ? "live supabase probe skipped; PREP_ONLY mock"
         : "supabase is not configured",
     );
-  const bridgeProbe =
-    input.bridgeProbe ??
-    createSkippedProbe(
-      "bridge",
-      input.bridgeConfigured
-        ? "live bridge probe skipped; PREP_ONLY mock. detection is not pricing parity"
-        : "bridge is not configured",
-    );
-  const [supabase, bridge] = await Promise.all([
-    runProbe(supabaseProbe, input.now, "supabase"),
-    runProbe(bridgeProbe, input.now, "bridge"),
-  ]);
-  const bridgeHealth = input.bridgeHealth
-    ? withoutClaimedPricingParity(input.bridgeHealth)
-    : mockBridgeHealth();
-  if (!input.bridgeHealth) {
-    assertPrepOnlyBridgeHealth(bridgeHealth);
-  }
+  const supabase = await runProbe(supabaseProbe, input.now, "supabase");
+  const { bridge, bridgeHealth } = await resolveBridge(input, correlation.correlationId);
 
   const contractCheck: HealthCheck = {
     id: "bridge-contract",
@@ -94,6 +81,47 @@ export async function handleStoreHealth(input: StoreHealthRequest): Promise<Stor
     body: { ok: true, data, correlationId: correlation.correlationId },
     headers,
   };
+}
+
+async function resolveBridge(
+  input: StoreHealthRequest,
+  correlationId: Uuid,
+): Promise<{ bridge: HealthCheck; bridgeHealth: BridgeHealth }> {
+  if (input.inspectBridge) {
+    try {
+      const inspected = await input.inspectBridge(correlationId, input.now);
+      return {
+        bridge: inspected.check,
+        bridgeHealth: withoutClaimedPricingParity(inspected.health),
+      };
+    } catch {
+      return {
+        bridge: {
+          id: "bridge",
+          status: "unavailable",
+          message: "health probe failed; not trusted access",
+          checkedAt: toIsoTimestamp(input.now),
+        },
+        bridgeHealth: mockBridgeHealth(),
+      };
+    }
+  }
+  const bridgeProbe =
+    input.bridgeProbe ??
+    createSkippedProbe(
+      "bridge",
+      input.bridgeConfigured
+        ? "live bridge probe skipped; PREP_ONLY mock. detection is not pricing parity"
+        : "bridge is not configured",
+    );
+  const bridge = await runProbe(bridgeProbe, input.now, "bridge");
+  const bridgeHealth = input.bridgeHealth
+    ? withoutClaimedPricingParity(input.bridgeHealth)
+    : mockBridgeHealth();
+  if (!input.bridgeHealth) {
+    assertPrepOnlyBridgeHealth(bridgeHealth);
+  }
+  return { bridge, bridgeHealth };
 }
 
 async function runProbe(probe: HealthProbe, now: Date, id: string): Promise<HealthCheck> {

@@ -195,11 +195,10 @@ describe("CORE-03 PREP_ONLY store health", () => {
     expect(health.pricingParityVerified).toBe(false);
   });
 
-  test("health and env modules do not fetch live services or embed service-role credentials", () => {
+  test("health handler, probes, and env do not fetch live services or embed service-role credentials", () => {
     const files = [
       "apps/pos-web/src/server/health/handle-store-health.ts",
       "apps/pos-web/src/server/health/probes.ts",
-      "apps/pos-web/src/app/api/pos/v1/health/route.ts",
       "apps/pos-web/src/config/env.ts",
     ];
     for (const relative of files) {
@@ -209,5 +208,17 @@ describe("CORE-03 PREP_ONLY store health", () => {
       expect(source).not.toMatch(/\bwp-json\b/);
       expect(source).not.toMatch(/createBridgeHealthClient/);
     }
+  });
+
+  test("Next health route composes the adapter without public or service-role secrets", () => {
+    const source = readFileSync(
+      new URL("../../../apps/pos-web/src/app/api/pos/v1/health/route.ts", import.meta.url),
+      "utf8",
+    );
+    expect(source).toMatch(/composeBridgeHealthInspect/);
+    expect(source).not.toMatch(/NEXT_PUBLIC_BRIDGE_/);
+    expect(source).not.toMatch(/BRIDGE_APPLICATION_PASSWORD/);
+    expect(source).not.toMatch(/SERVICE_ROLE_KEY\s*=/);
+    expect(source).not.toMatch(/eyJ/);
   });
 });

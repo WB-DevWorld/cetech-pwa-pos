@@ -1,20 +1,23 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import { STAFF_SESSION_COOKIE } from "../../../apps/pos-web/src/config/auth";
+import { readBridgeServiceEnv } from "../../../apps/pos-web/src/config/env";
 import { createEphemeralInMemoryStaffSessionStore } from "../../../apps/pos-web/src/server/auth/session-store";
 import {
   createBridgeHealthClient,
   createBridgeServiceIdentity,
   mapBridgeHealth,
 } from "../../../apps/pos-web/src/server/health/bridge-adapter";
+import { composeBridgeHealthInspect } from "../../../apps/pos-web/src/server/health/compose-bridge-health";
 import { handleStoreHealth } from "../../../apps/pos-web/src/server/health/handle-store-health";
 import { withoutClaimedPricingParity } from "../../../apps/pos-web/src/server/health/probes";
 import { CORRELATION, futureExpiry } from "../auth/helpers";
 
 const NOW = new Date("2026-09-12T22:30:00.000Z");
 const BRIDGE_BASE = "https://staging-shop.example.invalid/wp-json/cetech-pos/v1";
+const FIXTURE_CORRELATION = "550e8400-e29b-41d4-a716-446655440000";
 
-/** Envelope shape from BR-01 `tests/fixtures/commerce/bridge-health.success.example.json` at fbbf0ea7… */
+/** Envelope shape from BR-01 `tests/fixtures/commerce/bridge-health.success.example.json`. */
 const BR01_SUCCESS_ENVELOPE = {
   ok: true as const,
   data: {
@@ -25,8 +28,12 @@ const BR01_SUCCESS_ENVELOPE = {
     b2bkingDetected: true,
     pricingParityVerified: false,
   },
-  correlationId: "550e8400-e29b-41d4-a716-446655440000",
+  correlationId: FIXTURE_CORRELATION,
 };
+
+function successEnvelope(correlationId: string) {
+  return { ...BR01_SUCCESS_ENVELOPE, correlationId };
+}
 
 async function staffCookie() {
   const store = createEphemeralInMemoryStaffSessionStore();
@@ -119,7 +126,7 @@ describe("CORE-03 BFF bridge health/permission adapter", () => {
     const client = clientWith(async (url, init) => {
       captured.url = url;
       captured.headers = init.headers;
-      return { ok: true, status: 200, json: async () => BR01_SUCCESS_ENVELOPE };
+      return { ok: true, status: 200, json: async () => successEnvelope(CORRELATION) };
     });
     const { check, health } = await client.inspect(CORRELATION, NOW);
     expect(captured.url).toBe(`${BRIDGE_BASE}/health`);
@@ -175,9 +182,8 @@ describe("CORE-03 BFF bridge health/permission adapter", () => {
     const client = clientWith(async () => ({
       ok: true,
       status: 200,
-      json: async () => BR01_SUCCESS_ENVELOPE,
+      json: async () => successEnvelope(CORRELATION),
     }));
-    const inspected = await client.inspect(CORRELATION, NOW);
     const result = await handleStoreHealth({
       correlationIdHeader: CORRELATION,
       cookieHeader,
@@ -186,12 +192,7 @@ describe("CORE-03 BFF bridge health/permission adapter", () => {
       supabaseConfigured: true,
       bridgeConfigured: true,
       buildId: "test-build",
-      bridgeProbe: {
-        async check() {
-          return inspected.check;
-        },
-      },
-      bridgeHealth: inspected.health,
+      inspectBridge: (correlationId, now) => client.inspect(correlationId, now),
     });
     expect(result.status).toBe(200);
     if (!result.body.ok) {
@@ -208,7 +209,113 @@ describe("CORE-03 BFF bridge health/permission adapter", () => {
     }
   });
 
-  test("adapter and Next health route stay free of live default fetch and privileged secrets", () => {
+  test("matching response correlation is accepted; mismatch or malformed fails closed", async () => {
+    const matching = clientWith(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => successEnvelope(CORRELATION),
+      header: () => CORRELATION,
+    }));
+    const matched = await matching.inspect(CORRELATION, NOW);
+    expect(matched.health.wooDetected).toBe(true);
+    expect(matched.check.status).toBe("unverified");
+
+    const mismatched = clientWith(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => BR01_SUCCESS_ENVELOPE,
+    }));
+    const mismatch = await mismatched.inspect(CORRELATION, NOW);
+    expect(mismatch.health.status).toBe("unavailable");
+    expect(mismatch.health.wooDetected).toBe(false);
+    expect(mismatch.check.status).toBe("unavailable");
+    expect(mismatch.check.message).toMatch(/correlation mismatch; not trusted access/);
+
+    const missing = clientWith(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ ok: true, data: BR01_SUCCESS_ENVELOPE.data }),
+    }));
+    const missingResult = await missing.inspect(CORRELATION, NOW);
+    expect(missingResult.check.status).toBe("unavailable");
+    expect(missingResult.health.wooDetected).toBe(false);
+
+    const malformed = clientWith(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ ...successEnvelope(CORRELATION), correlationId: "not-a-uuid" }),
+    }));
+    const malformedResult = await malformed.inspect(CORRELATION, NOW);
+    expect(malformedResult.check.status).toBe("unavailable");
+    expect(malformedResult.health.wooDetected).toBe(false);
+
+    const headerMismatch = clientWith(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => successEnvelope(CORRELATION),
+      header: () => FIXTURE_CORRELATION,
+    }));
+    const headerResult = await headerMismatch.inspect(CORRELATION, NOW);
+    expect(headerResult.check.status).toBe("unavailable");
+    expect(headerResult.health.wooDetected).toBe(false);
+  });
+
+  test("compose stays unattached without usable service identity and does not fetch", async () => {
+    let fetched = false;
+    const fetchImpl = async () => {
+      fetched = true;
+      return { ok: true, status: 200, json: async () => successEnvelope(CORRELATION) };
+    };
+    expect(composeBridgeHealthInspect({}, fetchImpl)).toBeUndefined();
+    expect(
+      composeBridgeHealthInspect(
+        {
+          BRIDGE_BASE_URL: BRIDGE_BASE,
+          BRIDGE_USERNAME: "REPLACE_WITH_DEDICATED_SERVICE_USER",
+          BRIDGE_APPLICATION_PASSWORD: "REPLACE_WITH_SERVER_ONLY_PASSWORD",
+        },
+        fetchImpl,
+      ),
+    ).toBeUndefined();
+    expect(fetched).toBe(false);
+    expect(readBridgeServiceEnv({ BRIDGE_BASE_URL: BRIDGE_BASE })).toBeNull();
+  });
+
+  test("composed inspect propagates request correlation into handleStoreHealth", async () => {
+    const { store, cookieHeader } = await staffCookie();
+    const inspectBridge = composeBridgeHealthInspect(
+      {
+        BRIDGE_BASE_URL: BRIDGE_BASE,
+        BRIDGE_USERNAME: "bridge-service",
+        BRIDGE_APPLICATION_PASSWORD: "app-pass-fixture",
+      },
+      async (_url, init) => {
+        expect(init.headers["X-Correlation-ID"]).toBe(CORRELATION);
+        return { ok: true, status: 200, json: async () => successEnvelope(CORRELATION) };
+      },
+    );
+    expect(inspectBridge).toBeDefined();
+    const result = await handleStoreHealth({
+      correlationIdHeader: CORRELATION,
+      cookieHeader,
+      now: NOW,
+      sessionStore: store,
+      supabaseConfigured: true,
+      bridgeConfigured: true,
+      buildId: "test-build",
+      inspectBridge,
+    });
+    expect(result.status).toBe(200);
+    expect(result.body.correlationId).toBe(CORRELATION);
+    if (!result.body.ok) {
+      throw new Error("expected success");
+    }
+    const byId = Object.fromEntries(result.body.data.checks.map((check) => [check.id, check]));
+    expect(byId.bridge.message).toMatch(/wooDetected=true/);
+    expect(byId.bridge.status).not.toBe("healthy");
+  });
+
+  test("adapter has no default live fetch; Next route does not embed privileged secrets", () => {
     const adapter = readFileSync(
       new URL("../../../apps/pos-web/src/server/health/bridge-adapter.ts", import.meta.url),
       "utf8",
@@ -217,11 +324,17 @@ describe("CORE-03 BFF bridge health/permission adapter", () => {
       new URL("../../../apps/pos-web/src/app/api/pos/v1/health/route.ts", import.meta.url),
       "utf8",
     );
+    const compose = readFileSync(
+      new URL("../../../apps/pos-web/src/server/health/compose-bridge-health.ts", import.meta.url),
+      "utf8",
+    );
     expect(adapter).not.toMatch(/\bfetch\s*\(/);
     expect(adapter).toMatch(/fetchImpl/);
     expect(adapter).not.toMatch(/SERVICE_ROLE_KEY\s*=/);
-    expect(route).not.toMatch(/createBridgeHealthClient/);
+    expect(route).toMatch(/composeBridgeHealthInspect/);
     expect(route).not.toMatch(/BRIDGE_APPLICATION_PASSWORD/);
-    expect(route).not.toMatch(/\bfetch\s*\(/);
+    expect(route).not.toMatch(/NEXT_PUBLIC_BRIDGE_/);
+    expect(compose).toMatch(/createServerBridgeFetch/);
+    expect(compose).toMatch(/fetchImpl/);
   });
 });
