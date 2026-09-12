@@ -4,4 +4,4 @@ globs: ""
 alwaysApply: true
 ---
 
-Use docs/ai/HANDOFF-TEMPLATE.md; files/contracts/migrations/ADRs/tests/runtime/assumptions/risks/reviewer/next task. Audit first; no silent unrelated fix or redesign. CI/staging is not human production approval.
+Use docs/ai/HANDOFF-TEMPLATE.md for checkpoint, interruption and final delivery. Follow docs/plans/LONG-RUNNING-WORK.md: start snapshot, Pass 1 inspect/reconcile/test, independent Pass 2 inspect/reconcile/test, then STOP. No autonomous Pass 3. Record exact upstream cutoff and final task head. One milestone PR, no PR per ordinary subtask. Audit first; no silent redesign. CI/review never grants production approval.

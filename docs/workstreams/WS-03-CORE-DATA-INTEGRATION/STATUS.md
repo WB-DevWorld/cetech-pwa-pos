@@ -1,3 +1,11 @@
+# WS3 current status
+
+Snapshot 2026-09-12. Main `cd4477f185c159e18ed939a20145865d665099b4`; CORE-01/#40 base implementation head `860bef52efb53773788f6e06fc1753d8d51670a9` remains unmerged. R1 explicitly adds governance/tooling adoption as a separate commit; migrations/schema/RLS and v1 contracts preserved. Ben's final combined-head review is pending. CORE-02 NOT STARTED by this task. CP-05, CI-01, FE-01/02 are merged; CP-04 development baseline satisfied with write/cutover gates open.
+
+CURRENT-WORK holds the central lease and R1 state; TASKS contains later conditional progression. Exact new head, verification and cutoff are recorded in the R1 adoption evidence and final PR handoff, not inferred from this dated snapshot.
+
+## Previous snapshot (historical; current section above controls)
+
 # WS3 status
 
 Updated: 2026-09-12 CORE-01. Owner: Senior / @wbdevworld.

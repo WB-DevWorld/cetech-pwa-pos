@@ -1,5 +1,26 @@
 # WS3 bounded execution tasks
 
+## Ordered continuation queue (ADR-012)
+
+Activation and exact current scope: CURRENT-WORK.md at repository root. The table is the approved progression; a later milestone is not activated merely by being listed. Execute one authorized ready task, test/inspect/commit/checkpoint, then continue in the current batch without another prompt or PR. Detailed task contracts below remain unchanged. Dependencies may allow PREP_ONLY mocks or declared PROVISIONAL_TEST composition; these never prove runtime acceptance. Final task/batch delivery uses [two-pass freshness](../../plans/LONG-RUNNING-WORK.md), then STOP after Pass 2.
+
+| Order | Task | Milestone | Prerequisites / current boundary |
+| --- | --- | --- | --- |
+| 1 | CORE-01 | R1 | CP-04, CP-05; #40 implementation present; final human review pending |
+| 2 | CORE-02 | R2 | CP-05, CORE-01 |
+| 3 | CORE-03 | R2 | CORE-02, BR-01 |
+| 4 | CORE-04 | R4 | CORE-01, CORE-03 |
+| 5 | CORE-05 | R5 | CORE-03, CORE-01, CP-03 |
+| 6 | CORE-06 | R6 | FE-05, BR-07, CORE-05 |
+| 7 | PAY-01 | R7 | CORE-06, CP-04 |
+| 8 | RT-01 | R8 | PAY-01, BR-07 |
+| 9 | CORE-07 | R9 | CORE-06 |
+| 10 | QA-01 | R10 | FE-06, FE-07, CORE-07, RT-01 |
+| 11 | REL-01 | R10 | QA-01 |
+
+No CORE-02 implementation in R1. CORE-05 can use the approved mock boundary before BR-07; CORE-06 proves the real combination. CORE-07 may proceed after CORE-06 alongside payment/returns. CI/integration maintenance stays within recorded central leases; no self-approval.
+
+
 Baseline scope is committed here. GitHub issues own live assignment/status/evidence; synchronize approved scope changes back by PR.
 
 # CP-01 — Bootstrap repository control plane

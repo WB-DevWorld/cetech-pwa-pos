@@ -1,7 +1,7 @@
 name: CI
 on:
   push:
-    branches: [main]
+    branches: [main, 'ws1/**', 'ws2/**', 'ws3/**', 'fix/**', 'batch/**']
   pull_request:
   workflow_dispatch:
 permissions:
