@@ -6,3 +6,4 @@ WS3 is the single migration editor. CORE-01 introduces the first ordered migrati
 - Do not store Woo products, customers, prices, or orders as POS masters.
 - Local only: `npx supabase@2.117.0 db reset --local` then `npx supabase@2.117.0 test db`.
 - Supabase `service_role` bypasses RLS. That is not business authorization.
+- CORE-07 owns authoritative operational close / immutable Z orchestration. CORE-01 does not expose `pos_close_shift`.

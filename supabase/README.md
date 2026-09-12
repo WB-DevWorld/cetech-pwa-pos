@@ -27,4 +27,8 @@ Client-supplied `actor_id` / organization / location columns are not authority. 
 
 **Service role warning:** PostgreSQL role `service_role` bypasses RLS. Possession of that key is not cashier/manager authorization. CORE-02+ trusted server paths must authorize explicitly.
 
+The transactional outbox is a trusted-server write surface. Authenticated clients cannot insert outbox rows. `service_role` may insert, but that is not business authorization.
+
+**Shift close:** CORE-07 owns authoritative operational close / immutable Z orchestration. CORE-01 provides schema and immutability invariants only; it does not expose `pos_close_shift`.
+
 Synthetic seed IDs only (`org_a`, `loc_a1`, …). No training-site customers or orders.

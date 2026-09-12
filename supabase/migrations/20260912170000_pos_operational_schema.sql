@@ -137,7 +137,7 @@ CREATE TABLE pos_shifts (
   status text NOT NULL CHECK (status IN ('open', 'closing', 'closed', 'requires_attention')),
   opening_float_minor pos_money_minor NOT NULL,
   opening_float_currency pos_currency NOT NULL,
-  expected_cash_minor pos_signed_minor NOT NULL,
+  expected_cash_minor pos_money_minor NOT NULL,
   expected_cash_currency pos_currency NOT NULL,
   counted_cash_minor pos_money_minor,
   counted_cash_currency pos_currency,
@@ -163,6 +163,12 @@ CREATE UNIQUE INDEX pos_shifts_one_active_per_register
   WHERE status IN ('open', 'closing');
 
 CREATE INDEX pos_shifts_org_loc_idx ON pos_shifts (organization_id, location_id);
+
+ALTER TABLE pos_shifts
+  ADD CONSTRAINT pos_shifts_id_org_loc_unique UNIQUE (id, organization_id, location_id);
+
+ALTER TABLE pos_shifts
+  ADD CONSTRAINT pos_shifts_id_reg_org_loc_unique UNIQUE (id, register_id, organization_id, location_id);
 
 CREATE TABLE pos_cash_movements (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -190,7 +196,7 @@ CREATE TABLE pos_cash_movements (
     OR (kind = 'correction')
   ),
   CONSTRAINT pos_cash_correction_ref CHECK (
-    (kind = 'correction' AND corrects_movement_id IS NOT NULL)
+    (kind = 'correction' AND corrects_movement_id IS NOT NULL AND approval_id IS NOT NULL)
     OR (kind <> 'correction' AND corrects_movement_id IS NULL)
   )
 );
@@ -226,13 +232,22 @@ CREATE TABLE pos_pending_operations (
   CONSTRAINT pos_pending_idempotency UNIQUE (organization_id, idempotency_key),
   CONSTRAINT pos_pending_loc_org_fk
     FOREIGN KEY (location_id, organization_id)
-    REFERENCES pos_locations (id, organization_id)
+    REFERENCES pos_locations (id, organization_id),
+  CONSTRAINT pos_pending_register_scope_fk
+    FOREIGN KEY (register_id, organization_id, location_id)
+    REFERENCES pos_registers (id, organization_id, location_id),
+  CONSTRAINT pos_pending_shift_scope_fk
+    FOREIGN KEY (shift_id, organization_id, location_id)
+    REFERENCES pos_shifts (id, organization_id, location_id),
+  CONSTRAINT pos_pending_shift_register_fk
+    FOREIGN KEY (shift_id, register_id, organization_id, location_id)
+    REFERENCES pos_shifts (id, register_id, organization_id, location_id)
 );
 
 CREATE TABLE pos_outbox_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id pos_id NOT NULL REFERENCES pos_organizations (id),
-  location_id pos_id REFERENCES pos_locations (id),
+  location_id pos_id,
   aggregate_type text NOT NULL CHECK (char_length(aggregate_type) BETWEEN 1 AND 64),
   aggregate_id text NOT NULL CHECK (char_length(aggregate_id) BETWEEN 1 AND 128),
   event_type text NOT NULL CHECK (char_length(event_type) BETWEEN 1 AND 64),
@@ -248,8 +263,13 @@ CREATE TABLE pos_outbox_events (
   causation_id uuid
 );
 
+ALTER TABLE pos_outbox_events
+  ADD CONSTRAINT pos_outbox_location_org_fk
+    FOREIGN KEY (location_id, organization_id)
+    REFERENCES pos_locations (id, organization_id);
+
 COMMENT ON TABLE pos_outbox_events IS
-  'Transactional outbox for later publication. Not business truth. Not Woo order master.';
+  'Transactional outbox for later trusted-server publication. Not business truth. Not Woo order master. Authenticated clients cannot insert. service_role write is not business authorization. A non-null location_id must belong to the same organization_id.';
 
 CREATE TABLE pos_integration_watermarks (
   organization_id pos_id NOT NULL REFERENCES pos_organizations (id),
@@ -419,6 +439,8 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
   sh pos_shifts%ROWTYPE;
+  orig pos_cash_movements%ROWTYPE;
+  provided_currency pos_currency;
 BEGIN
   IF TG_OP IN ('UPDATE', 'DELETE') THEN
     RAISE EXCEPTION 'cash movements are append-only' USING ERRCODE = '55000';
@@ -427,10 +449,42 @@ BEGIN
   IF sh.status <> 'open' THEN
     RAISE EXCEPTION 'cash movements require an open shift' USING ERRCODE = '55000';
   END IF;
+  provided_currency := NEW.currency;
   NEW.organization_id := sh.organization_id;
   NEW.location_id := sh.location_id;
   NEW.register_id := sh.register_id;
   NEW.currency := sh.opening_float_currency;
+  IF NEW.kind = 'correction' THEN
+    IF NEW.approval_id IS NULL THEN
+      RAISE EXCEPTION 'cash correction requires approval' USING ERRCODE = '23514';
+    END IF;
+    IF NEW.corrects_movement_id IS NULL THEN
+      RAISE EXCEPTION 'cash correction requires original movement' USING ERRCODE = '23514';
+    END IF;
+    SELECT * INTO orig FROM pos_cash_movements WHERE id = NEW.corrects_movement_id;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'correction target not found' USING ERRCODE = '23503';
+    END IF;
+    IF orig.organization_id IS DISTINCT FROM sh.organization_id
+       OR orig.location_id IS DISTINCT FROM sh.location_id
+       OR orig.register_id IS DISTINCT FROM sh.register_id
+       OR orig.shift_id IS DISTINCT FROM NEW.shift_id THEN
+      RAISE EXCEPTION 'correction target is out of shift scope' USING ERRCODE = '23514';
+    END IF;
+    IF orig.currency IS DISTINCT FROM sh.opening_float_currency
+       OR (
+         provided_currency IS NOT NULL
+         AND provided_currency IS DISTINCT FROM orig.currency
+       ) THEN
+      RAISE EXCEPTION 'correction currency must match original movement' USING ERRCODE = '23514';
+    END IF;
+    IF NEW.signed_amount_minor IS DISTINCT FROM (- orig.signed_amount_minor) THEN
+      RAISE EXCEPTION 'correction must exactly reverse the original movement' USING ERRCODE = '23514';
+    END IF;
+  END IF;
+  IF (sh.expected_cash_minor + NEW.signed_amount_minor) < 0 THEN
+    RAISE EXCEPTION 'expected cash cannot be negative' USING ERRCODE = '23514';
+  END IF;
   NEW.actor_id := COALESCE(pos_current_actor_id(), NEW.actor_id);
   IF pos_current_actor_id() IS NOT NULL THEN
     NEW.actor_id := pos_current_actor_id();
@@ -465,13 +519,18 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  new_expected bigint;
 BEGIN
+  SELECT COALESCE(SUM(signed_amount_minor), 0)::bigint
+    INTO new_expected
+  FROM pos_cash_movements
+  WHERE shift_id = NEW.shift_id;
+  IF new_expected < 0 THEN
+    RAISE EXCEPTION 'expected cash cannot be negative' USING ERRCODE = '23514';
+  END IF;
   UPDATE pos_shifts
-  SET expected_cash_minor = (
-    SELECT COALESCE(SUM(signed_amount_minor), 0)::bigint
-    FROM pos_cash_movements
-    WHERE shift_id = NEW.shift_id
-  )
+  SET expected_cash_minor = new_expected
   WHERE id = NEW.shift_id
     AND status IN ('open', 'closing');
   RETURN NEW;
@@ -502,41 +561,6 @@ CREATE TRIGGER pos_pending_before_insert
   BEFORE INSERT ON pos_pending_operations
   FOR EACH ROW
   EXECUTE FUNCTION pos_pending_before_insert();
-
-CREATE OR REPLACE FUNCTION pos_close_shift(p_shift_id uuid, p_counted_minor bigint)
-RETURNS pos_shifts
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  sh pos_shifts;
-BEGIN
-  SELECT * INTO sh FROM pos_shifts WHERE id = p_shift_id;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'shift not found' USING ERRCODE = 'P0002';
-  END IF;
-  IF sh.organization_id IS DISTINCT FROM pos_current_organization_id()
-     OR NOT (sh.location_id = ANY (pos_current_location_ids()))
-     OR NOT pos_has_location_assignment(sh.organization_id, sh.location_id, pos_current_actor_id())
-     OR NOT pos_has_register_assignment(sh.register_id, pos_current_actor_id())
-     OR (
-       pos_current_register_id() IS NOT NULL
-       AND pos_current_register_id() IS DISTINCT FROM sh.register_id
-     ) THEN
-    RAISE EXCEPTION 'actor is not authorized' USING ERRCODE = '42501';
-  END IF;
-  UPDATE pos_shifts
-  SET status = 'closed',
-      counted_cash_minor = p_counted_minor
-  WHERE id = p_shift_id
-  RETURNING * INTO sh;
-  RETURN sh;
-END;
-$$;
-
-REVOKE ALL ON FUNCTION pos_close_shift(uuid, bigint) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION pos_close_shift(uuid, bigint) TO authenticated;
 
 ALTER TABLE pos_organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pos_locations ENABLE ROW LEVEL SECURITY;
@@ -649,10 +673,6 @@ CREATE POLICY pos_outbox_select ON pos_outbox_events
   FOR SELECT TO authenticated
   USING (organization_id = pos_current_organization_id());
 
-CREATE POLICY pos_outbox_insert ON pos_outbox_events
-  FOR INSERT TO authenticated
-  WITH CHECK (organization_id = pos_current_organization_id());
-
 CREATE POLICY pos_watermark_select ON pos_integration_watermarks
   FOR SELECT TO authenticated
   USING (organization_id = pos_current_organization_id());
@@ -667,7 +687,7 @@ GRANT SELECT ON TABLE pos_organizations, pos_locations, pos_devices, pos_registe
   pos_cash_movements, pos_pending_operations, pos_outbox_events,
   pos_integration_watermarks TO authenticated;
 
-GRANT INSERT ON TABLE pos_shifts, pos_cash_movements, pos_pending_operations, pos_outbox_events
+GRANT INSERT ON TABLE pos_shifts, pos_cash_movements, pos_pending_operations
   TO authenticated;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE pos_organizations, pos_locations, pos_devices, pos_registers,
@@ -675,10 +695,10 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE pos_organizations, pos_locations, 
   pos_cash_movements, pos_pending_operations, pos_outbox_events,
   pos_integration_watermarks TO service_role;
 
-GRANT EXECUTE ON FUNCTION pos_close_shift(uuid, bigint) TO service_role;
-
 COMMENT ON TABLE pos_organizations IS 'POS tenant scope. Not a Woo shop master.';
 COMMENT ON TABLE pos_registers IS 'Server-owned register identity. Browser-chosen names are not authority.';
-COMMENT ON TABLE pos_shifts IS 'Server-authoritative shift lifecycle. Expected cash is owned here.';
-COMMENT ON TABLE pos_cash_movements IS 'Append-only cash ledger. Corrections are additional rows.';
+COMMENT ON TABLE pos_shifts IS
+  'Server-authoritative shift lifecycle. Expected cash is nonnegative Money. CORE-07 owns authoritative operational close / immutable Z orchestration.';
+COMMENT ON TABLE pos_cash_movements IS
+  'Append-only cash ledger. Corrections are additional rows with approved exact reversal of the original movement.';
 COMMENT ON TABLE pos_pending_operations IS 'Durable operation lifecycle and idempotency. Status names match contract v1.0.0.';
