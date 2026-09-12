@@ -8,8 +8,8 @@ export type DecimalParseResult =
 
 const DECIMAL_PATTERN = /^(0|[1-9]\d*)(?:\.(\d{0,2}))?$/;
 
-export function parseDecimalToMinorUnits(raw: string, fractionDigits = 2): DecimalParseResult {
-  const cleaned = raw.replace(/,/g, "").trim();
+export function parseDecimalToMinorUnits(raw: string): DecimalParseResult {
+  const cleaned = raw.trim();
   if (!cleaned) {
     return { ok: false, message: "Enter an opening amount." };
   }
@@ -18,7 +18,7 @@ export function parseDecimalToMinorUnits(raw: string, fractionDigits = 2): Decim
     return { ok: false, message: "Enter a valid amount using digits only." };
   }
   const whole = match[1] ?? "0";
-  const fraction = (match[2] ?? "").padEnd(fractionDigits, "0").slice(0, fractionDigits);
+  const fraction = (match[2] ?? "").padEnd(2, "0").slice(0, 2);
   const digits = `${whole}${fraction}`;
   if (digits.length > 15) {
     return { ok: false, message: "Amount is too large." };

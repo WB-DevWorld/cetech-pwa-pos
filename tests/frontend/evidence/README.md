@@ -10,6 +10,32 @@ These screenshots are **not** pixel-perfect matches of the immutable approved Se
 
 FE-02 does not implement Sell catalog, cart, barcode, or checkout. The harness injects FE-02 CSS and components only, without mounting `src/app` routes.
 
+## What FE-02 compares from the approved captures
+
+From those reference screenshots, FE-02 preserves and evidences:
+
+- navigation rail placement and hierarchy
+- top-bar structure/status presentation
+- desktop/tablet rail behavior
+- phone bottom-navigation transformation
+- approved breakpoints
+- approved semantic tokens
+- focus-visible treatment
+- minimum touch targets
+- reduced-motion treatment
+- login/open-register visual language where applicable
+
+FE-02 does **not** prove:
+
+- Sell product-grid parity
+- cart contents/layout parity
+- checkout/tender parity
+- barcode/customer behavior
+- integrated App Router parity
+- live runtime parity
+
+Those remain later-task or WS3 integration evidence. FE-02 does not implement Sell/cart to manufacture that parity.
+
 ## Isolated vs integrated evidence
 
 These screenshots prove the **FE-02 component and CSS layer in isolation**. They do **not** prove integrated App Router / layout appearance.
