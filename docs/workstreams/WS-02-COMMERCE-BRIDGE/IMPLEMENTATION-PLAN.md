@@ -41,7 +41,7 @@ CP-01/02/03 freeze authority and v1. CP-05 creates shared app/toolchain; CP-04 v
 BR-01 → BR-02 → BR-03 → BR-04 → BR-05 → BR-06 → BR-07. Full execution contracts are in TASKS.md. CP-03/FE-01/BR-01/CORE work can proceed in distinct files once their stated inputs exist.
 
 ## Integration Points
-H0–4 authority/contracts/scaffold; H4–12 browser/BFF/providers plus pricing parity; H12–28 one cash-sale slice; H28–44 electronic/returns/shift/PWA; H44–60 failures/rehearsal/pilot. WS3 owns composition and merge order; stage small PRs every few hours.
+H0–4 authority/contracts/scaffold; H4–12 browser/BFF/providers plus pricing parity; H12–28 one cash-sale slice; H28–44 electronic/returns/shift/PWA; H44–60 failures/rehearsal/pilot. WS3 owns composition and merge order; integrate scoped commits frequently and review at the declared milestone PR under ADR-012. The ordered continuation queue in TASKS.md and active assignment in CURRENT-WORK control progression; exactly two final freshness passes precede delivery.
 
 ## Test Requirements
 Foundation: `python3 scripts/verify_control_plane.py`. After scaffold: make -C wordpress/cetech-pos-bridge check; make -C wordpress/cetech-pos-bridge test; make -C wordpress/cetech-pos-bridge parity. Match tests to risk and register actual commands in TOOLCHAIN.md. Staging and hardware evidence are distinct from unit/mock results; record device/configuration/commit/date and redacted artifacts.
@@ -63,3 +63,7 @@ No isolated staging access, unknown multi-stock behavior, unexplained price/tax 
 
 ## Handoff Requirements
 Use HANDOFF.md and report exact task/branch/commit(s), files, contracts, migrations, ADRs, commands/results, runtime verification, assumptions/limitations, risks, reviewer and next task. Attach pricing/RLS/device/failure evidence as appropriate. Never say only 'implemented successfully'.
+
+## Batch continuation
+
+Use TASKS.md ordered queue and CURRENT-WORK activation/leases. Continue automatically through ready authorized tasks; block only affected work. Checkpoint every 30–60 minutes or coherent subtask. Use the canonical handoff and [bounded freshness policy](../../plans/LONG-RUNNING-WORK.md); after Pass 2 stop. Historical single-task prompts are superseded only within this approved batch scope.

@@ -1,3 +1,11 @@
+# WS2 current status
+
+Snapshot 2026-09-12, main `cd4477f185c159e18ed939a20145865d665099b4`. BR-01 plugin remains README-only in the inspected accepted/candidate trees; no implementation PR was visible. BR-01 local implementation is READY under ADR-011 and the frozen CP-03 baseline. The older blanket CP-04 block is superseded; live installation, service identity, unsafe training writes and actual pricing parity remain separate gates.
+
+R2 current queue: BR-01. R3 progression: BR-02, BR-03/BR-04, BR-05 after its real gates. BR-06/07 follow TASKS dependencies. Record actual branch/current head at first checkpoint; do not invent an existing branch. No bridge code or remote operation changed in R1 adoption.
+
+## Previous snapshot (historical; current section above controls)
+
 # WS2 status
 
 Updated: 2026-09-12. Owner: Developer 2 / @Emmanuel-coder-prog.
