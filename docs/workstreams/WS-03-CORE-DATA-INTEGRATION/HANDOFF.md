@@ -1,4 +1,75 @@
-# WS3 current handoff — R2 PROGRESS_CHECKPOINT (BR-01 import + CORE-03 composition)
+# WS3 current handoff — R2 SESSION_COMPLETION (BR-01 import + CORE-03 composition; not the R2 gate)
+
+Kind / UTC: SESSION_COMPLETION / 2026-09-12T23:30:00Z (Pass-2 cutoff of this continuation; R2 milestone gate is not complete)
+Task / batch / workstream: R2 — Authentication, bridge health and BFF; WS3 CORE-02 (#21) + CORE-03 (#22) + imported BR-01 (#13)
+Owner / integration editor / requested human reviewer: @wbdevworld / same / @Ben-001-sys (draft #43 only; do not request review while live health remains unproven)
+Branch: `batch/r2-auth-bridge-bff`
+Starting/base SHA: `origin/main` `aa08d74f2cb99301817e5995f01486acb7e2169f`
+Start R2 SHA: `8369c442026ce2fc133f13186c0bc697eb3bc7e6`
+Start BR-01 SHA: `280a73dbcd53ac0e03883775b4fabdec7465a4a8`
+CORE-02 checkpoint: `2f6c0b50cd7889e83df93b87af0b7c165152b5db`
+CORE-03 adapter checkpoint: `88a840c72a01463f78de8df77dd8a04bb7ee1431`
+Combined/import SHA: `0ac2e38befb54c9ada404e6854a80285bebb69b9`
+CORE-03 composition SHA: `970dd7c84fd5c9925b0a9d2ac187c3586550ee6e`
+Final task head SHA: recorded after this freshness evidence commit
+Allowed / forbidden paths and central leases: CURRENT-WORK R2 lease; imported wordpress snapshot consumed; no semantic WS2 plugin edits; no contracts edit; no lockfile; no supabase schema
+Files changed this continuation: exact-SHA BR-01 import; BFF composition + correlation integrity; health/env tests; R2 ledger/evidence; this two-pass freshness record
+Contracts changed: none (v1.0.0 consumed)
+Database migrations: none
+Architecture decisions: none (ADR-011 CURRENT; ADR-012 ACTIVE)
+Completed/current/remaining tasks: CORE-02 CHECKPOINTED. BR-01 INTEGRATED_AND_TESTED / LIVE_ACCEPTANCE_PENDING. CORE-03 CODE_COMPLETE_REMOTE_ACCEPTANCE_PENDING. Remaining for the R2 gate: authorized CP04-W4 live health + independent review. R3 not started.
+Dependencies: CP-05 ACCEPTED; CORE-01 ACCEPTED through R1; BR-01 local code imported; live bridge identity BLOCKED_REMOTE_ACCEPTANCE (CP04-W4)
+Tests executed (exact; Windows Node v24.21.0 / pnpm 12.4.1 / Python 3.14.4 / PHP 8.5.0 / GNU Make 4.4.1):
+- `python scripts/verify_control_plane.py` EXIT 0 (composition and Pass 1)
+- `python -m unittest discover -s tests/tooling -v` EXIT 0 (48)
+- `make -C wordpress/cetech-pos-bridge check` EXIT 0
+- `make -C wordpress/cetech-pos-bridge test` EXIT 0 (**67 passed / 0 failed**)
+- `pnpm install --frozen-lockfile` EXIT 0
+- `pnpm --dir apps/pos-web lint` EXIT 0
+- `pnpm --dir apps/pos-web typecheck` EXIT 0
+- `pnpm --dir apps/pos-web test` EXIT 0 (15 files / 79 tests)
+- `pnpm --dir apps/pos-web build` EXIT 0 (`ƒ /api/pos/v1/health`)
+- `pnpm --dir apps/pos-web test:e2e` EXIT 0 (1 passed; scaffold smoke only)
+- `git diff --check` EXIT 0
+Runtime verification and tested combined SHA/environment: composed R2 tree `970dd7c…` locally. No live Woo/WordPress/Supabase. No plugin install. No Application Password created.
+Remote effects performed: repository commits/pushes; draft PR #43 remains draft. Combined CI on `970dd7c…` was in_progress at Pass-2 cutoff. No WP install, live credentials, Woo/stock/payment/email, remote migration, or deploy.
+Assumptions / limitations / unresolved risks: ephemeral session store is process-local and refused for production/staging; live health remains CP04-W4; detection is not pricing parity; combined GitHub Actions on this head not yet complete at cutoff.
+Next exact action: keep #43 draft. Do not request Ben. Do not start R3. Do not merge main. Next authorized remote work is CP04-W4 on an explicitly authorized environment.
+
+Freshness protocol:
+START_FRESHNESS_SNAPSHOT UTC: `2026-09-12T23:15:17Z`
+Start main SHA: `aa08d74f2cb99301817e5995f01486acb7e2169f`
+Start batch ref/SHA, if declared (else NOT_APPLICABLE): NOT_APPLICABLE
+Start R2 SHA: `8369c442026ce2fc133f13186c0bc697eb3bc7e6`
+Start BR-01 SHA: `280a73dbcd53ac0e03883775b4fabdec7465a4a8`
+Applicable contracts / ADRs / ownership / queue revision: v1.0.0; ADR-011 CURRENT; ADR-012 ACTIVE; R2 lease in CURRENT-WORK
+
+Pass 1 fetch UTC / success evidence: `2026-09-12T23:28:42Z` `git fetch origin --prune` succeeded
+Pass 1 main SHA: `aa08d74f2cb99301817e5995f01486acb7e2169f`
+Pass 1 batch SHA: `970dd7c84fd5c9925b0a9d2ac187c3586550ee6e`
+Pass 1 contributor SHA: `280a73dbcd53ac0e03883775b4fabdec7465a4a8`
+Relevant upstream paths and dependency/authority effects: none on main. Peer FE-03 `700dc32` IRRELEVANT.
+Classification per change: main none; BR-01 none; FE-03 IRRELEVANT
+Actions taken / reconciliation commits: none
+Tests rerun / tested combined SHA: verify + tooling 48 + make test 67/0 + vitest 15/79 on `970dd7c`
+
+Pass 2 fetch UTC / success evidence: `2026-09-12T23:29:59Z` independent `git fetch origin --prune` succeeded
+Pass 2 main SHA: `aa08d74f2cb99301817e5995f01486acb7e2169f`
+Pass 2 batch SHA: `970dd7c84fd5c9925b0a9d2ac187c3586550ee6e`
+Pass 2 contributor SHA: `280a73dbcd53ac0e03883775b4fabdec7465a4a8`
+Relevant upstream paths and dependency/authority effects: none
+Classification per change: none
+Actions taken / reconciliation commits: this evidence/handoff commit only
+Tests rerun / tested combined SHA: not required (no arrivals)
+
+Final freshness status: FRESH_2
+Delivery status: READY_FOR_INTEGRATION (local BR-01 import + CORE-03 code composition); R2 merge BLOCKED on CP04-W4 live acceptance + independent review
+Known post-cutoff risk / integration editor follow-up: later main/BR-01/FE-03 movement; GitHub Actions in_progress at Pass-2 cutoff (runs 34725507429 / 34725506343)
+Pass 3: NOT PERMITTED for this assignment.
+Review/merge/release status and limitations: draft #43 only; no review request; no self-merge; no production promotion
+Metrics delta for CURRENT-WORK (counts/timestamps, never guessed zeroes): Pass-1/Pass-2 stale findings 0/0; both cutoffs `aa08d74f…` / `280a73d…`. Other R2 metrics remain UNVERIFIED.
+
+## Previous current handoff — R2 PROGRESS_CHECKPOINT (BR-01 import + CORE-03 composition)
 
 Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-12 (BR-01 exact-SHA import + CORE-03 composition; two-pass freshness follows push)
 Task / batch / workstream: R2 — Authentication, bridge health and BFF; WS3 CORE-02 (#21) + CORE-03 (#22) + imported BR-01 (#13)
