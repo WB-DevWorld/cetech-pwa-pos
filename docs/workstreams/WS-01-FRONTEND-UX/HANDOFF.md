@@ -88,13 +88,16 @@ Branch: `ws1/fe-02-convert-tokens-and-responsive-pos-shell`
 
 Commit(s):
 
-- Implementation commit: `105d47777dbdf63134399b976469bab7ce6a5b93` — `feat(frontend): add responsive POS shell foundation`
-- Review-remediation/head SHA: recorded in the PR #37 follow-up comment after the correction commit exists. This document does not embed the SHA of the commit that creates it.
+- Rebased implementation commit: `8ba6d549e49575bf4882a1354d05084691dda43e` — `feat(frontend): add responsive POS shell foundation`
+- Rebased senior-remediation commit: `923d7b82ca4182fed71f795c1d98837852634329` — `fix(frontend): address FE-02 review findings`
+- Previous published head before this CI-01 rebase: `510d7036da37834823547e6b807e7f6240e9a2ee`
+- CI-evidence refresh SHA: recorded in the PR #37 follow-up comment after the refresh commit exists. This document does not embed the SHA of the commit that creates it.
 
 Prerequisites:
 
 - FE-01 satisfied: PR #33, merge commit `52caf39d010687084e0b1e1db74acd0b644ab4b0`
 - CP-05 satisfied: PR #32, merge commit `095696f15cd64b546003bc5c77b4600af7bc4c76`
+- CI-01 / PR #38 landed on `main` at `8e058d679bb02e96374c0e79cc32d025b6a9ed03`
 
 Files changed (implementation + this closeout):
 
@@ -141,29 +144,22 @@ Architecture decisions:
 
 ### Standard repository/scaffold commands
 
-These are the CP-05 required CI/scaffold commands. They do **not** prove the explicit FE-02 suites.
+CI-01 / PR #38 landed on `main` at `8e058d679bb02e96374c0e79cc32d025b6a9ed03`. Canonical `pnpm --dir apps/pos-web test` now uses the broadened Vitest discovery and exercises FE-02 unit/static tests under `src/features/**`, `src/ui/**`, and `tests/frontend/**` (plus the existing `src/app` scaffold test). It does **not** run `*.pw.*` visual Playwright files.
+
+Post-rebase results:
 
 - `python scripts/verify_control_plane.py` — PASS (exit 0)
 - `pnpm install --frozen-lockfile` — PASS (exit 0)
 - `pnpm --dir apps/pos-web lint` — PASS (exit 0)
 - `pnpm --dir apps/pos-web typecheck` — PASS (exit 0)
-- `pnpm --dir apps/pos-web test` — PASS (exit 0). This currently runs `vitest run --environment node --dir src/app` and therefore does **not** exercise FE-02 tests in `src/features/**`, `src/ui/**`, or `tests/frontend/**`.
+- `pnpm --dir apps/pos-web test` — PASS (exit 0). Actual discovery: **8 files / 20 tests**.
 - `pnpm --dir apps/pos-web build` — PASS (exit 0)
-- `pnpm --dir apps/pos-web test:e2e` — PASS (exit 0). This uses the app Playwright configuration whose normal test directory is `./e2e`, so it does **not** exercise `tests/frontend/visual/shell-viewports.pw.ts`.
+- `pnpm --dir apps/pos-web test:e2e` — PASS (exit 0). This still uses the app Playwright configuration whose normal test directory is `./e2e` (1 scaffold spec). It does **not** replace `tests/frontend/visual/shell-viewports.pw.ts`.
 
-Do not treat the standard CI jobs as proof of the explicit FE-02 suites.
+### Additional targeted FE-02 commands
 
-### Manual/explicit FE-02 regression commands
-
-These are distinct from the normal required CI workflow.
-
-- `pnpm --dir apps/pos-web exec vitest run --environment node src/ui src/features`
-  - Reviewed implementation before this remediation: 4 files / 13 tests PASS
-  - After parser remediation: 4 files / 15 tests PASS
-- `pnpm --dir apps/pos-web exec vitest run --environment node --dir H:\cursor\cetech-pwa-pos-fe-02\tests\frontend`
-  - 3 files / 4 tests PASS
-- `pnpm --dir apps/pos-web exec playwright test --config ../../tests/frontend/visual/playwright.config.ts`
-  - 5 tests PASS
+- `pnpm --dir apps/pos-web exec vitest run --environment node src/ui src/features` — 4 files / 15 tests PASS
+- `pnpm --dir apps/pos-web exec playwright test --config ../../tests/frontend/visual/playwright.config.ts` — 5 tests PASS
 
 Playwright evidence established:
 
@@ -176,11 +172,11 @@ Playwright evidence established:
 
 ### WS3 CI integration request
 
-The explicit FE-02 component/frontend/visual regression suites are not currently part of the normal `pnpm test` / `test:e2e` path used by required CI.
+CI-01 resolved normal Vitest discovery for FE-02 unit/static tests. That work is **not** still outstanding.
+
+The isolated FE-02 visual Playwright suite remains separate from normal app `test:e2e`. Wiring that visual suite into required CI remains a future WS3 integration decision and is **not** completed.
 
 FE-02 does not change `.github/**` or package scripts.
-
-WS3 should evaluate wiring these FE-02 suites into the normal CI path. That integration is **not** completed.
 
 Runtime verification:
 
@@ -198,7 +194,7 @@ Known limitations:
 Unresolved risks:
 
 - Unstyled/distorted shell if WS3 imports FE-02 CSS without retiring CP-05 scaffold globals.
-- Explicit FE-02 suites can stay green locally while remaining invisible to default CI until WS3 wires them.
+- Isolated visual Playwright evidence can stay green locally while remaining outside default `test:e2e` until WS3 decides whether to wire it.
 
 Requested reviewer:
 
