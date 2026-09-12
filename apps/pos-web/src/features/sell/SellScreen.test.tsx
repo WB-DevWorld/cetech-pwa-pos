@@ -132,4 +132,19 @@ describe("SellScreen presentation", () => {
     expect(html).toContain("Backorder");
     expect(html).not.toContain("disabled");
   });
+
+  test("unavailable catalog disables Scan and hides the product grid", () => {
+    const html = renderToStaticMarkup(
+      createElement(SellScreen, {
+        catalog: SELL_TEST_CATALOG,
+        initialState: createSellWorkspace(deps, SELL_TEST_CATALOG),
+        catalogAvailability: "unavailable",
+        createCartId: deps.createCartId,
+        createLineId: deps.createLineId,
+      }),
+    );
+    expect(html).toContain("Catalog is unavailable. Reconnect or try again.");
+    expect(html).toMatch(/<button class="btn" type="button" disabled="">Scan<\/button>/);
+    expect(html).not.toContain("product-grid");
+  });
 });

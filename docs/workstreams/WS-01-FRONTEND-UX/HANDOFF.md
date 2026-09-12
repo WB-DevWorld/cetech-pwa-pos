@@ -203,3 +203,110 @@ Senior / integration authority (@wbdevworld)
 Recommended next task:
 
 Complete PR #37 review/merge. Do not start FE-03 until FE-02 is merged and remaining declared FE-03 prerequisites are satisfied.
+
+## FE-03
+
+Task: FE-03 / issue #8 — Sell cart, barcode and customer workflow
+
+Branch: `ws1/fe-03-build-sell-cart-barcode-and-customer-workflow`
+
+PR: #41 — DRAFT
+
+Current preparation commit before remediation: `2700a378b67cbde22b316ea9ce60d7aa209bde5d`
+
+Status:
+
+```text
+PREPARATION COMPLETE
+FULL FE-03 RUNTIME INTEGRATION NOT COMPLETE
+SENIOR REVIEW: CHANGES REQUESTED
+```
+
+Scope:
+
+```text
+apps/pos-web/src/features/sell/**
+tests/frontend/**
+docs/workstreams/WS-01-FRONTEND-UX/STATUS.md
+docs/workstreams/WS-01-FRONTEND-UX/HANDOFF.md
+```
+
+The two WS1 evidence docs are included only because the senior reviewer explicitly authorized them for this remediation.
+
+What exists:
+
+- Sell presentation
+- product search presentation
+- barcode handling
+- leading-zero preservation
+- exact variation bypass
+- collision/unknown states
+- cart quantity/revision rules, including Quantity overflow rejection
+- customer presentation
+- stale/offline presentation
+- modal/scanner behavior, including unavailable-catalog mutation gating
+- isolated visual evidence
+
+What does not exist:
+
+- live CatalogPort wiring
+- live CustomerPort wiring
+- CartDraftStore/Dexie
+- active-cart restore
+- BFF/API integration
+- App Router mount
+- authoritative production barcode mapping
+- verified offline persistence
+- pricing/quote
+- enabled Pay
+
+Contracts changed: none
+
+Migrations: none
+
+ADRs authored: none
+
+Reviewer: @wbdevworld
+
+Review: CHANGES_REQUESTED on head `2700a378b67cbde22b316ea9ce60d7aa209bde5d`
+
+Senior findings being addressed:
+
+1. STATUS/HANDOFF evidence
+2. Quantity arithmetic upper-bound validation
+3. unavailable-catalog mutation gating
+
+This remediation is implemented locally and is not yet re-reviewed. Issue #8 remains OPEN.
+
+### Verification
+
+Targeted FE-03 Vitest (`pnpm --dir apps/pos-web exec vitest run` on quantity, cartState, sellWorkspace, SellScreen, sell-boundaries): **5 files / 38 tests PASS**
+
+Post-remediation full commands (worktree `H:\cursor\cetech-pwa-pos-fe-03-prep`):
+
+- `python scripts/verify_control_plane.py` — PASS (exit 0). `PASS: 3 workstream packages, 30 scoped tasks/DAG, 28 immutable reference files, 61 schemas, 22 contract fixtures...` `LIMIT: no application/bridge/RLS/live payment/pricing/hardware tests have run in this foundation check.`
+- `pnpm install --frozen-lockfile` — PASS (exit 0)
+- `pnpm --dir apps/pos-web lint` — PASS (exit 0)
+- `pnpm --dir apps/pos-web typecheck` — PASS (exit 0)
+- `pnpm --dir apps/pos-web test` — PASS (exit 0). Actual discovery: **18 files / 78 tests**
+- `pnpm --dir apps/pos-web build` — PASS (exit 0)
+- `pnpm --dir apps/pos-web test:e2e` — PASS (exit 0). 1 scaffold spec passed
+- `pnpm --dir apps/pos-web exec playwright test --config ../../tests/frontend/visual/playwright.config.ts` — PASS. **12 passed**
+
+Runtime evidence limitation:
+
+```text
+Visual evidence remains isolated component/harness evidence.
+No App Router/live runtime integration is claimed.
+```
+
+Requested reviewer:
+
+Senior / integration authority (@wbdevworld)
+
+Recommended next step:
+
+```text
+Submit remediation commit to PR #41 and request senior re-review.
+Full FE-03 integration follows when required WS3 runtime capabilities are available/confirmed.
+```

@@ -31,6 +31,7 @@ import {
   applySearchQuery,
   applySelectCustomer,
   applyVariationSelect,
+  catalogMutationAllowed as isCatalogMutationAllowed,
   createSellWorkspace,
   dismissNotice,
   type SellWorkspaceDeps,
@@ -101,6 +102,7 @@ export function SellScreen({
 
   const modalOpen =
     customerPickerOpen || displayed.notice?.kind === "chooser" || displayed.notice?.kind === "collision";
+  const catalogMutationAllowed = isCatalogMutationAllowed(displayed.catalogAvailability);
 
   const closeNotice = useCallback(() => {
     setState((current) => dismissNotice(current));
@@ -134,13 +136,14 @@ export function SellScreen({
 
   const scanBarcode = useCallback(
     (barcode: string) => {
+      if (!catalogMutationAllowed) return;
       onBarcodeScanned?.(barcode);
       setState((current) => applyBarcodeScan(current, barcode, catalog, deps));
     },
-    [catalog, deps, onBarcodeScanned],
+    [catalog, catalogMutationAllowed, deps, onBarcodeScanned],
   );
 
-  useBarcodeScanner(scanBarcode, !modalOpen);
+  useBarcodeScanner(scanBarcode, !modalOpen && catalogMutationAllowed);
 
   function handleQueryChange(query: string) {
     onSearch?.(query);
@@ -159,16 +162,19 @@ export function SellScreen({
   }
 
   function handleScan(query: string) {
+    if (!catalogMutationAllowed) return;
     if (query.trim().length === 0) return;
     scanBarcode(query.trim());
   }
 
   function handleSelectProduct(item: SellProductView) {
+    if (!catalogMutationAllowed) return;
     onSelectProduct?.(item.id);
     setState((current) => applyProductSelect(current, item, catalog, deps));
   }
 
   function handleSelectVariation(variation: SellProductView) {
+    if (!catalogMutationAllowed) return;
     onSelectVariation?.(variation.id);
     setState((current) => applyVariationSelect(current, variation, deps));
   }
@@ -228,6 +234,7 @@ export function SellScreen({
               onQueryChange={handleQueryChange}
               onSearchSubmit={handleSearchSubmit}
               onScan={handleScan}
+              scanDisabled={!catalogMutationAllowed}
             />
             <div className="products-meta">
               <strong>Products</strong>

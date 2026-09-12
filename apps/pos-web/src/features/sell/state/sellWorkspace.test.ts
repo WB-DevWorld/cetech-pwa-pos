@@ -12,6 +12,7 @@ import {
   applyQuantityChange,
   applyRemoveLine,
   applySelectCustomer,
+  applyVariationSelect,
   createSellWorkspace,
   type SellWorkspaceDeps,
 } from "./sellWorkspace";
@@ -162,5 +163,69 @@ describe("FE-03 sell workspace", () => {
     state = applyDraftStatus(state, { retainedLocally: true });
     expect(state.draftStatus.retainedLocally).toBe(true);
     expect(catalogAvailabilityCopy("unavailable")?.title).toContain("unavailable");
+  });
+
+  test("unavailable catalog blocks barcode, product, variation, and collision mutation", () => {
+    const workspaceDeps = deps();
+    const simple = SELL_TEST_CATALOG.find((item) => item.id === "p-hardener")!;
+    const parent = SELL_TEST_CATALOG.find((item) => item.id === "p-cable")!;
+    const red = SELL_TEST_CATALOG.find((item) => item.id === "v-cable-red")!;
+    const led = SELL_TEST_CATALOG.find((item) => item.id === "p-led")!;
+
+    let blocked = createSellWorkspace(workspaceDeps, SELL_TEST_CATALOG);
+    blocked = applyCatalogAvailability(blocked, "unavailable");
+    const barcodeAttempt = applyBarcodeScan(blocked, "0012345678901", SELL_TEST_CATALOG, workspaceDeps);
+    expect(barcodeAttempt.lines).toHaveLength(0);
+    expect(barcodeAttempt.cartRevision).toBe(0);
+    expect(barcodeAttempt.notice).toBeNull();
+    const productAttempt = applyProductSelect(blocked, simple, SELL_TEST_CATALOG, workspaceDeps);
+    expect(productAttempt.lines).toHaveLength(0);
+    expect(productAttempt.cartRevision).toBe(0);
+
+    let chooser = createSellWorkspace(workspaceDeps, SELL_TEST_CATALOG);
+    chooser = applyProductSelect(chooser, parent, SELL_TEST_CATALOG, workspaceDeps);
+    expect(chooser.notice?.kind).toBe("chooser");
+    chooser = applyCatalogAvailability(chooser, "unavailable");
+    const variationAttempt = applyVariationSelect(chooser, red, workspaceDeps);
+    expect(variationAttempt.lines).toHaveLength(0);
+    expect(variationAttempt.cartRevision).toBe(0);
+
+    let collision = createSellWorkspace(workspaceDeps, SELL_TEST_CATALOG);
+    collision = applyBarcodeScan(collision, "5550001112223", SELL_TEST_CATALOG, workspaceDeps);
+    expect(collision.notice?.kind).toBe("collision");
+    collision = applyCatalogAvailability(collision, "unavailable");
+    const collisionAttempt = applyProductSelect(collision, led, SELL_TEST_CATALOG, workspaceDeps);
+    expect(collisionAttempt.lines).toHaveLength(0);
+    expect(collisionAttempt.cartRevision).toBe(0);
+  });
+
+  test("stale and offline_cached catalogs still accept product and barcode mutation", () => {
+    const workspaceDeps = deps();
+    const simple = SELL_TEST_CATALOG.find((item) => item.id === "p-hardener")!;
+
+    let stale = createSellWorkspace(workspaceDeps, SELL_TEST_CATALOG);
+    stale = applyCatalogAvailability(stale, "stale");
+    stale = applyBarcodeScan(stale, "0012345678901", SELL_TEST_CATALOG, workspaceDeps);
+    expect(stale.lines).toHaveLength(1);
+    expect(stale.cartRevision).toBe(1);
+    stale = applyProductSelect(stale, simple, SELL_TEST_CATALOG, workspaceDeps);
+    expect(stale.lines[0]?.quantity).toBe("2");
+
+    let cached = createSellWorkspace(workspaceDeps, SELL_TEST_CATALOG);
+    cached = applyCatalogAvailability(cached, "offline_cached");
+    cached = applyBarcodeScan(cached, "0012345", SELL_TEST_CATALOG, workspaceDeps);
+    expect(cached.lines).toHaveLength(1);
+    expect(cached.cartRevision).toBe(1);
+  });
+
+  test("repeated scan at maximum Quantity does not mutate the cart", () => {
+    const workspaceDeps = deps();
+    let state = createSellWorkspace(workspaceDeps, SELL_TEST_CATALOG);
+    state = applyBarcodeScan(state, "0012345678901", SELL_TEST_CATALOG, workspaceDeps);
+    state = applyQuantityChange(state, state.lines[0]!.lineId, "999999999");
+    const before = state.cartRevision;
+    state = applyBarcodeScan(state, "0012345678901", SELL_TEST_CATALOG, workspaceDeps);
+    expect(state.lines[0]?.quantity).toBe("999999999");
+    expect(state.cartRevision).toBe(before);
   });
 });

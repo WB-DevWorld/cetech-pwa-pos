@@ -25,6 +25,11 @@ export function browseItems(catalog: readonly SellProductView[]): SellProductVie
   return catalog.filter((item) => item.kind !== "variation");
 }
 
+/** Only `unavailable` blocks catalog-driven cart mutation. stale/offline_cached remain usable. */
+export function catalogMutationAllowed(availability: CatalogAvailability): boolean {
+  return availability !== "unavailable";
+}
+
 export function createSellWorkspace(deps: SellWorkspaceDeps, catalog: readonly SellProductView[]): SellWorkspaceState {
   return {
     cartId: deps.createCartId(),
@@ -81,6 +86,7 @@ export function applyBarcodeScan(
   catalog: readonly SellProductView[],
   deps: SellWorkspaceDeps,
 ): SellWorkspaceState {
+  if (!catalogMutationAllowed(state.catalogAvailability)) return state;
   const exact = barcode;
   const resolution = resolveBarcode(exact, catalog);
   if (resolution.kind === "empty") return state;
@@ -126,6 +132,7 @@ export function applyProductSelect(
   catalog: readonly SellProductView[],
   deps: SellWorkspaceDeps,
 ): SellWorkspaceState {
+  if (!catalogMutationAllowed(state.catalogAvailability)) return state;
   if (item.kind === "variable") {
     return {
       ...state,
@@ -145,6 +152,7 @@ export function applyVariationSelect(
   variation: SellProductView,
   deps: SellWorkspaceDeps,
 ): SellWorkspaceState {
+  if (!catalogMutationAllowed(state.catalogAvailability)) return state;
   const cart = addOrIncrementLine(
     { cartId: state.cartId, cartRevision: state.cartRevision, lines: state.lines },
     variation,

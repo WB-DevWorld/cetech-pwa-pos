@@ -31,6 +31,7 @@ export {
   applyNewSale,
   applyCatalogAvailability,
   applyDraftStatus,
+  catalogMutationAllowed,
   type SellWorkspaceDeps,
 } from "./state/sellWorkspace";
 export { resolveBarcode, childrenOf, isDigitBarcodeQuery } from "./state/barcodeResolution";

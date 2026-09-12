@@ -53,4 +53,15 @@ describe("FE-03 cart state", () => {
     expect(cart.lines).toHaveLength(0);
     expect(cart.cartRevision).toBe(before + 1);
   });
+
+  test("rejected Quantity overflow does not mutate the line or cartRevision", () => {
+    const createLineId = ids();
+    let cart = addOrIncrementLine(emptyCart("cart-1"), simple, createLineId, "0012345678901");
+    cart = setLineQuantity(cart, cart.lines[0]!.lineId, "999999999");
+    const before = cart.cartRevision;
+    cart = addOrIncrementLine(cart, simple, createLineId, "0012345678901");
+    expect(cart.lines).toHaveLength(1);
+    expect(cart.lines[0]?.quantity).toBe("999999999");
+    expect(cart.cartRevision).toBe(before);
+  });
 });

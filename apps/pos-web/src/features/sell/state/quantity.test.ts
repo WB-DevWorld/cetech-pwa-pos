@@ -21,4 +21,17 @@ describe("FE-03 quantity helpers", () => {
     expect(parseQuantityInput("-1").ok).toBe(false);
     expect(parseQuantityInput("abc").ok).toBe(false);
   });
+
+  test("rejects arithmetic that would exceed nine integer digits", () => {
+    expect(addQuantity("999999998", "1")).toEqual({ ok: true, quantity: "999999999" });
+    expect(addQuantity("999999999", "1").ok).toBe(false);
+    expect(incrementQuantity("999999999").ok).toBe(false);
+    expect(addQuantity("999999998.999999", "0.000001")).toEqual({ ok: true, quantity: "999999999" });
+    expect(addQuantity("999999999.999999", "0.000001").ok).toBe(false);
+  });
+
+  test("keeps scaled-integer decimal addition inside Quantity bounds", () => {
+    expect(addQuantity("1", "0.5")).toEqual({ ok: true, quantity: "1.5" });
+    expect(addQuantity("3.25", "1")).toEqual({ ok: true, quantity: "4.25" });
+  });
 });

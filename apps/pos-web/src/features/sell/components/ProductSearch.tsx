@@ -8,11 +8,13 @@ export function ProductSearch({
   onQueryChange,
   onSearchSubmit,
   onScan,
+  scanDisabled = false,
 }: {
   query: string;
   onQueryChange: (query: string) => void;
   onSearchSubmit: (query: string) => void;
   onScan: (query: string) => void;
+  scanDisabled?: boolean;
 }) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -38,7 +40,7 @@ export function ProductSearch({
           inputMode="text"
         />
       </div>
-      <button className="btn" type="button" onClick={() => onScan(query)}>
+      <button className="btn" type="button" onClick={() => onScan(query)} disabled={scanDisabled}>
         Scan
       </button>
       <button
