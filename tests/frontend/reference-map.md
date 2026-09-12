@@ -15,11 +15,11 @@
 | Frozen production contract version | **v1.0.0** (`docs/contracts/`, ADR-003) |
 | Date | 2026-09-12 |
 | Scope | Documentation / reference intake only. No feature code, scaffold, contracts, migrations, or approved-artifact edits. |
-| Planning vs created files | **Proposed production component paths in this map are planning targets only. FE-01 does not create them.** CP-05 has not landed; `apps/pos-web` feature/ui trees are not implemented here. |
+| Planning vs created files | **Proposed production component paths in this map are planning targets only. FE-01 does not create them.** FE-01 was authored before CP-05 landed. CP-05 has since merged through PR #32 at `095696f15cd64b546003bc5c77b4600af7bc4c76`. FE-01 itself did not create or modify that scaffold. WS1 feature/ui trees remain unimplemented here. |
 
 Authority used (repository truth over prototype types): ADRs 003–008, `docs/contracts/PROTOTYPE-MAPPING.md`, `docs/contracts/ports.ts`, `docs/contracts/domain.generated.ts`, `docs/architecture/FRONTEND-ARCHITECTURE.md`, `docs/architecture/MODULE-BOUNDARIES.md`, WS1 eight-file pack, OWNERSHIP.md.
 
-Prerequisite treatment: CURRENT-WORK.md records CP-01/02/03 as implemented/verified and FE-01 as READY. GitHub issue #6 remains OPEN/unassigned; that older issue state is weaker than repository evidence. CP-05 is **not** a prerequisite for this documentation task.
+Prerequisite treatment: CURRENT-WORK.md records CP-01/02/03 as implemented/verified and FE-01 as READY. GitHub issue #6 remains OPEN/unassigned; that older issue state is weaker than repository evidence. CP-05 was **not** a prerequisite for this documentation task. CP-05 has since merged through PR #32 at `095696f15cd64b546003bc5c77b4600af7bc4c76`. FE-02 still depends on FE-01 acceptance/merge even though its CP-05 prerequisite is now satisfied.
 
 ## Evidence-category legend
 
@@ -230,8 +230,8 @@ Compare prototype `nextjs-handoff.md` / `frontend-contracts.ts` with **current v
 
 | Topic | Covered by current v1? | Replacement or gap | WS3 owner action | WS1 must not |
 | --- | --- | --- | --- | --- |
-| App route mounting `(auth)` / `(pos)/sell|orders|…` | Not a contract; CP-05 scaffold **not landed** | WS3 owns `apps/pos-web/src/app/**` composition; WS1 supplies renderable screens | Mount WS1 components when CP-05 exists | Create `src/app` routes |
-| Contract/type reexports | Frozen in `docs/contracts/` | CP-05 should reexport `ports.ts` / `domain.generated.ts` into the app | Scaffold reexports | Copy competing types into features |
+| App route mounting `(auth)` / `(pos)/sell|orders|…` | Not a contract; CP-05 scaffold has since merged (PR #32, `095696f15cd64b546003bc5c77b4600af7bc4c76`). FE-01 did not create or modify it. Ownership unchanged. | WS3 owns `apps/pos-web/src/app/**` composition; WS1 supplies renderable screens | Mount WS1 components on the merged CP-05 app routes | Create `src/app` routes |
+| Contract/type reexports | Frozen in `docs/contracts/` | Merged CP-05 scaffold is expected to reexport `ports.ts` / `domain.generated.ts` into the app | Scaffold reexports (CP-05 / PR #32) | Copy competing types into features |
 | `CartDraftStore` / `OperationJournal` | **Yes** as interfaces | Dexie implementation + versioned payload/hash/append-before-send | CORE-04 expose load/save/pending to UI | Invent localStorage or a WS1 schema |
 | PWA / update / multi-tab / migration coordinator | `ReleasePolicy` yes; SW/lock **implementation** not a port | Supply view-model: update safety, migration state, passive window, build ids | CORE-07 | Own service worker / Dexie migrator |
 | Prototype `SyncPort` (`syncCatalog` / `rebuildCatalogProjection`) | **No P0 SyncPort** (deliberate) | Catalog rebuild/repair is WS3 local/projection work; surface via Health/Fix App commands WS3 provides | Expose repair/rebuild *application* API if UI must trigger it; do not add Inventory/Sync ports for P0 | Recreate `SyncPort` in features |
@@ -248,7 +248,7 @@ Compare prototype `nextjs-handoff.md` / `frontend-contracts.ts` with **current v
 | Prototype `PreparedSale.providerOrderId` / status `reserved` | Replaced | Opaque `saleId`, `orderReference`, `status: "prepared"`, `stockCommitment` | Already frozen | Show “reserved” as inventory promise |
 | Prototype quote without `cartId` / `locationId` / string qty | Replaced | `QuoteRequest` requires them | Already frozen | Send numeric qty or client totals |
 | Return execution / restock wire | Types exist; **RT-01 UNRESOLVED** for bridge refund/restock endpoints | Keep UI states; do not execute unrestricted refunds | RT-01 | Assume restock on refund |
-| `canCheckout.ts` in `core/application` (prototype handoff) | Eligibility **type** is v1; implementation owner is application layer | WS3 may own pure eligibility if it needs journal/shift; WS1 may map messages | Confirm in CP-05 whether helper lives in core vs feature | Duplicate incompatible reason codes |
+| `canCheckout.ts` in `core/application` (prototype handoff) | Eligibility **type** is v1; implementation owner is application layer | WS3 may own pure eligibility if it needs journal/shift; WS1 may map messages | Confirm against the merged CP-05 scaffold whether helper lives in core vs feature | Duplicate incompatible reason codes |
 
 No request is made for a standalone P0 InventoryPort, browser pricing engine, or prototype `PaymentPort.finalize`.
 
@@ -306,7 +306,7 @@ Desktop/tablet: `sell-layout` product left, `cart-panel` right (`--cart-width`).
 
 `@media print` hides chrome; `.receipt-paper` visible; width **80mm**; `@page` auto/5mm margins. Disclaimer remains on the paper. Production may add a PrintPort device adapter later without restyling the snapshot.
 
-Proposed token landing (planning only): `apps/pos-web/src/ui/tokens.css` (or equivalent CSS-variable layer) consumed by features. FE-02 owns conversion **after** CP-05.
+Proposed token landing (planning only): `apps/pos-web/src/ui/tokens.css` (or equivalent CSS-variable layer) consumed by features. FE-02 owns conversion after FE-01 acceptance/merge; the CP-05 prerequisite is now satisfied (PR #32, `095696f15cd64b546003bc5c77b4600af7bc4c76`).
 
 Reference screenshots (immutable, not production proof): `artifact/verification-sell-desktop.png`, `verification-mobile-cart.png`, `verification-desktop.png`.
 

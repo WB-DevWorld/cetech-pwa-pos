@@ -11,7 +11,8 @@ Branch: `ws1/fe-01-intake-approved-prototype-and-map-scenarios`
 Commit(s):
 
 - `601b7bd18fa190c93ba18689042a929a5d6ce552` — `docs(frontend): map approved POS reference scenarios`
-- handoff-evidence correction commit: recorded in PR #33 review follow-up after this correction commit is created
+- `8439bddaceb362470dfedc71cc588fa316570a47` — `docs(frontend): correct FE-01 handoff commit evidence`
+- dependency-freshness correction commit: recorded in PR #33 review follow-up after this correction commit is created
 
 Working tree: `H:/cursor/cetech-pwa-pos-fe-01`. Base HEAD `15287691a71081ca2855b5b9bc325a787b2ca7c0` (`origin/main`, PR #31).
 
@@ -39,7 +40,7 @@ Tests executed:
 - `python scripts/verify_control_plane.py` (worktree, after edits): exit 0. Same PASS/LIMIT text.
 - `git diff --check`: exit 0.
 - `git diff -- reference/frontend-approved`: empty (no approved-reference change).
-- Scaffold commands (`pnpm --dir apps/pos-web …`) are **not required** for FE-01; CP-05 has not created them.
+- Scaffold commands (`pnpm --dir apps/pos-web …`) are **not required** for FE-01 (documentation-only). CP-05 has since merged through PR #32 at `095696f15cd64b546003bc5c77b4600af7bc4c76`; FE-01 did not create or modify that scaffold.
 
 Runtime verification:
 
@@ -62,8 +63,14 @@ Known limitations:
 
 Unresolved risks:
 
-- CP-05 scaffold has not landed; FE-02 must not start on that basis.
 - Unrelated dirty approved-reference files on the other working tree remain unexplained; this task did not touch them. A reference-integrity failure on that checkout would be a WS3 recovery item, not FE-01 permission to edit hashes.
+
+CP-05 evidence (satisfied for FE-02):
+
+- CP-05 / PR #32 merged into `main`.
+- Merge commit: `095696f15cd64b546003bc5c77b4600af7bc4c76`.
+- CP-05 is therefore no longer an outstanding FE-02 prerequisite.
+- FE-02 still must not begin until FE-01 completes its required acceptance/merge process. This handoff does not invent PR #33 approval or merge evidence.
 
 Requested reviewer:
 
@@ -71,9 +78,4 @@ Senior / integration authority (@wbdevworld)
 
 Recommended next task:
 
-FE-02 only after:
-
-1. FE-01 is reviewed/accepted, AND
-2. CP-05 scaffold has landed with evidence.
-
-FE-02 is not ready merely because this map exists.
+FE-02 only after FE-01 is accepted and merged. CP-05 is already satisfied (PR #32, `095696f15cd64b546003bc5c77b4600af7bc4c76`). FE-02 is not ready merely because this map exists.
