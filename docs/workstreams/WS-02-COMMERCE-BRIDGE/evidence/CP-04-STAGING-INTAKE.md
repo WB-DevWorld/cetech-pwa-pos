@@ -32,13 +32,13 @@ User-reported values are **not** upgraded by this document.
 | `ws2/cp-04-commerce-intake` pre-existed | No local or remote branch before this task | `git branch -a` after fetch | 2026-09-12 13:18 UTC | VERIFIED | None | None | WS2 |
 | Unrelated uncommitted work | None; tree clean on pull | `git status` | 2026-09-12 13:18 UTC | VERIFIED | Overwrite risk | Preserve other worktrees | WS2 |
 | Issue #4 CP-04 | Open; assignee `@wbdevworld`; milestone M0 | GitHub API `GET /issues/4` (rechecked closeout) | 2026-09-12 13:20:54 UTC and 13:39 UTC | VERIFIED | CP-04 completion remains WS3 | WS3 consolidates this intake | WS3 |
-| Issue #13 BR-01 | Open; unassigned; milestone M0 | GitHub API `GET /issues/13` (rechecked closeout) | 2026-09-12 13:20:54 UTC and 13:39 UTC | VERIFIED | BR-01 assignment | Assign after WS3 accepts this intake | WS2/WS3 |
+| Issue #13 BR-01 | Open; unassigned; milestone M0; dependencies remain CP-03, CP-04 | GitHub API `GET /issues/13` (rechecked closeout and remediation) | 2026-09-12 13:20:54 UTC, 13:39 UTC, and remediation | VERIFIED | BR-01 assignment | WS3 records any gate decision in authoritative state; this intake does not assign or unblock | WS2/WS3 |
 | `wordpress/cetech-pos-bridge/**` | Only `README.md` (do not install as plugin; do not claim health exists) | Git tree listing | 2026-09-12 13:19 UTC | REPOSITORY-VERIFIED | BR-01 implementation | BR-01 creates plugin | WS2 |
 | `tests/bridge/**` | Absent | Git tree | 2026-09-12 13:19 UTC | REPOSITORY-VERIFIED | BR-01 tests | BR-01 | WS2 |
 | `tests/fixtures/commerce/**` | Absent | Git tree | 2026-09-12 13:19 UTC | REPOSITORY-VERIFIED | BR-03+ corpus | Later BR tasks | WS2 |
 | Pricing-parity rows | All UNVERIFIED / BLOCKED | `docs/runbooks/PRICING-PARITY.md` | 2026-09-12 13:19 UTC | REPOSITORY-VERIFIED | G2 / checkout | BR-03/04/05 | WS2 |
 | Target host HTTPS | TLS HTTP/1.1 `200` on `https://training.cetechbpa.com/` | `curl.exe -sS -I` | 2026-09-12 13:21:31 UTC | VERIFIED | Bridge auth over TLS | None for HTTPS itself | WS2 |
-| Public WordPress REST index | `200`; `Link: rel="https://api.w.org/"`; `url`/`home` = `https://training.cetechbpa.com` | HEAD + GET `/wp-json/` (redacted) | 2026-09-12 13:21:33 UTC | VERIFIED | None for starting BR-01 local implementation after WS3 acceptance | Do not scrape catalog/users | WS2 |
+| Public WordPress REST index | `200`; `Link: rel="https://api.w.org/"`; `url`/`home` = `https://training.cetechbpa.com` | HEAD + GET `/wp-json/` (redacted) | 2026-09-12 13:21:33 UTC | VERIFIED | None for this evidence contribution | Do not scrape catalog/users | WS2 |
 | Demonstrably staging vs production | User-reported `WP_ENVIRONMENT_TYPE=staging`; production URL UNVERIFIED; public REST does not expose environment type | `LIVE-ENVIRONMENT-FACTS.md`; REST index lacks env field | 2026-09-12 13:21 UTC | USER-REPORTED / BLOCKED for independent proof | Live plugin install / privileged inspection | Authorized operator: wp-admin Site Health / `wp config get WP_ENVIRONMENT_TYPE` and confirm production URL isolation | WS3 + operator |
 | Remote inspection without commerce effects | Public GET/HEAD only; no POST; no orders/stock | This intake | 2026-09-12 13:21 UTC | VERIFIED for public reads | Privileged facts remain BLOCKED | Operator WP-CLI/admin read-only | WS2/operator |
 | WordPress installed (public) | REST index present | `/wp-json/` | 2026-09-12 13:21 UTC | VERIFIED (presence only) | None for BR-01 local code | Site Health / `wp core version` | WS2/operator |
@@ -87,10 +87,10 @@ No BR-01 plugin implementation exists. `wordpress/cetech-pos-bridge/` remains RE
 
 | Gate | Status |
 | --- | --- |
-| **BR-01 CODE PREREQUISITES** | ready for WS3 review |
-| **BR-01 LIVE/RUNTIME ACCEPTANCE** | still blocked on authorized staging/service-identity evidence |
+| **BR-01 dependency/gate decision** | DEFERRED TO WS3 / authoritative control plane |
+| **BR-01 LIVE/RUNTIME ACCEPTANCE** | still blocked on authorized staging isolation plus service-identity/capability evidence |
 
-BR-01 local implementation may begin after WS3 accepts this intake. BR-01 runtime acceptance remains blocked pending authorized staging/service-identity evidence. This intake does not complete CP-04, does not complete or approve BR-01, and does not authorize staging installation. Pricing parity remains entirely unverified.
+This intake recommends that WS3 determine whether any local BR-01 implementation may proceed while CP-04 remains PARTIAL. This WS2 evidence PR does not supersede, satisfy, split, or relax issue #13's recorded CP-04 dependency. Any decision to separate local-code and live/runtime gates must be recorded by WS3 in the authoritative task/control-plane state. This intake does not complete CP-04, does not complete or approve BR-01, and does not authorize staging installation or BR-01 implementation by itself. Pricing parity remains entirely unverified.
 
 | Prerequisite | Result | Notes |
 | --- | --- | --- |
@@ -225,19 +225,17 @@ Perform on the confirmed staging clone only. Do not paste secrets into chat. Do 
 
 ## Decision
 
-BR-01 local implementation may begin after WS3 accepts this intake; BR-01 runtime acceptance remains blocked pending authorized staging/service-identity evidence.
+This intake recommends that WS3 determine whether any local BR-01 implementation may proceed while CP-04 remains PARTIAL. This WS2 evidence PR does not supersede, satisfy, split, or relax issue #13's recorded CP-04 dependency. Any decision to separate local-code and live/runtime gates must be recorded by WS3 in the authoritative task/control-plane state.
 
 | Gate | Status |
 | --- | --- |
-| **BR-01 CODE PREREQUISITES** | ready for WS3 review |
-| **BR-01 LIVE/RUNTIME ACCEPTANCE** | still blocked on authorized staging/service-identity evidence |
+| **BR-01 dependency/gate decision** | DEFERRED TO WS3 / authoritative control plane |
+| **BR-01 LIVE/RUNTIME ACCEPTANCE** | still blocked on authorized staging isolation plus service-identity/capability evidence |
 
-This is an evidence recommendation to WS3/reviewer. It is **not** permission to declare CP-04 complete, complete or approve BR-01, prove HPOS, prove pricing parity, authorize staging installation, or claim that a BR-01 skeleton already exists.
+This is an evidence recommendation to WS3/reviewer. It is **not** permission to declare CP-04 complete, complete or approve BR-01, prove HPOS, prove pricing parity, authorize staging installation, authorize BR-01 implementation, or claim that a BR-01 skeleton already exists.
 
-CP-04 remains **PARTIAL** and WS3-owned. Live authenticated BR-01 proof still requires an authorized service identity/capability and safe staging confirmation.
+The authoritative ledger records CP-04 as **PARTIAL / BLOCKED**. Issue #4 being closed in GitHub does not, by itself, authorize WS2 to treat BR-01 as unblocked. Live authenticated BR-01 proof still requires an authorized service identity/capability and safe staging confirmation.
 
 ## Recommended Next Task
 
-After WS3 accepts this intake: BR-01 / issue #13 — Build bridge health and permission skeleton (`ws2/br-01-health` / `ws2/br-01-build-bridge-health-and-permission-skeleton`).
-
-Do not begin BR-01 in this branch. Do not treat this intake as CP-04 done.
+Await WS3 re-review of PR #35. Do not start BR-01 unless/until WS3 records the gate decision in authoritative task/control-plane state.

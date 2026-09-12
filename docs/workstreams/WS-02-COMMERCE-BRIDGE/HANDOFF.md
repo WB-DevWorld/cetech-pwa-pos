@@ -6,7 +6,7 @@ Branch: `ws2/cp-04-commerce-intake`
 
 Base: `095696f15cd64b546003bc5c77b4600af7bc4c76` (branch created from this `origin/main`). Closeout re-fetch: `origin/main` is `ae6bac5cbffae3af13036e0447641e174a9227b5` (`docs: reconcile CP-05 merged status (#34)`). Unrelated WS3 docs only. No rebase performed.
 
-Commit(s): this branch tip after the intake closeout commit (recorded in `git log -1` at push)
+Commit(s): `70211240a94f41c8fb14de8979e84c0a0ad65bb0` — `docs(ws2): record CP-04 commerce staging intake evidence`
 
 Files changed (authoritative `git add` of the three authorized paths; `git diff --cached` — untracked files are invisible to unstaged `git diff --stat`, which previously under-counted as 2 files):
 
@@ -49,7 +49,7 @@ Runtime verification:
 
 - Public read-only HEAD/GET against user-reported `https://training.cetechbpa.com` (homepage `200` TLS; `/wp-json/` `200`; `/wp-json/cetech-pos/v1/health` `404`).
 - REST index advertises Application Passwords; `cetech-pos` namespace absent; `wc/v3` and `vitepos/v1` namespaces present.
-- GitHub issues #4 and #13 remain **open** (public API rechecked at closeout; `gh` CLI not installed). #4 assignee `@wbdevworld`; #13 unassigned.
+- Intake-closeout public API: #4 open / #13 open. Remediation recheck 2026-09-12: issue #4 **CLOSED**; issue #13 **OPEN** with recorded dependencies `CP-03, CP-04` and “Only read/mock preparation may precede an unmet runtime gate.” Issue #4 being closed does not authorize WS2 to treat BR-01 as unblocked.
 - No wp-admin, WP-CLI, Application Password, order, stock, user, HPOS, or plugin mutation.
 
 User-reported facts retained:
@@ -77,11 +77,11 @@ Unresolved risks:
 
 BR-01 entry assessment:
 
-- BR-01 local implementation may begin after WS3 accepts this intake; BR-01 runtime acceptance remains blocked pending authorized staging/service-identity evidence.
-- **BR-01 CODE PREREQUISITES:** ready for WS3 review.
-- **BR-01 LIVE/RUNTIME ACCEPTANCE:** still blocked on authorized staging/service-identity evidence.
-- No BR-01 implementation exists.
+- This intake recommends that WS3 determine whether any local BR-01 implementation may proceed while CP-04 remains PARTIAL. This WS2 evidence PR does not supersede, satisfy, split, or relax issue #13's recorded CP-04 dependency. Any decision to separate local-code and live/runtime gates must be recorded by WS3 in the authoritative task/control-plane state.
+- **BR-01 dependency/gate decision:** DEFERRED TO WS3 / authoritative control plane.
+- **BR-01 LIVE/RUNTIME ACCEPTANCE:** still blocked on confirmed safe staging isolation plus authorized service identity/capability evidence.
+- No BR-01 implementation exists. This PR does not authorize BR-01 implementation or staging installation.
 
 Requested reviewer: WS3 senior / integration authority (@wbdevworld)
 
-Recommended next task after reviewer acceptance: BR-01 / issue #13 — Build bridge health and permission skeleton (new branch; not this intake branch).
+Recommended next task: Await WS3 re-review of PR #35. Do not start BR-01 unless/until WS3 records the gate decision in authoritative task/control-plane state.
