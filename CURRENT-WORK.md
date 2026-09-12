@@ -67,7 +67,7 @@ Observed values are UNVERIFIED until measured; do not interpret blanks as zero. 
 | Human interruptions / prompts per accepted task | UNVERIFIED | UNVERIFIED | Session/handoff counts; distinguish milestone review from routine prompts |
 | Review waiting time / branch age | UNVERIFIED | UNVERIFIED | Ready-for-review, branch start and review/merge UTC |
 | Time since combined integration | UNVERIFIED | UNVERIFIED | Last combined build SHA/UTC |
-| Pass-1 / Pass-2 stale findings | 0 / 0 for workflow adoption; both cutoffs `cd4477f` | 0 / 0; both cutoffs `aa08d74f…` | Final freshness classifications |
+| Pass-1 / Pass-2 stale findings | 0 / 0 for workflow adoption; both cutoffs `cd4477f` | 0 / 0; this continuation both cutoffs `aa08d74f…` (`2026-09-12T22:46:50Z` / `2026-09-12T22:47:47Z`) | Final freshness classifications |
 | Drift rework / integration conflicts | 0 / 0 for workflow adoption; excludes earlier CORE-01 work | UNVERIFIED | Scoped corrective commits and conflict records |
 | Defects found at review | UNVERIFIED | UNVERIFIED | Findings attributable to this batch |
 | Review duration / comprehension | UNVERIFIED | UNVERIFIED | Reviewer minutes and can explain invariants: yes/no |
