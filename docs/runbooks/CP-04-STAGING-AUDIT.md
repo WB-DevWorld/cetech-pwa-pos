@@ -4,7 +4,7 @@ Repeatable, **read-only first** procedure for `https://training.cetechbpa.com` (
 
 ## Preconditions
 
-- Work from a clean worktree on `ws3/cp-04-audit-live-environment-and-isolate-staging` (or a successor evidence branch).
+- Work from a clean worktree on `ws3/cp-04-authenticated-staging-evidence` (or a later evidence branch). Do not reuse merged PR #36.
 - Do not paste WordPress passwords, application passwords, Woo/Paystack/MoMo secrets, database URLs, or customer PII into chat, issues, or git.
 - Do not install/activate plugins, change VitePOS/Woo/tax/payment settings, create orders, charge cards, trigger MoMo, or reduce stock.
 - Prefer WP-CLI or admin screens over dumping `wp-config.php`, `wp config list`, all `wp_options`, Site Health, or Woo system reports.
@@ -41,10 +41,12 @@ If `GET /wp-json/vitepos/v1/basic/settings` is still unauthenticated, extract on
 
 Preferred order:
 
-1. Staging WP-CLI (no eval that writes).
+1. Staging WP-CLI on the **operator-identified training origin** (no eval that writes). 2026-09-12: SSH as `ubuntu` to hostname `cetechtrainingappserver`; WordPress `/home/cetechtraining/htdocs/training.cetechbpa.com`; run as site user `cetechtraining`. Prefer a temporary `wp eval-file` that prints labels only.
 2. Staging wp-admin screens (screenshot, redact).
-3. Authenticated Woo REST GET.
+3. Authenticated Woo REST GET using an **already-existing** credential. Do not create Application Passwords for the audit.
 4. Human-supplied redacted values.
+
+Do not SSH unrelated hosts when the operator has named the training origin. Do not `wp config list`, `cat wp-config.php`, `wp option list`, or print gateway option blobs.
 
 Example WP-CLI (read-only):
 
@@ -104,7 +106,8 @@ CP-04 itself does not authorize Phase 4.
 Update:
 
 - `docs/integration/evidence/CP-04-LIVE-AUDIT.md`
+- `docs/integration/evidence/CP-04-AUTHENTICATED-AUDIT.md`
 - `LIVE-ENVIRONMENT-FACTS.md`
 - WS3 `STATUS.md` / `HANDOFF.md`
 
-Timestamp every upgrade of a cell. Do not mark CP-04 complete while isolation or integration-critical Woo/HPOS/stock/barcode/payment facts remain `BLOCKED`.
+Timestamp every upgrade of a cell. Do not mark CP-04 complete while isolation remains `NOT PROVEN` / `UNSAFE`, even if HPOS and Woo stock options are now verified.

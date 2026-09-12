@@ -253,7 +253,15 @@ HPOS; Woo manage-stock / hold / backorders / reduction; Woo tax; GRA fiscal proc
 
 **PARTIAL / BLOCKED**
 
-Acceptance (“every integration-critical fact has verifier/time/evidence; staging isolated from production writes”) is **not** met. Public evidence was captured. Authenticated Woo/WP-CLI facts and staging-isolation proof were not. No write tests were executed. Production was not modified.
+Acceptance at public-audit time (“every integration-critical fact has verifier/time/evidence; staging isolated from production writes”) was **not** met. Public evidence was captured. Authenticated Woo/WP-CLI facts and staging-isolation proof were not available in that pass. No write tests were executed. Production was not modified.
+
+The 2026-09-12 authenticated continuation (below) upgrades identity/HPOS/stock/tax/gateway cells and still does **not** meet isolation acceptance.
 
 Were any write tests executed? **no**
 Production touched? **NO**
+
+## Authenticated continuation (2026-09-12)
+
+Do not treat the public-only rows above as if they had always been WP-CLI verified. Continuation evidence is in `docs/integration/evidence/CP-04-AUTHENTICATED-AUDIT.md`.
+
+Summary of upgrades (training origin WP-CLI, @wbdevworld, 2026-09-12T16:12Z): `WP_ENVIRONMENT_TYPE=staging`; Woo 11.1.0; HPOS enabled with data-sync off; manage-stock yes / hold 60 minutes; GHS / 2 decimals as admin options; tax calc off (0 rates); Paystack plugin inactive; enabled Woo gateways invoice + COD; Woo webhooks 0; MailPoet active with admin-email domain `cetechbpa.com`. Isolation remains **NOT PROVEN** / email **UNSAFE** for write tests. CORE-01 remains BLOCKED. Production was not SSH-probed in that continuation.

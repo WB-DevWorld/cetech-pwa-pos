@@ -1,23 +1,33 @@
-# WS3 current handoff — CI-01 (Vitest discovery)
+# WS3 current handoff — CP-04 authenticated continuation (PARTIAL / BLOCKED)
+
+Task: CP-04 — Audit live environment and isolate staging (issue #4), authenticated continuation.
+Branch: `ws3/cp-04-authenticated-staging-evidence`
+Base: `origin/main` `ceea3c4ebb3b95d7c3195d6cc089d1f3713d1d19`
+Status: PARTIAL / BLOCKED. Authenticated identity/HPOS/stock/tax/runtime gateways recorded. Isolation **NOT PROVEN**. Email path **UNSAFE** for write tests. Does **not** complete issue #4 and does **not** authorize CORE-01.
+Evidence: `docs/integration/evidence/CP-04-AUTHENTICATED-AUDIT.md` (public chronology remains `CP-04-LIVE-AUDIT.md`)
+Access: pre-existing SSH to operator-identified training origin; WP-CLI as site user. Credentials created: NO.
+Facts newly verified (2026-09-12 16:08–16:14 UTC, @wbdevworld): `WP_ENVIRONMENT_TYPE=staging`; home/siteurl training host; WP 7.1; PHP-FPM 8.5.9 (CLI 8.4.24); Woo 11.1.0; WoodMart 8.5.7 + child 1.0.0; B2BKing Core 5.2.50 + Pro 5.6.30; VitePOS Lite 3.5.1 active / Pro 3.6.0 inactive; HPOS enabled, data-sync off; manage-stock yes; hold 60 minutes; `_backorders=no` × 154; GHS / 2 decimals admin options; tax calc off, 0 rates; Paystack plugin inactive; enabled gateways invoice + COD; Woo webhooks 0; 2 GH warehouses + 2 counters; MailPoet active; admin-email domain `cetechbpa.com`; staging DB fingerprint hash recorded (inputs not stored).
+Staging-isolation determination: **NOT PROVEN**. Not `SAFE FOR CONTROLLED STAGING WRITE TEST`.
+Were any write tests executed? no. Production touched? NO. Production SSH this continuation? NO.
+CI-01: MERGED / VERIFIED PR #38 `8e058d6…`; @Ben-001-sys APPROVED; lease RELEASED.
+FE-01: MERGED / COMPLETE PR #33; issue #6 completed (central ledger only; WS1 files untouched).
+FE-02: MERGED / COMPLETE PR #37 `ceea3c4…`; issue #7 completed (central ledger only; WS1 files untouched).
+Contracts / migrations / lockfile / application / reference: unchanged.
+Local validation 2026-09-12 on this branch (`ceea3c4` + evidence): `verify_control_plane` EXIT 0; tooling unittest 34 ok; frozen install, lint, typecheck EXIT 0; `pnpm --dir apps/pos-web test` EXIT 0 — **8 files / 20 tests** (CI-01 discovery still effective after FE-02 merge); build EXIT 0; `git diff --check` EXIT 0.
+Requested reviewer: @Ben-001-sys. @wbdevworld cannot self-approve.
+Recommended next step: sandbox or disable staging MailPoet/admin mail to production-domain inboxes, obtain an operator-confirmed production DB fingerprint for comparison, then re-evaluate isolation. Do not start CORE-01 in this assignment. Do not run write tests.
+
+Previous CI-01 merged handoff retained below.
+
+# WS3 previous handoff — CI-01 (MERGED / VERIFIED)
 
 Task: CI-01 — Broaden Vitest discovery so canonical `pnpm --dir apps/pos-web test` is not restricted to `src/app`.
 Branch: `ws3/ci-01-broaden-vitest-discovery`
-Base: `origin/main` `58c195ee5b365469449e125f060665f12007ae81`
-Status: implementation complete on this branch; human review required. Does **not** complete CP-04 and does **not** authorize CORE-01.
-Files: `apps/pos-web/package.json` (script `vitest run`); `apps/pos-web/vitest.config.mts`; `tests/tooling/test_vitest_discovery.py`; this status/handoff/ledger.
-Previous command: `vitest run --environment node --dir src/app`
-New command: `vitest run` with `unitTestDiscovery` include/exclude in `apps/pos-web/vitest.config.mts`
-Environment: Node (existing tests use `react-dom/server` / filesystem / pure functions). No jsdom/happy-dom added. `resolve.dedupe` for `react`/`react-dom` only, so `tests/frontend` files that import app components do not pick a second React copy; no lockfile change.
-Workflow file: unchanged; CI already runs `pnpm --dir apps/pos-web test`.
-Contracts / migrations / lockfile / application feature code: unchanged.
-Local validation 2026-09-12: `verify_control_plane` EXIT 0; tooling unittest 34 ok; frozen install, lint, typecheck, unit (1 scaffold file), build, `git diff --check` EXIT 0.
-FE-02 overlay proof (temporary worktree of `origin/ws1/fe-02-convert-tokens-and-responsive-pos-shell` + this config; not committed): `vitest run` discovered **8 files / 18 tests**, including `src/app/page.test.tsx`, `LoginScreen.test.tsx`, `OpenRegisterForm.test.tsx`, `parseDecimalToMinorUnits.test.ts`, `AppShell.test.tsx`, `tests/frontend/no-demo.test.ts`, `tokens.test.ts`, `visual-harness.test.ts`. Playwright `*.pw.ts` not listed. All 18 passed after React dedupe.
-CP-04: remains PARTIAL / BLOCKED; issue #4 OPEN; isolation NOT PROVEN.
-CORE-01: remains BLOCKED.
-Requested reviewer: @Ben-001-sys. @wbdevworld cannot self-approve.
-Recommended next step after merge: rebase/rerun FE-02 PR #37 against corrected discovery. Authenticated CP-04 staging/isolation evidence remains the WS3 runtime blocker.
+Status: MERGED / VERIFIED on `main` via PR #38 merge `8e058d679bb02e96374c0e79cc32d025b6a9ed03` after @Ben-001-sys APPROVED. Lease RELEASED.
+Note: FE-02 later merged as PR #37; canonical `pnpm --dir apps/pos-web test` must discover the broader frontend unit/static set automatically.
 
-Previous CP-04 partial handoff retained below.
+Previous CP-04 public/partial handoff retained below.
+
 
 # WS3 previous handoff — CP-04 (PARTIAL / BLOCKED)
 
