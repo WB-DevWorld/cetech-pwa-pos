@@ -6,6 +6,7 @@ import {
   formatMoneyDisplay,
   INTEGRATION_UNAVAILABLE,
   isCheckoutEligibilityReason,
+  type QuoteDisplayState,
 } from "./quotePresentation";
 
 const snapshot = (minor: number) => ({
@@ -96,6 +97,34 @@ describe("FE-04 quote presentation", () => {
       message: "Commerce could not confirm prices.",
     });
     expect(failed.code).not.toBe("PRICING_UNAVAILABLE");
+  });
+
+  test("failed quote presentation accepts INTEGRATION_UNAVAILABLE and rejects QuoteProblem-only codes at compile time", () => {
+    const validFailedQuote: QuoteDisplayState = {
+      status: "failed",
+      revision: 1,
+      code: "INTEGRATION_UNAVAILABLE",
+      message: "Pricing unavailable — cart saved",
+    };
+    expect(validFailedQuote.code).toBe("INTEGRATION_UNAVAILABLE");
+
+    const invalidFailedQuote: QuoteDisplayState = {
+      status: "failed",
+      revision: 1,
+      // @ts-expect-error PRICING_UNAVAILABLE is QuoteProblem-only, not a failed QuoteState code.
+      code: "PRICING_UNAVAILABLE",
+      message: "Not valid for QuoteState.failed",
+    };
+    expect(invalidFailedQuote.status).toBe("failed");
+
+    const invalidArbitraryFailedQuote: QuoteDisplayState = {
+      status: "failed",
+      revision: 1,
+      // @ts-expect-error arbitrary strings are not failed quote presentation codes.
+      code: "SOMETHING_RANDOM",
+      message: "Not a supported failed quote code",
+    };
+    expect(invalidArbitraryFailedQuote.status).toBe("failed");
   });
 });
 

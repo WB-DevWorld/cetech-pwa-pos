@@ -16,6 +16,9 @@ export type QuotePresentationSnapshot = {
   readonly tax?: QuotePresentationMoney;
 };
 
+/** PREP_ONLY failed-quote code. Not the canonical ApiErrorCode union; QuoteProblem-only codes are excluded. */
+export type FailedQuoteCodeView = "INTEGRATION_UNAVAILABLE";
+
 export type QuoteDisplayState =
   | { readonly status: "missing" }
   | { readonly status: "stale" }
@@ -29,7 +32,7 @@ export type QuoteDisplayState =
       readonly previous: QuotePresentationSnapshot;
       readonly current: QuotePresentationSnapshot;
     }
-  | { readonly status: "failed"; readonly revision: number; readonly code: string; readonly message: string };
+  | { readonly status: "failed"; readonly revision: number; readonly code: FailedQuoteCodeView; readonly message: string };
 
 export const CHECKOUT_ELIGIBILITY_REASONS = [
   "NO_ACTIVE_SHIFT",
@@ -65,8 +68,7 @@ export type PayButtonView = {
   readonly eligibilityReason?: CheckoutEligibilityReasonView;
 };
 
-/** Failed quote presentation uses a supplied ApiErrorCode, commonly INTEGRATION_UNAVAILABLE. */
-export const INTEGRATION_UNAVAILABLE = "INTEGRATION_UNAVAILABLE";
+export const INTEGRATION_UNAVAILABLE: FailedQuoteCodeView = "INTEGRATION_UNAVAILABLE";
 
 const LIVE_PAYMENT_BLOCKED_REASON = "Review confirmed prices. Payment is not available on this screen.";
 
