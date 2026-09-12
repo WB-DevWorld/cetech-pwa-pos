@@ -1,8 +1,8 @@
 # WS3 current status
 
-Snapshot 2026-09-12. Main `cd4477f185c159e18ed939a20145865d665099b4`; CORE-01/#40 base implementation head `860bef52efb53773788f6e06fc1753d8d51670a9` remains unmerged. R1 explicitly adds governance/tooling adoption as a separate commit; migrations/schema/RLS and v1 contracts preserved. Ben's final combined-head review is pending. CORE-02 NOT STARTED by this task. CP-05, CI-01, FE-01/02 are merged; CP-04 development baseline satisfied with write/cutover gates open.
+Snapshot 2026-09-12. Main `aa08d74f2cb99301817e5995f01486acb7e2169f`. R1/#40 APPROVED / MERGED / VERIFIED; @Ben-001-sys APPROVED `260be7f72b79bdbf2895ecfd06742db059b1496e`. CORE-01 ACCEPTED; CORE-01 lease RELEASED. ADR-012 ACTIVE. R2 activated on `batch/r2-auth-bridge-bff`. CORE-02 IN PROGRESS (issue #21). Do not recreate R1 or CORE-01.
 
-CURRENT-WORK holds the central lease and R1 state; TASKS contains later conditional progression. Exact new head, verification and cutoff are recorded in the R1 adoption evidence and final PR handoff, not inferred from this dated snapshot.
+CURRENT-WORK holds the central R2 lease. Exact CORE-02 head and verification are recorded in HANDOFF as checkpoints land.
 
 ## Previous snapshot (historical; current section above controls)
 
@@ -20,8 +20,8 @@ Control-plane/contracts implemented and verified. CP-05 is MERGED / VERIFIED on 
 | CP-04 | DEVELOPMENT BASELINE SATISFIED; write-safety/cutover OPEN / DEFERRED | ADR-011; authenticated audit preserved. Remaining actions in docs/runbooks/CP-04-REMAINING-WORK.md. Isolation NOT PROVEN; email UNSAFE for affected remote tests. No new write tests. |
 | CP-05 | MERGED / VERIFIED | PR #32; merge `095696f15cd64b546003bc5c77b4600af7bc4c76`; @Ben-001-sys APPROVED; issue #5 CLOSED / COMPLETED |
 | CI-01 | MERGED / VERIFIED; lease RELEASED | PR #38; merge `8e058d679bb02e96374c0e79cc32d025b6a9ed03`; @Ben-001-sys APPROVED |
-| CORE-01 | FINAL PRE-MERGE REMEDIATION | PR #40; public cash-lock RPC removed; atomic expected-cash UPDATE; pending register auth; CI pgTAP. Do not recreate. |
-| CORE-02 | SPECIFIED | See TASKS.md; GitHub mapping in ../../plans/TASK-INDEX.md |
+| CORE-01 | ACCEPTED / MERGED / VERIFIED; lease RELEASED | PR #40 merge `aa08d74f…`; @Ben-001-sys APPROVED `260be7f…`. Do not recreate. |
+| CORE-02 | IN PROGRESS | R2 `batch/r2-auth-bridge-bff`; issue #21 |
 | CORE-03 | SPECIFIED | See TASKS.md; GitHub mapping in ../../plans/TASK-INDEX.md |
 | CORE-04 | SPECIFIED | See TASKS.md; GitHub mapping in ../../plans/TASK-INDEX.md |
 | CORE-05 | SPECIFIED | See TASKS.md; GitHub mapping in ../../plans/TASK-INDEX.md |
@@ -32,4 +32,4 @@ Control-plane/contracts implemented and verified. CP-05 is MERGED / VERIFIED on 
 | QA-01 | SPECIFIED | See TASKS.md; GitHub mapping in ../../plans/TASK-INDEX.md |
 | REL-01 | SPECIFIED | See TASKS.md; GitHub mapping in ../../plans/TASK-INDEX.md |
 
-CORE-01 holds the **CORE-01 lease** (`supabase/**`, DATA-OWNERSHIP, RLS tests, plus this pass's bounded Linux CI Supabase gate and RLS mirror tooling test). CP-05, CI-01 and the merged CP-04 audit leases remain released. Issue #4 stays OPEN as the live/cutover tracker. ADR-011 controls development gating; it does not change the NOT PROVEN remote-write isolation finding. Update with actual evidence; never mark a prerequisite fulfilled from a task specification.
+CORE-01 lease RELEASED after PR #40 merge. R2 holds the current central lease (`apps/pos-web/src/core/**`, `src/server/**`, `src/config/**`, `tests/integration/auth/**`, plus recorded coordination files). Issue #4 stays OPEN. ADR-012 is ACTIVE. Update with actual evidence; never mark a prerequisite fulfilled from a task specification.

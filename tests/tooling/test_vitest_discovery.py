@@ -16,6 +16,7 @@ REQUIRED_INCLUDE_AREAS = (
     'src/server/',
     'src/local/',
     'tests/frontend/',
+    'tests/integration/auth/',
 )
 
 REQUIRED_EXCLUDE_MARKERS = (
@@ -39,6 +40,7 @@ SHOULD_MATCH = (
     '../../tests/frontend/no-demo.test.ts',
     '../../tests/frontend/tokens.test.ts',
     '../../tests/frontend/visual-harness.test.ts',
+    '../../tests/integration/auth/staff-authorization.test.ts',
 )
 
 SHOULD_NOT_MATCH = (

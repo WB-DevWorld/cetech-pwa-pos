@@ -1,3 +1,18 @@
+# WS3 current handoff — R2 / CORE-02
+
+Task: CORE-02 — Implement staff auth abstraction and permission boundary (issue #21), inside R2.
+Branch: `batch/r2-auth-bridge-bff`
+Base: `origin/main` `aa08d74f2cb99301817e5995f01486acb7e2169f` (R1/#40 merge).
+R1: APPROVED / MERGED / VERIFIED. Independent reviewer @Ben-001-sys APPROVED `260be7f72b79bdbf2895ecfd06742db059b1496e`. CORE-01 ACCEPTED. CORE-01 lease RELEASED. ADR-012 ACTIVE.
+START_FRESHNESS_SNAPSHOT: UTC `2026-09-12T21:10:35Z`; origin/main `aa08d74f…`; declared batch baseline NOT_APPLICABLE (own candidate). Contracts v1.0.0.
+BR-01 observed, not consumed: `fbbf0ea7d016b6149e9f095d449fb15b0dcdf930` PROVISIONAL_TEST.
+Production-site access required for CORE-02? NO. Synthetic fixtures only.
+Contracts: IdentityPort, Session v1.0.0 unchanged.
+Requested reviewer: @Ben-001-sys for the R2 milestone PR. @wbdevworld cannot self-approve.
+CORE-03 starts only after this CORE-02 checkpoint plus BR-01 classification. R3 not started.
+
+## Historical handoffs (retain provenance; current ADRs/status override old blockers)
+
 # WS3 workflow transition handoff
 
 Workflow decision: ADR-012, activated team-wide when reviewed R1/#40 lands on main. Read [canonical handoff](../../ai/HANDOFF-TEMPLATE.md) and [two-pass policy](../../plans/LONG-RUNNING-WORK.md). Current queue/status are TASKS.md, STATUS.md and CURRENT-WORK. R1 changed only policy/coordination for this workstream; its feature evidence is not recreated. Adoption verification belongs in `docs/integration/evidence/R1-WORKFLOW-ADOPTION.md` and final PR handoff.

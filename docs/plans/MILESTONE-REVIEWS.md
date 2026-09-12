@@ -1,11 +1,11 @@
 # Ten remaining milestone reviews
 
-Authority: [ADR-012](../decisions/ADR/012.md); operation: [LONG-RUNNING-WORK](LONG-RUNNING-WORK.md). Snapshot 2026-09-12: main `cd4477f185c159e18ed939a20145865d665099b4`; #40 open at `860bef52efb53773788f6e06fc1753d8d51670a9`; #41 preparation open at `ede771bdbe5f05c8b517ce5168c9d8515a354e28`. Refresh before acting. Ten earlier PRs are already merged; this is the remaining MVP budget, not repository lifetime count. No completed foundation is recreated.
+Authority: [ADR-012](../decisions/ADR/012.md); operation: [LONG-RUNNING-WORK](LONG-RUNNING-WORK.md). Snapshot 2026-09-12: main `aa08d74f2cb99301817e5995f01486acb7e2169f`; R1/#40 MERGED; #41 preparation open. Refresh before acting. Ten earlier-plus-R1 PRs are merged; this is the remaining MVP budget, not repository lifetime count. No completed foundation is recreated.
 
 | Review | Outcome | Ordered task IDs | Existing PR | Acceptance gate |
 | --- | --- | --- | --- | --- |
-| R1 | Operational schema/RLS and workflow adoption | CORE-01 | #40 | Fresh migration, supported upgrade baseline, grants/RLS positive and negative tests; preserved commerce boundary; workflow/tooling checks. |
-| R2 | Authentication, bridge health and BFF | BR-01, CORE-02, CORE-03 | Create when this milestone is assembled | Authorized browser/BFF/DB/bridge health; no browser secrets; negative auth tests. |
+| R1 | Operational schema/RLS and workflow adoption | CORE-01 | #40 MERGED `aa08d74f…` | Fresh migration, supported upgrade baseline, grants/RLS positive and negative tests; preserved commerce boundary; workflow/tooling checks. ACCEPTED. |
+| R2 | Authentication, bridge health and BFF | BR-01, CORE-02, CORE-03 | `batch/r2-auth-bridge-bff` (draft PR when checkpoint exists) | Authorized browser/BFF/DB/bridge health; no browser secrets; negative auth tests. |
 | R3 | Authoritative Woo/WoodMart/B2BKing parity | BR-02, BR-03, BR-04, BR-05 | Create when this milestone is assembled | Guest/retail/quantity tiers/B2B/customer/variation/overlap/tax parity in controlled runtime. Unexplained mismatch blocks checkout. |
 | R4 | Catalog/barcode/Sell/customer/quote states | CORE-04, FE-03, FE-04 | #41 | CORE-04 projection and journal consumed by FE-03; FE-04 quote states after R3. Preparation UI alone is insufficient. |
 | R5 | Idempotent preparation and cash orchestration | BR-06, CORE-05 | Create when this milestone is assembled | Concurrent/repeated prepare; changed quote/stock; lost response; CORE-05 uses frozen mock boundary without waiting for BR-07. |
