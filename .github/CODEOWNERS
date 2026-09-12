@@ -1,7 +1,6 @@
-# Only confirmed identity is active. Default fallback prevents unowned paths.
+# Default owner for shared/root files: WS3 senior. Last matching pattern wins.
+# Identities and permissions checked through GitHub on 2026-09-12.
 * @wbdevworld
-* @Emmanuel-coder-prog
-* @Ben-001-sys
 
 # Developer 1 identity VERIFIED; write access verified:
 /apps/pos-web/src/features/ @Ben-001-sys
@@ -11,6 +10,7 @@
 # Developer 2 identity VERIFIED:
 /wordpress/cetech-pos-bridge/ @Emmanuel-coder-prog
 /tests/bridge/ @Emmanuel-coder-prog
+/tests/fixtures/commerce/ @Emmanuel-coder-prog
 
 /apps/pos-web/src/core/ @wbdevworld
 /apps/pos-web/src/server/ @wbdevworld

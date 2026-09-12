@@ -1,0 +1,4 @@
+# Keep authored text portable across Linux and Windows.
+* text=auto eol=lf
+# Approved source is byte-immutable, including its original line endings.
+/reference/frontend-approved/artifact/** -text !eol

@@ -1,6 +1,6 @@
 # CETECH PWA POS
 
-Engineering control plane for a three-person, 60-hour production MVP. Canonical repository: https://github.com/WB-DevWorld/cetech-pwa-pos (private).
+Engineering control plane for a three-person, 60-hour production MVP. Canonical repository: https://github.com/WB-DevWorld/cetech-pwa-pos (public; changed by the user and verified 2026-09-12).
 
 **Implementation status:** foundation and contract specifications only. No production app, bridge, database schema or live integrations are claimed. The preserved prototype is a simulated design reference.
 

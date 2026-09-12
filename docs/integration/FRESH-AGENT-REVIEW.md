@@ -15,6 +15,6 @@ Performed by the bootstrap agent from each workstream's perspective, 2026-09-11.
 
 Findings resolved before publication: prototype PrintPort gap; missing payment-to-commercial finalizer; optional journal keys; providerOrderId leakage; ambiguous InventoryPort scope; exact decimal quantities; catalog child-variation lookup; task dependency loop avoided by explicit mocked CORE-05 followed by real integration; overbroad per-task test commands narrowed to task prerequisites.
 
-Remaining explicit limits: colleague identities/access and enforced protections; exact app/PHP/toolchain and live facts; full maintained runtime schema validator and type/build suite; M2 refund execution wire refinement; no production integrations or actual device tests. These block dependent work or full enforcement, not FE-01/source intake or authorized shared scaffold work.
+Updated 2026-09-12: colleague write access is verified and the repo is public. Remaining explicit limits: enforced protections; app toolchain/runtime compatibility and remaining live facts; full maintained runtime schema validator and type/build suite; M2 refund execution wire refinement; no production integrations or actual device tests. These block dependent work or full enforcement, not FE-01/source intake or authorized shared scaffold work.
 
 Result: PASS for repository-only orientation and bounded first assignments; CONDITIONAL readiness for actual three-human access/review enforcement; NO-GO for live sales/production until named gates.
