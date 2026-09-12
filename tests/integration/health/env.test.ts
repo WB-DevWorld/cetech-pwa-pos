@@ -10,6 +10,14 @@ describe("CORE-03 server env boundary", () => {
     ).toThrow(/must not be exposed/);
   });
 
+  test("public bridge application-password aliases are rejected", () => {
+    expect(() =>
+      readServerEnv({
+        NEXT_PUBLIC_BRIDGE_APPLICATION_PASSWORD: "placeholder-not-a-real-secret",
+      }),
+    ).toThrow(/must not be exposed/);
+  });
+
   test("server-only names stay readable without becoming public env", () => {
     const env = readServerEnv({
       APP_ORIGIN: "https://pos.example.test",

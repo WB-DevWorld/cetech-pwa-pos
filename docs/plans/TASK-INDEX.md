@@ -1,6 +1,6 @@
 # Task index
 
-CP-04 dependency interpretation: [ADR-011](../decisions/ADR/011.md). Its development baseline is SATISFIED for local CORE-01/BR-01 implementation; CORE-01 is ACCEPTED through R1/`aa08d74f…`. CORE-02 on `batch/r2-auth-bridge-bff` had remaining independent acceptance remediation after `95289a7…`. CORE-03 there is PREP_ONLY mocks until BR-01 is combined/tested. Issue #4 stays OPEN for operation-specific write-safety/cutover evidence. An open tracker is not a blanket dependency failure. [Remaining actions](../runbooks/CP-04-REMAINING-WORK.md).
+CP-04 dependency interpretation: [ADR-011](../decisions/ADR/011.md). Its development baseline is SATISFIED for local CORE-01/BR-01 implementation; CORE-01 is ACCEPTED through R1/`aa08d74f…`. CORE-02 on `batch/r2-auth-bridge-bff` is CHECKPOINTED at `2f6c0b5…`. CORE-03 there is an injected BFF adapter against a disposable BR-01 combination; Next `/health` stays unattached and BR-01 is unaccepted. Issue #4 stays OPEN for operation-specific write-safety/cutover evidence. An open tracker is not a blanket dependency failure. [Remaining actions](../runbooks/CP-04-REMAINING-WORK.md).
 
 All 30 GitHub issues were created and confirmed on 2026-09-11. Senior issues are assigned to @wbdevworld; WS1/WS2 remain unassigned pending verified identities. Full scoped execution contracts live in each workstream TASKS.md.
 

@@ -1,11 +1,12 @@
 /**
  * Server-only secret names. Never expose these through NEXT_PUBLIC_ or browser modules.
- * CORE-02 does not load live credentials; this is a static boundary check.
+ * Names are a static boundary; this module does not load live credentials.
  */
 export const SERVER_ONLY_SECRET_NAMES = [
   "SUPABASE_SERVICE_ROLE_KEY",
   "SUPABASE_SECRET_KEY",
   "SERVICE_ROLE_KEY",
+  "BRIDGE_APPLICATION_PASSWORD",
 ] as const;
 
 const PUBLIC_PREFIX = "NEXT_PUBLIC_";

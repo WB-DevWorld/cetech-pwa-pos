@@ -1,6 +1,6 @@
 import { STAFF_SESSION_COOKIE } from "../../config/auth";
 import type { ApiResult } from "../../../../../docs/contracts/ports";
-import type { HealthCheck, StoreHealth, Uuid } from "../../../../../docs/contracts/domain.generated";
+import type { BridgeHealth, HealthCheck, StoreHealth, Uuid } from "../../../../../docs/contracts/domain.generated";
 import { authFailure } from "../auth/errors";
 import { toIsoTimestamp } from "../auth/ids";
 import type { StaffSessionStore } from "../auth/session-store";
@@ -10,7 +10,9 @@ import {
   assembleStoreHealth,
   assertPrepOnlyBridgeHealth,
   createSkippedProbe,
+  detectionMessage,
   mockBridgeHealth,
+  withoutClaimedPricingParity,
   type HealthProbe,
 } from "./probes";
 
@@ -21,6 +23,8 @@ export type StoreHealthRequest = {
   readonly sessionStore: StaffSessionStore;
   readonly supabaseProbe?: HealthProbe;
   readonly bridgeProbe?: HealthProbe;
+  /** Mapped BridgeHealth from an injected adapter. Next `/health` does not supply this. */
+  readonly bridgeHealth?: BridgeHealth;
   readonly supabaseConfigured: boolean;
   readonly bridgeConfigured: boolean;
   readonly buildId: string;
@@ -67,16 +71,17 @@ export async function handleStoreHealth(input: StoreHealthRequest): Promise<Stor
     runProbe(supabaseProbe, input.now, "supabase"),
     runProbe(bridgeProbe, input.now, "bridge"),
   ]);
-  const bridgeHealth = mockBridgeHealth();
-  assertPrepOnlyBridgeHealth(bridgeHealth);
+  const bridgeHealth = input.bridgeHealth
+    ? withoutClaimedPricingParity(input.bridgeHealth)
+    : mockBridgeHealth();
+  if (!input.bridgeHealth) {
+    assertPrepOnlyBridgeHealth(bridgeHealth);
+  }
 
   const contractCheck: HealthCheck = {
     id: "bridge-contract",
     status: "unverified",
-    message:
-      `wooDetected=${bridgeHealth.wooDetected} woodmartDetected=${bridgeHealth.woodmartDetected} ` +
-      `b2bkingDetected=${bridgeHealth.b2bkingDetected} pricingParityVerified=${bridgeHealth.pricingParityVerified}; ` +
-      "detection is not pricing parity",
+    message: detectionMessage(bridgeHealth),
     checkedAt: toIsoTimestamp(input.now),
   };
 

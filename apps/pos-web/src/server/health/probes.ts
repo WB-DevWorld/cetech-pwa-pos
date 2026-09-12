@@ -20,6 +20,18 @@ export function mockBridgeHealth(): BridgeHealth {
   };
 }
 
+export function withoutClaimedPricingParity(health: BridgeHealth): BridgeHealth {
+  return { ...health, pricingParityVerified: false };
+}
+
+export function detectionMessage(health: BridgeHealth): string {
+  return (
+    `wooDetected=${health.wooDetected} woodmartDetected=${health.woodmartDetected} ` +
+    `b2bkingDetected=${health.b2bkingDetected} pricingParityVerified=${health.pricingParityVerified}; ` +
+    "detection is not pricing parity"
+  );
+}
+
 export function assertPrepOnlyBridgeHealth(health: BridgeHealth): void {
   if (
     health.status === "healthy" ||

@@ -1,4 +1,21 @@
-# WS3 current handoff — R2 / CORE-02 acceptance remediation (PROGRESS_CHECKPOINT)
+# WS3 current handoff — R2 / CORE-03 adapter (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-12 (CORE-03 adapter; two-pass freshness follows push)
+Task / batch / workstream: CORE-03 adapter (issue #22) inside R2; WS3. CORE-02 already CHECKPOINTED `2f6c0b5…` (issue #21)
+Owner / integration editor / requested human reviewer: @wbdevworld / same / @Ben-001-sys (draft #43 only; do not request review until the R2 gate can pass)
+Branch: `batch/r2-auth-bridge-bff`
+Starting/base SHA: `origin/main` `aa08d74f2cb99301817e5995f01486acb7e2169f`
+CORE-02 checkpoint: `2f6c0b50cd7889e83df93b87af0b7c165152b5db`
+Contracts changed: none (StoreHealth / BridgeHealth / ApiFailure v1.0.0 consumed, not edited)
+Database migrations: none
+Architecture decisions: none
+BR-01 contributor SHA (not imported): `fbbf0ea7d016b6149e9f095d449fb15b0dcdf930`
+Disposable combination SHA (not imported): `f7661a7996317b3e6bad57b395f0bf7010c59e87`
+Classification: PROVISIONAL_TEST; Make missing → unaccepted; `STALE_REQUIRES_OWNER_REFRESH`
+CORE-03: ADAPTER CHECKPOINTED (injected fetch). Next `/health` unattached. Not COMPLETE. Not pricing parity. Not live checkout. Not production ready.
+Production-site access required? NO. No new npm dependency / lockfile edit.
+
+## Previous current handoff — R2 / CORE-02 acceptance remediation (PROGRESS_CHECKPOINT)
 
 Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-12T22:22:20Z (new continuation START_FRESHNESS_SNAPSHOT)
 Task / batch / workstream: CORE-02 acceptance remediation (issue #21) inside R2; WS3

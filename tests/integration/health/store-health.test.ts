@@ -207,6 +207,7 @@ describe("CORE-03 PREP_ONLY store health", () => {
       expect(source).not.toMatch(/\bfetch\s*\(/);
       expect(source).not.toMatch(/SERVICE_ROLE_KEY\s*=/);
       expect(source).not.toMatch(/\bwp-json\b/);
+      expect(source).not.toMatch(/createBridgeHealthClient/);
     }
   });
 });

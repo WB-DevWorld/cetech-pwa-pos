@@ -24,4 +24,12 @@ describe("CORE-02 secret boundary", () => {
       }),
     ).toEqual([]);
   });
+
+  test("NEXT_PUBLIC bridge application-password values are rejected", () => {
+    expect(
+      publicEnvLeaksServerSecret({
+        NEXT_PUBLIC_BRIDGE_APPLICATION_PASSWORD: "placeholder-not-a-real-secret",
+      }),
+    ).toContain("NEXT_PUBLIC_BRIDGE_APPLICATION_PASSWORD");
+  });
 });
