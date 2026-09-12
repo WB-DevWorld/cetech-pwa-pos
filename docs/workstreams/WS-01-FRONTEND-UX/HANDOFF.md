@@ -8,7 +8,12 @@ Task: FE-01 / GitHub issue #6 — Intake approved prototype and map scenarios
 
 Branch: `ws1/fe-01-intake-approved-prototype-and-map-scenarios`
 
-Commit(s): none yet (commit not requested). Working tree on the task branch in worktree `H:/cursor/cetech-pwa-pos-fe-01`. Base HEAD `15287691a71081ca2855b5b9bc325a787b2ca7c0` (`origin/main`, PR #31).
+Commit(s):
+
+- `601b7bd18fa190c93ba18689042a929a5d6ce552` — `docs(frontend): map approved POS reference scenarios`
+- handoff-evidence correction commit: recorded in PR #33 review follow-up after this correction commit is created
+
+Working tree: `H:/cursor/cetech-pwa-pos-fe-01`. Base HEAD `15287691a71081ca2855b5b9bc325a787b2ca7c0` (`origin/main`, PR #31).
 
 Files changed:
 
