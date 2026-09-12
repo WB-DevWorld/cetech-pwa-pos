@@ -35,7 +35,7 @@ Evidence: CP-05 MERGED / VERIFIED (PR #32). CI-01 MERGED / VERIFIED (PR #38). FE
 
 ## R1 batch workflow record — current (supersedes earlier lease scope)
 
-- Batch / milestone: **R1**, CORE-01 plus explicitly authorized workflow adoption; PR **#40 DRAFT / IMPLEMENTATION CHECKS IN PROGRESS**. #40 is reused as its milestone PR; converted to draft while the authorized scope accumulates; mark ready only after its gate passes.
+- Batch / milestone: **R1**, CORE-01 plus explicitly authorized workflow adoption; PR **#40 CANDIDATE PUBLISHED / FINAL CI AND INDEPENDENT REVIEW PENDING**. #40 is reused as its milestone PR; draft during assembly, ready only after its gate passes. Its live draft/check state and exact final head are recorded in the PR handoff.
 - Approved main base SHA: `cd4477f185c159e18ed939a20145865d665099b4`.
 - Starting R1 candidate implementation SHA: `860bef52efb53773788f6e06fc1753d8d51670a9` on `ws3/core-01-create-pos-operational-schema-and-rls`. Current candidate SHA is the live #40 head and its final PR handoff; this starting SHA is not permanently current.
 - Declared independent upstream for this editor: origin/main. Batch upstream for the R1 editor: NOT_APPLICABLE (own branch is the candidate). Contributors using R1 as a test prerequisite must record its exact named SHA, never infer approval.
@@ -60,7 +60,7 @@ Observed values are UNVERIFIED until measured; do not interpret blanks as zero. 
 | Human interruptions / prompts per accepted task | UNVERIFIED | UNVERIFIED | Session/handoff counts; distinguish milestone review from routine prompts |
 | Review waiting time / branch age | UNVERIFIED | UNVERIFIED | Ready-for-review, branch start and review/merge UTC |
 | Time since combined integration | UNVERIFIED | UNVERIFIED | Last combined build SHA/UTC |
-| Pass-1 / Pass-2 stale findings | UNVERIFIED | UNVERIFIED | Final freshness classifications |
-| Drift rework / integration conflicts | UNVERIFIED | UNVERIFIED | Scoped corrective commits and conflict records |
+| Pass-1 / Pass-2 stale findings | 0 / 0 for workflow adoption; both cutoffs `cd4477f` | UNVERIFIED | Final freshness classifications |
+| Drift rework / integration conflicts | 0 / 0 for workflow adoption; excludes earlier CORE-01 work | UNVERIFIED | Scoped corrective commits and conflict records |
 | Defects found at review | UNVERIFIED | UNVERIFIED | Findings attributable to this batch |
 | Review duration / comprehension | UNVERIFIED | UNVERIFIED | Reviewer minutes and can explain invariants: yes/no |
