@@ -4,4 +4,4 @@ globs: "tests/**,supabase/tests/**,wordpress/cetech-pos-bridge/**"
 alwaysApply: false
 ---
 
-No done without exact commands/runtime evidence. Mock passes do not prove parity or RLS. Test concurrency, replay, partial failure and installed PWA retention. Run real scaffold checks; missing runtime means blocked.
+Done = evidence. Run task checks and combined milestone checks as their implementation arrives; mocks are not live parity/payment/RLS proof. Do not weaken assertions or CI to pass. Before final handoff rerun affected verification for the two bounded freshness passes in docs/plans/LONG-RUNNING-WORK.md. Missing runtime is BLOCKED/UNVERIFIED.

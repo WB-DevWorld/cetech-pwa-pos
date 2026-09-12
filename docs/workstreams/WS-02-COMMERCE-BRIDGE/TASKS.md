@@ -1,5 +1,22 @@
 # WS2 bounded execution tasks
 
+## Ordered continuation queue (ADR-012)
+
+Activation and exact current scope: CURRENT-WORK.md at repository root. The table is the approved progression; a later milestone is not activated merely by being listed. Execute one authorized ready task, test/inspect/commit/checkpoint, then continue in the current batch without another prompt or PR. Detailed task contracts below remain unchanged. Dependencies may allow PREP_ONLY mocks or declared PROVISIONAL_TEST composition; these never prove runtime acceptance. Final task/batch delivery uses [two-pass freshness](../../plans/LONG-RUNNING-WORK.md), then STOP after Pass 2.
+
+| Order | Task | Milestone | Prerequisites / current boundary |
+| --- | --- | --- | --- |
+| 1 | BR-01 | R2 | CP-03, CP-04; ADR-011 local baseline satisfied; live installation/identity remain gated |
+| 2 | BR-02 | R3 | BR-01 |
+| 3 | BR-03 | R3 | BR-02 |
+| 4 | BR-04 | R3 | BR-02 |
+| 5 | BR-05 | R3 | BR-03, BR-04 |
+| 6 | BR-06 | R5 | BR-05, CORE-01 |
+| 7 | BR-07 | R6 | BR-06, CORE-05 |
+
+R3 BR-03/BR-04 both follow BR-02 and may be prepared independently. Fallback: authorized synthetic bridge fixtures and local permission/quote harness; no live parity claim. After RT-01 freezes refund wire, accept only the explicitly delegated WS2 refund contribution with exact paths/tests; no invented contract or Supabase ownership.
+
+
 Baseline scope is committed here. GitHub issues own live assignment/status/evidence; synchronize approved scope changes back by PR.
 
 # BR-01 — Build bridge health and permission skeleton

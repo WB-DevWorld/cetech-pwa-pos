@@ -1,7 +1,7 @@
 name: CI
 on:
   push:
-    branches: [main]
+    branches: [main, 'ws1/**', 'ws2/**', 'ws3/**', 'fix/**', 'batch/**']
   pull_request:
   workflow_dispatch:
 permissions:
@@ -13,7 +13,7 @@ jobs:
   control-plane:
     name: control-plane
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2, pinned
@@ -34,6 +34,16 @@ jobs:
           cache: pnpm
       - name: Install workspace
         run: pnpm install --frozen-lockfile
+      - name: Start local Supabase database
+        id: supabase-start
+        run: npx --yes supabase@2.117.0 db start
+      - name: Reset local database
+        run: npx --yes supabase@2.117.0 db reset --yes --local
+      - name: Run pgTAP
+        run: npx --yes supabase@2.117.0 test db
+      - name: Stop local Supabase
+        if: ${{ always() && steps.supabase-start.outcome == 'success' }}
+        run: npx --yes supabase@2.117.0 stop --no-backup
       - name: App lint
         run: pnpm --dir apps/pos-web lint
       - name: App typecheck

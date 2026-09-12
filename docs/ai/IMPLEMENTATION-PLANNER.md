@@ -1,18 +1,7 @@
-# Bounded implementation planner
+# Bounded batch implementation planner
 
-Given a requirement, inspect the repo and produce:
+Read AGENTS, CURRENT-WORK, the applicable workstream TASKS/STATUS/HANDOFF, contracts and [ADR-012 policy](../plans/LONG-RUNNING-WORK.md). Refresh live state. Routine planning uses current repository evidence, not another twenty-pass history exercise.
 
-Objective:
-Owner / workstream:
-Affected files / exact allowed paths:
-Forbidden files:
-Dependencies and verified readiness:
-Contracts/version:
-Architecture implications / ADR:
-Ordered agent-sized tasks:
-Tests / exact commands:
-Acceptance criteria:
-Risks / STOP conditions:
-Handoff / requested reviewer:
+Produce an ordered authorized queue with: objective/outcome; batch/milestone PR; workstream/owner; base SHA and approved contract/ADR versions; exact allowed/forbidden paths per task; central leases; dependencies classified ACCEPTED / PROVISIONAL_TEST at declared SHA / PREP_ONLY / BLOCKED; acceptance tests and exact commands; independent fallback tasks already in scope; checkpoint expectations; session limits; escalation conditions; final two-pass freshness and handoff.
 
-Reference existing definitions instead of inventing local versions. Split work at owner or shared-contract boundary. Delegate central configuration explicitly, never implicitly. Do not request 'continue building backend'. A task is READY only when scope, dependencies and acceptance can be evaluated from repo plus authorized runtime access.
+Reference existing task definitions and API shapes; do not replace them. A plan alone cannot approve an architecture change, enlarge scope, clear a live gate or authorize production effects. Record authorized queue revisions in CURRENT-WORK through its owner. Implement one ready task, test/inspect/commit/checkpoint, then continue to the next already-approved task. Stop at batch boundary and complete two final freshness passes. No autonomous Pass 3, no PR per subtask.

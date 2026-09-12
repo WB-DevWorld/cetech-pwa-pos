@@ -25,7 +25,7 @@ All 30 GitHub issues were created and confirmed on 2026-09-11. Senior issues are
 | [BR-05 #17](https://github.com/WB-DevWorld/cetech-pwa-pos/issues/17) | Resolve plugin overlap and pass pricing gate | WS2 | BR-03, BR-04 | M1 |
 | [BR-06 #18](https://github.com/WB-DevWorld/cetech-pwa-pos/issues/18) | Implement HPOS-safe idempotent prepare and resolve | WS2 | BR-05, CORE-01 | M1 |
 | [BR-07 #19](https://github.com/WB-DevWorld/cetech-pwa-pos/issues/19) | Implement verified commercial finalization and cancel | WS2 | BR-06, CORE-05 | M1 |
-| [CORE-01 #20](https://github.com/WB-DevWorld/cetech-pwa-pos/issues/20) | Create POS operational schema and RLS | WS3 | CP-04, CP-05 | M1 |
+| [CORE-01 #20](https://github.com/WB-DevWorld/cetech-pwa-pos/issues/20) | Create POS operational schema and RLS | WS3 | CP-04 development baseline, CP-05 | M1 |
 | [CORE-02 #21](https://github.com/WB-DevWorld/cetech-pwa-pos/issues/21) | Implement staff auth abstraction and permission boundary | WS3 | CP-05, CORE-01 | M1 |
 | [CORE-03 #22](https://github.com/WB-DevWorld/cetech-pwa-pos/issues/22) | Wire BFF health and bridge connectivity | WS3 | CORE-02, BR-01 | M1 |
 | [CORE-04 #23](https://github.com/WB-DevWorld/cetech-pwa-pos/issues/23) | Implement catalog projection and durable local journal | WS3 | CORE-01, CORE-03 | M1 |

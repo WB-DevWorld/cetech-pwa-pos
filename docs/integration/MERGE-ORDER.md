@@ -9,3 +9,7 @@
 7. QA-01 failure/security proof; REL-01 qualified release/rehearsal.
 
 Dependency arrows are directional; CORE-05 must not wait for BR-07 while BR-07 waits for CORE-05. CORE-05's mock implementation freezes the boundary; CORE-06 proves the real combination. No overlapping migration or lockfile editors. Reconcile docs and GitHub issue state at each merge.
+
+## Milestone review cadence
+
+[ADR-012](../decisions/ADR/012.md) groups the above dependencies into [R1–R10](../plans/MILESTONE-REVIEWS.md). Small task commits integrate frequently; a PR is required at the milestone boundary rather than every subtask. No dependency or runtime gate is waived. Current queues, leases and declared integration SHAs live in CURRENT-WORK. Complete the two final freshness passes before handoff; later drift is evaluated by the integration editor.

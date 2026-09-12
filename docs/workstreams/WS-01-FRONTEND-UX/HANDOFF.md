@@ -1,3 +1,11 @@
+# WS1 workflow transition handoff
+
+Workflow decision: ADR-012, activated team-wide when reviewed R1/#40 lands on main. Read [canonical handoff](../../ai/HANDOFF-TEMPLATE.md) and [two-pass policy](../../plans/LONG-RUNNING-WORK.md). Current queue/status are TASKS.md, STATUS.md and CURRENT-WORK. R1 changed only policy/coordination for this workstream; its feature evidence is not recreated. Adoption verification belongs in `docs/integration/evidence/R1-WORKFLOW-ADOPTION.md` and final PR handoff.
+
+Before a new session record start main/batch/contract/queue SHAs. On final delivery record both independent fetches, relevance classifications, fixes and rerun tests, final head and cutoff. Progress/session interruption may be incomplete and must say UNVERIFIED. Never invent missing tests or rerun history recovery as a routine stop gate.
+
+## Historical handoffs (retain provenance; current ADRs/status override old blockers)
+
 # WS1 handoff
 
 Owner: Developer 1. Required template: ../../ai/HANDOFF-TEMPLATE.md.

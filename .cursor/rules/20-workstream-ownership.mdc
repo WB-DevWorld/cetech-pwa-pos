@@ -4,4 +4,4 @@ globs: ""
 alwaysApply: true
 ---
 
-Read OWNERSHIP.md and assigned workstream BOUNDARIES/TASKS. Only assigned paths; WS3 single editor for contracts/migrations/root/CI/local schema. Record scoped delegation; no shared worktree.
+Read CURRENT-WORK.md and your TASKS/STATUS/HANDOFF before selecting an authorized queue item. The approved batch is the assignment boundary; continue through ready items, checkpointing each. Keep exact ownership and central leases from OWNERSHIP.md. No shared checkout or scope expansion. Canonical procedure: docs/plans/LONG-RUNNING-WORK.md (ADR-012).
