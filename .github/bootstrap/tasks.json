@@ -43,9 +43,9 @@
     "milestone": "M0",
     "allowed": "LIVE-ENVIRONMENT-FACTS.md; docs/runbooks/**; docs/integration/evidence/**",
     "contracts": "Environment and authorization policy",
-    "steps": "Capture versions, stock mode, barcode source, queue, tax, provider, hardware; create redacted evidence.",
-    "acceptance": "Every integration-critical fact has verifier/time/evidence; staging isolated from production writes.",
-    "risk": "Unknown stock/tax/payment facts block only dependent gates."
+    "steps": "Development baseline SATISFIED via authenticated training evidence (ADR-011). Execute the operation-specific remaining-work checklist: outbound containment, data/write boundaries, synthetic fixtures, bridge service access and payment sandbox; retain production deltas for release.",
+    "acceptance": "Track DEVELOPMENT BASELINE separately from WRITE-SAFETY/CUTOVER. Each relevant fact has observer/time/environment/evidence. No blanket local-development block; affected remote effects require containment proof. Issue #4 stays open for residuals.",
+    "risk": "Known unsafe training side effects still block affected remote tests. Missing production access/fingerprints do not block local CORE-01 or BR-01."
   },
   {
     "id": "CP-05",

@@ -1,4 +1,24 @@
-# WS3 current handoff — CP-04 authenticated continuation (PARTIAL / BLOCKED)
+# WS3 current handoff — CP-04 dependency reconciliation
+
+Task: Record the senior/user's supplied CP-04 development-baseline decision and remaining implementation/evidence requirements.
+Branch: `ws3/cp-04-development-gates`.
+Base: `1717893be8b5d1b16a0037b2bdf342a9f05b835b` (merged PR #39).
+Decision: ADR-011. Training is the development reference. Unavailable production facts are cutover/release deltas unless the operation specifically needs them.
+CP-04 development baseline: SATISFIED.
+CP-04 write-safety/cutover: OPEN / DEFERRED; issue #4 remains OPEN.
+CORE-01: development prerequisites satisfied; implementation is already submitted in PR #40 and is not merged by this task. Production-site access is not required for local schema/RLS.
+BR-01: local implementation may proceed against frozen contracts/training baseline; target installation/service credentials and runtime acceptance remain separate.
+Remaining work: `docs/runbooks/CP-04-REMAINING-WORK.md` lists outbound containment, data/write boundaries, synthetic fixtures, bridge identity, payment sandbox and production deltas with owners and closure gates.
+Historical evidence: retained; authenticated audit has a chronology notice only. No new environment verification claimed.
+Contracts: v1.0.0 unchanged. Application/bridge/migrations/dependencies/CI/reference: unchanged.
+Training written to: NO. Production touched: NO. Credentials created/read: NO.
+Validation: `python3 scripts/verify_control_plane.py` PASS (28 immutable reference files, 61 schemas, 22 fixtures, 30-task DAG); `python3 -m unittest discover -s tests/tooling -q` PASS (34 tests); `git diff --check` PASS. No application or live environment tests were rerun for this documentation change. Remote publication/CI results are reported separately.
+Human approval basis: explicit current senior/user instruction to update main with the supplied decision. No second-person code review or GitHub protection bypass is claimed.
+Recommended next work: continue CORE-01 PR #40 review and local BR-01; independently scope CP04-W1/W2/W3 before affected training write tests. Do not recreate CORE-01 or close issue #4 to satisfy dependency tooling.
+
+Historical handoffs below retain the conclusions at their original dates. ADR-011 controls current development gating.
+
+# WS3 previous handoff — CP-04 authenticated continuation (historical determination)
 
 Task: CP-04 — Audit live environment and isolate staging (issue #4), authenticated continuation.
 Branch: `ws3/cp-04-authenticated-staging-evidence`

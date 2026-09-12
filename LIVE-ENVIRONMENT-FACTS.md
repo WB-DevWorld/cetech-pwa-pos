@@ -1,8 +1,10 @@
 # Live environment facts
 
-Updated 2026-09-12. Evidence levels matter: **user-reported Site Health** means the user supplied the field/value and check date; the underlying report and staging runtime were not independently inspected in this repair. **USER-CONFIRMED** records an explicit human statement. **VERIFIED** means this repository captured a live connector or public read-only probe. Design assumptions do not fill unknown cells.
+**CP-04 DEVELOPMENT BASELINE: SATISFIED. CP-04 WRITE-SAFETY / CUTOVER: OPEN / DEFERRED.** Training is the development reference under [ADR-011](docs/decisions/ADR/011.md). [Remaining actions and production deltas](docs/runbooks/CP-04-REMAINING-WORK.md). Missing production access does not block local CORE-01 or BR-01 implementation. Recorded training write-safety concerns remain unresolved for the affected operations.
 
-WS3 coordinates CP-04; WS2 may contribute Woo/public intake on WS2-owned paths. Preserve checked-by, UTC date and redacted evidence for subsequent checks. The supplied staging versions do not prove pricing parity, plugin compatibility, production versions or deployment readiness. No plugins were activated, upgraded or removed. CP-04 2026-09-12 public audit: `docs/integration/evidence/CP-04-LIVE-AUDIT.md`. Authenticated WP-CLI continuation: `docs/integration/evidence/CP-04-AUTHENTICATED-AUDIT.md` (still PARTIAL / BLOCKED; no write tests).
+Updated 2026-09-12. Evidence levels matter: **user-reported Site Health** means the user supplied the field/value and check date; the underlying report and staging runtime were not independently inspected in this repair. **USER-CONFIRMED** records an explicit human statement. **VERIFIED** means repository evidence records a live connector, public probe or attributed authenticated read; see each cell for the actual method and observer. Design assumptions do not fill unknown cells.
+
+WS3 coordinates CP-04; WS2 may contribute Woo/public intake on WS2-owned paths. Preserve checked-by, UTC date and redacted evidence for subsequent checks. The supplied staging versions do not prove pricing parity, plugin compatibility, production versions or deployment readiness. No plugins were activated, upgraded or removed. CP-04 2026-09-12 public audit: `docs/integration/evidence/CP-04-LIVE-AUDIT.md`. Authenticated WP-CLI continuation: `docs/integration/evidence/CP-04-AUTHENTICATED-AUDIT.md` (historical audit determination preserved; development gating subsequently revised by ADR-011; no new write tests).
 
 | Field | Value | Checked by / date / evidence |
 | --- | --- | --- |
@@ -51,4 +53,4 @@ WS3 coordinates CP-04; WS2 may contribute Woo/public intake on WS2-owned paths. 
 | Production invoice owner/signoff | UNVERIFIED | UNVERIFIED |
 | Staging isolation vs production writes | NOT PROVEN | 2026-09-12 authenticated: env type staging VERIFIED; staging DB fingerprint recorded; production fingerprint unavailable; Woo webhooks 0 VERIFIED; MailPoet active and `admin_email` domain `cetechbpa.com` → email **UNSAFE** for write tests. No write tests. See CP-04-AUTHENTICATED-AUDIT.md. |
 
-Repository observations belong in docs/runbooks/GITHUB-REALITY.md. Unknowns block only dependent work, never unrelated UI/mock foundation work. Repeat the audit via docs/runbooks/CP-04-STAGING-AUDIT.md.
+Repository observations belong in docs/runbooks/GITHUB-REALITY.md. Unknowns block only dependent operations, never unrelated local implementation or synthetic tests. Repeat the audit via docs/runbooks/CP-04-STAGING-AUDIT.md.

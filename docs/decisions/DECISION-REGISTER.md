@@ -14,6 +14,7 @@ Current baseline established 2026-09-11 under explicit bootstrap authorization. 
 | [ADR-008](ADR/008.md) | Pricing and idempotent preparation gate | TRANSITIONAL | 2026-09-11 | Protect both online and POS commercial truth. | Raw product prices as checkout authority; assumed reservation behavior | Quote, PreparedSale, SaleResolution | WS1/2/3 |
 | [ADR-009](ADR/009.md) | Evidence-based release and VitePOS cutover | CURRENT | 2026-09-11 | Correctness over feature count and recoverable operations. | Prototype-only readiness or automatic deactivation | Release gates and all enabled capabilities | WS1/2/3 |
 | [ADR-010](ADR/010.md) | Toolchain and capability scope | CURRENT | 2026-09-11 | Avoid bloat and lockfile races while keeping adapters replaceable. | Mandatory heavyweight monorepo/microservices in P0 | Toolchain, environment, capability config | WS1/2/3 |
+| [ADR-011](ADR/011.md) | Training development baseline; operation-specific CP-04 gates | CURRENT | 2026-09-12 | Unblock local implementation while retaining remote-write/release evidence | Blanket CORE-01 block on full production isolation/fingerprint comparison | Environment/dependency policy; v1 unchanged | WS1/2/3 |
 
 | Fact/proposal | Status | Controlling treatment |
 | --- | --- | --- |

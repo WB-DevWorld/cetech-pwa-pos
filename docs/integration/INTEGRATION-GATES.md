@@ -1,5 +1,7 @@
 # Integration gates
 
+Development readiness is separate from runtime acceptance: [ADR-011](../decisions/ADR/011.md). CP-04 development baseline is SATISFIED. The gates below still control the corresponding live integration claims; [CP-04 write-safety/cutover items](../runbooks/CP-04-REMAINING-WORK.md) block only their affected operations.
+
 | Gate | Required evidence | Blocks |
 | --- | --- | --- |
 | G0 Control plane | Canonical commit, three ownership packages, contract freeze, CI, role/access limitations visible | Unbounded implementation |

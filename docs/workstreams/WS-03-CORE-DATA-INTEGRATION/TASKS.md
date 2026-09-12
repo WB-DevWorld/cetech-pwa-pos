@@ -161,7 +161,7 @@ Task, branch, commits, files, contracts, migrations, ADRs, tests, runtime eviden
 # CP-04 — Audit live environment and isolate staging
 
 ## Objective
-Audit live environment and isolate staging.
+Maintain the satisfied training development baseline and complete operation-specific write-safety/cutover evidence. See ADR-011 and docs/runbooks/CP-04-REMAINING-WORK.md.
 
 ## Context
 Own the shared application spine, data integrity, authorization, contracts, single-editor configuration and release integration. Baseline: v1.0.0; prototype is reference only.
@@ -185,23 +185,23 @@ WS1 feature/UI files and WS2 plugin implementation except an explicitly recorded
 Environment and authorization policy; owner WS3; version 1.0.0.
 
 ## Dependencies
-CP-01. Milestone M0. Only read/mock preparation may precede an unmet runtime gate.
+CP-01. M0 development baseline SATISFIED; remaining write-safety/cutover evidence OPEN / DEFERRED. Local CORE-01/BR-01 implementation does not require production access. Keep issue #4 OPEN.
 
 ## Implementation Steps
-Capture versions, stock mode, barcode source, queue, tax, provider, hardware; create redacted evidence.
+Development baseline SATISFIED via authenticated training evidence (ADR-011). Execute the operation-specific remaining-work checklist: outbound containment, data/write boundaries, synthetic fixtures, bridge service access and payment sandbox; retain production deltas for release.
 
 ## Expected Changes
 Implement only the objective in allowed paths; update this workstream's STATUS/HANDOFF with evidence. Record contract/ADR/migration changes explicitly.
 
 ## Acceptance Criteria
-Every integration-critical fact has verifier/time/evidence; staging isolated from production writes.
+Track DEVELOPMENT BASELINE separately from WRITE-SAFETY/CUTOVER. Each relevant fact has observer/time/environment/evidence. No blanket local-development block; affected remote effects require containment proof. Issue #4 stays open for residuals.
 
 ## Required Tests
 `python3 scripts/verify_control_plane.py`
 Scaffold-dependent commands become required only after CP-05/BR-01 creates them. If a required command/runtime does not exist after its prerequisite, mark BLOCKED and repair the prerequisite, never invent PASS. CP-04/REL-01 require actual redacted environment/rehearsal evidence in addition to file checks.
 
 ## Risks
-Unknown stock/tax/payment facts block only dependent gates.
+Known unsafe training side effects still block affected remote tests. Missing production access/fingerprints do not block local CORE-01 or BR-01.
 
 ## Definition of Done
 Acceptance evidence attached; exact commands/exit results and runtime checks recorded; no unexpected files; assigned reviewer approves; contracts/migrations documented; no unresolved safety blocker. Done = evidence.
@@ -289,6 +289,8 @@ WS1 feature/UI files and WS2 plugin implementation except an explicitly recorded
 Register, Shift, CashMovement, PendingOperation; owner WS3; version 1.0.0.
 
 ## Dependencies
+CP-04 means its SATISFIED development baseline for local implementation (ADR-011). Issue #4 remains OPEN for operation-specific remote-write/cutover evidence. Production-site access is not a local implementation prerequisite; runtime acceptance still needs applicable evidence.
+
 CP-04, CP-05. Milestone M1. Only read/mock preparation may precede an unmet runtime gate.
 
 ## Implementation Steps
