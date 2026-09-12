@@ -8,6 +8,7 @@ import { CustomerPicker } from "./components/CustomerPicker";
 import { ProductResults, ProductSearch } from "./components/ProductSearch";
 import { VariationDialog } from "./components/VariationDialog";
 import { useBarcodeScanner } from "./hooks/useBarcodeScanner";
+import { formatMoneyDisplay, type CheckoutEligibilityView, type QuoteDisplayState } from "./state/quotePresentation";
 import { isDigitBarcodeQuery } from "./state/barcodeResolution";
 import type {
   CatalogAvailability,
@@ -62,6 +63,8 @@ export type SellScreenProps = {
   onSelectCustomer?: (customerId: string) => void;
   onClearCustomer?: () => void;
   onNewSale?: () => void;
+  quote?: QuoteDisplayState;
+  eligibility?: CheckoutEligibilityView;
 };
 
 export function SellScreen({
@@ -82,6 +85,8 @@ export function SellScreen({
   onSelectCustomer,
   onClearCustomer,
   onNewSale,
+  quote,
+  eligibility,
 }: SellScreenProps) {
   const deps = useMemo<SellWorkspaceDeps>(
     () => ({
@@ -264,13 +269,17 @@ export function SellScreen({
             onQuantityChange={handleQuantityChange}
             onRemove={handleRemove}
             onCloseMobile={() => setState((current) => applyMobileCartOpen(current, false))}
+            quote={quote}
+            eligibility={eligibility}
           />
           <div className="mobile-cart-bar">
             <div>
               <strong>
                 {itemCount} item{itemCount === 1 ? "" : "s"}
               </strong>
-              <div className="muted">Price pending</div>
+              <div className="muted">
+                {quote?.status === "confirmed" ? formatMoneyDisplay(quote.quote.total) : "Price pending"}
+              </div>
             </div>
             <button type="button" className="btn primary" onClick={() => setState((current) => applyMobileCartOpen(current, true))}>
               View Cart / Pay

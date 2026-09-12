@@ -2,7 +2,9 @@
 
 import { useState, type KeyboardEvent } from "react";
 import { commitQuantityDraft, holdQuantityDraft, restoreQuantityDraft } from "../state/quantityDraft";
+import { describePayButton, type CheckoutEligibilityView, type QuoteDisplayState } from "../state/quotePresentation";
 import type { CartLineView, CustomerSearchResultView } from "../state/sellView";
+import { QuoteStatus } from "./QuoteStatus";
 
 export function CartLineRow({
   line,
@@ -129,6 +131,8 @@ export function CartPanel({
   onQuantityChange,
   onRemove,
   onCloseMobile,
+  quote,
+  eligibility,
 }: {
   revision: number;
   lines: readonly CartLineView[];
@@ -141,7 +145,10 @@ export function CartPanel({
   onQuantityChange: (lineId: string, quantity: string) => void;
   onRemove: (lineId: string) => void;
   onCloseMobile: () => void;
+  quote?: QuoteDisplayState;
+  eligibility?: CheckoutEligibilityView;
 }) {
+  const pay = describePayButton(eligibility);
   return (
     <aside className={mobileOpen ? "cart-panel mobile-open" : "cart-panel"} aria-label="Current cart">
       <div className="cart-head">
@@ -167,11 +174,15 @@ export function CartPanel({
           </span>
           <span aria-hidden="true">›</span>
         </button>
-        <div className="quote-status">
-          {lines.length === 0
-            ? "Prices will be confirmed after an item is added."
-            : "Price confirmation is required before payment."}
-        </div>
+        {quote ? (
+          <QuoteStatus quote={quote} />
+        ) : (
+          <div className="quote-status">
+            {lines.length === 0
+              ? "Prices will be confirmed after an item is added."
+              : "Price confirmation is required before payment."}
+          </div>
+        )}
       </div>
       <div className="cart-lines">
         {lines.length === 0 ? (
@@ -196,7 +207,17 @@ export function CartPanel({
         <button className="btn primary block pay-btn" type="button" disabled>
           Pay
         </button>
-        <div className="muted pay-reason">Checkout is unavailable until prices are confirmed.</div>
+        {eligibility ? (
+          <div
+            className="muted pay-reason"
+            data-eligibility-allowed={pay.eligibilityAllowed ? "true" : "false"}
+            data-eligibility-reason={pay.eligibilityReason}
+          >
+            {pay.reason}
+          </div>
+        ) : (
+          <div className="muted pay-reason">Checkout is unavailable until prices are confirmed.</div>
+        )}
       </div>
     </aside>
   );

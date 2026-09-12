@@ -242,6 +242,48 @@
   color: var(--color-text-muted);
 }
 
+.quote-status.quoting,
+.quote-status.stale,
+.quote-status.expired,
+.quote-status.offline,
+.quote-status.changed {
+  color: var(--color-warning);
+}
+
+.quote-status.confirmed {
+  color: var(--color-success);
+}
+
+.quote-status.failed {
+  color: var(--color-danger);
+}
+
+.quote-status-code,
+.quote-amounts,
+.quote-changed {
+  margin: 6px 0 0;
+  display: grid;
+  gap: 4px;
+}
+
+.quote-amounts div,
+.quote-changed div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.quote-amounts dt,
+.quote-changed dt {
+  font-weight: 500;
+}
+
+.quote-amounts dd,
+.quote-changed dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
 .mobile-cart-bar {
   display: none;
 }

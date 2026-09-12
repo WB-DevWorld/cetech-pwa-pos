@@ -147,4 +147,30 @@ describe("SellScreen presentation", () => {
     expect(html).toMatch(/<button class="btn" type="button" disabled="">Scan<\/button>/);
     expect(html).not.toContain("product-grid");
   });
+
+  test("renders supplied quote and eligibility states without enabling Pay", () => {
+    const html = renderToStaticMarkup(
+      createElement(SellScreen, {
+        catalog: SELL_TEST_CATALOG,
+        initialState: createSellWorkspace(deps, SELL_TEST_CATALOG),
+        quote: {
+          status: "failed",
+          revision: 1,
+          code: "INTEGRATION_UNAVAILABLE",
+          message: "Pricing unavailable — cart saved",
+        },
+        eligibility: {
+          allowed: false,
+          reason: "CONNECTION_REQUIRED",
+          message: "Connection required to confirm price",
+        },
+      }),
+    );
+    expect(html).toContain('data-quote-status="failed"');
+    expect(html).toContain("INTEGRATION_UNAVAILABLE");
+    expect(html).toContain("Pricing unavailable — cart saved");
+    expect(html).toContain('data-eligibility-reason="CONNECTION_REQUIRED"');
+    expect(html).toMatch(/pay-btn[^>]*disabled/);
+    expect(html).not.toContain("PRICING_UNAVAILABLE");
+  });
 });

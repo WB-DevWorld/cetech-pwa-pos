@@ -29,6 +29,23 @@ describe("FE-03 sell layer stays presentation-only", () => {
     expect(source).not.toMatch(/\b(export\s+)?(type|interface)\s+CartDraftStore\b/);
     expect(source).not.toMatch(/\b(export\s+)?(type|interface)\s+CustomerContext\b/);
     expect(source).not.toMatch(/\b(export\s+)?(type|interface)\s+CartDraft\b/);
+    expect(source).not.toMatch(/\b(export\s+)?(type|interface|class|function|const)\s+PricingPort\b/);
+    expect(source).not.toMatch(/\b(export\s+)?(type|interface)\s+CanonicalQuoteState\b/);
+    expect(source).not.toMatch(/\b(export\s+)?(type|interface)\s+DomainCheckoutEligibility\b/);
+  });
+
+  test("does not treat PRICING_UNAVAILABLE as a failed QuoteState code or eligibility reason", () => {
+    expect(source).not.toContain("PRICING_UNAVAILABLE");
+    expect(source).toContain("INTEGRATION_UNAVAILABLE");
+  });
+
+  test("does not reconstruct commercial totals or import privileged application layers", () => {
+    expect(source).not.toMatch(/displayPrice/);
+    expect(source).not.toMatch(/from ["']@\/core/);
+    expect(source).not.toMatch(/from ["']@\/server/);
+    expect(source).not.toMatch(/from ["']@\/local/);
+    expect(source).not.toMatch(/from ["']@\/config/);
+    expect(source).not.toMatch(/from ["']@\/app\//);
   });
 
   test("does not embed Woo/WoodMart/B2BKing/VitePOS logic", () => {
