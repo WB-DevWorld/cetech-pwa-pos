@@ -2,42 +2,42 @@
 
 Updated 2026-09-12. Evidence levels matter: **user-reported Site Health** means the user supplied the field/value and check date; the underlying report and staging runtime were not independently inspected in this repair. **USER-CONFIRMED** records an explicit human statement. **VERIFIED** means this repository captured a live connector or public read-only probe. Design assumptions do not fill unknown cells.
 
-WS3 coordinates CP-04; WS2 may contribute Woo/public intake on WS2-owned paths. Preserve checked-by, UTC date and redacted evidence for subsequent checks. The supplied staging versions do not prove pricing parity, plugin compatibility, production versions or deployment readiness. No plugins were activated, upgraded or removed. CP-04 2026-09-12 public audit: `docs/integration/evidence/CP-04-LIVE-AUDIT.md` (PARTIAL / BLOCKED; no write tests).
+WS3 coordinates CP-04; WS2 may contribute Woo/public intake on WS2-owned paths. Preserve checked-by, UTC date and redacted evidence for subsequent checks. The supplied staging versions do not prove pricing parity, plugin compatibility, production versions or deployment readiness. No plugins were activated, upgraded or removed. CP-04 2026-09-12 public audit: `docs/integration/evidence/CP-04-LIVE-AUDIT.md`. Authenticated WP-CLI continuation: `docs/integration/evidence/CP-04-AUTHENTICATED-AUDIT.md` (still PARTIAL / BLOCKED; no write tests).
 
 | Field | Value | Checked by / date / evidence |
 | --- | --- | --- |
 | WordPress version | 7.1 | VERIFIED 2026-09-12 14:10 UTC @wbdevworld: public generator meta `WordPress 7.1` on `https://training.cetechbpa.com/` and `/shop/`. Previously user-reported Site Health 2026-09-12. |
-| WooCommerce version | 11.1.0 | USER-REPORTED Site Health 2026-09-12. Independent 2026-09-12: `wc/v3` + Store API namespaces VERIFIED present; version string not in public index → version remains USER-REPORTED. |
-| WoodMart version | 8.5.7; active Woodmart Child 1.0.0 | USER-REPORTED Site Health 2026-09-12. Independent 2026-09-12: `woodmart` string VERIFIED in staging HTML; numeric version not independently read. |
-| B2BKing version | B2BKing Core 5.2.50 | User-reported Site Health, 2026-09-12; report lists 5.2.60 available. No upgrade performed. Not independently re-listed. |
-| VitePOS version | Active Vitepos – Point of Sale 3.5.1; VitePOS Pro 3.6.0 installed but inactive | USER-REPORTED Site Health 2026-09-12. Independent 2026-09-12: `vitepos/v1` namespace and `/vitepos/` UI VERIFIED present; version string not in public settings payload. Installed/inactive does not mean executing. |
-| PHP version | 8.5.9 64-bit | User-reported Site Health, 2026-09-12: php_version 8.5.9 64bit. Not visible on public HTML/REST. |
-| HPOS enabled | BLOCKED | 2026-09-12 14:12 UTC @wbdevworld: Woo settings/system_status 401; no WP-CLI. Site Health checks reportedly pass; enabled/current authoritative order storage is not identified. See CP-04-LIVE-AUDIT.md. |
-| Woo stock management | BLOCKED | 2026-09-12: unauthenticated `GET /wp-json/wc/v3/settings/general` = 401. Store API `is_in_stock` is display only. |
-| Backorders configuration | BLOCKED | 2026-09-12: no authenticated Woo inventory settings; catalog not exported. |
-| VitePOS stock mode — Woo single stock | UNVERIFIED / not claimed | 2026-09-12 public VitePOS settings: `stockable=N`. Vendor docs require enabling Full Stock Management before Woo-single vs outlet-multi. Consistent with outlet-stock not enabled; Woo `manage_stock` still BLOCKED. |
-| VitePOS stock mode — outlet/multi-stock | Not indicated in public settings (`stockable=N`) | 2026-09-12 @wbdevworld: public VitePOS `basic_settings.stockable=N`. Outlet maps BLOCKED (no login). |
+| WooCommerce version | 11.1.0 active | VERIFIED 2026-09-12 16:12 UTC @wbdevworld WP-CLI plugin list + `WC_VERSION` on training origin. Previously USER-REPORTED Site Health. |
+| WoodMart version | 8.5.7 parent; Woodmart Child 1.0.0 active; Woodmart Core 1.1.8 active | VERIFIED 2026-09-12 16:12 UTC @wbdevworld WP-CLI theme/plugin list. Previously USER-REPORTED / HTML string only. |
+| B2BKing version | B2BKing Core 5.2.50 active; B2BKing Pro 5.6.30 active | VERIFIED 2026-09-12 16:12 UTC @wbdevworld WP-CLI. Earlier Site Health listed Core 5.2.50 only. |
+| VitePOS version | Vitepos Lite 3.5.1 **active**; VitePOS Pro 3.6.0 installed **inactive** | VERIFIED 2026-09-12 16:12 UTC @wbdevworld WP-CLI. Matches earlier USER-REPORTED installed/inactive Pro. |
+| PHP version | Web/FPM 8.5.9; CLI 8.4.24 | VERIFIED 2026-09-12 16:14 UTC @wbdevworld: site FPM pool under `php/8.5`; `php-fpm8.5 -v` = 8.5.9. CLI `php -v` = 8.4.24. Site Health 8.5.9 matches FPM, not CLI. |
+| HPOS enabled | yes; authoritative custom orders table; compatibility data-sync **off** | VERIFIED 2026-09-12 16:12 UTC @wbdevworld: `OrderUtil::custom_orders_table_usage_is_enabled()` = HPOS_ENABLED; `woocommerce_custom_orders_table_enabled=yes`; `woocommerce_custom_orders_table_data_sync_enabled=no`. |
+| Woo stock management | global `woocommerce_manage_stock=yes`; hold-stock 60 minutes | VERIFIED 2026-09-12 16:12 UTC @wbdevworld WP-CLI options. Reduction-on-payment runtime still not write-tested. |
+| Backorders configuration | product-meta `_backorders=no` for 154 rows; no other values | VERIFIED 2026-09-12 16:12 UTC @wbdevworld aggregate query. Still product-level, not a single global switch. |
+| VitePOS stock mode — Woo single stock | Woo manage-stock yes **and** public VitePOS `stockable=N` | VERIFIED combination 2026-09-12. Do not claim VitePOS outlet-multi is executing. |
+| VitePOS stock mode — outlet/multi-stock | 2 active GH warehouses/outlets (one main); 2 counters mapped 1:1; public `stockable=N` | VERIFIED 2026-09-12 16:14 UTC @wbdevworld table counts/flags only (names/contact fields redacted). Full-stock/outlet-stock execution still not claimed. |
 | VitePOS offline pending queue | Configured `offline_order_status=N`; runtime behavior BLOCKED | 2026-09-12 public VitePOS settings + `/vitepos/` HTML contains offline/pending strings. No disconnect/sale test (isolation not proven). |
 | Barcode source — SKU/GTIN/product ID/custom meta/VitePOS field | VitePOS barcode field = SKU | VERIFIED 2026-09-12 14:10 UTC @wbdevworld: public `GET /wp-json/vitepos/v1/basic/settings` → `barcode_field=SKU`. Scan no-match / multi-match / variation resolve BLOCKED. Storefront SKU labels VERIFIED separately. |
-| Current tax/GRA E-VAT/CIS process | Woo tax BLOCKED; GRA BLOCKED; VitePOS `is_incl_tax=false` | 2026-09-12: Woo tax APIs 401. VitePOS public `is_incl_tax=false`, `tax_method=B` (code meaning UNVERIFIED). Invoice `show_vat_reg=true` with VAT id present — value REDACTED. Not Ghana compliance. |
-| Current payments — cash | USER-CONFIRMED in use; VitePOS tender `Cash` (`id=C`, offline) VERIFIED; Woo gateway BLOCKED | User marked method VERIFIED, 2026-09-12. Public FAQ 2026-09-12: cash at offline stores. Woo payment_gateways 401. |
-| Current payments — Mobile Money | USER-CONFIRMED in use; public FAQ VERIFIED; technical configuration UNVERIFIED | User marked method VERIFIED, 2026-09-12. Public FAQ/payment-and-delivery: MoMo online (prepaid) and mentioned offline. No VitePOS method titled MoMo. No provider keys inspected. |
-| Current payments — card | USER-CONFIRMED in use; public FAQ VERIFIED; Woo gateway BLOCKED | User marked method VERIFIED, 2026-09-12. FAQ: Credit/Debit Card online. VitePOS `Swipe Machine` (`id=S`, offline) is a POS tender label, not a processor. |
+| Current tax/GRA E-VAT/CIS process | Woo tax calc **off**, 0 rates; GRA BLOCKED; VitePOS public `is_incl_tax=false` | VERIFIED 2026-09-12 16:12 UTC @wbdevworld: `woocommerce_calc_taxes=no`, prices excl, 0 tax-rate rows. GRA/E-VAT/CIS still BLOCKED. Not Ghana compliance. |
+| Current payments — cash | USER-CONFIRMED in use; VitePOS tender `Cash` VERIFIED; Woo `cod` **enabled** | VERIFIED 2026-09-12 16:12 UTC @wbdevworld runtime gateway `cod\|yes`. |
+| Current payments — Mobile Money | USER-CONFIRMED operationally; public FAQ VERIFIED; **no enabled Woo MoMo gateway** | 2026-09-12 16:12 UTC @wbdevworld: runtime Woo gateways are invoice + COD only. Processor still UNVERIFIED. Keys not read. |
+| Current payments — card | USER-CONFIRMED operationally; public FAQ VERIFIED; **no enabled Woo card gateway**; Paystack plugin inactive | 2026-09-12 16:12 UTC @wbdevworld. VitePOS `Swipe Machine` remains a tender label. Keys not read. |
 | Current payments — other | VitePOS tender `Other` (`id=O`, offline) | VERIFIED as VitePOS configured method 2026-09-12. Mapping to MoMo/other processors UNVERIFIED. |
-| Paystack/provider status | Paystack WooCommerce Payment Gateway 5.8.5 installed but inactive; provider account/operational status UNVERIFIED | User-reported Site Health, 2026-09-12. Independent 2026-09-12: Woo payment_gateways 401 so inactive status not re-listed; VitePOS `payment_gws` length 0. |
+| Paystack/provider status | Paystack WooCommerce Payment Gateway 5.8.5 installed **inactive**; not in runtime gateway list | VERIFIED 2026-09-12 16:12 UTC @wbdevworld WP-CLI. Provider account/keys not inspected. |
 | Scanner models | UNVERIFIED | No physical inspection. Software barcode field is SKU. |
 | Printer models | UNVERIFIED | No physical inspection. VitePOS invoice `page_width=80` is template config only. |
 | Cash drawer | UNVERIFIED | No physical inspection. `single_cash_drawer=N` in public VitePOS settings. |
 | Payment terminal | UNVERIFIED | No physical inspection. |
 | Hosting | Linux / nginx / PHP-FPM (USER-REPORTED); public front door Cloudflare (VERIFIED) | Site Health 2026-09-12 plus 2026-09-12 `Server: cloudflare` on staging and comparison hosts. Provider UNVERIFIED. |
-| Staging URL | https://training.cetechbpa.com | VERIFIED reachable 2026-09-12 14:06 UTC @wbdevworld (`curl.exe` HEAD 200; REST `url`/`home` match). Previously user-reported Site Health with `WP_ENVIRONMENT_TYPE=staging` (environment type still not independently readable). |
+| Staging URL | https://training.cetechbpa.com | VERIFIED public 2026-09-12 14:06 UTC. Authenticated 2026-09-12 16:12 UTC @wbdevworld: `home`/`siteurl` match; operator-identified SSH origin hostname `cetechtrainingappserver`; `WP_ENVIRONMENT_TYPE=staging` VERIFIED. |
 | Production URL | Public comparison host https://cetechbpa.com is a distinct WordPress app; not proven to be the Woo production operations URL | VERIFIED distinct public identity 2026-09-12 (REST name `CETECH Ghana`, no `wc/v3`/`vitepos` namespaces). Whether it is *the* production shop remains UNVERIFIED. |
 | Supabase region/project | UNVERIFIED | UNVERIFIED |
 | Deployment platform | UNVERIFIED | UNVERIFIED |
 | Known latency | UNVERIFIED | UNVERIFIED |
-| Currency and precision | Public Store API + VitePOS settings: GHS, ₵, 2 minor units, `.` / `,` | VERIFIED 2026-09-12 @wbdevworld as public display/settings. Woo admin currency options BLOCKED (401). |
+| Currency and precision | Admin + public: GHS, 2 decimals, left, `.` / `,` | VERIFIED 2026-09-12 16:12 UTC @wbdevworld Woo options `woocommerce_currency=GHS`, `woocommerce_price_num_decimals=2`. Matches earlier public Store API. |
 | Fractional-quantity products | Sampled Store API `multiple_of=1`; Woo decimal-qty setting BLOCKED | 2026-09-12 sample of 20 Store API products. Do not infer policy from price decimals. |
-| Stock reserve/expiry/reduction behavior | BLOCKED | Woo hold/reduce options unread; no write test. |
+| Stock reserve/expiry/reduction behavior | hold-stock 60 minutes VERIFIED; reduction-on-payment runtime BLOCKED | 2026-09-12 16:12 UTC @wbdevworld `woocommerce_hold_stock_minutes=60`. No write test. |
 | WordPress bridge service identity/capabilities | Absent on host (`cetech-pos` 404) | VERIFIED 2026-09-12 HEAD `/wp-json/cetech-pos/v1/health` 404. Application Passwords advertised on staging REST. |
 | Production staff role mapping | UNVERIFIED | UNVERIFIED |
 | Cash variance approval policy | UNVERIFIED | UNVERIFIED |
@@ -47,8 +47,8 @@ WS3 coordinates CP-04; WS2 may contribute Woo/public intake on WS2-owned paths. 
 | Developer 2 GitHub username | @Emmanuel-coder-prog — write access VERIFIED | User assignment plus live GitHub collaborator-permission response, 2026-09-12. |
 | Backup technical reviewer | UNVERIFIED | UNVERIFIED |
 | Sprint start/end UTC | UNVERIFIED | UNVERIFIED |
-| Staging dataset sanitization | BLOCKED | 2026-09-12 public catalog looks like real hardware products (54 Store API items). No sanitization proof. |
+| Staging dataset sanitization | BLOCKED / not proven sanitized | 2026-09-12 public catalog 54 items. Authenticated counts: 20 users, 12 customer-capability rows, 51 HPOS orders. No PII exported. |
 | Production invoice owner/signoff | UNVERIFIED | UNVERIFIED |
-| Staging isolation vs production writes | NOT PROVEN | 2026-09-12: distinct public hosts/apps VERIFIED; DB/webhooks/payments/stock write isolation BLOCKED. No write tests. See CP-04-LIVE-AUDIT.md. |
+| Staging isolation vs production writes | NOT PROVEN | 2026-09-12 authenticated: env type staging VERIFIED; staging DB fingerprint recorded; production fingerprint unavailable; Woo webhooks 0 VERIFIED; MailPoet active and `admin_email` domain `cetechbpa.com` → email **UNSAFE** for write tests. No write tests. See CP-04-AUTHENTICATED-AUDIT.md. |
 
 Repository observations belong in docs/runbooks/GITHUB-REALITY.md. Unknowns block only dependent work, never unrelated UI/mock foundation work. Repeat the audit via docs/runbooks/CP-04-STAGING-AUDIT.md.
