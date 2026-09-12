@@ -14,6 +14,7 @@ INSERT INTO pos_devices (id, organization_id, location_id, label, status) VALUES
 
 INSERT INTO pos_registers (id, organization_id, location_id, name, currency, status) VALUES
   ('reg_a', 'org_a', 'loc_a1', 'Register A', 'GHS', 'active'),
+  ('reg_a2', 'org_a', 'loc_a1', 'Register A2', 'GHS', 'active'),
   ('reg_b', 'org_a', 'loc_a2', 'Register B', 'GHS', 'active');
 
 INSERT INTO pos_staff_location_assignments (actor_id, organization_id, location_id, role) VALUES
@@ -24,4 +25,5 @@ INSERT INTO pos_staff_location_assignments (actor_id, organization_id, location_
 INSERT INTO pos_staff_register_assignments (actor_id, organization_id, location_id, register_id) VALUES
   ('cashier_a', 'org_a', 'loc_a1', 'reg_a'),
   ('manager_a', 'org_a', 'loc_a1', 'reg_a'),
+  ('manager_a', 'org_a', 'loc_a1', 'reg_a2'),
   ('manager_a', 'org_a', 'loc_a2', 'reg_b');

@@ -49,7 +49,7 @@ BEGIN
 END;
 $$;
 
-SELECT plan(44);
+SELECT plan(64);
 
 SELECT pos_test_clear_claims();
 
@@ -130,6 +130,26 @@ SELECT is(
   'expected cash starts at opening float'
 );
 
+SELECT is(
+  (SELECT count(*)::int FROM pos_cash_movements
+    WHERE shift_id = current_setting('pos_test.open_shift')::uuid
+      AND kind = 'opening_float'),
+  1,
+  'opening float ledger row exists exactly once'
+);
+
+SELECT is(
+  (SELECT expected_cash_minor::bigint FROM pos_shifts WHERE id = current_setting('pos_test.open_shift')::uuid),
+  (SELECT opening_float_minor::bigint FROM pos_shifts WHERE id = current_setting('pos_test.open_shift')::uuid),
+  'expected cash equals opening float exactly once after shift open'
+);
+
+SELECT ok(
+  strpos(pg_get_functiondef('pos_lock_shift_for_cash(uuid)'::regprocedure), 'FOR UPDATE') > 0
+  AND strpos(pg_get_functiondef('pos_cash_before_write()'::regprocedure), 'pos_lock_shift_for_cash') > 0,
+  'cash writers acquire a shift row lock before validation'
+);
+
 SELECT pos_test_set_claims('org_a', ARRAY['loc_a1'], 'cashier_a', 'reg_a');
 SET ROLE authenticated;
 SELECT throws_ok(
@@ -199,15 +219,68 @@ SELECT is(
   'expected cash unchanged after rejected negative operation'
 );
 
+SELECT pos_test_set_claims('org_a', ARRAY['loc_a1'], 'cashier_a', 'reg_a');
+SET ROLE authenticated;
+SELECT throws_ok(
+  'INSERT INTO pos_cash_movements (shift_id, kind, signed_amount_minor, currency, actor_id, reason) VALUES ('
+  || quote_literal(current_setting('pos_test.open_shift'))
+  || ', ''pay_in'', 100, ''USD'', ''cashier_a'', ''wrong currency'')',
+  '23514',
+  NULL,
+  'non-correction cash movement with mismatched currency is rejected'
+);
+SELECT throws_ok(
+  'INSERT INTO pos_cash_movements (shift_id, kind, signed_amount_minor, currency, actor_id, reason) VALUES ('
+  || quote_literal(current_setting('pos_test.open_shift'))
+  || ', ''opening_float'', 100, ''GHS'', ''cashier_a'', ''forged float'')',
+  '42501',
+  NULL,
+  'authenticated cannot forge opening_float'
+);
+SELECT throws_ok(
+  'INSERT INTO pos_cash_movements (shift_id, kind, signed_amount_minor, currency, actor_id, reason) VALUES ('
+  || quote_literal(current_setting('pos_test.open_shift'))
+  || ', ''cash_sale'', 100, ''GHS'', ''cashier_a'', ''forged sale'')',
+  '42501',
+  NULL,
+  'authenticated cannot forge cash_sale'
+);
+SELECT throws_ok(
+  'INSERT INTO pos_cash_movements (shift_id, kind, signed_amount_minor, currency, actor_id, reason) VALUES ('
+  || quote_literal(current_setting('pos_test.open_shift'))
+  || ', ''cash_refund'', -100, ''GHS'', ''cashier_a'', ''forged refund'')',
+  '42501',
+  NULL,
+  'authenticated cannot forge cash_refund'
+);
+SELECT throws_ok(
+  'INSERT INTO pos_cash_movements (shift_id, kind, signed_amount_minor, currency, actor_id) VALUES ('
+  || quote_literal(current_setting('pos_test.open_shift'))
+  || ', ''pay_in'', 100, ''GHS'', ''cashier_a'')',
+  '23514',
+  NULL,
+  'authenticated cash command requires a reason'
+);
+RESET ROLE;
+
 SELECT pos_test_set_claims('org_a', ARRAY['loc_a1'], 'forged_actor', 'reg_a');
 SET ROLE authenticated;
 SELECT throws_ok(
   'INSERT INTO pos_cash_movements (shift_id, kind, signed_amount_minor, currency, actor_id, reason) VALUES ('
   || quote_literal(current_setting('pos_test.open_shift'))
   || ', ''pay_in'', 100, ''GHS'', ''forged_actor'', ''unauth'')',
-  'P0002',
+  '42501',
   NULL,
   'unauthorized cash movement is rejected'
+);
+RESET ROLE;
+
+SELECT pos_test_set_claims('org_a', ARRAY['loc_a1'], 'manager_a', 'reg_a');
+SET ROLE authenticated;
+SELECT is(
+  (SELECT count(*)::int FROM pos_staff_register_assignments WHERE location_id = 'loc_a2'),
+  0,
+  'session scoped to loc_a1 cannot read register assignments from loc_a2'
 );
 RESET ROLE;
 
@@ -284,6 +357,11 @@ INSERT INTO pos_shifts (
 ) VALUES (
   'reg_xb', '00000000-0000-4000-8000-0000000000b1', 4000, 'GHS', 'actor_b'
 );
+INSERT INTO pos_shifts (
+  register_id, device_id, opening_float_minor, opening_float_currency, cashier_id
+) VALUES (
+  'reg_a2', '00000000-0000-4000-8000-0000000000a1', 1500, 'GHS', 'manager_a'
+);
 
 SELECT set_config(
   'pos_test.shift_b',
@@ -293,6 +371,11 @@ SELECT set_config(
 SELECT set_config(
   'pos_test.shift_xb',
   (SELECT id::text FROM pos_shifts WHERE register_id = 'reg_xb' AND status = 'open' LIMIT 1),
+  true
+);
+SELECT set_config(
+  'pos_test.shift_a2',
+  (SELECT id::text FROM pos_shifts WHERE register_id = 'reg_a2' AND status = 'open' LIMIT 1),
   true
 );
 SELECT set_config(
@@ -356,10 +439,54 @@ SELECT lives_ok(
   'valid correction exactly reverses the original movement'
 );
 
+SELECT set_config(
+  'pos_test.correction',
+  (SELECT id::text FROM pos_cash_movements WHERE kind = 'correction' ORDER BY created_at DESC LIMIT 1),
+  true
+);
+
 SELECT is(
   (SELECT signed_amount_minor::bigint FROM pos_cash_movements WHERE id = current_setting('pos_test.pay_in')::uuid),
   500::bigint,
   'original movement is unchanged after correction'
+);
+
+SELECT throws_ok(
+  'INSERT INTO pos_cash_movements (shift_id, kind, signed_amount_minor, currency, actor_id, reason, corrects_movement_id, approval_id) VALUES ('
+  || quote_literal(current_setting('pos_test.open_shift'))
+  || ', ''correction'', -500, ''GHS'', ''cashier_a'', ''second correction'', '
+  || quote_literal(current_setting('pos_test.pay_in'))
+  || ', '
+  || quote_literal('30000000-0000-4000-8000-00000000000a')
+  || ')',
+  '23505',
+  NULL,
+  'duplicate correction of the same original is rejected'
+);
+
+SELECT throws_ok(
+  'INSERT INTO pos_cash_movements (shift_id, kind, signed_amount_minor, currency, actor_id, reason, corrects_movement_id, approval_id) VALUES ('
+  || quote_literal(current_setting('pos_test.open_shift'))
+  || ', ''correction'', 500, ''GHS'', ''cashier_a'', ''correct the correction'', '
+  || quote_literal(current_setting('pos_test.correction'))
+  || ', '
+  || quote_literal('30000000-0000-4000-8000-00000000000b')
+  || ')',
+  '23514',
+  NULL,
+  'correction of a correction is rejected'
+);
+
+SELECT is(
+  (SELECT expected_cash_minor::bigint FROM pos_shifts WHERE id = current_setting('pos_test.open_shift')::uuid),
+  (
+    SELECT (s.opening_float_minor + COALESCE(SUM(m.signed_amount_minor) FILTER (WHERE m.kind <> 'opening_float'), 0))::bigint
+    FROM pos_shifts s
+    LEFT JOIN pos_cash_movements m ON m.shift_id = s.id
+    WHERE s.id = current_setting('pos_test.open_shift')::uuid
+    GROUP BY s.opening_float_minor
+  ),
+  'expected cash equals opening float plus committed non-opening deltas'
 );
 
 -- Pending-operation scope.
@@ -376,6 +503,18 @@ SELECT throws_ok(
   '23503',
   NULL,
   'pending operation cannot use another location register'
+);
+SELECT throws_ok(
+  $$ INSERT INTO pos_pending_operations (
+       organization_id, location_id, register_id, operation, idempotency_key, request_hash, status
+     ) VALUES (
+       'org_a', 'loc_a1', 'reg_a2', 'cash.movement',
+       '21000000-0000-4000-8000-000000000014',
+       repeat('15', 32), 'pending'
+     ) $$,
+  '42501',
+  NULL,
+  'pending operation cannot use an unassigned same-location register'
 );
 RESET ROLE;
 
@@ -423,6 +562,19 @@ SELECT throws_ok(
 
 SELECT pos_test_set_claims('org_a', ARRAY['loc_a1'], 'cashier_a', 'reg_a');
 SET ROLE authenticated;
+SELECT throws_ok(
+  'INSERT INTO pos_pending_operations (
+     organization_id, location_id, shift_id, operation, idempotency_key, request_hash, status
+   ) VALUES (
+     ''org_a'', ''loc_a1'', '
+  || quote_literal(current_setting('pos_test.shift_a2'))
+  || ', ''cash.movement'', ''21000000-0000-4000-8000-000000000015'', '
+  || quote_literal(repeat('16', 32))
+  || ', ''pending'')',
+  '42501',
+  NULL,
+  'pending operation cannot use an unassigned same-location shift'
+);
 SELECT lives_ok(
   'INSERT INTO pos_pending_operations (
      organization_id, location_id, register_id, shift_id, operation, idempotency_key, request_hash, status
@@ -444,7 +596,31 @@ SELECT throws_ok(
      ) $$,
   '23505',
   NULL,
-  'duplicate idempotency key is rejected'
+  'same organization + same operation + same key is rejected'
+);
+SELECT lives_ok(
+  $$ INSERT INTO pos_pending_operations (
+       organization_id, location_id, register_id, operation, idempotency_key, request_hash, status
+     ) VALUES (
+       'org_a', 'loc_a1', 'reg_a', 'shift.open',
+       '20000000-0000-4000-8000-000000000002',
+       repeat('aa', 32), 'pending'
+     ) $$,
+  'same organization + different operation + same key is allowed'
+);
+RESET ROLE;
+
+SELECT pos_test_clear_claims();
+SET ROLE service_role;
+SELECT lives_ok(
+  $$ INSERT INTO pos_pending_operations (
+       organization_id, location_id, operation, idempotency_key, request_hash, status
+     ) VALUES (
+       'org_b', 'loc_b1', 'cash.movement',
+       '20000000-0000-4000-8000-000000000002',
+       repeat('bb', 32), 'pending'
+     ) $$,
+  'different organization + same operation + same key is allowed'
 );
 RESET ROLE;
 
@@ -465,6 +641,18 @@ SELECT throws_ok(
   '42501',
   NULL,
   'authenticated cannot insert outbox events'
+);
+SELECT throws_ok(
+  $$ SELECT count(*) FROM pos_outbox_events $$,
+  '42501',
+  NULL,
+  'authenticated cannot select raw outbox rows'
+);
+SELECT throws_ok(
+  $$ SELECT count(*) FROM pos_integration_watermarks $$,
+  '42501',
+  NULL,
+  'authenticated cannot select raw integration watermarks'
 );
 RESET ROLE;
 
@@ -492,7 +680,7 @@ SELECT is(
 SELECT pos_test_set_claims('org_a', ARRAY['loc_a1'], 'cashier_a', 'reg_a');
 SET ROLE authenticated;
 SELECT throws_ok(
-  'UPDATE pos_shifts SET status = ''closed'', counted_cash_minor = 10200 WHERE id = '
+  'UPDATE pos_shifts SET status = ''closed'', counted_cash_minor = 9700 WHERE id = '
   || quote_literal(current_setting('pos_test.open_shift'))::text,
   '42501',
   NULL,
@@ -500,7 +688,7 @@ SELECT throws_ok(
 );
 RESET ROLE;
 
-SELECT pos_test_force_close(current_setting('pos_test.open_shift')::uuid, 10200);
+SELECT pos_test_force_close(current_setting('pos_test.open_shift')::uuid, 9700);
 
 SELECT throws_ok(
   'INSERT INTO pos_cash_movements (shift_id, kind, signed_amount_minor, currency, actor_id, reason) VALUES ('
@@ -518,6 +706,24 @@ SELECT throws_ok(
   NULL,
   'closed shift remains immutable'
 );
+
+SELECT throws_ok(
+  'DELETE FROM pos_shifts WHERE id = '
+  || quote_literal(current_setting('pos_test.open_shift')),
+  '55000',
+  NULL,
+  'closed shift cannot be deleted'
+);
+
+SET ROLE service_role;
+SELECT throws_ok(
+  'DELETE FROM pos_shifts WHERE id = '
+  || quote_literal(current_setting('pos_test.open_shift')),
+  '42501',
+  NULL,
+  'service_role has no DELETE grant on shifts'
+);
+RESET ROLE;
 
 SELECT pos_test_set_claims('org_a', ARRAY['loc_a1'], 'cashier_a', 'reg_a');
 SET ROLE authenticated;

@@ -1,8 +1,9 @@
-# WS3 current handoff — CORE-01 remediation (READY FOR RE-REVIEW)
+# WS3 current handoff — CORE-01 final consolidated remediation (READY FOR RE-REVIEW)
 
-Task: CORE-01 — Create POS operational schema and RLS (issue #20), PR #40 review remediation.
+Task: CORE-01 — Create POS operational schema and RLS (issue #20), PR #40 final pre-merge remediation.
 Branch: `ws3/core-01-create-pos-operational-schema-and-rls`
 Base: `origin/main` after PR #42 (`cd4477f185c159e18ed939a20145865d665099b4`).
+Pre-sync head: `bc403bb9b1333600fc4442f95112e409646f7581`
 Previous reviewed head: `2b1c6333a850544aa82a6e5964e60a25defb05b5`
 Senior dependency decision recorded: ADR-011. Training is the development reference environment. Unavailable production facts are cutover/release deltas unless a task specifically requires them. CORE-01 is READY.
 CP-04 development baseline: SATISFIED.
@@ -11,9 +12,9 @@ Production-site access required for CORE-01? NO.
 Synthetic fixtures only: yes.
 BR-01: local implementation may proceed against frozen contracts/training baseline; target installation/service credentials and runtime acceptance remain separate.
 Remaining CP-04 work: `docs/runbooks/CP-04-REMAINING-WORK.md`.
-Remediation: outbox trusted-server only + tenant-consistent location FK; cash correction approved exact reversal; `pos_close_shift` removed (CORE-07 owns close/Z); expected cash nonnegative Money; pending register/shift composite FKs.
-Contracts: v1.0.0 unchanged. Application/frontend unchanged. Bridge unchanged. Training site written to? NO. Production touched? NO.
-Requested reviewer: @Ben-001-sys for the new head. Do not rely on review of `2b1c633…`. Do not recreate PR #40.
+Final pass: shift row-lock cash serialization; atomic expected-cash delta (no SUM recompute); duplicate/correction-of-correction denied; currency mismatch denied; authenticated internal cash kinds denied; cash reason required; pending same-location register assignment; idempotency `org+operation+key`; shift DELETE denied; least-privilege service_role grants; outbox/watermark authenticated SELECT removed; staff-register location read scope; register operational-read distinction deferred to CORE-02; Linux CI local Supabase 2.117.0 reset/pgTAP; RLS mirror tooling test.
+Contracts: v1.0.0 unchanged. Application/frontend unchanged. Bridge unchanged. Training site written to? NO. Production touched? NO. ADR-011 unchanged.
+Requested reviewer: @Ben-001-sys for the new final head. Do not rely on review of `2b1c633…` or `bc403bb…`. Do not recreate PR #40. CORE-02 not started.
 
 Previous CP-04 dependency reconciliation retained below. ADR-011 remains authoritative.
 

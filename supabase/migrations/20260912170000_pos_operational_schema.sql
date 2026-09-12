@@ -205,6 +205,14 @@ CREATE UNIQUE INDEX pos_cash_idempotency_idx
   ON pos_cash_movements (shift_id, idempotency_key)
   WHERE idempotency_key IS NOT NULL;
 
+CREATE UNIQUE INDEX pos_cash_one_correction_per_original
+  ON pos_cash_movements (corrects_movement_id)
+  WHERE kind = 'correction';
+
+CREATE UNIQUE INDEX pos_cash_one_opening_float_per_shift
+  ON pos_cash_movements (shift_id)
+  WHERE kind = 'opening_float';
+
 CREATE INDEX pos_cash_shift_idx ON pos_cash_movements (shift_id);
 
 CREATE TABLE pos_pending_operations (
@@ -229,7 +237,7 @@ CREATE TABLE pos_pending_operations (
   created_at timestamptz NOT NULL DEFAULT now(),
   last_attempt_at timestamptz,
   last_error_code text,
-  CONSTRAINT pos_pending_idempotency UNIQUE (organization_id, idempotency_key),
+  CONSTRAINT pos_pending_idempotency UNIQUE (organization_id, operation, idempotency_key),
   CONSTRAINT pos_pending_loc_org_fk
     FOREIGN KEY (location_id, organization_id)
     REFERENCES pos_locations (id, organization_id),
@@ -269,7 +277,7 @@ ALTER TABLE pos_outbox_events
     REFERENCES pos_locations (id, organization_id);
 
 COMMENT ON TABLE pos_outbox_events IS
-  'Transactional outbox for later trusted-server publication. Not business truth. Not Woo order master. Authenticated clients cannot insert. service_role write is not business authorization. A non-null location_id must belong to the same organization_id.';
+  'Transactional outbox for later trusted-server publication. Not business truth. Not Woo order master. Authenticated clients cannot select or insert. service_role write is not business authorization. A non-null location_id must belong to the same organization_id.';
 
 CREATE TABLE pos_integration_watermarks (
   organization_id pos_id NOT NULL REFERENCES pos_organizations (id),
@@ -280,7 +288,7 @@ CREATE TABLE pos_integration_watermarks (
 );
 
 COMMENT ON TABLE pos_integration_watermarks IS
-  'Rebuildable sync cursors. Provider id is configuration, not a hostname hard-code.';
+  'Rebuildable sync cursors. Trusted-server only. Provider id is configuration, not a hostname hard-code.';
 
 CREATE OR REPLACE FUNCTION pos_has_location_assignment(p_org text, p_loc text, p_actor text)
 RETURNS boolean
@@ -433,6 +441,40 @@ CREATE TRIGGER pos_shift_before_update
   FOR EACH ROW
   EXECUTE FUNCTION pos_shift_before_update();
 
+CREATE OR REPLACE FUNCTION pos_shift_before_delete()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RAISE EXCEPTION 'shifts are not deletable' USING ERRCODE = '55000';
+END;
+$$;
+
+CREATE TRIGGER pos_shift_before_delete
+  BEFORE DELETE ON pos_shifts
+  FOR EACH ROW
+  EXECUTE FUNCTION pos_shift_before_delete();
+
+CREATE OR REPLACE FUNCTION pos_lock_shift_for_cash(p_shift uuid)
+RETURNS pos_shifts
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  sh pos_shifts%ROWTYPE;
+BEGIN
+  SELECT * INTO STRICT sh FROM pos_shifts WHERE id = p_shift FOR UPDATE;
+  RETURN sh;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION pos_lock_shift_for_cash(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION pos_lock_shift_for_cash(uuid) TO authenticated, service_role;
+
+COMMENT ON FUNCTION pos_lock_shift_for_cash(uuid) IS
+  'Row-lock helper for cash writers. SECURITY DEFINER is not business authorization; callers still pass JWT/actor checks in pos_cash_before_write.';
+
 CREATE OR REPLACE FUNCTION pos_cash_before_write()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -440,20 +482,39 @@ AS $$
 DECLARE
   sh pos_shifts%ROWTYPE;
   orig pos_cash_movements%ROWTYPE;
-  provided_currency pos_currency;
+  new_expected bigint;
 BEGIN
   IF TG_OP IN ('UPDATE', 'DELETE') THEN
     RAISE EXCEPTION 'cash movements are append-only' USING ERRCODE = '55000';
   END IF;
-  SELECT * INTO STRICT sh FROM pos_shifts WHERE id = NEW.shift_id;
+
+  -- Serialize all cash mutations for this shift before status, currency,
+  -- correction, or expected-cash checks. Different shifts remain independent.
+  SELECT * INTO STRICT sh FROM pos_lock_shift_for_cash(NEW.shift_id);
+
   IF sh.status <> 'open' THEN
     RAISE EXCEPTION 'cash movements require an open shift' USING ERRCODE = '55000';
   END IF;
-  provided_currency := NEW.currency;
+
   NEW.organization_id := sh.organization_id;
   NEW.location_id := sh.location_id;
   NEW.register_id := sh.register_id;
+
+  IF NEW.currency IS DISTINCT FROM sh.opening_float_currency THEN
+    RAISE EXCEPTION 'cash movement currency must match shift' USING ERRCODE = '23514';
+  END IF;
   NEW.currency := sh.opening_float_currency;
+
+  IF current_user = 'authenticated' THEN
+    IF NEW.kind NOT IN ('pay_in', 'pay_out', 'cash_pickup', 'correction') THEN
+      RAISE EXCEPTION 'internal cash ledger kinds cannot be inserted by authenticated clients'
+        USING ERRCODE = '42501';
+    END IF;
+    IF NEW.reason IS NULL OR char_length(btrim(NEW.reason)) < 1 THEN
+      RAISE EXCEPTION 'cash movement reason is required' USING ERRCODE = '23514';
+    END IF;
+  END IF;
+
   IF NEW.kind = 'correction' THEN
     IF NEW.approval_id IS NULL THEN
       RAISE EXCEPTION 'cash correction requires approval' USING ERRCODE = '23514';
@@ -465,26 +526,39 @@ BEGIN
     IF NOT FOUND THEN
       RAISE EXCEPTION 'correction target not found' USING ERRCODE = '23503';
     END IF;
+    IF orig.kind = 'correction' THEN
+      RAISE EXCEPTION 'correction of a correction is not permitted' USING ERRCODE = '23514';
+    END IF;
     IF orig.organization_id IS DISTINCT FROM sh.organization_id
        OR orig.location_id IS DISTINCT FROM sh.location_id
        OR orig.register_id IS DISTINCT FROM sh.register_id
        OR orig.shift_id IS DISTINCT FROM NEW.shift_id THEN
       RAISE EXCEPTION 'correction target is out of shift scope' USING ERRCODE = '23514';
     END IF;
-    IF orig.currency IS DISTINCT FROM sh.opening_float_currency
-       OR (
-         provided_currency IS NOT NULL
-         AND provided_currency IS DISTINCT FROM orig.currency
-       ) THEN
+    IF orig.currency IS DISTINCT FROM sh.opening_float_currency THEN
       RAISE EXCEPTION 'correction currency must match original movement' USING ERRCODE = '23514';
     END IF;
     IF NEW.signed_amount_minor IS DISTINCT FROM (- orig.signed_amount_minor) THEN
       RAISE EXCEPTION 'correction must exactly reverse the original movement' USING ERRCODE = '23514';
     END IF;
   END IF;
-  IF (sh.expected_cash_minor + NEW.signed_amount_minor) < 0 THEN
-    RAISE EXCEPTION 'expected cash cannot be negative' USING ERRCODE = '23514';
+
+  -- Opening float is already represented by expected_cash_minor at shift open.
+  -- Do not add the generated opening_float ledger row a second time.
+  IF NEW.kind = 'opening_float' THEN
+    IF NEW.signed_amount_minor IS DISTINCT FROM sh.opening_float_minor
+       OR sh.expected_cash_minor IS DISTINCT FROM sh.opening_float_minor THEN
+      RAISE EXCEPTION 'opening float must match shift expected cash exactly once'
+        USING ERRCODE = '23514';
+    END IF;
+  ELSE
+    new_expected := sh.expected_cash_minor + NEW.signed_amount_minor;
+    IF new_expected < 0 THEN
+      RAISE EXCEPTION 'expected cash cannot be negative' USING ERRCODE = '23514';
+    END IF;
+    PERFORM set_config('pos.cash_new_expected', new_expected::text, true);
   END IF;
+
   NEW.actor_id := COALESCE(pos_current_actor_id(), NEW.actor_id);
   IF pos_current_actor_id() IS NOT NULL THEN
     NEW.actor_id := pos_current_actor_id();
@@ -519,23 +593,22 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
-DECLARE
-  new_expected bigint;
 BEGIN
-  SELECT COALESCE(SUM(signed_amount_minor), 0)::bigint
-    INTO new_expected
-  FROM pos_cash_movements
-  WHERE shift_id = NEW.shift_id;
-  IF new_expected < 0 THEN
-    RAISE EXCEPTION 'expected cash cannot be negative' USING ERRCODE = '23514';
+  IF NEW.kind = 'opening_float' THEN
+    RETURN NEW;
   END IF;
+  -- Apply the expected-cash delta computed under the shift row lock.
+  -- This is not a SUM recompute and is not business authorization.
   UPDATE pos_shifts
-  SET expected_cash_minor = new_expected
+  SET expected_cash_minor = current_setting('pos.cash_new_expected')::bigint
   WHERE id = NEW.shift_id
     AND status IN ('open', 'closing');
   RETURN NEW;
 END;
 $$;
+
+COMMENT ON FUNCTION pos_cash_before_write() IS
+  'Acquires SELECT ... FOR UPDATE on the target shift before cash validation. Same-shift writers serialize; distinct shifts remain independent. pgTAP cannot safely orchestrate true parallel sessions; CORE-05/QA-01 owns a two-session concurrency harness.';
 
 CREATE TRIGGER pos_cash_after_insert
   AFTER INSERT ON pos_cash_movements
@@ -546,11 +619,47 @@ CREATE OR REPLACE FUNCTION pos_pending_before_insert()
 RETURNS trigger
 LANGUAGE plpgsql
 AS $$
+DECLARE
+  shift_register pos_id;
 BEGIN
   NEW.organization_id := COALESCE(pos_current_organization_id(), NEW.organization_id);
   IF NEW.location_id IS NULL OR NOT (NEW.location_id = ANY (pos_current_location_ids())) THEN
     IF pos_current_location_ids() IS NOT NULL AND array_length(pos_current_location_ids(), 1) > 0 THEN
       RAISE EXCEPTION 'location is not in actor scope' USING ERRCODE = '42501';
+    END IF;
+  END IF;
+
+  IF current_user = 'authenticated' THEN
+    IF NEW.shift_id IS NOT NULL THEN
+      SELECT register_id INTO shift_register
+      FROM pos_shifts
+      WHERE id = NEW.shift_id;
+      IF FOUND THEN
+        IF NEW.register_id IS NULL THEN
+          NEW.register_id := shift_register;
+        ELSIF NEW.register_id IS DISTINCT FROM shift_register THEN
+          RAISE EXCEPTION 'pending operation shift does not belong to register'
+            USING ERRCODE = '23514';
+        END IF;
+      END IF;
+    END IF;
+    IF NEW.register_id IS NOT NULL THEN
+      IF EXISTS (
+        SELECT 1
+        FROM pos_registers r
+        WHERE r.id = NEW.register_id
+          AND r.organization_id = NEW.organization_id
+          AND r.location_id = NEW.location_id
+      ) THEN
+        IF NOT pos_has_register_assignment(NEW.register_id, pos_current_actor_id())
+           OR (
+             pos_current_register_id() IS NOT NULL
+             AND pos_current_register_id() IS DISTINCT FROM NEW.register_id
+           ) THEN
+          RAISE EXCEPTION 'actor is not assigned to the pending-operation register'
+            USING ERRCODE = '42501';
+        END IF;
+      END IF;
     END IF;
   END IF;
   RETURN NEW;
@@ -614,6 +723,7 @@ CREATE POLICY pos_staff_reg_select ON pos_staff_register_assignments
   FOR SELECT TO authenticated
   USING (
     organization_id = pos_current_organization_id()
+    AND location_id = ANY (pos_current_location_ids())
     AND actor_id = pos_current_actor_id()
   );
 
@@ -667,15 +777,26 @@ CREATE POLICY pos_pending_insert ON pos_pending_operations
     organization_id = pos_current_organization_id()
     AND location_id = ANY (pos_current_location_ids())
     AND pos_has_location_assignment(organization_id, location_id, pos_current_actor_id())
+    AND (
+      register_id IS NULL
+      OR NOT EXISTS (
+        SELECT 1
+        FROM pos_registers r
+        WHERE r.id = register_id
+          AND r.organization_id = organization_id
+          AND r.location_id = location_id
+      )
+      OR (
+        pos_has_register_assignment(register_id, pos_current_actor_id())
+        AND (pos_current_register_id() IS NULL OR register_id = pos_current_register_id())
+      )
+    )
   );
 
-CREATE POLICY pos_outbox_select ON pos_outbox_events
-  FOR SELECT TO authenticated
-  USING (organization_id = pos_current_organization_id());
-
-CREATE POLICY pos_watermark_select ON pos_integration_watermarks
-  FOR SELECT TO authenticated
-  USING (organization_id = pos_current_organization_id());
+-- Register/shift/cash SELECT remains location-scoped in CORE-01.
+-- Finer cashier-vs-manager register operational-read distinction is deferred to
+-- CORE-02 server authorization; JWT capability/manager semantics are not frozen enough
+-- to guess a manager policy here.
 
 REVOKE ALL ON TABLE pos_organizations, pos_locations, pos_devices, pos_registers,
   pos_staff_location_assignments, pos_staff_register_assignments, pos_shifts,
@@ -684,21 +805,26 @@ REVOKE ALL ON TABLE pos_organizations, pos_locations, pos_devices, pos_registers
 
 GRANT SELECT ON TABLE pos_organizations, pos_locations, pos_devices, pos_registers,
   pos_staff_location_assignments, pos_staff_register_assignments, pos_shifts,
-  pos_cash_movements, pos_pending_operations, pos_outbox_events,
-  pos_integration_watermarks TO authenticated;
+  pos_cash_movements, pos_pending_operations TO authenticated;
 
 GRANT INSERT ON TABLE pos_shifts, pos_cash_movements, pos_pending_operations
   TO authenticated;
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE pos_organizations, pos_locations, pos_devices, pos_registers,
-  pos_staff_location_assignments, pos_staff_register_assignments, pos_shifts,
-  pos_cash_movements, pos_pending_operations, pos_outbox_events,
-  pos_integration_watermarks TO service_role;
+GRANT SELECT, INSERT, UPDATE ON TABLE pos_organizations, pos_locations, pos_devices,
+  pos_registers, pos_staff_location_assignments, pos_staff_register_assignments
+  TO service_role;
+
+GRANT SELECT, INSERT, UPDATE ON TABLE pos_shifts TO service_role;
+GRANT SELECT, INSERT ON TABLE pos_cash_movements TO service_role;
+GRANT SELECT, INSERT, UPDATE ON TABLE pos_pending_operations TO service_role;
+GRANT SELECT, INSERT, UPDATE ON TABLE pos_outbox_events TO service_role;
+GRANT SELECT, INSERT, UPDATE ON TABLE pos_integration_watermarks TO service_role;
 
 COMMENT ON TABLE pos_organizations IS 'POS tenant scope. Not a Woo shop master.';
 COMMENT ON TABLE pos_registers IS 'Server-owned register identity. Browser-chosen names are not authority.';
 COMMENT ON TABLE pos_shifts IS
-  'Server-authoritative shift lifecycle. Expected cash is nonnegative Money. CORE-07 owns authoritative operational close / immutable Z orchestration.';
+  'Server-authoritative shift lifecycle. Expected cash is nonnegative Money. Shifts are not deletable in ordinary operation. CORE-07 owns authoritative operational close / immutable Z orchestration.';
 COMMENT ON TABLE pos_cash_movements IS
-  'Append-only cash ledger. Corrections are additional rows with approved exact reversal of the original movement.';
-COMMENT ON TABLE pos_pending_operations IS 'Durable operation lifecycle and idempotency. Status names match contract v1.0.0.';
+  'Append-only cash ledger. Authenticated cashier kinds are pay_in/pay_out/cash_pickup/correction and require a reason. Internal kinds opening_float/cash_sale/cash_refund are trusted-server only. Corrections are additional rows with approved exact reversal; one correction per original; correction-of-correction is denied. Command idempotency is claimed on pos_pending_operations (organization_id, operation, idempotency_key), not a second cash-row key system.';
+COMMENT ON TABLE pos_pending_operations IS
+  'Durable operation lifecycle and command idempotency. Frozen uniqueness is organization + operation type + key. Status names match contract v1.0.0.';
