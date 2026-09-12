@@ -21,4 +21,4 @@ Runtime evidence describes what exists; it cannot silently approve a design chan
 
 CURRENT = controlling now; TRANSITIONAL = controlling for the immediate provider arrangement; TARGET = intended future; SUPERSEDED = replaced; PROPOSED = awaiting approval; UNRESOLVED = decision missing; UNVERIFIED = live fact not checked.
 
-ADRs 001–010 encode this turn's explicitly authorized baseline and contract resolutions. New deployment/business facts remain UNVERIFIED. The upstream Transfer Kit v1.0.1 remains shared methodology, not a competing project constitution. Its duplicated generic priority lists yield to this explicit project hierarchy. Raw chats and broad user knowledge are not copied into Git.
+ADRs 001–010 encode this turn's explicitly authorized baseline and contract resolutions. Deployment/business evidence is recorded with its verification level in LIVE-ENVIRONMENT-FACTS.md; unconfirmed fields remain UNVERIFIED. The upstream Transfer Kit v1.0.1 remains shared methodology, not a competing project constitution. Its duplicated generic priority lists yield to this explicit project hierarchy. Raw chats and broad user knowledge are not copied into Git.

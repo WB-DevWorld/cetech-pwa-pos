@@ -2,7 +2,8 @@
   "required_status_checks": {
     "strict": true,
     "contexts": [
-      "control-plane"
+      "control-plane",
+      "control-plane-windows"
     ]
   },
   "enforce_admins": true,

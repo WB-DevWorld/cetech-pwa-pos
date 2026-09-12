@@ -21,7 +21,9 @@ Current baseline established 2026-09-11 under explicit bootstrap authorization. 
 | NestJS independent backend / AccessLobby / MoneyMove / AIM PIM / Inventory Orchestrator | TARGET | Future adapter migration, not sprint infrastructure |
 | Standalone P0 InventoryPort | SUPERSEDED | ADR-003; quote/prepare handle immediate availability |
 | Performance budgets | PROPOSED | Measure then lead records acceptance or revision |
-| Runtime versions, stock mode, payments, tax, hardware | UNVERIFIED | CP-04/live facts |
+| Staging runtime versions / URL | User-reported evidence, 2026-09-12 | CP-04/live facts preserve provenance; no independent runtime test implied |
+| Stock mode, payment execution/settlement, tax, hardware | UNVERIFIED | CP-04/live facts; payment methods user-confirmed in use |
+| Repository visibility and developer access | CURRENT operational fact, 2026-09-12 | User made repo public; GitHub confirms public visibility and both developer write permissions; supersedes private bootstrap default |
 | Refund bridge execution wire endpoints | UNRESOLVED for M2 execution | RT-01 explicit refinement before implementation |
 | Multi-stock/fully offline/split tender scope | PROPOSED future capabilities | Disabled/deferred unless new approved decision |
 
