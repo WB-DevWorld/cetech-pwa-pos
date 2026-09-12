@@ -12,6 +12,11 @@ export {
   type CheckoutEligibilityView,
   type CheckoutEligibilityReasonView,
 } from "./state/quotePresentation";
+export {
+  alignQuoteToCartRevision,
+  applyQuoteResultForRevision,
+  resolveQuotePresentation,
+} from "./state/quoteRevision";
 export { ProductSearch, ProductCard, ProductResults } from "./components/ProductSearch";
 export { VariationDialog } from "./components/VariationDialog";
 export { BarcodeCollisionDialog } from "./components/BarcodeCollisionDialog";

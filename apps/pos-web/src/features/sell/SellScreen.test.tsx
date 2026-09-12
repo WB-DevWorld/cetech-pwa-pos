@@ -149,13 +149,15 @@ describe("SellScreen presentation", () => {
   });
 
   test("renders supplied quote and eligibility states without enabling Pay", () => {
+    let state = createSellWorkspace(deps, SELL_TEST_CATALOG);
+    state = applyBarcodeScan(state, "0012345678901", SELL_TEST_CATALOG, deps);
     const html = renderToStaticMarkup(
       createElement(SellScreen, {
         catalog: SELL_TEST_CATALOG,
-        initialState: createSellWorkspace(deps, SELL_TEST_CATALOG),
+        initialState: state,
         quote: {
           status: "failed",
-          revision: 1,
+          revision: state.cartRevision,
           code: "INTEGRATION_UNAVAILABLE",
           message: "Pricing unavailable — cart saved",
         },
@@ -172,5 +174,28 @@ describe("SellScreen presentation", () => {
     expect(html).toContain('data-eligibility-reason="CONNECTION_REQUIRED"');
     expect(html).toMatch(/pay-btn[^>]*disabled/);
     expect(html).not.toContain("PRICING_UNAVAILABLE");
+  });
+
+  test("does not keep a prior revision quote after the cart revision advances", () => {
+    let state = createSellWorkspace(deps, SELL_TEST_CATALOG);
+    state = applyBarcodeScan(state, "0012345678901", SELL_TEST_CATALOG, deps);
+    expect(state.cartRevision).toBe(1);
+    const html = renderToStaticMarkup(
+      createElement(SellScreen, {
+        catalog: SELL_TEST_CATALOG,
+        initialState: { ...state, cartRevision: 2 },
+        quote: {
+          status: "confirmed",
+          revision: 1,
+          quote: { total: { minor: 2500, currency: "GHS" } },
+        },
+        eligibility: { allowed: true },
+      }),
+    );
+    expect(html).toContain('data-quote-status="stale"');
+    expect(html).toContain("no longer current");
+    expect(html).not.toContain("GHS 25.00");
+    expect(html).toContain('data-eligibility-reason="QUOTE_STALE"');
+    expect(html).toMatch(/pay-btn[^>]*disabled/);
   });
 });

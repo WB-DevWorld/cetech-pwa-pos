@@ -9,6 +9,7 @@ import { ProductResults, ProductSearch } from "./components/ProductSearch";
 import { VariationDialog } from "./components/VariationDialog";
 import { useBarcodeScanner } from "./hooks/useBarcodeScanner";
 import { formatMoneyDisplay, type CheckoutEligibilityView, type QuoteDisplayState } from "./state/quotePresentation";
+import { resolveQuotePresentation } from "./state/quoteRevision";
 import { isDigitBarcodeQuery } from "./state/barcodeResolution";
 import type {
   CatalogAvailability,
@@ -216,6 +217,15 @@ export function SellScreen({
   const loading = displayed.search.status === "loading";
   const searchError = displayed.search.status === "error";
   const catalogBlocked = displayed.catalogAvailability === "unavailable";
+  const presentedQuote = useMemo(
+    () =>
+      resolveQuotePresentation({
+        quote,
+        eligibility,
+        cartRevision: displayed.cartRevision,
+      }),
+    [quote, eligibility, displayed.cartRevision],
+  );
 
   return (
     <div className="sell-workspace" id="sell-workspace">
@@ -269,8 +279,8 @@ export function SellScreen({
             onQuantityChange={handleQuantityChange}
             onRemove={handleRemove}
             onCloseMobile={() => setState((current) => applyMobileCartOpen(current, false))}
-            quote={quote}
-            eligibility={eligibility}
+            quote={presentedQuote.quote}
+            eligibility={presentedQuote.eligibility}
           />
           <div className="mobile-cart-bar">
             <div>
@@ -278,7 +288,9 @@ export function SellScreen({
                 {itemCount} item{itemCount === 1 ? "" : "s"}
               </strong>
               <div className="muted">
-                {quote?.status === "confirmed" ? formatMoneyDisplay(quote.quote.total) : "Price pending"}
+                {presentedQuote.quote?.status === "confirmed"
+                  ? formatMoneyDisplay(presentedQuote.quote.quote.total)
+                  : "Price pending"}
               </div>
             </div>
             <button type="button" className="btn primary" onClick={() => setState((current) => applyMobileCartOpen(current, true))}>
