@@ -4,7 +4,7 @@ Task: CP-05 — Pin toolchain and create Next.js/CI scaffold (issue #5).
 Branch: `ws3/cp-05-pin-toolchain-and-create-next.js-ci-scaffold`
 Commit(s):
 - `c768230e3c1e7f219521a1853a7b299c92fbd1bf` — original implementation
-- PR #32 review remediation commit on this branch (verifier walk split, ledger cleanup, CI evidence). Exact SHA is the PR head after that commit is pushed.
+- `2be4c05b5b445cadef3de8d6c6ec3d1e48811636` — PR #32 review remediation (verifier walk split, walk regression tests, ledger cleanup, CI evidence)
 Base: `origin/main` `15287691a71081ca2855b5b9bc325a787b2ca7c0`.
 Files changed: root `package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml`; `apps/pos-web` App Router scaffold, tests, Playwright smoke; `.github/workflows/ci.yml`; `docs/standards/TOOLCHAIN.md`; lease/status/handoff; `scripts/verify_control_plane.py` generated-tree skip with artifact still on the secret tripwire; `tests/tooling/test_control_plane_walks.py`.
 Contracts changed: none (v1.0.0 unchanged). Canonical re-export into `src/core/**` deferred.
