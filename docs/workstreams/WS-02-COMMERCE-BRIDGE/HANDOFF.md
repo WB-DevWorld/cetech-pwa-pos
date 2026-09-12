@@ -1,3 +1,46 @@
+# WS2 current handoff — BR-01 refresh onto current main (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-12T22:57:45Z start; tests 2026-09-12 after merge `de95969`
+Task / batch / workstream: BR-01 (issue #13) contributor input for R2; WS2
+Owner / requested human reviewer: Developer 2 / @Emmanuel-coder-prog; R2 integration editor @wbdevworld. Do not request R2 review from this handoff.
+Branch: `ws2/br-01-build-bridge-health-and-permission-skeleton`
+Starting/base SHA: `origin/main` `aa08d74f2cb99301817e5995f01486acb7e2169f`
+Previous contributor SHA: `fbbf0ea7d016b6149e9f095d449fb15b0dcdf930` (`PROVISIONAL_TEST / STALE_REQUIRES_OWNER_REFRESH`)
+Merge onto current main: `de95969aeeaef686b82e8447777ebadbe2919b33` (first parent `fbbf0ea7…`, second parent `aa08d74f…`; no history rewrite)
+Contracts changed: none (BridgeHealth / ApiFailure v1.0.0 consumed)
+Database migrations: none
+Architecture decisions: none (ADR-011 CURRENT; ADR-012 ACTIVE from main)
+CURRENT-WORK revision at start (main blob): `bad07c777121a5b35c379d10b63d54ae5920247a` on `aa08d74f…`. This refresh does not edit CURRENT-WORK.md.
+Production-site access required? NO. Training writes: NO. Production writes: NO.
+
+## START_FRESHNESS_SNAPSHOT
+
+- UTC: `2026-09-12T22:57:45Z`
+- Fetch: `git fetch origin --prune` succeeded
+- origin/main: `aa08d74f2cb99301817e5995f01486acb7e2169f`
+- WS2 branch head: `fbbf0ea7d016b6149e9f095d449fb15b0dcdf930`
+- Contracts: v1.0.0
+- ADR-011 CURRENT; ADR-012 ACTIVE
+- Issue #13 OPEN
+- CURRENT-WORK revision: main blob `bad07c777121a5b35c379d10b63d54ae5920247a`
+
+## Tests executed (Windows; GNU Make 4.4.1; PHP 8.5.0 CLI; Python 3.14.4)
+
+- `python scripts/verify_control_plane.py` EXIT 0
+- `make -C wordpress/cetech-pos-bridge check` EXIT 0 (php -l on plugin + tests/bridge sources)
+- `make -C wordpress/cetech-pos-bridge test` EXIT 0; **67 passed, 0 failed**
+- `git diff --check` EXIT 0
+
+Makefile `check` was failing on this workstation because GNU Make split `ROOT` paths at the space in `Learning 2026`. `check` now lints test sources via `PLUGIN_DIR`-relative paths. Plugin detection/auth/health semantics unchanged.
+
+## Runtime / remote effects
+
+None against WordPress/Woo. No plugin install, no Application Password, no order/stock/payment/email. Repository/CI only after push.
+
+## Next exact action
+
+R2 integration editor: consume the declared contributor SHA from this branch; do not blindly merge; do not start BR-02/R3 from this handoff. Two-pass freshness follows this checkpoint push.
+
 # WS2 workflow transition handoff
 
 Workflow decision: ADR-012, activated team-wide when reviewed R1/#40 lands on main. Read [canonical handoff](../../ai/HANDOFF-TEMPLATE.md) and [two-pass policy](../../plans/LONG-RUNNING-WORK.md). Current queue/status are TASKS.md, STATUS.md and CURRENT-WORK. R1 changed only policy/coordination for this workstream; its feature evidence is not recreated. Adoption verification belongs in `docs/integration/evidence/R1-WORKFLOW-ADOPTION.md` and final PR handoff.
@@ -86,3 +129,25 @@ Unresolved risks:
 Requested reviewer: WS3 senior / integration authority (@wbdevworld)
 
 Recommended next task: Review the pushed BR-01 branch. Do not open the PR from this handoff. Do not start BR-02. Do not install on training.
+
+## Historical: CP-04 WS2 commerce/staging evidence (from main R1)
+
+# Handoff report
+
+Task: CP-04 WS2 commerce/staging evidence contribution
+
+Branch: `ws2/cp-04-commerce-intake`
+
+Base: `095696f15cd64b546003bc5c77b4600af7bc4c76` (branch created from this `origin/main`). Closeout re-fetch: `origin/main` is `ae6bac5cbffae3af13036e0447641e174a9227b5` (`docs: reconcile CP-05 merged status (#34)`). Unrelated WS3 docs only. No rebase performed.
+
+Commit(s): `70211240a94f41c8fb14de8979e84c0a0ad65bb0` — `docs(ws2): record CP-04 commerce staging intake evidence`
+
+Files changed (authoritative `git add` of the three authorized paths; `git diff --cached` — untracked files are invisible to unstaged `git diff --stat`, which previously under-counted as 2 files):
+
+- `docs/workstreams/WS-02-COMMERCE-BRIDGE/evidence/CP-04-STAGING-INTAKE.md`
+- `docs/workstreams/WS-02-COMMERCE-BRIDGE/STATUS.md`
+- `docs/workstreams/WS-02-COMMERCE-BRIDGE/HANDOFF.md`
+
+Contracts changed: none. Database migrations: none. Architecture decisions: none.
+
+This intake does not complete CP-04, does not complete or approve BR-01, does not authorize staging installation, and does not claim a BR-01 skeleton exists. Pricing parity remains entirely unverified. Subsequent ADR-011 recorded the development baseline SATISFIED and write-safety/cutover OPEN / DEFERRED.
