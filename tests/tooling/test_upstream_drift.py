@@ -65,6 +65,20 @@ class DriftTests(unittest.TestCase):
         schema = json.loads((self.repo / 'docs/contracts/fixture.json').read_text())
         payload = {'id': 'synthetic-customer'}
         self.assertTrue(all(key in payload for key in schema['required']))
+        # An authorized consumer fixture can adopt the optional field while the
+        # upstream contract remains byte-identical. Reverify both old/new input.
+        contract_before = self.git('hash-object', 'docs/contracts/fixture.json')
+        self.write('apps/pos-web/src/features/customer.py',
+                   "def label(customer):\n"
+                   "    return customer.get('displayName') or customer['id']\n")
+        consumer = {}
+        exec((self.repo / 'apps/pos-web/src/features/customer.py').read_text(), consumer)
+        self.assertEqual(consumer['label'](payload), 'synthetic-customer')
+        self.assertEqual(consumer['label']({**payload, 'displayName': 'Fixture'}),
+                         'Fixture')
+        self.assertEqual(self.git('hash-object', 'docs/contracts/fixture.json'),
+                         contract_before)
+        self.commit('authorized consumer fixture adjustment, verified')
         self.assertEqual(record['semantic_classification'],
                          'REQUIRES_AGENT_OR_OWNER_ASSESSMENT')
 

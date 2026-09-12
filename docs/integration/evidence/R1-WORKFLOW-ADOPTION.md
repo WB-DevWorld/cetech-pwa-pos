@@ -10,7 +10,7 @@ Validation and final freshness are recorded below as execution completes. Any un
 
 ## Controlled freshness scenarios
 
-The tooling tests create temporary real Git repositories. A: unrelated documentation delta is reported without checkout/code edits. B: additive contract fixture is surfaced and an explicit consumer compatibility assertion is rerun. C: a contract-owner change is surfaced without editing it. D: a new authority change between snapshots appears only in Pass 2. E: a post-cutoff commit leaves the recorded cutoff unchanged and a third-pass helper invocation is rejected.
+The tooling tests create temporary real Git repositories. A: unrelated documentation delta is reported without checkout/code edits. B: additive contract fixture is surfaced; an authorized consumer fixture adopts the optional field, verifies both old/new payloads, and leaves the upstream contract unchanged. C: a contract-owner change is surfaced without editing it. D: a new authority change between snapshots appears only in Pass 2. E: a post-cutoff commit leaves the recorded cutoff unchanged and a third-pass helper invocation is rejected.
 
 These tests demonstrate mechanical observations/non-mutation and the bounded interface. Semantic classifications and the agent's obligation to stop are policy/review responsibilities; the helper does not autonomously decide compatibility. Additional cases cover rename/delete paths, non-forward history, missing/option-like refs, exact evidence SHAs and preservation of untracked work.
 
@@ -25,3 +25,15 @@ These tests demonstrate mechanical observations/non-mutation and the bounded int
 - Docker unavailable locally; database reset/66-case pgTAP must be verified by the existing Linux CI job on the final head. No remote Supabase is substituted.
 
 PR #40 converted to draft while the expanded R1 scope is being verified. No approval or merge recorded.
+
+## Application verification and published checkpoint
+
+- Installed isolated Node 24.21.0 and pnpm 12.4.1; `pnpm install --frozen-lockfile`: PASS with unchanged project pins/lockfile. Registry retries recovered.
+- `pnpm --filter pos-web lint`: PASS.
+- `pnpm --filter pos-web typecheck`: PASS (Next type generation + TypeScript).
+- `pnpm --filter pos-web test`: PASS, 8 files / 20 tests.
+- `pnpm --filter pos-web build`: PASS, production static routes generated.
+- `pnpm --dir apps/pos-web exec playwright install chromium`: download 502/timeouts in this local environment; local browser smoke not claimed. Final GitHub Linux smoke evidence is recorded in the PR handoff. Docker is unavailable locally; no local database test claim.
+- Governance checkpoint published through connected GitHub Git Data API at `5015e0a3647f6693b7de3b2574d00b4a1c766353`. Its tree exactly matches local validation commit `364699b71298e5645c43f3b290d2c038d9176da3`. Native Git push had no credential; API ref update was non-forced.
+- Both push run 34715828894 and draft-PR run 34715831158 started for that checkpoint. This verifies trigger execution, not final-head success. Final runs/head/results are linked in the external #40 handoff.
+- Updated existing issues #20/#8/#13 and draft #41 descriptions with R1/R4/R2 mapping and existing dependency gates. No new PR, issue closure, protection change, merge, deployment or business-system write.
