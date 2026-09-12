@@ -12,7 +12,7 @@ Production-site access required for CORE-01? NO.
 Synthetic fixtures only: yes.
 BR-01: local implementation may proceed against frozen contracts/training baseline; target installation/service credentials and runtime acceptance remain separate.
 Remaining CP-04 work: `docs/runbooks/CP-04-REMAINING-WORK.md`.
-Final pass: shift row-lock cash serialization; atomic expected-cash delta (no SUM recompute); duplicate/correction-of-correction denied; currency mismatch denied; authenticated internal cash kinds denied; cash reason required; pending same-location register assignment; idempotency `org+operation+key`; shift DELETE denied; least-privilege service_role grants; outbox/watermark authenticated SELECT removed; staff-register location read scope; register operational-read distinction deferred to CORE-02; Linux CI local Supabase 2.117.0 reset/pgTAP; RLS mirror tooling test.
+Final pass: public cash-lock RPC removed; expected-cash applied by atomic shift-row UPDATE (no GUC); multi-row INSERT regression; cash command idempotency only on pending operations; SECURITY DEFINER search_path empty. Duplicate/correction-of-correction denied; outbox server-only; pending same-location register assignment; org+operation+key idempotency; no shift DELETE; least-privilege grants; no production close RPC; Linux CI local Supabase 2.117.0 reset/pgTAP; RLS mirror tooling test.
 Contracts: v1.0.0 unchanged. Application/frontend unchanged. Bridge unchanged. Training site written to? NO. Production touched? NO. ADR-011 unchanged.
 Requested reviewer: @Ben-001-sys for the new final head. Do not rely on review of `2b1c633…` or `bc403bb…`. Do not recreate PR #40. CORE-02 not started.
 

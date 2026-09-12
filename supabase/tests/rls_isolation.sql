@@ -49,7 +49,7 @@ BEGIN
 END;
 $$;
 
-SELECT plan(64);
+SELECT plan(66);
 
 SELECT pos_test_clear_claims();
 
@@ -144,10 +144,13 @@ SELECT is(
   'expected cash equals opening float exactly once after shift open'
 );
 
-SELECT ok(
-  strpos(pg_get_functiondef('pos_lock_shift_for_cash(uuid)'::regprocedure), 'FOR UPDATE') > 0
-  AND strpos(pg_get_functiondef('pos_cash_before_write()'::regprocedure), 'pos_lock_shift_for_cash') > 0,
-  'cash writers acquire a shift row lock before validation'
+SELECT is(
+  (SELECT count(*)::int
+     FROM pg_proc p
+     JOIN pg_namespace n ON n.oid = p.pronamespace
+   WHERE n.nspname = 'public' AND p.proname = 'pos_lock_shift_for_cash'),
+  0,
+  'no public callable cash-lock helper'
 );
 
 SELECT pos_test_set_claims('org_a', ARRAY['loc_a1'], 'cashier_a', 'reg_a');
@@ -269,7 +272,7 @@ SELECT throws_ok(
   'INSERT INTO pos_cash_movements (shift_id, kind, signed_amount_minor, currency, actor_id, reason) VALUES ('
   || quote_literal(current_setting('pos_test.open_shift'))
   || ', ''pay_in'', 100, ''GHS'', ''forged_actor'', ''unauth'')',
-  '42501',
+  'P0002',
   NULL,
   'unauthorized cash movement is rejected'
 );
@@ -489,6 +492,33 @@ SELECT is(
   'expected cash equals opening float plus committed non-opening deltas'
 );
 
+SELECT set_config(
+  'pos_test.expected_before_multi',
+  (SELECT expected_cash_minor::text FROM pos_shifts WHERE id = current_setting('pos_test.open_shift')::uuid),
+  true
+);
+
+SELECT pos_test_set_claims('org_a', ARRAY['loc_a1'], 'cashier_a', 'reg_a');
+SET ROLE authenticated;
+INSERT INTO pos_cash_movements (shift_id, kind, signed_amount_minor, currency, actor_id, reason)
+VALUES
+  (current_setting('pos_test.open_shift')::uuid, 'pay_in', 100, 'GHS', 'cashier_a', 'multi-row A'),
+  (current_setting('pos_test.open_shift')::uuid, 'pay_out', -30, 'GHS', 'cashier_a', 'multi-row B');
+RESET ROLE;
+
+SELECT is(
+  (SELECT expected_cash_minor::bigint FROM pos_shifts WHERE id = current_setting('pos_test.open_shift')::uuid),
+  (current_setting('pos_test.expected_before_multi')::bigint + 70),
+  'single-statement multi-row cash insert applies both expected-cash deltas'
+);
+SELECT is(
+  (SELECT count(*)::int FROM pos_cash_movements
+    WHERE shift_id = current_setting('pos_test.open_shift')::uuid
+      AND reason IN ('multi-row A', 'multi-row B')),
+  2,
+  'single-statement multi-row cash insert persists both ledger rows'
+);
+
 -- Pending-operation scope.
 SELECT pos_test_set_claims('org_a', ARRAY['loc_a1'], 'cashier_a', 'reg_a');
 SET ROLE authenticated;
@@ -680,7 +710,7 @@ SELECT is(
 SELECT pos_test_set_claims('org_a', ARRAY['loc_a1'], 'cashier_a', 'reg_a');
 SET ROLE authenticated;
 SELECT throws_ok(
-  'UPDATE pos_shifts SET status = ''closed'', counted_cash_minor = 9700 WHERE id = '
+  'UPDATE pos_shifts SET status = ''closed'', counted_cash_minor = 9770 WHERE id = '
   || quote_literal(current_setting('pos_test.open_shift'))::text,
   '42501',
   NULL,
@@ -688,7 +718,7 @@ SELECT throws_ok(
 );
 RESET ROLE;
 
-SELECT pos_test_force_close(current_setting('pos_test.open_shift')::uuid, 9700);
+SELECT pos_test_force_close(current_setting('pos_test.open_shift')::uuid, 9770);
 
 SELECT throws_ok(
   'INSERT INTO pos_cash_movements (shift_id, kind, signed_amount_minor, currency, actor_id, reason) VALUES ('

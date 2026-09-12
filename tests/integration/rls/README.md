@@ -11,7 +11,7 @@ npx supabase@2.117.0 test db
 
 `supabase/tests/rls_isolation.sql` must stay identical to `test_rls_isolation.sql` aside from the file header. `tests/tooling/test_rls_suite_mirror.py` enforces that. Fixtures are synthetic (`org_a`, `loc_a1`, `cashier_a`, `reg_a`, `reg_a2`, …).
 
-Same-shift cash writers serialize with `SELECT ... FOR UPDATE`. This harness cannot safely orchestrate true parallel sessions; do not treat sequential SQL as a concurrency PASS. CORE-05/QA-01 owns a two-session concurrency/failure-injection test.
+Same-shift cash writers serialize on the atomic expected-cash `UPDATE`. This harness cannot safely orchestrate true parallel sessions; do not treat sequential SQL as a concurrency PASS. CORE-05/QA-01 owns a two-session concurrency/failure-injection test. A single-statement multi-row INSERT proves both deltas apply without a GUC handoff.
 
 Negative cases that must remain red:
 
@@ -22,7 +22,7 @@ Negative cases that must remain red:
 | cross-location | zero rows / insert denied |
 | forged actor | zero rows (no assignment) |
 | client-supplied actor_id | overwritten from JWT |
-| unauthorized cash movement | denied (`42501`) |
+| unauthorized cash movement | denied (`P0002` when the shift is hidden by RLS) |
 | authenticated internal cash kinds | `42501` |
 | cash currency mismatch | `23514` |
 | missing cash reason (authenticated) | `23514` |

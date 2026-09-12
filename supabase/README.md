@@ -31,9 +31,9 @@ The transactional outbox and integration watermarks are trusted-server surfaces.
 
 **Shift close:** CORE-07 owns authoritative operational close / immutable Z orchestration. CORE-01 provides schema and immutability invariants only; it does not expose `pos_close_shift`. Persisted shifts are not deletable in ordinary operation.
 
-**Cash concurrency:** same-shift cash writers take `SELECT ... FOR UPDATE` on the shift before validation. pgTAP cannot safely orchestrate true parallel sessions; CORE-05/QA-01 owns a two-session concurrency/failure-injection harness. Sequential invariants prove `expected_cash == opening float + SUM(committed non-opening deltas)`.
+**Cash concurrency:** same-shift cash writers serialize on the atomic `UPDATE` of `pos_shifts.expected_cash_minor`. There is no public `SECURITY DEFINER` lock RPC. pgTAP cannot safely orchestrate true parallel sessions; CORE-05/QA-01 owns a two-session concurrency/failure-injection harness. Sequential and single-statement multi-row invariants prove `expected_cash == opening float + SUM(committed non-opening deltas)`.
 
-**Cash command idempotency:** claimed on `pos_pending_operations` unique `(organization_id, operation, idempotency_key)`. Do not treat `pos_cash_movements.idempotency_key` as a second competing command-key system.
+**Cash command idempotency:** claimed only on `pos_pending_operations` unique `(organization_id, operation, idempotency_key)`.
 
 Linux CI `control-plane` runs pinned `npx supabase@2.117.0 start`, `db reset --local`, and `test db` against this config. No remote/linked project.
 

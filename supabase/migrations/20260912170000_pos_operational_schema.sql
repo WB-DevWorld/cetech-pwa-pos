@@ -187,7 +187,6 @@ CREATE TABLE pos_cash_movements (
   reason text,
   corrects_movement_id uuid REFERENCES pos_cash_movements (id),
   approval_id uuid,
-  idempotency_key uuid,
   CONSTRAINT pos_cash_non_zero CHECK (signed_amount_minor <> 0),
   CONSTRAINT pos_cash_kind_sign CHECK (
     (kind IN ('cash_sale', 'pay_in') AND signed_amount_minor > 0)
@@ -200,10 +199,6 @@ CREATE TABLE pos_cash_movements (
     OR (kind <> 'correction' AND corrects_movement_id IS NULL)
   )
 );
-
-CREATE UNIQUE INDEX pos_cash_idempotency_idx
-  ON pos_cash_movements (shift_id, idempotency_key)
-  WHERE idempotency_key IS NOT NULL;
 
 CREATE UNIQUE INDEX pos_cash_one_correction_per_original
   ON pos_cash_movements (corrects_movement_id)
@@ -385,11 +380,11 @@ CREATE OR REPLACE FUNCTION pos_shift_after_insert()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 BEGIN
   IF NEW.opening_float_minor <> 0 THEN
-    INSERT INTO pos_cash_movements (
+    INSERT INTO public.pos_cash_movements (
       organization_id, location_id, register_id, shift_id, kind,
       signed_amount_minor, currency, actor_id, reason
     ) VALUES (
@@ -409,6 +404,7 @@ CREATE TRIGGER pos_shift_after_insert
 CREATE OR REPLACE FUNCTION pos_shift_before_update()
 RETURNS trigger
 LANGUAGE plpgsql
+SET search_path = public
 AS $$
 BEGIN
   IF OLD.status = 'closed' THEN
@@ -455,42 +451,20 @@ CREATE TRIGGER pos_shift_before_delete
   FOR EACH ROW
   EXECUTE FUNCTION pos_shift_before_delete();
 
-CREATE OR REPLACE FUNCTION pos_lock_shift_for_cash(p_shift uuid)
-RETURNS pos_shifts
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  sh pos_shifts%ROWTYPE;
-BEGIN
-  SELECT * INTO STRICT sh FROM pos_shifts WHERE id = p_shift FOR UPDATE;
-  RETURN sh;
-END;
-$$;
-
-REVOKE ALL ON FUNCTION pos_lock_shift_for_cash(uuid) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION pos_lock_shift_for_cash(uuid) TO authenticated, service_role;
-
-COMMENT ON FUNCTION pos_lock_shift_for_cash(uuid) IS
-  'Row-lock helper for cash writers. SECURITY DEFINER is not business authorization; callers still pass JWT/actor checks in pos_cash_before_write.';
-
 CREATE OR REPLACE FUNCTION pos_cash_before_write()
 RETURNS trigger
 LANGUAGE plpgsql
+SET search_path = public
 AS $$
 DECLARE
-  sh pos_shifts%ROWTYPE;
-  orig pos_cash_movements%ROWTYPE;
-  new_expected bigint;
+  sh public.pos_shifts%ROWTYPE;
+  orig public.pos_cash_movements%ROWTYPE;
 BEGIN
   IF TG_OP IN ('UPDATE', 'DELETE') THEN
     RAISE EXCEPTION 'cash movements are append-only' USING ERRCODE = '55000';
   END IF;
 
-  -- Serialize all cash mutations for this shift before status, currency,
-  -- correction, or expected-cash checks. Different shifts remain independent.
-  SELECT * INTO STRICT sh FROM pos_lock_shift_for_cash(NEW.shift_id);
+  SELECT * INTO STRICT sh FROM public.pos_shifts WHERE id = NEW.shift_id;
 
   IF sh.status <> 'open' THEN
     RAISE EXCEPTION 'cash movements require an open shift' USING ERRCODE = '55000';
@@ -522,7 +496,7 @@ BEGIN
     IF NEW.corrects_movement_id IS NULL THEN
       RAISE EXCEPTION 'cash correction requires original movement' USING ERRCODE = '23514';
     END IF;
-    SELECT * INTO orig FROM pos_cash_movements WHERE id = NEW.corrects_movement_id;
+    SELECT * INTO orig FROM public.pos_cash_movements WHERE id = NEW.corrects_movement_id;
     IF NOT FOUND THEN
       RAISE EXCEPTION 'correction target not found' USING ERRCODE = '23503';
     END IF;
@@ -551,12 +525,6 @@ BEGIN
       RAISE EXCEPTION 'opening float must match shift expected cash exactly once'
         USING ERRCODE = '23514';
     END IF;
-  ELSE
-    new_expected := sh.expected_cash_minor + NEW.signed_amount_minor;
-    IF new_expected < 0 THEN
-      RAISE EXCEPTION 'expected cash cannot be negative' USING ERRCODE = '23514';
-    END IF;
-    PERFORM set_config('pos.cash_new_expected', new_expected::text, true);
   END IF;
 
   NEW.actor_id := COALESCE(pos_current_actor_id(), NEW.actor_id);
@@ -591,24 +559,37 @@ CREATE OR REPLACE FUNCTION pos_cash_after_insert()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
+DECLARE
+  updated integer;
 BEGIN
   IF NEW.kind = 'opening_float' THEN
     RETURN NEW;
   END IF;
-  -- Apply the expected-cash delta computed under the shift row lock.
-  -- This is not a SUM recompute and is not business authorization.
-  UPDATE pos_shifts
-  SET expected_cash_minor = current_setting('pos.cash_new_expected')::bigint
+  -- Atomic expected-cash delta. The UPDATE row lock serializes same-shift writers.
+  -- SECURITY DEFINER is not business authorization.
+  UPDATE public.pos_shifts
+  SET expected_cash_minor = expected_cash_minor + NEW.signed_amount_minor
   WHERE id = NEW.shift_id
-    AND status IN ('open', 'closing');
+    AND status = 'open'
+    AND expected_cash_currency = NEW.currency
+    AND (expected_cash_minor + NEW.signed_amount_minor) >= 0;
+  GET DIAGNOSTICS updated = ROW_COUNT;
+  IF updated <> 1 THEN
+    RAISE EXCEPTION 'expected cash cannot be negative' USING ERRCODE = '23514';
+  END IF;
   RETURN NEW;
 END;
 $$;
 
+REVOKE ALL ON FUNCTION pos_shift_after_insert() FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION pos_cash_after_insert() FROM PUBLIC, anon, authenticated, service_role;
+
 COMMENT ON FUNCTION pos_cash_before_write() IS
-  'Acquires SELECT ... FOR UPDATE on the target shift before cash validation. Same-shift writers serialize; distinct shifts remain independent. pgTAP cannot safely orchestrate true parallel sessions; CORE-05/QA-01 owns a two-session concurrency harness.';
+  'Validates cash authorization, currency, cashier kinds, reason, and correction semantics. Expected-cash mutation is applied atomically in pos_cash_after_insert.';
+COMMENT ON FUNCTION pos_cash_after_insert() IS
+  'Applies expected-cash deltas with an atomic UPDATE of the open shift row. Same-shift writers serialize on that row. opening_float is already represented at shift open. pgTAP cannot safely orchestrate true parallel sessions; CORE-05/QA-01 owns a two-session concurrency harness.';
 
 CREATE TRIGGER pos_cash_after_insert
   AFTER INSERT ON pos_cash_movements
@@ -825,6 +806,6 @@ COMMENT ON TABLE pos_registers IS 'Server-owned register identity. Browser-chose
 COMMENT ON TABLE pos_shifts IS
   'Server-authoritative shift lifecycle. Expected cash is nonnegative Money. Shifts are not deletable in ordinary operation. CORE-07 owns authoritative operational close / immutable Z orchestration.';
 COMMENT ON TABLE pos_cash_movements IS
-  'Append-only cash ledger. Authenticated cashier kinds are pay_in/pay_out/cash_pickup/correction and require a reason. Internal kinds opening_float/cash_sale/cash_refund are trusted-server only. Corrections are additional rows with approved exact reversal; one correction per original; correction-of-correction is denied. Command idempotency is claimed on pos_pending_operations (organization_id, operation, idempotency_key), not a second cash-row key system.';
+  'Append-only cash ledger. Authenticated cashier kinds are pay_in/pay_out/cash_pickup/correction and require a reason. Internal kinds opening_float/cash_sale/cash_refund are trusted-server only. Corrections are additional rows with approved exact reversal; one correction per original; correction-of-correction is denied. Command idempotency is claimed only on pos_pending_operations (organization_id, operation, idempotency_key).';
 COMMENT ON TABLE pos_pending_operations IS
   'Durable operation lifecycle and command idempotency. Frozen uniqueness is organization + operation type + key. Status names match contract v1.0.0.';
