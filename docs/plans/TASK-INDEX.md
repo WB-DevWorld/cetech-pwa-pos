@@ -1,5 +1,7 @@
 # Task index
 
+CP-04 dependency interpretation: [ADR-011](../decisions/ADR/011.md). Its development baseline is SATISFIED for local CORE-01/BR-01 implementation; issue #4 stays OPEN for operation-specific write-safety/cutover evidence. An open tracker is not a blanket dependency failure. [Remaining actions](../runbooks/CP-04-REMAINING-WORK.md).
+
 All 30 GitHub issues were created and confirmed on 2026-09-11. Senior issues are assigned to @wbdevworld; WS1/WS2 remain unassigned pending verified identities. Full scoped execution contracts live in each workstream TASKS.md.
 
 | ID | Task | Owner | Dependencies | Milestone |
