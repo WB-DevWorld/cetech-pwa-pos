@@ -15,7 +15,8 @@ export type StaffIdentityPortOptions = {
 
 /**
  * Browser IdentityPort. `can()` is a UI hint from the session capability list.
- * Server `authorizeStaffAction` remains authoritative and ignores client capabilities.
+ * Server `authorizeStaffRead` / `authorizeStaffMutation` remain authoritative.
+ * Client and JWT capability lists never grant access.
  */
 export function createStaffIdentityPort(options: StaffIdentityPortOptions): IdentityPort & {
   readonly localWork?: LocalWorkStores;

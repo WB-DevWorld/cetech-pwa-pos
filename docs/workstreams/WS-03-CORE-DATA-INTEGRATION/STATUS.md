@@ -1,6 +1,6 @@
 # WS3 current status
 
-Snapshot 2026-09-12. Main `aa08d74f2cb99301817e5995f01486acb7e2169f`. R1/#40 APPROVED / MERGED / VERIFIED; @Ben-001-sys APPROVED `260be7f72b79bdbf2895ecfd06742db059b1496e`. CORE-01 ACCEPTED; CORE-01 lease RELEASED. ADR-012 ACTIVE. R2 draft [#43](https://github.com/WB-DevWorld/cetech-pwa-pos/pull/43) on `batch/r2-auth-bridge-bff`. CORE-02 CHECKPOINTED `95289a72d88c3b9c1cf86d44c4a44b17188bee46`. CORE-03 PREP_ONLY CHECKPOINTED `9e23e52af85320f4f50b9d10b77a492ea2ca169a`. Freshness FRESH_2. BR-01 `fbbf0ea7…` remains PROVISIONAL_TEST, not accepted. Do not recreate R1 or CORE-01. Do not start R3.
+Snapshot 2026-09-12. Main `aa08d74f2cb99301817e5995f01486acb7e2169f`. R1/#40 APPROVED / MERGED / VERIFIED. ADR-012 ACTIVE. R2 draft [#43](https://github.com/WB-DevWorld/cetech-pwa-pos/pull/43). CORE-02 acceptance remediation in progress (issue #21); previous `95289a7…` is not complete. CORE-03 remains PREP_ONLY; live integration depends on BR-01. New continuation START_FRESHNESS_SNAPSHOT `2026-09-12T22:22:20Z`. Do not recreate R1 or CORE-01. Do not start R3.
 
 CURRENT-WORK holds the central R2 lease.
 
@@ -21,8 +21,8 @@ Control-plane/contracts implemented and verified. CP-05 is MERGED / VERIFIED on 
 | CP-05 | MERGED / VERIFIED | PR #32; merge `095696f15cd64b546003bc5c77b4600af7bc4c76`; @Ben-001-sys APPROVED; issue #5 CLOSED / COMPLETED |
 | CI-01 | MERGED / VERIFIED; lease RELEASED | PR #38; merge `8e058d679bb02e96374c0e79cc32d025b6a9ed03`; @Ben-001-sys APPROVED |
 | CORE-01 | ACCEPTED / MERGED / VERIFIED; lease RELEASED | PR #40 merge `aa08d74f…`; @Ben-001-sys APPROVED `260be7f…`. Do not recreate. |
-| CORE-02 | CHECKPOINTED; not merged | R2 `batch/r2-auth-bridge-bff` `95289a7…`; issue #21 |
-| CORE-03 | PREP_ONLY CHECKPOINTED; not live connectivity | Same R2 branch; issue #22. BR-01 not combined. Detection is not pricing parity. |
+| CORE-02 | ACCEPTANCE REMEDIATION IN PROGRESS; not complete | R2 `batch/r2-auth-bridge-bff`; previous `95289a7…`; issue #21 |
+| CORE-03 | PREP_ONLY CHECKPOINTED; live integration depends on BR-01 | Same R2 branch; issue #22. Detection is not pricing parity. |
 | CORE-04 | SPECIFIED | See TASKS.md; GitHub mapping in ../../plans/TASK-INDEX.md |
 | CORE-05 | SPECIFIED | See TASKS.md; GitHub mapping in ../../plans/TASK-INDEX.md |
 | CORE-06 | SPECIFIED | See TASKS.md; GitHub mapping in ../../plans/TASK-INDEX.md |

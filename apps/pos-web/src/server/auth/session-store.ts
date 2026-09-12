@@ -6,13 +6,21 @@ export type StoredStaffSession = {
   readonly expiresAt: Date;
 };
 
+/**
+ * Durable-capable staff session port. Production must supply a provider-backed
+ * implementation. Process memory is not that implementation.
+ */
 export interface StaffSessionStore {
   create(session: Session, csrfToken: string, expiresAt: Date): Promise<string>;
   get(sessionId: string, now: Date): Promise<StoredStaffSession | null>;
   revoke(sessionId: string): Promise<void>;
 }
 
-export function createMemoryStaffSessionStore(): StaffSessionStore {
+/**
+ * Test/dev-only process memory. Not durable across processes, serverless
+ * instances, or restarts. Must not be selected as the production runtime store.
+ */
+export function createEphemeralInMemoryStaffSessionStore(): StaffSessionStore {
   const rows = new Map<string, StoredStaffSession>();
   return {
     async create(session, csrfToken, expiresAt) {
@@ -37,8 +45,20 @@ export function createMemoryStaffSessionStore(): StaffSessionStore {
   };
 }
 
-const defaultStaffSessionStore = createMemoryStaffSessionStore();
+const ephemeralDevStore = createEphemeralInMemoryStaffSessionStore();
 
-export function getDefaultStaffSessionStore(): StaffSessionStore {
-  return defaultStaffSessionStore;
+export function assertEphemeralSessionStoreAllowed(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): void {
+  const appEnv = env.APP_ENV ?? "local";
+  if (appEnv === "production" || appEnv === "staging") {
+    throw new Error("ephemeral in-memory staff session store is not a durable production runtime");
+  }
+}
+
+export function getEphemeralDevStaffSessionStore(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): StaffSessionStore {
+  assertEphemeralSessionStoreAllowed(env);
+  return ephemeralDevStore;
 }

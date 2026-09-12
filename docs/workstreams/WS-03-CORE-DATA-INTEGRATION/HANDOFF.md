@@ -1,6 +1,23 @@
-# WS3 current handoff — R2 BATCH_COMPLETION (CORE-02 + CORE-03 PREP_ONLY)
+# WS3 current handoff — R2 / CORE-02 acceptance remediation (PROGRESS_CHECKPOINT)
 
-Kind / UTC: BATCH_COMPLETION / 2026-09-12T21:49:08Z (Pass-2 cutoff)
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-12T22:22:20Z (new continuation START_FRESHNESS_SNAPSHOT)
+Task / batch / workstream: CORE-02 acceptance remediation (issue #21) inside R2; WS3
+Owner / integration editor / requested human reviewer: @wbdevworld / same / @Ben-001-sys (draft #43 only; do not request review until the R2 gate can pass)
+Branch: `batch/r2-auth-bridge-bff`
+Starting/base SHA: `origin/main` `aa08d74f2cb99301817e5995f01486acb7e2169f`
+Previous-session PR head: `3b79c7eb580c4954091f35fa305b9c7ffd3c032d`
+Contracts changed: none (IdentityPort / Session v1.0.0 consumed, not edited)
+Database migrations: none
+Architecture decisions: none
+This continuation does not wait on BR-01 for CORE-02 role/CSRF/adapter gaps.
+CORE-03 live integration remains dependent on BR-01; PREP_ONLY mocks stay until a combined/tested SHA exists.
+Production-site access required? NO. No new npm dependency / lockfile edit.
+
+## Previous session handoff — historical SESSION_COMPLETION (R2 gate was not complete)
+
+# WS3 previous handoff — R2 SESSION_COMPLETION (CORE-02 + CORE-03 PREP_ONLY; not the R2 gate)
+
+Kind / UTC: SESSION_COMPLETION / 2026-09-12T21:49:08Z (Pass-2 cutoff of the previous continuation; R2 milestone gate was not complete)
 Task / batch / workstream: R2 — Authentication, bridge health and BFF; WS3 CORE-02 (#21) + CORE-03 PREP_ONLY (#22)
 Owner / integration editor / requested human reviewer: @wbdevworld / same / @Ben-001-sys (draft only; do not request review while BR-01 is uncombined)
 Branch: `batch/r2-auth-bridge-bff`

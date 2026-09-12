@@ -2,20 +2,36 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
-import { authorizeStaffAction } from "../../../apps/pos-web/src/server/auth/authorize";
+import {
+  authorizeStaffAction,
+  authorizeStaffMutation,
+  authorizeStaffRead,
+  type AuthorizeStaffActionInput,
+} from "../../../apps/pos-web/src/server/auth/authorize";
 import { parseStaffIdentityClaims } from "../../../apps/pos-web/src/server/auth/claims";
 import { csrfSetCookie, sessionSetCookie } from "../../../apps/pos-web/src/server/auth/cookies";
 import { createStaffIdentityVerifier } from "../../../apps/pos-web/src/server/auth/identity-verifier";
-import { createMemoryStaffSessionStore } from "../../../apps/pos-web/src/server/auth/session-store";
+import { createEphemeralInMemoryStaffSessionStore } from "../../../apps/pos-web/src/server/auth/session-store";
 import {
   cashierClaims,
   CORRELATION,
   directory,
+  managerClaims,
   mutation,
   verified,
 } from "./helpers";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+
+function readAuth(overrides: Partial<Parameters<typeof authorizeStaffRead>[0]> = {}) {
+  return authorizeStaffRead({
+    verifyResult: verified(),
+    assignments: directory(),
+    correlationId: CORRELATION,
+    required: { organizationId: "org_a", locationId: "loc_a1", registerId: "reg_a" },
+    ...overrides,
+  });
+}
 
 describe("CORE-02 staff authorization", () => {
   test("verified staff with assignment and CSRF is authorized", async () => {
@@ -37,23 +53,28 @@ describe("CORE-02 staff authorization", () => {
       },
     });
     const verifyResult = await verifier.verify({ accessToken: "opaque-token", now: new Date() });
-    const result = await authorizeStaffAction({
-      verifyResult,
-      assignments: directory(),
-      correlationId: CORRELATION,
-      required: { organizationId: "org_a", locationId: "loc_a1", registerId: "reg_a" },
-      mutation: mutation(),
-    });
+    const result = await authorizeStaffMutation(
+      {
+        verifyResult,
+        assignments: directory(),
+        correlationId: CORRELATION,
+        required: {
+          organizationId: "org_a",
+          locationId: "loc_a1",
+          registerId: "reg_a",
+          permission: "shift.open",
+        },
+      },
+      mutation(),
+    );
     expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.assignmentRole).toBe("cashier");
+    }
   });
 
   test("anonymous denied", async () => {
-    const result = await authorizeStaffAction({
-      verifyResult: { ok: false, reason: "anonymous" },
-      assignments: directory(),
-      correlationId: CORRELATION,
-      required: { organizationId: "org_a" },
-    });
+    const result = await readAuth({ verifyResult: { ok: false, reason: "anonymous" } });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error.code).toBe("AUTH_REQUIRED");
@@ -62,12 +83,7 @@ describe("CORE-02 staff authorization", () => {
   });
 
   test("expired session denied", async () => {
-    const result = await authorizeStaffAction({
-      verifyResult: { ok: false, reason: "expired" },
-      assignments: directory(),
-      correlationId: CORRELATION,
-      required: { organizationId: "org_a" },
-    });
+    const result = await readAuth({ verifyResult: { ok: false, reason: "expired" } });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error.code).toBe("AUTH_REQUIRED");
@@ -75,12 +91,7 @@ describe("CORE-02 staff authorization", () => {
   });
 
   test("revoked identity verification denied", async () => {
-    const result = await authorizeStaffAction({
-      verifyResult: { ok: false, reason: "revoked" },
-      assignments: directory(),
-      correlationId: CORRELATION,
-      required: { organizationId: "org_a" },
-    });
+    const result = await readAuth({ verifyResult: { ok: false, reason: "revoked" } });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error.code).toBe("AUTH_REQUIRED");
@@ -89,12 +100,7 @@ describe("CORE-02 staff authorization", () => {
 
   test("malformed claims denied", async () => {
     expect(parseStaffIdentityClaims({ app_metadata: { actor_id: "" } })).toBeNull();
-    const result = await authorizeStaffAction({
-      verifyResult: { ok: false, reason: "malformed" },
-      assignments: directory(),
-      correlationId: CORRELATION,
-      required: { organizationId: "org_a" },
-    });
+    const result = await readAuth({ verifyResult: { ok: false, reason: "malformed" } });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error.code).toBe("AUTH_REQUIRED");
@@ -108,12 +114,7 @@ describe("CORE-02 staff authorization", () => {
       },
     });
     const verifyResult = await verifier.verify({ accessToken: "opaque-token", now: new Date() });
-    const result = await authorizeStaffAction({
-      verifyResult,
-      assignments: directory(),
-      correlationId: CORRELATION,
-      required: { organizationId: "org_a", locationId: "loc_a1" },
-    });
+    const result = await readAuth({ verifyResult });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error.code).toBe("INTEGRATION_UNAVAILABLE");
@@ -122,12 +123,7 @@ describe("CORE-02 staff authorization", () => {
   });
 
   test("provider unavailable does not become trusted access", async () => {
-    const result = await authorizeStaffAction({
-      verifyResult: { ok: false, reason: "unavailable" },
-      assignments: directory(),
-      correlationId: CORRELATION,
-      required: { organizationId: "org_a" },
-    });
+    const result = await readAuth({ verifyResult: { ok: false, reason: "unavailable" } });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error.code).toBe("INTEGRATION_UNAVAILABLE");
@@ -135,10 +131,7 @@ describe("CORE-02 staff authorization", () => {
   });
 
   test("wrong organization denied", async () => {
-    const result = await authorizeStaffAction({
-      verifyResult: verified(),
-      assignments: directory(),
-      correlationId: CORRELATION,
+    const result = await readAuth({
       required: { organizationId: "org_b", locationId: "loc_a1" },
     });
     expect(result.ok).toBe(false);
@@ -148,10 +141,7 @@ describe("CORE-02 staff authorization", () => {
   });
 
   test("wrong location denied", async () => {
-    const result = await authorizeStaffAction({
-      verifyResult: verified(),
-      assignments: directory(),
-      correlationId: CORRELATION,
+    const result = await readAuth({
       required: { organizationId: "org_a", locationId: "loc_b1" },
     });
     expect(result.ok).toBe(false);
@@ -161,10 +151,7 @@ describe("CORE-02 staff authorization", () => {
   });
 
   test("unassigned register denied", async () => {
-    const result = await authorizeStaffAction({
-      verifyResult: verified(),
-      assignments: directory(),
-      correlationId: CORRELATION,
+    const result = await readAuth({
       required: { organizationId: "org_a", locationId: "loc_a1", registerId: "reg_a2" },
     });
     expect(result.ok).toBe(false);
@@ -174,32 +161,93 @@ describe("CORE-02 staff authorization", () => {
   });
 
   test("spoofed client actor denied", async () => {
-    const result = await authorizeStaffAction({
-      verifyResult: verified(),
-      assignments: directory(),
-      correlationId: CORRELATION,
-      required: { organizationId: "org_a", locationId: "loc_a1", registerId: "reg_a" },
-      client: { actorId: "manager_a" },
-    });
+    const result = await readAuth({ client: { actorId: "manager_a" } });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error.code).toBe("FORBIDDEN");
     }
   });
 
-  test("client capabilities never grant authority", async () => {
-    const result = await authorizeStaffAction({
-      verifyResult: verified(cashierClaims({ capabilities: [] })),
-      assignments: directory(),
-      correlationId: CORRELATION,
+  test("cashier is allowed cashier operations and denied manager-only operations", async () => {
+    const allowed = await readAuth({
+      required: {
+        organizationId: "org_a",
+        locationId: "loc_a1",
+        registerId: "reg_a",
+        permission: "shift.open",
+      },
+    });
+    expect(allowed.ok).toBe(true);
+
+    const deniedClose = await readAuth({
       required: {
         organizationId: "org_a",
         locationId: "loc_a1",
         registerId: "reg_a",
         permission: "shift.close",
-        permittedServerCapabilities: [],
       },
-      client: { capabilities: ["shift.close", "*"] },
+    });
+    expect(deniedClose.ok).toBe(false);
+    if (!deniedClose.ok) {
+      expect(deniedClose.error.code).toBe("FORBIDDEN");
+    }
+
+    const deniedCorrection = await readAuth({
+      required: {
+        organizationId: "org_a",
+        locationId: "loc_a1",
+        registerId: "reg_a",
+        permission: "cash.correction",
+      },
+    });
+    expect(deniedCorrection.ok).toBe(false);
+  });
+
+  test("manager is allowed manager-only operations at assigned location/register", async () => {
+    const result = await readAuth({
+      verifyResult: verified(managerClaims()),
+      required: {
+        organizationId: "org_a",
+        locationId: "loc_a1",
+        registerId: "reg_a",
+        permission: "shift.close",
+      },
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.assignmentRole).toBe("manager");
+    }
+  });
+
+  test("manager still denied at unassigned location and register", async () => {
+    const wrongLocation = await readAuth({
+      verifyResult: verified(managerClaims()),
+      required: { organizationId: "org_a", locationId: "loc_b1", permission: "shift.close" },
+    });
+    expect(wrongLocation.ok).toBe(false);
+
+    const wrongRegister = await readAuth({
+      verifyResult: verified(managerClaims({ registerId: "reg_a" })),
+      required: {
+        organizationId: "org_a",
+        locationId: "loc_a1",
+        registerId: "reg_b",
+        permission: "shift.close",
+      },
+    });
+    expect(wrongRegister.ok).toBe(false);
+  });
+
+  test("client capabilities and JWT capability lists cannot elevate authority", async () => {
+    const result = await readAuth({
+      verifyResult: verified(cashierClaims({ capabilities: ["shift.close", "*"] })),
+      required: {
+        organizationId: "org_a",
+        locationId: "loc_a1",
+        registerId: "reg_a",
+        permission: "shift.close",
+      },
+      client: { capabilities: ["shift.close", "*"], role: "manager" },
     });
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -219,52 +267,62 @@ describe("CORE-02 staff authorization", () => {
         exp: Math.floor(Date.now() / 1000) + 3600,
       }),
     ).toBeNull();
-    const result = await authorizeStaffAction({
-      verifyResult: verified(),
-      assignments: directory(),
-      correlationId: CORRELATION,
-      required: { organizationId: "org_a", locationId: "loc_a1" },
-      client: { customerId: "cust_a" },
-    });
+    const result = await readAuth({ client: { customerId: "cust_a" } });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error.code).toBe("FORBIDDEN");
     }
   });
 
-  test("mutation without CSRF/origin is denied; matching CSRF/origin is allowed", async () => {
-    const missing = await authorizeStaffAction({
+  test("mutation cannot omit CSRF/origin; matching protection succeeds", async () => {
+    const omitted = await authorizeStaffAction({
+      kind: "mutation",
       verifyResult: verified(),
       assignments: directory(),
       correlationId: CORRELATION,
       required: { organizationId: "org_a", locationId: "loc_a1", registerId: "reg_a" },
-      mutation: mutation({ csrfHeader: null }),
-    });
-    expect(missing.ok).toBe(false);
-    if (!missing.ok) {
-      expect(missing.error.code).toBe("FORBIDDEN");
+    } as AuthorizeStaffActionInput);
+    expect(omitted.ok).toBe(false);
+    if (!omitted.ok) {
+      expect(omitted.error.code).toBe("FORBIDDEN");
     }
 
-    const badOrigin = await authorizeStaffAction({
-      verifyResult: verified(),
-      assignments: directory(),
-      correlationId: CORRELATION,
-      required: { organizationId: "org_a", locationId: "loc_a1", registerId: "reg_a" },
-      mutation: mutation({ origin: "https://evil.example" }),
-    });
+    const missingHeader = await authorizeStaffMutation(
+      {
+        verifyResult: verified(),
+        assignments: directory(),
+        correlationId: CORRELATION,
+        required: { organizationId: "org_a", locationId: "loc_a1", registerId: "reg_a", permission: "cash.movement" },
+      },
+      mutation({ csrfHeader: null }),
+    );
+    expect(missingHeader.ok).toBe(false);
+
+    const badOrigin = await authorizeStaffMutation(
+      {
+        verifyResult: verified(),
+        assignments: directory(),
+        correlationId: CORRELATION,
+        required: { organizationId: "org_a", locationId: "loc_a1", registerId: "reg_a", permission: "cash.movement" },
+      },
+      mutation({ origin: "https://evil.example" }),
+    );
     expect(badOrigin.ok).toBe(false);
 
-    const allowed = await authorizeStaffAction({
-      verifyResult: verified(),
-      assignments: directory(),
-      correlationId: CORRELATION,
-      required: { organizationId: "org_a", locationId: "loc_a1", registerId: "reg_a" },
-      mutation: mutation(),
-    });
+    const allowed = await authorizeStaffMutation(
+      {
+        verifyResult: verified(),
+        assignments: directory(),
+        correlationId: CORRELATION,
+        required: { organizationId: "org_a", locationId: "loc_a1", registerId: "reg_a", permission: "cash.movement" },
+      },
+      mutation(),
+    );
     expect(allowed.ok).toBe(true);
     if (allowed.ok) {
       expect(allowed.data.session.actorId).toBe("cashier_a");
       expect(allowed.data.registerId).toBe("reg_a");
+      expect(allowed.data.assignmentRole).toBe("cashier");
     }
   });
 
@@ -280,7 +338,7 @@ describe("CORE-02 staff authorization", () => {
   });
 
   test("expired stored session is not returned as trusted access", async () => {
-    const store = createMemoryStaffSessionStore();
+    const store = createEphemeralInMemoryStaffSessionStore();
     const session = {
       actorId: "cashier_a",
       displayName: "Cashier A",
@@ -291,6 +349,15 @@ describe("CORE-02 staff authorization", () => {
     };
     const id = await store.create(session, "csrf", new Date(Date.now() - 1000));
     expect(await store.get(id, new Date())).toBeNull();
+  });
+
+  test("ephemeral memory store is refused as a production/staging runtime", async () => {
+    const { assertEphemeralSessionStoreAllowed } = await import(
+      "../../../apps/pos-web/src/server/auth/session-store"
+    );
+    expect(() => assertEphemeralSessionStoreAllowed({ APP_ENV: "production" })).toThrow(/not a durable production runtime/);
+    expect(() => assertEphemeralSessionStoreAllowed({ APP_ENV: "staging" })).toThrow(/not a durable production runtime/);
+    expect(() => assertEphemeralSessionStoreAllowed({ APP_ENV: "local" })).not.toThrow();
   });
 
   test("core identity modules do not contain service-role credentials", () => {

@@ -26,6 +26,19 @@ export function cashierClaims(overrides: Partial<StaffIdentityClaims> = {}): Sta
   };
 }
 
+export function managerClaims(overrides: Partial<StaffIdentityClaims> = {}): StaffIdentityClaims {
+  return {
+    actorId: "manager_a",
+    displayName: "Manager A",
+    organizationId: "org_a",
+    locationIds: ["loc_a1", "loc_a2"],
+    registerId: "reg_a",
+    capabilities: ["ui.hint.only"],
+    expiresAt: futureExpiry(),
+    ...overrides,
+  };
+}
+
 export function verified(identity: StaffIdentityClaims = cashierClaims()): IdentityVerifyResult {
   return { ok: true, identity };
 }
@@ -35,8 +48,17 @@ export function directory() {
     {
       actorId: "cashier_a",
       organizationId: "org_a",
-      locationIds: ["loc_a1"],
+      locationRoles: [{ locationId: "loc_a1", role: "cashier" }],
       registerIds: ["reg_a"],
+    },
+    {
+      actorId: "manager_a",
+      organizationId: "org_a",
+      locationRoles: [
+        { locationId: "loc_a1", role: "manager" },
+        { locationId: "loc_a2", role: "manager" },
+      ],
+      registerIds: ["reg_a", "reg_a2", "reg_b"],
     },
   ]);
 }

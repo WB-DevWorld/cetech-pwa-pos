@@ -1,14 +1,21 @@
 import type { ApiResult, ApiSuccess } from "../../../../../docs/contracts/ports";
 import type { Session, Uuid } from "../../../../../docs/contracts/domain.generated";
-import type { StaffAssignmentDirectory } from "./assignments";
+import { roleAtLocation, type StaffAssignmentDirectory } from "./assignments";
 import { toSession, type StaffIdentityClaims } from "./claims";
 import { assertMutationProtection, type MutationProtectionInput } from "./csrf";
 import { authFailure } from "./errors";
 import type { IdentityVerifyResult } from "./identity-verifier";
+import {
+  assignmentRolePermits,
+  isStaffPermission,
+  type StaffAssignmentRole,
+  type StaffPermission,
+} from "./roles";
 
 export type AuthorizedStaffContext = {
   readonly session: Session;
   readonly identity: StaffIdentityClaims;
+  readonly assignmentRole?: StaffAssignmentRole;
   readonly locationId?: string;
   readonly registerId?: string;
 };
@@ -19,10 +26,11 @@ export type ClientScopeClaim = {
   readonly locationId?: string;
   readonly registerId?: string;
   readonly capabilities?: readonly string[];
+  readonly role?: string;
   readonly customerId?: string;
 };
 
-export type AuthorizeStaffActionInput = {
+type AuthorizeStaffShared = {
   readonly verifyResult: IdentityVerifyResult;
   readonly assignments: StaffAssignmentDirectory;
   readonly correlationId: Uuid;
@@ -30,13 +38,35 @@ export type AuthorizeStaffActionInput = {
     readonly organizationId: string;
     readonly locationId?: string;
     readonly registerId?: string;
-    /** Server-side permission name. Never taken from client capabilities. */
-    readonly permission?: string;
-    readonly permittedServerCapabilities?: readonly string[];
+    /** Server permission. Never taken from client/JWT capabilities. */
+    readonly permission?: StaffPermission;
   };
   readonly client?: ClientScopeClaim;
-  readonly mutation?: MutationProtectionInput;
 };
+
+export type AuthorizeStaffReadInput = AuthorizeStaffShared & {
+  readonly kind: "read";
+};
+
+export type AuthorizeStaffMutationInput = AuthorizeStaffShared & {
+  readonly kind: "mutation";
+  readonly protection: MutationProtectionInput;
+};
+
+export type AuthorizeStaffActionInput = AuthorizeStaffReadInput | AuthorizeStaffMutationInput;
+
+export async function authorizeStaffRead(
+  input: Omit<AuthorizeStaffReadInput, "kind">,
+): Promise<ApiResult<AuthorizedStaffContext>> {
+  return authorizeStaffAction({ ...input, kind: "read" });
+}
+
+export async function authorizeStaffMutation(
+  input: Omit<AuthorizeStaffMutationInput, "kind" | "protection">,
+  protection: MutationProtectionInput,
+): Promise<ApiResult<AuthorizedStaffContext>> {
+  return authorizeStaffAction({ ...input, kind: "mutation", protection });
+}
 
 export async function authorizeStaffAction(
   input: AuthorizeStaffActionInput,
@@ -45,14 +75,17 @@ export async function authorizeStaffAction(
   if (!input.verifyResult.ok) {
     return identityFailure(input.verifyResult.reason, correlationId);
   }
-  const identity = input.verifyResult.identity;
 
-  if (input.mutation) {
-    const protection = assertMutationProtection(input.mutation);
-    if (!protection.ok) {
+  if (input.kind === "mutation") {
+    const protection = (input as { readonly protection?: MutationProtectionInput }).protection;
+    if (!protection) {
+      return authFailure("FORBIDDEN", "mutation requires CSRF and origin protection", correlationId);
+    }
+    const result = assertMutationProtection(protection);
+    if (!result.ok) {
       return authFailure(
         "FORBIDDEN",
-        protection.reason === "csrf"
+        result.reason === "csrf"
           ? "mutation requires matching CSRF cookie and header"
           : "mutation origin is not allowed",
         correlationId,
@@ -60,6 +93,7 @@ export async function authorizeStaffAction(
     }
   }
 
+  const identity = input.verifyResult.identity;
   if (isSpoofed(identity, input.client)) {
     return authFailure("FORBIDDEN", "client-supplied actor or scope does not match verified identity", correlationId);
   }
@@ -96,9 +130,25 @@ export async function authorizeStaffAction(
     }
   }
 
+  let assignmentRole: StaffAssignmentRole | undefined;
+  if (locationId) {
+    assignmentRole = roleAtLocation(assignments, locationId) ?? undefined;
+  }
+
+  if (input.client?.role !== undefined) {
+    if (!assignmentRole || input.client.role !== assignmentRole) {
+      return authFailure("FORBIDDEN", "client-supplied role is not staff assignment authority", correlationId);
+    }
+  }
+
   if (input.required.permission) {
-    const allowed = input.required.permittedServerCapabilities ?? [];
-    if (!allowed.includes(input.required.permission)) {
+    if (!isStaffPermission(input.required.permission)) {
+      return authFailure("FORBIDDEN", "staff is not permitted to perform this action", correlationId);
+    }
+    if (!locationId || !assignmentRole) {
+      return authFailure("FORBIDDEN", "staff assignment role requires a location", correlationId);
+    }
+    if (!assignmentRolePermits(assignmentRole, input.required.permission)) {
       return authFailure("FORBIDDEN", "staff is not permitted to perform this action", correlationId);
     }
   }
@@ -109,6 +159,7 @@ export async function authorizeStaffAction(
     data: {
       session,
       identity,
+      ...(assignmentRole ? { assignmentRole } : {}),
       ...(locationId ? { locationId } : {}),
       ...(registerId ? { registerId } : {}),
     },

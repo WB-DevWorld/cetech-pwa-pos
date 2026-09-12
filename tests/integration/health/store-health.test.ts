@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import { STAFF_SESSION_COOKIE } from "../../../apps/pos-web/src/config/auth";
-import { createMemoryStaffSessionStore } from "../../../apps/pos-web/src/server/auth/session-store";
+import { createEphemeralInMemoryStaffSessionStore } from "../../../apps/pos-web/src/server/auth/session-store";
 import { isUuid } from "../../../apps/pos-web/src/server/auth/ids";
 import { handleStoreHealth } from "../../../apps/pos-web/src/server/health/handle-store-health";
 import { mockBridgeHealth } from "../../../apps/pos-web/src/server/health/probes";
@@ -9,7 +9,7 @@ import { CORRELATION, futureExpiry } from "../auth/helpers";
 
 const NOW = new Date("2026-09-12T21:30:00.000Z");
 
-async function staffCookie(store = createMemoryStaffSessionStore()) {
+async function staffCookie(store = createEphemeralInMemoryStaffSessionStore()) {
   const sessionId = await store.create(
     {
       actorId: "cashier_a",
@@ -30,7 +30,7 @@ describe("CORE-03 PREP_ONLY store health", () => {
     const result = await handleStoreHealth({
       correlationIdHeader: CORRELATION,
       now: NOW,
-      sessionStore: createMemoryStaffSessionStore(),
+      sessionStore: createEphemeralInMemoryStaffSessionStore(),
       supabaseConfigured: true,
       bridgeConfigured: true,
       buildId: "test-build",
@@ -48,7 +48,7 @@ describe("CORE-03 PREP_ONLY store health", () => {
   });
 
   test("expired session is AUTH_REQUIRED", async () => {
-    const store = createMemoryStaffSessionStore();
+    const store = createEphemeralInMemoryStaffSessionStore();
     const sessionId = await store.create(
       {
         actorId: "cashier_a",
