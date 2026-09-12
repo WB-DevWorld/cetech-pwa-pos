@@ -1,0 +1,39 @@
+.auth-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: linear-gradient(180deg, var(--color-bg), var(--color-surface-2));
+}
+
+.auth-card {
+  width: min(460px, 100%);
+  padding: 26px;
+}
+
+.auth-logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: var(--color-primary);
+  color: white;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  font-size: 20px;
+  margin-bottom: 18px;
+}
+
+.auth-card h1 {
+  margin: 0 0 6px;
+}
+
+.auth-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.auth-card > .muted {
+  margin-top: 16px;
+}
