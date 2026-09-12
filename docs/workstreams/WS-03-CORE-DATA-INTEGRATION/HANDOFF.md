@@ -1,4 +1,25 @@
-# WS3 current handoff — CP-04 (PARTIAL / BLOCKED)
+# WS3 current handoff — CI-01 (Vitest discovery)
+
+Task: CI-01 — Broaden Vitest discovery so canonical `pnpm --dir apps/pos-web test` is not restricted to `src/app`.
+Branch: `ws3/ci-01-broaden-vitest-discovery`
+Base: `origin/main` `58c195ee5b365469449e125f060665f12007ae81`
+Status: implementation complete on this branch; human review required. Does **not** complete CP-04 and does **not** authorize CORE-01.
+Files: `apps/pos-web/package.json` (script `vitest run`); `apps/pos-web/vitest.config.mts`; `tests/tooling/test_vitest_discovery.py`; this status/handoff/ledger.
+Previous command: `vitest run --environment node --dir src/app`
+New command: `vitest run` with `unitTestDiscovery` include/exclude in `apps/pos-web/vitest.config.mts`
+Environment: Node (existing tests use `react-dom/server` / filesystem / pure functions). No jsdom/happy-dom added. `resolve.dedupe` for `react`/`react-dom` only, so `tests/frontend` files that import app components do not pick a second React copy; no lockfile change.
+Workflow file: unchanged; CI already runs `pnpm --dir apps/pos-web test`.
+Contracts / migrations / lockfile / application feature code: unchanged.
+Local validation 2026-09-12: `verify_control_plane` EXIT 0; tooling unittest 34 ok; frozen install, lint, typecheck, unit (1 scaffold file), build, `git diff --check` EXIT 0.
+FE-02 overlay proof (temporary worktree of `origin/ws1/fe-02-convert-tokens-and-responsive-pos-shell` + this config; not committed): `vitest run` discovered **8 files / 18 tests**, including `src/app/page.test.tsx`, `LoginScreen.test.tsx`, `OpenRegisterForm.test.tsx`, `parseDecimalToMinorUnits.test.ts`, `AppShell.test.tsx`, `tests/frontend/no-demo.test.ts`, `tokens.test.ts`, `visual-harness.test.ts`. Playwright `*.pw.ts` not listed. All 18 passed after React dedupe.
+CP-04: remains PARTIAL / BLOCKED; issue #4 OPEN; isolation NOT PROVEN.
+CORE-01: remains BLOCKED.
+Requested reviewer: @Ben-001-sys. @wbdevworld cannot self-approve.
+Recommended next step after merge: rebase/rerun FE-02 PR #37 against corrected discovery. Authenticated CP-04 staging/isolation evidence remains the WS3 runtime blocker.
+
+Previous CP-04 partial handoff retained below.
+
+# WS3 previous handoff — CP-04 (PARTIAL / BLOCKED)
 
 Task: CP-04 — Audit live environment and isolate staging (issue #4).
 Branch: `ws3/cp-04-audit-live-environment-and-isolate-staging`
@@ -15,7 +36,7 @@ Contracts changed: none. Migrations: none. Dependencies: none. Application code:
 Tests executed: `python scripts/verify_control_plane.py` EXIT 0; `python -m unittest discover -s tests/tooling -v` EXIT 0 (28 tests); `pnpm install --frozen-lockfile` EXIT 0; `pnpm --dir apps/pos-web lint` EXIT 0; `pnpm --dir apps/pos-web typecheck` EXIT 0; `pnpm --dir apps/pos-web test` EXIT 0 (1 scaffold test); `pnpm --dir apps/pos-web build` EXIT 0; `git diff --check` EXIT 0. (`test:e2e` not required for this evidence-only task.) Known CI limitation: `pnpm --dir apps/pos-web test` is scaffold-scoped (`vitest … --dir src/app`); not changed in CP-04.
 Requested reviewer: verified second human (@Ben-001-sys). @wbdevworld cannot self-approve.
 Dependency impact: CP-05 remains satisfied. CORE-01 remains BLOCKED on remaining CP-04 isolation and Woo/HPOS/stock facts. BR-01 live health remains blocked on isolation + service identity; this audit does not start BR-01 or CORE-01.
-Recommended next task: obtain authorized read-only WP-CLI/admin access on confirmed staging, prove isolation vs production, then resume CP-04 remaining cells. Do not start CORE-01 in this assignment.
+Recommended next task at CP-04 public audit: obtain authorized read-only WP-CLI/admin access on confirmed staging, prove isolation vs production, then resume CP-04 remaining cells. That work is **not** this CI-01 assignment. Do not start CORE-01.
 
 Previous CP-05 merged handoff retained below.
 
