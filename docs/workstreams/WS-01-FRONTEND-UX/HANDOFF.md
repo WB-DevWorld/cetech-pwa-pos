@@ -212,14 +212,16 @@ Branch: `ws1/fe-03-build-sell-cart-barcode-and-customer-workflow`
 
 PR: #41 — DRAFT
 
-Current preparation commit before remediation: `2700a378b67cbde22b316ea9ce60d7aa209bde5d`
+Initial preparation commit: `2700a378b67cbde22b316ea9ce60d7aa209bde5d`
+
+Senior-review remediation commit: `a7510172e0504ff1ff59d12930ddfb954efa2961`
 
 Status:
 
 ```text
 PREPARATION COMPLETE
+PR #41 — FINAL REVIEW STATE GITHUB-AUTHORITATIVE
 FULL FE-03 RUNTIME INTEGRATION NOT COMPLETE
-SENIOR REVIEW: CHANGES REQUESTED
 ```
 
 Scope:
@@ -268,15 +270,18 @@ ADRs authored: none
 
 Reviewer: @wbdevworld
 
-Review: CHANGES_REQUESTED on head `2700a378b67cbde22b316ea9ce60d7aa209bde5d`
+Historical review:
 
-Senior findings being addressed:
+Senior review on `2700a378b67cbde22b316ea9ce60d7aa209bde5d` requested three preparation-layer corrections:
 
-1. STATUS/HANDOFF evidence
+1. WS1 STATUS/HANDOFF evidence
 2. Quantity arithmetic upper-bound validation
 3. unavailable-catalog mutation gating
 
-This remediation is implemented locally and is not yet re-reviewed. Issue #8 remains OPEN.
+Those substantive findings were addressed on `a7510172e0504ff1ff59d12930ddfb954efa2961`.
+Final review state is GitHub-authoritative.
+
+Issue #8 remains OPEN.
 
 ### Verification
 
@@ -307,6 +312,6 @@ Senior / integration authority (@wbdevworld)
 Recommended next step:
 
 ```text
-Submit remediation commit to PR #41 and request senior re-review.
-Full FE-03 integration follows when required WS3 runtime capabilities are available/confirmed.
+Obtain final senior review of PR #41.
+Full FE-03 runtime integration follows when required WS3 runtime capabilities are available/confirmed.
 ```
