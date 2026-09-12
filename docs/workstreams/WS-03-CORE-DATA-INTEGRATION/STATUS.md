@@ -1,8 +1,8 @@
 # WS3 current status
 
-Snapshot 2026-09-12. Main `aa08d74f2cb99301817e5995f01486acb7e2169f`. R1/#40 APPROVED / MERGED / VERIFIED; @Ben-001-sys APPROVED `260be7f72b79bdbf2895ecfd06742db059b1496e`. CORE-01 ACCEPTED; CORE-01 lease RELEASED. ADR-012 ACTIVE. R2 activated on `batch/r2-auth-bridge-bff`. CORE-02 IN PROGRESS (issue #21). Do not recreate R1 or CORE-01.
+Snapshot 2026-09-12. Main `aa08d74f2cb99301817e5995f01486acb7e2169f`. R1/#40 APPROVED / MERGED / VERIFIED; @Ben-001-sys APPROVED `260be7f72b79bdbf2895ecfd06742db059b1496e`. CORE-01 ACCEPTED; CORE-01 lease RELEASED. ADR-012 ACTIVE. R2 on `batch/r2-auth-bridge-bff`. CORE-02 CHECKPOINTED `95289a72d88c3b9c1cf86d44c4a44b17188bee46` (issue #21). CORE-03 PREP_ONLY CHECKPOINTED (issue #22); BR-01 `fbbf0ea7…` remains PROVISIONAL_TEST, not accepted. Do not recreate R1 or CORE-01. Do not start R3.
 
-CURRENT-WORK holds the central R2 lease. Exact CORE-02 head and verification are recorded in HANDOFF as checkpoints land.
+CURRENT-WORK holds the central R2 lease. Exact CORE-03 head is recorded in HANDOFF after the checkpoint commit.
 
 ## Previous snapshot (historical; current section above controls)
 
@@ -21,8 +21,8 @@ Control-plane/contracts implemented and verified. CP-05 is MERGED / VERIFIED on 
 | CP-05 | MERGED / VERIFIED | PR #32; merge `095696f15cd64b546003bc5c77b4600af7bc4c76`; @Ben-001-sys APPROVED; issue #5 CLOSED / COMPLETED |
 | CI-01 | MERGED / VERIFIED; lease RELEASED | PR #38; merge `8e058d679bb02e96374c0e79cc32d025b6a9ed03`; @Ben-001-sys APPROVED |
 | CORE-01 | ACCEPTED / MERGED / VERIFIED; lease RELEASED | PR #40 merge `aa08d74f…`; @Ben-001-sys APPROVED `260be7f…`. Do not recreate. |
-| CORE-02 | IN PROGRESS | R2 `batch/r2-auth-bridge-bff`; issue #21 |
-| CORE-03 | SPECIFIED | See TASKS.md; GitHub mapping in ../../plans/TASK-INDEX.md |
+| CORE-02 | CHECKPOINTED; not merged | R2 `batch/r2-auth-bridge-bff` `95289a7…`; issue #21 |
+| CORE-03 | PREP_ONLY CHECKPOINTED; not live connectivity | Same R2 branch; issue #22. BR-01 not combined. Detection is not pricing parity. |
 | CORE-04 | SPECIFIED | See TASKS.md; GitHub mapping in ../../plans/TASK-INDEX.md |
 | CORE-05 | SPECIFIED | See TASKS.md; GitHub mapping in ../../plans/TASK-INDEX.md |
 | CORE-06 | SPECIFIED | See TASKS.md; GitHub mapping in ../../plans/TASK-INDEX.md |
@@ -32,4 +32,4 @@ Control-plane/contracts implemented and verified. CP-05 is MERGED / VERIFIED on 
 | QA-01 | SPECIFIED | See TASKS.md; GitHub mapping in ../../plans/TASK-INDEX.md |
 | REL-01 | SPECIFIED | See TASKS.md; GitHub mapping in ../../plans/TASK-INDEX.md |
 
-CORE-01 lease RELEASED after PR #40 merge. R2 holds the current central lease (`apps/pos-web/src/core/**`, `src/server/**`, `src/config/**`, `tests/integration/auth/**`, plus recorded coordination files). Issue #4 stays OPEN. ADR-012 is ACTIVE. Update with actual evidence; never mark a prerequisite fulfilled from a task specification.
+CORE-01 lease RELEASED after PR #40 merge. R2 holds the current central lease (`apps/pos-web/src/core/**`, `src/server/**`, `src/config/**`, `src/app/api/**`, `tests/integration/auth/**`, `tests/integration/health/**`, plus recorded coordination files). Issue #4 stays OPEN. ADR-012 is ACTIVE. Update with actual evidence; never mark a prerequisite fulfilled from a task specification.

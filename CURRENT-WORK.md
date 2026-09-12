@@ -14,15 +14,16 @@ Controlling interpretation: [ADR-011](docs/decisions/ADR/011.md). Training Woo i
 | FE-02 | @Ben-001-sys / WS1 | main | MERGED / COMPLETED | PR #37 merged as `ceea3c4ebb3b95d7c3195d6cc089d1f3713d1d19`; issue #7 CLOSED / COMPLETED; CI-01 prerequisite satisfied | none | Complete |
 | BR-01 | WS2 | ws2/br-01-build-bridge-health-and-permission-skeleton | Contributor SHA observed; not accepted | CP-04 development baseline satisfied; live service identity/runtime acceptance remain separate. Observed `fbbf0ea7d016b6149e9f095d449fb15b0dcdf930` is PROVISIONAL_TEST until a combined/tested SHA is declared | Bridge v1 | R2 contributor input; do not blindly merge |
 | CORE-01 | WS3 | main | ACCEPTED / MERGED / VERIFIED; lease RELEASED | R1 PR #40 merge `aa08d74f2cb99301817e5995f01486acb7e2169f`; independent review APPROVED by @Ben-001-sys on `260be7f72b79bdbf2895ecfd06742db059b1496e`; post-merge main CI PASS. Issue #20 remains the historical task record; do not recreate | POS operational models v1.0.0 | Complete |
-| CORE-02 | WS3 | batch/r2-auth-bridge-bff | IN PROGRESS (issue #21) | CP-05 ACCEPTED; CORE-01 ACCEPTED through R1 | IdentityPort, Session v1.0.0 | R2 ordered queue after BR-01 dependency classification |
+| CORE-02 | WS3 | batch/r2-auth-bridge-bff | CHECKPOINTED (issue #21); not merged | CP-05 ACCEPTED; CORE-01 ACCEPTED through R1; commit `95289a72d88c3b9c1cf86d44c4a44b17188bee46` | IdentityPort, Session v1.0.0 | R2 WS3 first task |
+| CORE-03 | WS3 | batch/r2-auth-bridge-bff | PREP_ONLY CHECKPOINTED (issue #22); not live connectivity | CORE-02 checkpointed; BR-01 remains PROVISIONAL_TEST (`fbbf0ea7…`), not combined/tested against current main | StoreHealth, BridgeHealth, ApiFailure v1.0.0 | R2 after CORE-02; mocks only |
 
 ## Central edit lease
 
 - **Editor:** WS3 senior / @wbdevworld.
-- **Task / batch:** R2 — Authentication, bridge health and BFF. First ready WS3 task: CORE-02 (GitHub issue #21).
+- **Task / batch:** R2 — Authentication, bridge health and BFF. CORE-02 CHECKPOINTED (issue #21). CORE-03 PREP_ONLY (issue #22).
 - **Branch:** `batch/r2-auth-bridge-bff`. Base `origin/main` `aa08d74f2cb99301817e5995f01486acb7e2169f`.
 - **Lease type:** R2 milestone integration lease. One draft R2 PR; no ordinary per-task PRs; no self-merge.
-- **Allowed:** `apps/pos-web/src/core/**`; `apps/pos-web/src/server/**`; `apps/pos-web/src/config/**`; `tests/integration/auth/**`; this file; `docs/workstreams/WS-03-CORE-DATA-INTEGRATION/STATUS.md`; `docs/workstreams/WS-03-CORE-DATA-INTEGRATION/HANDOFF.md`; `docs/plans/TASK-INDEX.md` (R1/R2/CORE-01/CORE-02/CORE-03 lines only); `docs/plans/MILESTONE-REVIEWS.md` (R1/R2 snapshot rows only); `docs/integration/evidence/R2-*.md`. Task-specific test discovery (CORE-02 only): `apps/pos-web/vitest.config.mts` and `tests/tooling/test_vitest_discovery.py` solely to include `tests/integration/auth/**`. CORE-03 paths `apps/pos-web/src/app/api/**` and `tests/integration/health/**` only after CORE-02 checkpoint and BR-01 classification.
+- **Allowed:** `apps/pos-web/src/core/**`; `apps/pos-web/src/server/**`; `apps/pos-web/src/config/**`; `apps/pos-web/src/app/api/**`; `tests/integration/auth/**`; `tests/integration/health/**`; this file; `docs/workstreams/WS-03-CORE-DATA-INTEGRATION/STATUS.md`; `docs/workstreams/WS-03-CORE-DATA-INTEGRATION/HANDOFF.md`; `docs/plans/TASK-INDEX.md` (R1/R2/CORE-01/CORE-02/CORE-03 lines only); `docs/plans/MILESTONE-REVIEWS.md` (R1/R2 snapshot rows only); `docs/integration/evidence/R2-*.md`. Task-specific test discovery: `apps/pos-web/vitest.config.mts` and `tests/tooling/test_vitest_discovery.py` solely to include `tests/integration/auth/**` and `tests/integration/health/**`.
 - **Forbidden:** `apps/pos-web/src/features/**`; `apps/pos-web/src/ui/**`; `wordpress/**`; `docs/contracts/**`; `reference/**`; root `package.json` / lockfile; supabase schema/RLS; CORE-04+ implementation; FE-03 sell/cart paths; WordPress install/activation; live Woo/stock/payment/email writes; remote Supabase migrations; deployment.
 - **CORE-01 lease:** RELEASED after reviewed merge of PR #40.
 - **CI-01 lease:** RELEASED after reviewed merge of PR #38.
@@ -38,9 +39,9 @@ Evidence: R1 APPROVED / MERGED / VERIFIED. PR #40 merge `aa08d74f2cb99301817e599
 
 - Batch / milestone: **R2**, ordered tasks BR-01 (WS2 contributor), CORE-02, CORE-03. PR to create when there is a meaningful tested checkpoint: `[R2] Authentication, bridge health and BFF`. One draft PR only.
 - START_FRESHNESS_SNAPSHOT UTC: `2026-09-12T21:10:35Z`. origin/main `aa08d74f2cb99301817e5995f01486acb7e2169f`. Declared independent integration baseline: NOT_APPLICABLE (this editor's candidate is `batch/r2-auth-bridge-bff`). Contract version v1.0.0. ADRs 011 CURRENT, 012 ACTIVE. Queue authorizer: senior R2 continuation 2026-09-12.
-- Observed BR-01 contributor ref (not consumed until CORE-03 checkpoint): `origin/ws2/br-01-build-bridge-health-and-permission-skeleton` `fbbf0ea7d016b6149e9f095d449fb15b0dcdf930`. Classification at start: PROVISIONAL_TEST (1 commit behind current main; no GitHub Actions run on that SHA). Do not call BR-01 accepted. Do not blindly merge.
-- Human reviewer: **@Ben-001-sys** for the R2 milestone PR. Backup technical reviewer UNVERIFIED. Senior cannot self-approve.
-- WS3 R2 authorized queue: CORE-02 then CORE-03 if BR-01 is a legitimate accepted or declared combined PROVISIONAL_TEST input; otherwise CORE-03 PREP_ONLY against frozen contracts/mocks. R3–R10 are not activated. PR #41 remains R4 preparation.
+- Observed BR-01 contributor ref after CORE-02 checkpoint (not merged, not accepted): `origin/ws2/br-01-build-bridge-health-and-permission-skeleton` `fbbf0ea7d016b6149e9f095d449fb15b0dcdf930`. Classification: PROVISIONAL_TEST (still based on pre-R1 `cd4477f…`; 1 commit behind current main; no GitHub Actions run on that SHA). Do not call BR-01 accepted. Do not blindly merge. CORE-03 consumed frozen contracts/mocks only; this SHA is recorded, not combined.
+- Human reviewer: **@Ben-001-sys** for the R2 milestone PR. Backup technical reviewer UNVERIFIED. Senior cannot self-approve. Do not request review until the R2 gate can actually pass; keep the PR draft while BR-01 is uncombined and CORE-03 is PREP_ONLY.
+- WS3 R2 authorized queue: CORE-02 CHECKPOINTED; CORE-03 PREP_ONLY CHECKPOINTED. No further authorized useful R2 implementation remains until BR-01 is a combined/tested SHA. R3–R10 are not activated. PR #41 remains R4 preparation.
 
 ## R1 batch workflow record — historical (APPROVED / MERGED / VERIFIED)
 

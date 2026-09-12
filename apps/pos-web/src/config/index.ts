@@ -6,3 +6,4 @@ export {
   STAFF_CSRF_HEADER,
   STAFF_SESSION_COOKIE,
 } from "./auth";
+export { readServerEnv, type ServerEnv } from "./env";

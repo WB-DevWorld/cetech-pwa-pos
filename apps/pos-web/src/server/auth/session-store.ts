@@ -36,3 +36,9 @@ export function createMemoryStaffSessionStore(): StaffSessionStore {
     },
   };
 }
+
+const defaultStaffSessionStore = createMemoryStaffSessionStore();
+
+export function getDefaultStaffSessionStore(): StaffSessionStore {
+  return defaultStaffSessionStore;
+}

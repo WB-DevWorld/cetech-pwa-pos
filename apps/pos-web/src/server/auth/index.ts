@@ -17,4 +17,8 @@ export {
   type StaffIdentityVerifier,
   type TokenIntrospector,
 } from "./identity-verifier";
-export { createMemoryStaffSessionStore, type StaffSessionStore } from "./session-store";
+export {
+  createMemoryStaffSessionStore,
+  getDefaultStaffSessionStore,
+  type StaffSessionStore,
+} from "./session-store";

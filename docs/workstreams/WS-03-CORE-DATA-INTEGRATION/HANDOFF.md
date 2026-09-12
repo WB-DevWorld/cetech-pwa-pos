@@ -1,4 +1,37 @@
-# WS3 current handoff — R2 / CORE-02
+# WS3 current handoff — R2 / CORE-03 PREP_ONLY
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-12 (local CORE-03 checkpoint; final two-pass follows push)
+Task / batch / workstream: CORE-03 PREP_ONLY (issue #22) inside R2; WS3
+Owner / integration editor / requested human reviewer: @wbdevworld / same / @Ben-001-sys (draft PR only; do not request review while BR-01 is uncombined)
+Branch: `batch/r2-auth-bridge-bff`
+Starting/base SHA: `origin/main` `aa08d74f2cb99301817e5995f01486acb7e2169f`
+CORE-02 checkpoint: `95289a72d88c3b9c1cf86d44c4a44b17188bee46`
+Current CORE-03 head: recorded after this commit (cannot be self-referential here)
+Contracts changed: none (StoreHealth / BridgeHealth / ApiFailure v1.0.0 consumed, not edited)
+Database migrations: none
+Architecture decisions: none (ADR-011 CURRENT; ADR-012 ACTIVE)
+Completed: CORE-02 staff auth abstraction CHECKPOINTED; CORE-03 PREP_ONLY BFF `GET /api/pos/v1/health`
+Remaining: combined BR-01; live Browser→BFF→Supabase and bridge→Woo detection; R2 gate; no R3
+Dependencies: CORE-02 CHECKPOINTED (same batch). BR-01 `fbbf0ea7d016b6149e9f095d449fb15b0dcdf930` PROVISIONAL_TEST, not combined/tested against current main, not merged.
+Production-site access required? NO. Synthetic fixtures only.
+Do not claim live bridge connectivity. Detection is not pricing parity. `pricingParityVerified` stays false.
+
+Tests executed (Windows, Node v24.21.0, pnpm 12.4.1, Python 3.14.4) before commit:
+- `python scripts/verify_control_plane.py` EXIT 0
+- `python -m unittest discover -s tests/tooling -v` EXIT 0 (48 tests)
+- `pnpm install --frozen-lockfile` EXIT 0
+- `pnpm --dir apps/pos-web lint` EXIT 0
+- `pnpm --dir apps/pos-web typecheck` EXIT 0
+- `pnpm --dir apps/pos-web test` EXIT 0 (13 files / 51 tests)
+- `pnpm --dir apps/pos-web build` EXIT 0 (route `ƒ /api/pos/v1/health`)
+- `pnpm --dir apps/pos-web test:e2e` EXIT 0 (1 passed; scaffold smoke only, not health/auth/connectivity)
+- `git diff --check` EXIT 0
+
+Remote effects: none (no WP install, no live credentials, no Woo/stock/payment/email, no remote Supabase migration, no deploy).
+Assumptions: in-memory session store does not persist across serverless instances; Next `/health` shares `getDefaultStaffSessionStore()` which stays empty until a session route exists; authenticated health is proven by injected stores in `tests/integration/health/**`.
+Next exact action: push CORE-03 checkpoint; open one draft R2 PR; two-pass freshness; STOP. No R3.
+
+## Previous current handoff — R2 / CORE-02
 
 Task: CORE-02 — Implement staff auth abstraction and permission boundary (issue #21), inside R2.
 Branch: `batch/r2-auth-bridge-bff`

@@ -1,0 +1,1 @@
+Canonical CORE-03 PREP_ONLY BFF health tests. Discovered by `pnpm --dir apps/pos-web test` via `apps/pos-web/vitest.config.mts`. Fixtures are synthetic. No live WordPress, Woo, or Supabase calls. Detection is not pricing parity.

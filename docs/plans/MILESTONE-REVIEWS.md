@@ -5,7 +5,7 @@ Authority: [ADR-012](../decisions/ADR/012.md); operation: [LONG-RUNNING-WORK](LO
 | Review | Outcome | Ordered task IDs | Existing PR | Acceptance gate |
 | --- | --- | --- | --- | --- |
 | R1 | Operational schema/RLS and workflow adoption | CORE-01 | #40 MERGED `aa08d74f…` | Fresh migration, supported upgrade baseline, grants/RLS positive and negative tests; preserved commerce boundary; workflow/tooling checks. ACCEPTED. |
-| R2 | Authentication, bridge health and BFF | BR-01, CORE-02, CORE-03 | `batch/r2-auth-bridge-bff` (draft PR when checkpoint exists) | Authorized browser/BFF/DB/bridge health; no browser secrets; negative auth tests. |
+| R2 | Authentication, bridge health and BFF | BR-01, CORE-02, CORE-03 | `batch/r2-auth-bridge-bff` (draft PR at CORE-02/CORE-03 checkpoint; BR-01 not imported) | CORE-02 negative auth tests CHECKPOINTED. CORE-03 PREP_ONLY BFF health mocks; no live Woo/bridge; no browser secrets. R2 gate not passed while BR-01 is uncombined. |
 | R3 | Authoritative Woo/WoodMart/B2BKing parity | BR-02, BR-03, BR-04, BR-05 | Create when this milestone is assembled | Guest/retail/quantity tiers/B2B/customer/variation/overlap/tax parity in controlled runtime. Unexplained mismatch blocks checkout. |
 | R4 | Catalog/barcode/Sell/customer/quote states | CORE-04, FE-03, FE-04 | #41 | CORE-04 projection and journal consumed by FE-03; FE-04 quote states after R3. Preparation UI alone is insufficient. |
 | R5 | Idempotent preparation and cash orchestration | BR-06, CORE-05 | Create when this milestone is assembled | Concurrent/repeated prepare; changed quote/stock; lost response; CORE-05 uses frozen mock boundary without waiting for BR-07. |
