@@ -1,12 +1,17 @@
 # Only confirmed identity is active. Default fallback prevents unowned paths.
 * @wbdevworld
-# Developer 1 identity UNVERIFIED; replace/add after write access verified:
-# /apps/pos-web/src/features/ @VERIFIED_DEVELOPER_1
-# /apps/pos-web/src/ui/ @VERIFIED_DEVELOPER_1
-# /tests/frontend/ @VERIFIED_DEVELOPER_1
-# Developer 2 identity UNVERIFIED:
-# /wordpress/cetech-pos-bridge/ @VERIFIED_DEVELOPER_2
-# /tests/bridge/ @VERIFIED_DEVELOPER_2
+* @Emmanuel-coder-prog
+* @Ben-001-sys
+
+# Developer 1 identity VERIFIED; write access verified:
+/apps/pos-web/src/features/ @Ben-001-sys
+/apps/pos-web/src/ui/ @Ben-001-sys
+/tests/frontend/ @Ben-001-sys
+
+# Developer 2 identity VERIFIED:
+/wordpress/cetech-pos-bridge/ @Emmanuel-coder-prog
+/tests/bridge/ @Emmanuel-coder-prog
+
 /apps/pos-web/src/core/ @wbdevworld
 /apps/pos-web/src/server/ @wbdevworld
 /apps/pos-web/src/local/ @wbdevworld
@@ -18,4 +23,5 @@
 /AGENTS.md @wbdevworld
 /SOURCE-OF-TRUTH.md @wbdevworld
 /reference/ @wbdevworld
+
 # This file is not enforcement. Verify plan/protection support and backup reviewer.
