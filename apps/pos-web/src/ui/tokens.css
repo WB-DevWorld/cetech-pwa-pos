@@ -1,0 +1,320 @@
+/* Semantic POS tokens — translated from the approved frontend reference.
+   Values are the reference palette; names are the production design system. */
+
+:root {
+  --color-bg: #f5f7fa;
+  --color-surface: #ffffff;
+  --color-surface-2: #eef2f7;
+  --color-surface-3: #e4eaf2;
+  --color-text: #172033;
+  --color-text-muted: #5d6b80;
+  --color-border: #d7dee8;
+  --color-primary: #174ea6;
+  --color-primary-hover: #123e84;
+  --color-primary-soft: #e9f0fc;
+  --color-success: #177245;
+  --color-success-soft: #e7f6ee;
+  --color-warning: #9a5b00;
+  --color-warning-soft: #fff3d6;
+  --color-danger: #b42318;
+  --color-danger-soft: #fdecea;
+  --color-info: #2459a8;
+  --color-info-soft: #e9f0fc;
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.08);
+  --shadow-md: 0 8px 24px rgba(16, 24, 40, 0.12);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --touch: 44px;
+  --sidebar: 88px;
+  --font-xs: 12px;
+  --font-sm: 14px;
+  --font-md: 16px;
+  --font-lg: 20px;
+  --font-xl: 26px;
+  --font-2xl: 34px;
+  color-scheme: light;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+html[data-theme="dark"] {
+  --color-bg: #0f141d;
+  --color-surface: #171e29;
+  --color-surface-2: #202938;
+  --color-surface-3: #2a3547;
+  --color-text: #f3f6fa;
+  --color-text-muted: #aab5c5;
+  --color-border: #344257;
+  --color-primary: #79a8ff;
+  --color-primary-hover: #9bc0ff;
+  --color-primary-soft: #20385f;
+  --color-success: #75d7a4;
+  --color-success-soft: #173c2a;
+  --color-warning: #ffc45d;
+  --color-warning-soft: #493817;
+  --color-danger: #ff9b94;
+  --color-danger-soft: #4f2525;
+  --color-info: #9bc0ff;
+  --color-info-soft: #20385f;
+  --shadow-sm: none;
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+body {
+  min-height: 100vh;
+  font-size: var(--font-md);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  min-height: var(--touch);
+}
+
+button,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-primary) 55%, transparent);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.skip-link {
+  position: fixed;
+  left: 12px;
+  top: -60px;
+  z-index: 1000;
+  background: var(--color-text);
+  color: var(--color-surface);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+}
+
+.skip-link:focus {
+  top: 12px;
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.btn {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  text-decoration: none;
+  min-height: var(--touch);
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--color-surface-2);
+}
+
+.btn.primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+
+.btn.primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.btn.block {
+  width: 100%;
+}
+
+.btn.small {
+  min-height: var(--touch);
+  padding: 5px 9px;
+  font-size: 13px;
+}
+
+.pay-btn {
+  min-height: 54px;
+  font-size: 18px;
+}
+
+.icon-btn {
+  width: var(--touch);
+  height: var(--touch);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-pad {
+  padding: var(--space-4);
+}
+
+.muted {
+  color: var(--color-text-muted);
+  font-size: var(--font-sm);
+}
+
+.subtle {
+  color: var(--color-text-muted);
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field label,
+.field .label {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.input,
+.select {
+  width: 100%;
+  min-height: var(--touch);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border-radius: 10px;
+  padding: 9px 11px;
+}
+
+.stack {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: 18px;
+}
+
+.page-head h1 {
+  margin: 0 0 4px;
+  font-size: var(--font-xl);
+}
+
+.page-head p {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.banner {
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  border: 1px solid transparent;
+}
+
+.banner.info {
+  background: var(--color-info-soft);
+  color: var(--color-info);
+}
+
+.banner.warning {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.banner.danger {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.banner.success {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.live-region {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

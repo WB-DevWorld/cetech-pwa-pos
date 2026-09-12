@@ -79,3 +79,127 @@ Senior / integration authority (@wbdevworld)
 Recommended next task:
 
 FE-02 only after FE-01 is accepted and merged. CP-05 is already satisfied (PR #32, `095696f15cd64b546003bc5c77b4600af7bc4c76`). FE-02 is not ready merely because this map exists.
+
+## FE-02
+
+Task: FE-02 / GitHub issue #7 — Convert tokens and responsive POS shell
+
+Branch: `ws1/fe-02-convert-tokens-and-responsive-pos-shell`
+
+Commit(s):
+
+- Rebased implementation commit: `8ba6d549e49575bf4882a1354d05084691dda43e` — `feat(frontend): add responsive POS shell foundation`
+- Rebased senior-remediation commit: `923d7b82ca4182fed71f795c1d98837852634329` — `fix(frontend): address FE-02 review findings`
+- Previous published head before this CI-01 rebase: `510d7036da37834823547e6b807e7f6240e9a2ee`
+- CI-evidence refresh SHA: recorded in the PR #37 follow-up comment after the refresh commit exists. This document does not embed the SHA of the commit that creates it.
+
+Prerequisites:
+
+- FE-01 satisfied: PR #33, merge commit `52caf39d010687084e0b1e1db74acd0b644ab4b0`
+- CP-05 satisfied: PR #32, merge commit `095696f15cd64b546003bc5c77b4600af7bc4c76`
+- CI-01 / PR #38 landed on `main` at `8e058d679bb02e96374c0e79cc32d025b6a9ed03`
+
+Files changed (implementation + this closeout):
+
+- `apps/pos-web/src/ui/**` (tokens, AppShell, PrimaryNav, TopBar)
+- `apps/pos-web/src/features/auth/**` (LoginScreen)
+- `apps/pos-web/src/features/register/**` (OpenRegisterForm, opening-float parser)
+- `tests/frontend/**` (token/no-demo/visual harness and evidence)
+- `docs/workstreams/WS-01-FRONTEND-UX/STATUS.md`
+- `docs/workstreams/WS-01-FRONTEND-UX/HANDOFF.md` (this FE-02 section)
+
+Implemented scope:
+
+- semantic design tokens
+- responsive AppShell
+- PrimaryNav
+- TopBar
+- desktop/tablet rail
+- phone bottom navigation
+- LoginScreen
+- OpenRegisterForm
+- opening-float decimal parser
+- accessibility/focus/touch/reduced-motion behavior
+- isolated visual harness/evidence
+
+Boundaries:
+
+- `src/app/**` not modified
+- runtime adapters not implemented
+- canonical contracts not copied or changed
+- no dependency/package changes
+- approved reference unchanged
+
+Contracts changed:
+
+- none
+
+Database migrations:
+
+- none
+
+Architecture decisions:
+
+- none
+
+### Standard repository/scaffold commands
+
+CI-01 / PR #38 landed on `main` at `8e058d679bb02e96374c0e79cc32d025b6a9ed03`. Canonical `pnpm --dir apps/pos-web test` now uses the broadened Vitest discovery and exercises FE-02 unit/static tests under `src/features/**`, `src/ui/**`, and `tests/frontend/**` (plus the existing `src/app` scaffold test). It does **not** run `*.pw.*` visual Playwright files.
+
+Post-rebase results:
+
+- `python scripts/verify_control_plane.py` — PASS (exit 0)
+- `pnpm install --frozen-lockfile` — PASS (exit 0)
+- `pnpm --dir apps/pos-web lint` — PASS (exit 0)
+- `pnpm --dir apps/pos-web typecheck` — PASS (exit 0)
+- `pnpm --dir apps/pos-web test` — PASS (exit 0). Actual discovery: **8 files / 20 tests**.
+- `pnpm --dir apps/pos-web build` — PASS (exit 0)
+- `pnpm --dir apps/pos-web test:e2e` — PASS (exit 0). This still uses the app Playwright configuration whose normal test directory is `./e2e` (1 scaffold spec). It does **not** replace `tests/frontend/visual/shell-viewports.pw.ts`.
+
+### Additional targeted FE-02 commands
+
+- `pnpm --dir apps/pos-web exec vitest run --environment node src/ui src/features` — 4 files / 15 tests PASS
+- `pnpm --dir apps/pos-web exec playwright test --config ../../tests/frontend/visual/playwright.config.ts` — 5 tests PASS
+
+Playwright evidence established:
+
+- desktop Tab reaches Skip to main content
+- phone connectivity accessible name = Online
+- phone Sell target >=44px
+- desktop/tablet/phone shell layout evidence
+- login evidence
+- open-register evidence
+
+### WS3 CI integration request
+
+CI-01 resolved normal Vitest discovery for FE-02 unit/static tests. That work is **not** still outstanding.
+
+The isolated FE-02 visual Playwright suite remains separate from normal app `test:e2e`. Wiring that visual suite into required CI remains a future WS3 integration decision and is **not** completed.
+
+FE-02 does not change `.github/**` or package scripts.
+
+Runtime verification:
+
+- Isolated visual harness only. No live authentication, session authorization, register persistence, pricing parity, stock behavior, payments, RLS, PWA behavior, hardware, or production readiness.
+- Register and Identity integration remain WS3/runtime concerns.
+
+Known limitations:
+
+- Screenshots prove the FE-02 component/CSS layer in isolation, not live runtime or route-level integration.
+- From the approved captures (`verification-sell-desktop.png`, `verification-mobile-cart.png`, `verification-desktop.png`) FE-02 preserves shell language: navigation rail placement and hierarchy; top-bar structure/status presentation; desktop/tablet rail behavior; phone bottom-navigation transformation; approved breakpoints; approved semantic tokens; focus-visible treatment; minimum touch targets; reduced-motion treatment; login/open-register visual language where applicable.
+- FE-02 does **not** prove Sell product-grid parity, cart contents/layout parity, checkout/tender parity, barcode/customer behavior, integrated App Router parity, or live runtime parity.
+- Current CP-05 `apps/pos-web/src/app/globals.css` contains scaffold-only globals including body padding, main max-width, and generic heading/paragraph rules. When WS3 mounts FE-02, those must be retired/replaced before integrated visual evidence. FE-02 itself must not edit `src/app/**`.
+- Opening-float parser is a UI-boundary decimal → integer-minor-units helper, not a domain `Money` type. Commas are rejected; thousands grouping is not implemented.
+
+Unresolved risks:
+
+- Unstyled/distorted shell if WS3 imports FE-02 CSS without retiring CP-05 scaffold globals.
+- Isolated visual Playwright evidence can stay green locally while remaining outside default `test:e2e` until WS3 decides whether to wire it.
+
+Requested reviewer:
+
+Senior / integration authority (@wbdevworld)
+
+Recommended next task:
+
+Complete PR #37 review/merge. Do not start FE-03 until FE-02 is merged and remaining declared FE-03 prerequisites are satisfied.
