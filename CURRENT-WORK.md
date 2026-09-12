@@ -37,7 +37,7 @@ Evidence: R1 APPROVED / MERGED / VERIFIED. PR #40 merge `aa08d74f2cb99301817e599
 
 ## R2 batch workflow record — current (supersedes the R1 editor lease)
 
-- Batch / milestone: **R2**, ordered tasks BR-01 (WS2 contributor), CORE-02, CORE-03. PR to create when there is a meaningful tested checkpoint: `[R2] Authentication, bridge health and BFF`. One draft PR only.
+- Batch / milestone: **R2**, ordered tasks BR-01 (WS2 contributor), CORE-02, CORE-03. Draft PR **#43** `[R2] Authentication, bridge health and BFF`. One draft PR only. No review request yet. No self-merge.
 - START_FRESHNESS_SNAPSHOT UTC: `2026-09-12T21:10:35Z`. origin/main `aa08d74f2cb99301817e5995f01486acb7e2169f`. Declared independent integration baseline: NOT_APPLICABLE (this editor's candidate is `batch/r2-auth-bridge-bff`). Contract version v1.0.0. ADRs 011 CURRENT, 012 ACTIVE. Queue authorizer: senior R2 continuation 2026-09-12.
 - Observed BR-01 contributor ref after CORE-02 checkpoint (not merged, not accepted): `origin/ws2/br-01-build-bridge-health-and-permission-skeleton` `fbbf0ea7d016b6149e9f095d449fb15b0dcdf930`. Classification: PROVISIONAL_TEST (still based on pre-R1 `cd4477f…`; 1 commit behind current main; no GitHub Actions run on that SHA). Do not call BR-01 accepted. Do not blindly merge. CORE-03 consumed frozen contracts/mocks only; this SHA is recorded, not combined.
 - Human reviewer: **@Ben-001-sys** for the R2 milestone PR. Backup technical reviewer UNVERIFIED. Senior cannot self-approve. Do not request review until the R2 gate can actually pass; keep the PR draft while BR-01 is uncombined and CORE-03 is PREP_ONLY.
@@ -67,7 +67,7 @@ Observed values are UNVERIFIED until measured; do not interpret blanks as zero. 
 | Human interruptions / prompts per accepted task | UNVERIFIED | UNVERIFIED | Session/handoff counts; distinguish milestone review from routine prompts |
 | Review waiting time / branch age | UNVERIFIED | UNVERIFIED | Ready-for-review, branch start and review/merge UTC |
 | Time since combined integration | UNVERIFIED | UNVERIFIED | Last combined build SHA/UTC |
-| Pass-1 / Pass-2 stale findings | 0 / 0 for workflow adoption; both cutoffs `cd4477f` | UNVERIFIED | Final freshness classifications |
+| Pass-1 / Pass-2 stale findings | 0 / 0 for workflow adoption; both cutoffs `cd4477f` | 0 / 0; both cutoffs `aa08d74f…` | Final freshness classifications |
 | Drift rework / integration conflicts | 0 / 0 for workflow adoption; excludes earlier CORE-01 work | UNVERIFIED | Scoped corrective commits and conflict records |
 | Defects found at review | UNVERIFIED | UNVERIFIED | Findings attributable to this batch |
 | Review duration / comprehension | UNVERIFIED | UNVERIFIED | Reviewer minutes and can explain invariants: yes/no |

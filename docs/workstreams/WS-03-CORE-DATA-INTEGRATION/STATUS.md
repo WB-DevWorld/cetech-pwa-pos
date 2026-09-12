@@ -1,8 +1,8 @@
 # WS3 current status
 
-Snapshot 2026-09-12. Main `aa08d74f2cb99301817e5995f01486acb7e2169f`. R1/#40 APPROVED / MERGED / VERIFIED; @Ben-001-sys APPROVED `260be7f72b79bdbf2895ecfd06742db059b1496e`. CORE-01 ACCEPTED; CORE-01 lease RELEASED. ADR-012 ACTIVE. R2 on `batch/r2-auth-bridge-bff`. CORE-02 CHECKPOINTED `95289a72d88c3b9c1cf86d44c4a44b17188bee46` (issue #21). CORE-03 PREP_ONLY CHECKPOINTED (issue #22); BR-01 `fbbf0ea7…` remains PROVISIONAL_TEST, not accepted. Do not recreate R1 or CORE-01. Do not start R3.
+Snapshot 2026-09-12. Main `aa08d74f2cb99301817e5995f01486acb7e2169f`. R1/#40 APPROVED / MERGED / VERIFIED; @Ben-001-sys APPROVED `260be7f72b79bdbf2895ecfd06742db059b1496e`. CORE-01 ACCEPTED; CORE-01 lease RELEASED. ADR-012 ACTIVE. R2 draft [#43](https://github.com/WB-DevWorld/cetech-pwa-pos/pull/43) on `batch/r2-auth-bridge-bff`. CORE-02 CHECKPOINTED `95289a72d88c3b9c1cf86d44c4a44b17188bee46`. CORE-03 PREP_ONLY CHECKPOINTED `9e23e52af85320f4f50b9d10b77a492ea2ca169a`. Freshness FRESH_2. BR-01 `fbbf0ea7…` remains PROVISIONAL_TEST, not accepted. Do not recreate R1 or CORE-01. Do not start R3.
 
-CURRENT-WORK holds the central R2 lease. Exact CORE-03 head is recorded in HANDOFF after the checkpoint commit.
+CURRENT-WORK holds the central R2 lease.
 
 ## Previous snapshot (historical; current section above controls)
 

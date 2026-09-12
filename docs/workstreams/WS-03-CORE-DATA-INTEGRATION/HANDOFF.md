@@ -1,4 +1,66 @@
-# WS3 current handoff — R2 / CORE-03 PREP_ONLY
+# WS3 current handoff — R2 BATCH_COMPLETION (CORE-02 + CORE-03 PREP_ONLY)
+
+Kind / UTC: BATCH_COMPLETION / 2026-09-12T21:49:08Z (Pass-2 cutoff)
+Task / batch / workstream: R2 — Authentication, bridge health and BFF; WS3 CORE-02 (#21) + CORE-03 PREP_ONLY (#22)
+Owner / integration editor / requested human reviewer: @wbdevworld / same / @Ben-001-sys (draft only; do not request review while BR-01 is uncombined)
+Branch: `batch/r2-auth-bridge-bff`
+Starting/base SHA: `origin/main` `aa08d74f2cb99301817e5995f01486acb7e2169f`
+CORE-02 checkpoint: `95289a72d88c3b9c1cf86d44c4a44b17188bee46`
+CORE-03 checkpoint: `9e23e52af85320f4f50b9d10b77a492ea2ca169a`
+Final task head SHA: recorded in PR #43 after this evidence commit (not self-referential here)
+Commit(s) / contributor source SHAs: CORE-02 `95289a7…`; CORE-03 `9e23e52…`; BR-01 observed `fbbf0ea7d016b6149e9f095d449fb15b0dcdf930` (not imported)
+Allowed / forbidden paths and central leases: CURRENT-WORK R2 lease; no WS1 features, no wordpress/, no contracts edit, no lockfile, no supabase schema
+Files changed: staff auth modules; BFF `GET /api/pos/v1/health`; health/auth integration tests; vitest discovery; R2 ledger/evidence
+Contracts changed: none (v1.0.0 consumed)
+Database migrations: none
+Architecture decisions: none (ADR-011 CURRENT; ADR-012 ACTIVE)
+Completed/current/remaining tasks: CORE-02 CHECKPOINTED; CORE-03 PREP_ONLY CHECKPOINTED. Remaining for the R2 gate: combined BR-01 + live health/detection. R3 not started.
+Dependencies: CP-05 ACCEPTED; CORE-01 ACCEPTED through R1; BR-01 PROVISIONAL_TEST not combined
+Tests executed (exact; Windows Node v24.21.0 / pnpm 12.4.1 / Python 3.14.4):
+- `python scripts/verify_control_plane.py` EXIT 0 (CORE-03 and Pass 1 rerun)
+- `python -m unittest discover -s tests/tooling -v` EXIT 0 (48)
+- `pnpm install --frozen-lockfile` EXIT 0
+- `pnpm --dir apps/pos-web lint` EXIT 0
+- `pnpm --dir apps/pos-web typecheck` EXIT 0
+- `pnpm --dir apps/pos-web test` EXIT 0 (13 files / 51 tests)
+- `pnpm --dir apps/pos-web build` EXIT 0 (`ƒ /api/pos/v1/health`)
+- `pnpm --dir apps/pos-web test:e2e` EXIT 0 (1 passed; scaffold smoke only)
+- `git diff --check` EXIT 0
+Runtime verification and tested combined SHA/environment: CORE-03 `9e23e52` against main `aa08d74`. Not a combined BR-01 tree. No live Woo/Supabase.
+Remote effects performed: repository commits/pushes; draft PR #43; GitHub Actions queued. No WP install, live credentials, Woo/stock/payment/email, remote migration, or deploy.
+Assumptions / limitations / unresolved risks: in-memory session store is process-local; Next `/health` is AUTH_REQUIRED until a session route shares `getDefaultStaffSessionStore()`; PREP_ONLY mocks never set detection/parity; BR-01 still one commit behind main with no Actions on `fbbf0ea7…`.
+Next exact action: independent human review when the R2 gate can pass; do not merge; do not start R3.
+
+Freshness protocol:
+START_FRESHNESS_SNAPSHOT UTC: `2026-09-12T21:10:35Z`
+Start main SHA: `aa08d74f2cb99301817e5995f01486acb7e2169f`
+Start batch ref/SHA, if declared (else NOT_APPLICABLE): NOT_APPLICABLE
+Applicable contracts / ADRs / ownership / queue revision: v1.0.0; ADR-011 CURRENT; ADR-012 ACTIVE; R2 lease in CURRENT-WORK
+
+Pass 1 fetch UTC / success evidence: `2026-09-12T21:48:07Z` `git fetch origin --prune` succeeded
+Pass 1 main SHA: `aa08d74f2cb99301817e5995f01486acb7e2169f`
+Pass 1 batch SHA: `9e23e52af85320f4f50b9d10b77a492ea2ca169a`
+Relevant upstream paths and dependency/authority effects: none on main. Peer FE-03 `3d07e89` IRRELEVANT.
+Classification per change: main none; FE-03 IRRELEVANT; BR-01 still PROVISIONAL_TEST
+Actions taken / reconciliation commits: none
+Tests rerun / tested combined SHA: verify_control_plane + tooling 48 OK; combination `9e23e52` / `aa08d74`
+
+Pass 2 fetch UTC / success evidence: `2026-09-12T21:49:08Z` independent `git fetch origin --prune` succeeded
+Pass 2 main SHA: `aa08d74f2cb99301817e5995f01486acb7e2169f`
+Pass 2 batch SHA: `9e23e52af85320f4f50b9d10b77a492ea2ca169a`
+Relevant upstream paths and dependency/authority effects: none
+Classification per change: none
+Actions taken / reconciliation commits: this evidence/handoff commit only
+Tests rerun / tested combined SHA: not required (no arrivals)
+
+Final freshness status: FRESH_2
+Delivery status: READY_FOR_INTEGRATION (WS3 CORE-02 + CORE-03 PREP_ONLY); R2 merge BLOCKED on combined BR-01 + independent review
+Known post-cutoff risk / integration editor follow-up: later main/BR-01/FE-03 movement; GitHub Actions still in_progress at Pass-2 cutoff (runs 34720952678 / 34720935066)
+Pass 3: NOT PERMITTED for this assignment.
+Review/merge/release status and limitations: draft #43 only; no review request; no self-merge; no production promotion
+Metrics delta for CURRENT-WORK (counts/timestamps, never guessed zeroes): Pass-1/Pass-2 stale findings 0/0; both cutoffs `aa08d74f…`. Other R2 metrics remain UNVERIFIED.
+
+## Previous current handoff — R2 / CORE-03 PREP_ONLY
 
 Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-12 (local CORE-03 checkpoint; final two-pass follows push)
 Task / batch / workstream: CORE-03 PREP_ONLY (issue #22) inside R2; WS3
