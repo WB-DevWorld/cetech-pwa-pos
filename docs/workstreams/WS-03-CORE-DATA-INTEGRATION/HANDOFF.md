@@ -1,4 +1,21 @@
-# WS3 current handoff — CP-04 dependency reconciliation
+# WS3 current handoff — CORE-01 (READY FOR REVIEW)
+
+Task: CORE-01 — Create POS operational schema and RLS (issue #20).
+Branch: `ws3/core-01-create-pos-operational-schema-and-rls`
+Base: `origin/main` after PR #42 (`cd4477f185c159e18ed939a20145865d665099b4`).
+Senior dependency decision recorded: ADR-011. Training is the development reference environment. Unavailable production facts are cutover/release deltas unless a task specifically requires them. CORE-01 is READY.
+CP-04 development baseline: SATISFIED.
+CP-04 write-safety/cutover: OPEN / DEFERRED (issue #4 remains OPEN; not closed to satisfy tooling).
+Production-site access required for CORE-01? NO.
+Synthetic fixtures only: yes.
+BR-01: local implementation may proceed against frozen contracts/training baseline; target installation/service credentials and runtime acceptance remain separate.
+Remaining CP-04 work: `docs/runbooks/CP-04-REMAINING-WORK.md`.
+Contracts: v1.0.0 unchanged. Application/frontend unchanged. Bridge unchanged. Training site written to? NO. Production touched? NO.
+Requested reviewer: @Ben-001-sys. Do not recreate PR #40.
+
+Previous CP-04 dependency reconciliation retained below. ADR-011 remains authoritative.
+
+# WS3 previous handoff — CP-04 dependency reconciliation
 
 Task: Record the senior/user's supplied CP-04 development-baseline decision and remaining implementation/evidence requirements.
 Branch: `ws3/cp-04-development-gates`.
@@ -23,7 +40,7 @@ Historical handoffs below retain the conclusions at their original dates. ADR-01
 Task: CP-04 — Audit live environment and isolate staging (issue #4), authenticated continuation.
 Branch: `ws3/cp-04-authenticated-staging-evidence`
 Base: `origin/main` `ceea3c4ebb3b95d7c3195d6cc089d1f3713d1d19`
-Status: PARTIAL / BLOCKED. Authenticated identity/HPOS/stock/tax/runtime gateways recorded. Isolation **NOT PROVEN**. Email path **UNSAFE** for write tests. Does **not** complete issue #4 and does **not** authorize CORE-01.
+Status: PARTIAL / BLOCKED. Authenticated identity/HPOS/stock/tax/runtime gateways recorded. Isolation **NOT PROVEN**. Email path **UNSAFE** for write tests. Historical note: this assignment did **not** complete issue #4. A later senior decision reclassified the training baseline as sufficient for CORE-01; cutover residuals stay on issue #4.
 Evidence: `docs/integration/evidence/CP-04-AUTHENTICATED-AUDIT.md` (public chronology remains `CP-04-LIVE-AUDIT.md`)
 Access: pre-existing SSH to operator-identified training origin; WP-CLI as site user. Credentials created: NO.
 Facts newly verified (2026-09-12 16:08–16:14 UTC, @wbdevworld): `WP_ENVIRONMENT_TYPE=staging`; home/siteurl training host; WP 7.1; PHP-FPM 8.5.9 (CLI 8.4.24); Woo 11.1.0; WoodMart 8.5.7 + child 1.0.0; B2BKing Core 5.2.50 + Pro 5.6.30; VitePOS Lite 3.5.1 active / Pro 3.6.0 inactive; HPOS enabled, data-sync off; manage-stock yes; hold 60 minutes; `_backorders=no` × 154; GHS / 2 decimals admin options; tax calc off, 0 rates; Paystack plugin inactive; enabled gateways invoice + COD; Woo webhooks 0; 2 GH warehouses + 2 counters; MailPoet active; admin-email domain `cetechbpa.com`; staging DB fingerprint hash recorded (inputs not stored).
@@ -35,7 +52,7 @@ FE-02: MERGED / COMPLETE PR #37 `ceea3c4…`; issue #7 completed (central ledger
 Contracts / migrations / lockfile / application / reference: unchanged.
 Local validation 2026-09-12 on this branch (`ceea3c4` + evidence): `verify_control_plane` EXIT 0; tooling unittest 34 ok; frozen install, lint, typecheck EXIT 0; `pnpm --dir apps/pos-web test` EXIT 0 — **8 files / 20 tests** (CI-01 discovery still effective after FE-02 merge); build EXIT 0; `git diff --check` EXIT 0.
 Requested reviewer: @Ben-001-sys. @wbdevworld cannot self-approve.
-Recommended next step: sandbox or disable staging MailPoet/admin mail to production-domain inboxes, obtain an operator-confirmed production DB fingerprint for comparison, then re-evaluate isolation. Do not start CORE-01 in this assignment. Do not run write tests.
+Recommended next step at the time: sandbox or disable staging MailPoet/admin mail to production-domain inboxes, obtain an operator-confirmed production DB fingerprint for comparison, then re-evaluate isolation. Cutover work remains on issue #4 and does not block CORE-01.
 
 Previous CI-01 merged handoff retained below.
 

@@ -289,9 +289,7 @@ WS1 feature/UI files and WS2 plugin implementation except an explicitly recorded
 Register, Shift, CashMovement, PendingOperation; owner WS3; version 1.0.0.
 
 ## Dependencies
-CP-04 means its SATISFIED development baseline for local implementation (ADR-011). Issue #4 remains OPEN for operation-specific remote-write/cutover evidence. Production-site access is not a local implementation prerequisite; runtime acceptance still needs applicable evidence.
-
-CP-04, CP-05. Milestone M1. Only read/mock preparation may precede an unmet runtime gate.
+CP-04 means its SATISFIED development baseline for local implementation (ADR-011). Issue #4 remains OPEN for operation-specific remote-write/cutover evidence. Production-site access is not a local implementation prerequisite; runtime acceptance still needs applicable evidence. CP-05 is satisfied. Milestone M1.
 
 ## Implementation Steps
 One migration owner; schema for devices/registers/shifts/movements/workflow/outbox/projections; grants/RLS; unique constraints and append-only rules.
