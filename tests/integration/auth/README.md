@@ -1,0 +1,1 @@
+Canonical CORE-02 staff-authorization tests. Discovered by `pnpm --dir apps/pos-web test` via `apps/pos-web/vitest.config.mts`. Fixtures are synthetic (`org_a`, `loc_a1`, `cashier_a`). No production PII.

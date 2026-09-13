@@ -1,0 +1,81 @@
+import type { ApiResult } from "../../../../../docs/contracts/ports";
+import type { Session, Uuid } from "../../../../../docs/contracts/domain.generated";
+import { STAFF_SESSION_COOKIE } from "../../config/auth";
+import { toSession } from "./claims";
+import {
+  csrfClearCookie,
+  csrfSetCookie,
+  parseCookieHeader,
+  sessionClearCookie,
+  sessionSetCookie,
+} from "./cookies";
+import { authFailure } from "./errors";
+import type { StaffIdentityVerifier } from "./identity-verifier";
+import type { StaffSessionStore } from "./session-store";
+
+export type EstablishStaffSessionInput = {
+  readonly accessToken?: string;
+  readonly now: Date;
+  readonly verifier: StaffIdentityVerifier;
+  readonly store: StaffSessionStore;
+  readonly correlationId: Uuid;
+  readonly secureCookies?: boolean;
+};
+
+export type EstablishedStaffSession = {
+  readonly session: Session;
+  readonly sessionId: string;
+  readonly cookies: readonly string[];
+};
+
+export type RevokeStaffSessionInput = {
+  readonly cookieHeader?: string;
+  readonly store: StaffSessionStore;
+  readonly now: Date;
+  readonly correlationId: Uuid;
+  readonly secureCookies?: boolean;
+};
+
+export async function establishStaffSession(
+  input: EstablishStaffSessionInput,
+): Promise<ApiResult<EstablishedStaffSession>> {
+  const verifyResult = await input.verifier.verify({
+    accessToken: input.accessToken,
+    now: input.now,
+  });
+  if (!verifyResult.ok) {
+    if (verifyResult.reason === "timeout" || verifyResult.reason === "unavailable") {
+      return authFailure("INTEGRATION_UNAVAILABLE", "identity provider is unavailable", input.correlationId);
+    }
+    if (verifyResult.reason === "anonymous") {
+      return authFailure("AUTH_REQUIRED", "anonymous requests are denied", input.correlationId);
+    }
+    return authFailure("AUTH_REQUIRED", "staff session could not be established", input.correlationId);
+  }
+  const session = toSession(verifyResult.identity);
+  const csrfToken = crypto.randomUUID();
+  const expiresAt = new Date(Date.parse(session.expiresAt));
+  const sessionId = await input.store.create(session, csrfToken, expiresAt);
+  const secure = input.secureCookies ?? true;
+  return {
+    ok: true,
+    data: {
+      session,
+      sessionId,
+      cookies: [sessionSetCookie(sessionId, expiresAt, secure), csrfSetCookie(csrfToken, expiresAt, secure)],
+    },
+    correlationId: input.correlationId,
+  };
+}
+
+export async function revokeStaffSession(input: RevokeStaffSessionInput): Promise<{
+  readonly cookies: readonly string[];
+}> {
+  const cookies = parseCookieHeader(input.cookieHeader);
+  const sessionId = cookies[STAFF_SESSION_COOKIE];
+  if (sessionId) {
+    await input.store.revoke(sessionId);
+  }
+  const secure = input.secureCookies ?? true;
+  return { cookies: [sessionClearCookie(secure), csrfClearCookie(secure)] };
+}
