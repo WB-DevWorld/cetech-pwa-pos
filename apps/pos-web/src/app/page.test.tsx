@@ -1,13 +1,18 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: () => undefined }),
+}));
+
 import HomePage from "./page";
 
-describe("CP-05 scaffold root page", () => {
-  test("renders the engineering scaffold heading and non-production notice", () => {
+describe("R4 POS root page", () => {
+  test("mounts the POS shell instead of the engineering scaffold copy", () => {
     const html = renderToStaticMarkup(createElement(HomePage));
-    expect(html).toContain("CETECH POS engineering scaffold");
-    expect(html).toContain("not the approved production POS UI");
-    expect(html).not.toContain("Pay");
+    expect(html).toContain("CETECH POS");
+    expect(html).toContain("Loading catalog");
+    expect(html).not.toContain("engineering scaffold");
   });
 });

@@ -1,3 +1,16 @@
+# WS1 current handoff — FE-03/FE-04 imported into PR #41 (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T21:05:00Z
+Task: FE-03 runtime + FE-04 quote-state; issues #8 and #9; imported into PR #41
+Owner / requested reviewer: @Ben-001-sys (do not self-approve; do not merge)
+FE-03 isolated SHA: `99b61023984f22a8a3c0444e083cce3d0a1fdc5b` (imported as `2eb10a5…`)
+FE-04 isolated SHA: `910c31cd5037d674caf23d1fcc576b8d8b0462c6` (imported as `1cdb7e1…`)
+Contracts: CatalogPort, CustomerPort, CartDraftStore, PricingPort, QuoteState, CheckoutEligibility v1.0.0 consumed; none changed
+R4 complete: NO until combined #41 suite + two ADR-012 freshness passes
+Next: WS3 combined suite including build/e2e; independent review of frozen #41 head
+
+## Previous current handoff — FE-03 runtime (PROGRESS_CHECKPOINT)
+
 # WS1 current handoff — FE-03 runtime (PROGRESS_CHECKPOINT)
 
 Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T20:52:35Z

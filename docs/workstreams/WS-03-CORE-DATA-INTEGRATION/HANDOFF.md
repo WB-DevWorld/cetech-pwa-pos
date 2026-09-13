@@ -1,3 +1,19 @@
+# WS3 current handoff — R4 App Router / quote BFF (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T21:06:00Z
+Task / batch / workstream: R4 combined integration; CORE-04 + FE-03 + FE-04 on PR #41; WS3
+Owner / integration editor / requested human reviewer: @wbdevworld / same / @Ben-001-sys (do not self-approve; do not merge)
+Branch: `ws1/fe-03-build-sell-cart-barcode-and-customer-workflow` (PR #41)
+Imported SHAs: CORE-04 `73b3fd9…` / `0b94141…`; FE-03 `99b6102…`; FE-04 `910c31c…`
+This checkpoint: WS3 App Router mounts `SellRuntimeScreen`; POST `/api/pos/v1/quotes` (session + CSRF; bridge optional → INTEGRATION_UNAVAILABLE). No sale/payment.
+Contracts changed: none
+Database migrations: none beyond CORE-04 catalog projection
+Issue #4: remains OPEN
+R4 complete: NO until combined suite + two ADR-012 freshness passes
+R5: not started
+
+## Previous current handoff — CORE-04 (PROGRESS_CHECKPOINT)
+
 # WS3 current handoff — CORE-04 (PROGRESS_CHECKPOINT)
 
 Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T20:33:42Z

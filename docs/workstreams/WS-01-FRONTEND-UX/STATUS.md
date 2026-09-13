@@ -1,6 +1,6 @@
 # WS1 current status
 
-Snapshot 2026-09-13. FE-03 RUNTIME COMPLETE on isolated `ws1/fe-03-runtime-catalog-ports` from combined CORE-04/#41 SHA `ae7b325b9cadb9d4da0566c22e15c94ccebd9821`. CatalogPort.search, barcode projection mapping, CustomerPort.search, CartDraftStore save/load, reload restore, customer switch, and new-sale reset are wired in `features/sell/runtime`. App Router mounting remains WS3. FE-04 not started on this branch. Issue #8 remains OPEN until #41 review. `pricingParityVerified` false. R4 not complete.
+Snapshot 2026-09-13. FE-03 RUNTIME COMPLETE / INTEGRATED_AND_TESTED on PR #41 (isolated SHA `99b61023984f22a8a3c0444e083cce3d0a1fdc5b`). FE-04 QUOTE-STATE INTEGRATION COMPLETE (isolated SHA `910c31cd5037d674caf23d1fcc576b8d8b0462c6`). Whole-cart PricingPort via BFF; delayed older revision cannot overwrite; Pay stays disabled (no sale/payment). Issues #8 and #9 remain OPEN until #41 review. `pricingParityVerified` false. R4 assembled / not merged.
 
 ## Previous snapshot (historical; current section above controls)
 
