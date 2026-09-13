@@ -73,6 +73,69 @@ describe("CORE-04 OperationJournal", () => {
     expect((await journal.pending())[0]?.id).toBe(first.pending.id);
   });
 
+  test("pending row + same key + different payload is IDEMPOTENCY_CONFLICT", async () => {
+    const db = uniqueDb();
+    const journal = createOperationJournal(db);
+    const first = await operation({ kind: "sale.prepare", n: 1 });
+    const second = await operation({ kind: "sale.prepare", n: 2 });
+    await journal.appendBeforeSend(first.pending, first.serialized);
+    await expect(
+      journal.appendBeforeSend(
+        {
+          ...second.pending,
+          id: "88888888-8888-4888-8888-888888888888",
+          idempotencyKey: first.pending.idempotencyKey,
+        },
+        second.serialized,
+      ),
+    ).rejects.toThrow("IDEMPOTENCY_CONFLICT");
+    expect(await db.journal.count()).toBe(1);
+    expect(await loadJournalPayload(db, first.pending.id)).toBe(first.serialized);
+    expect((await db.journal.get(first.pending.id))?.requestHash).toBe(first.pending.requestHash);
+  });
+
+  test("acknowledged row + same key + different payload is IDEMPOTENCY_CONFLICT", async () => {
+    const db = uniqueDb();
+    const journal = createOperationJournal(db);
+    const first = await operation({ kind: "sale.prepare", n: 1 });
+    const second = await operation({ kind: "sale.prepare", n: 2 });
+    await journal.appendBeforeSend(first.pending, first.serialized);
+    await journal.markAcknowledged(first.pending.id);
+    await expect(
+      journal.appendBeforeSend(
+        {
+          ...second.pending,
+          id: "99999999-9999-4999-8999-999999999999",
+          idempotencyKey: first.pending.idempotencyKey,
+        },
+        second.serialized,
+      ),
+    ).rejects.toThrow("IDEMPOTENCY_CONFLICT");
+    expect(await db.journal.count()).toBe(1);
+    const stored = await db.journal.get(first.pending.id);
+    expect(stored?.status).toBe("acknowledged");
+    expect(stored?.payload).toBe(first.serialized);
+    expect(stored?.requestHash).toBe(first.pending.requestHash);
+    expect(await loadJournalPayload(db, first.pending.id)).toBe(first.serialized);
+  });
+
+  test("acknowledged row + same key + identical payload reuses without a new row", async () => {
+    const db = uniqueDb();
+    const journal = createOperationJournal(db);
+    const first = await operation({ kind: "sale.prepare", n: 1 });
+    await journal.appendBeforeSend(first.pending, first.serialized);
+    await journal.markAcknowledged(first.pending.id);
+    await journal.appendBeforeSend(
+      { ...first.pending, id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", status: "pending" },
+      first.serialized,
+    );
+    expect(await db.journal.count()).toBe(1);
+    expect((await db.journal.toArray())[0]?.id).toBe(first.pending.id);
+    expect((await db.journal.get(first.pending.id))?.status).toBe("acknowledged");
+    expect(await journal.pending()).toHaveLength(0);
+    expect(await loadJournalPayload(db, first.pending.id)).toBe(first.serialized);
+  });
+
   test("response_unknown and requires_attention remain after reload", async () => {
     const name = `cetech-pos-local-${crypto.randomUUID()}`;
     DBS.push(name);

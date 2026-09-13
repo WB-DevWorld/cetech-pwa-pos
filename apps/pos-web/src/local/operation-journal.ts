@@ -25,7 +25,7 @@ export function createOperationJournal(db: PosLocalDatabase = openPosLocalDataba
           .equals([operation.operation, operation.idempotencyKey])
           .first();
         if (existingByKey) {
-          if (existingByKey.requestHash !== operation.requestHash && existingByKey.status !== "acknowledged") {
+          if (existingByKey.requestHash !== operation.requestHash) {
             throw new Error("IDEMPOTENCY_CONFLICT");
           }
           return;
