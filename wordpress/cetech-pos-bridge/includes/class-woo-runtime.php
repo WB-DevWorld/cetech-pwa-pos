@@ -21,6 +21,8 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 	);
 	/** @var int */
 	protected $counter_sale_isolation_depth = 0;
+	/** @var bool */
+	protected $added_b2bking_cart_discount = false;
 
 	public function __construct( Cetech_Pos_Bridge_Environment $environment ) {
 		$this->environment = $environment;
@@ -68,12 +70,15 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 	}
 
 	/**
-	 * Restore snapshot. Always safe to call from finally.
+	 * Isolated quotes snapshot the service user, then discard the pre-quote
+	 * storefront cart/session objects on restore. Re-attaching those objects
+	 * after calculate_totals can abort PHP-FPM while REST is flushing JSON.
 	 *
 	 * @param array<string,mixed> $snapshot
 	 */
 	public function restore( array $snapshot ) {
 		$this->release_counter_sale_shipping();
+		$this->release_b2bking_cart_discount();
 		if ( $this->environment->function_exists( 'wp_set_current_user' ) && array_key_exists( 'user_id', $snapshot ) ) {
 			wp_set_current_user( (int) $snapshot['user_id'] );
 		}
@@ -81,14 +86,15 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		if ( ! $wc ) {
 			return;
 		}
-		if ( array_key_exists( 'session', $snapshot ) ) {
-			$wc->session = $snapshot['session'];
+		$wc->session = $this->new_session();
+		$wc->cart    = $this->new_cart();
+		if ( is_object( $wc->cart ) && method_exists( $wc->cart, 'empty_cart' ) ) {
+			$wc->cart->empty_cart( false );
 		}
-		if ( array_key_exists( 'customer', $snapshot ) ) {
+		if ( array_key_exists( 'customer', $snapshot ) && $snapshot['customer'] !== null ) {
 			$wc->customer = $snapshot['customer'];
-		}
-		if ( array_key_exists( 'cart', $snapshot ) ) {
-			$wc->cart = $snapshot['cart'];
+		} else {
+			$wc->customer = $this->new_customer( $this->current_user_id() );
 		}
 	}
 
@@ -103,6 +109,8 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 			add_filter( 'woocommerce_cart_needs_shipping', array( $this, 'counter_sale_needs_no_shipping' ), 9999 );
 			add_filter( 'woocommerce_cart_needs_shipping_address', array( $this, 'counter_sale_needs_no_shipping' ), 9999 );
 			add_filter( 'woocommerce_is_rest_api_request', array( $this, 'counter_sale_needs_no_shipping' ), 9999 );
+			add_filter( 'woocommerce_set_cookie_enabled', array( $this, 'counter_sale_needs_no_shipping' ), 9999 );
+			add_filter( 'woocommerce_persistent_cart_enabled', array( $this, 'counter_sale_needs_no_shipping' ), 9999 );
 		}
 		++$this->counter_sale_isolation_depth;
 	}
@@ -121,7 +129,46 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 			remove_filter( 'woocommerce_cart_needs_shipping', array( $this, 'counter_sale_needs_no_shipping' ), 9999 );
 			remove_filter( 'woocommerce_cart_needs_shipping_address', array( $this, 'counter_sale_needs_no_shipping' ), 9999 );
 			remove_filter( 'woocommerce_is_rest_api_request', array( $this, 'counter_sale_needs_no_shipping' ), 9999 );
+			remove_filter( 'woocommerce_set_cookie_enabled', array( $this, 'counter_sale_needs_no_shipping' ), 9999 );
+			remove_filter( 'woocommerce_persistent_cart_enabled', array( $this, 'counter_sale_needs_no_shipping' ), 9999 );
 		}
+	}
+
+	/**
+	 * B2BKing registers cart-total fee discounts at request init for the
+	 * authenticated staff user. Isolated quotes switch to the buyer afterward.
+	 * Re-attach B2BKing's own callback so Woo calculate_totals still runs it.
+	 * This does not copy B2BKing formulas.
+	 */
+	protected function enable_quote_customer_dynamic_pricing() {
+		if ( $this->added_b2bking_cart_discount ) {
+			return;
+		}
+		if ( ! $this->environment->class_exists( 'B2bking_Dynamic_Rules' ) ) {
+			return;
+		}
+		if ( ! method_exists( 'B2bking_Dynamic_Rules', 'b2bking_dynamic_rule_cart_discount' ) ) {
+			return;
+		}
+		if ( ! $this->environment->function_exists( 'add_action' ) ) {
+			return;
+		}
+		$callback = array( 'B2bking_Dynamic_Rules', 'b2bking_dynamic_rule_cart_discount' );
+		if ( $this->environment->function_exists( 'has_action' ) && has_action( 'woocommerce_cart_calculate_fees', $callback ) ) {
+			return;
+		}
+		add_action( 'woocommerce_cart_calculate_fees', $callback );
+		$this->added_b2bking_cart_discount = true;
+	}
+
+	protected function release_b2bking_cart_discount() {
+		if ( ! $this->added_b2bking_cart_discount ) {
+			return;
+		}
+		if ( $this->environment->function_exists( 'remove_action' ) ) {
+			remove_action( 'woocommerce_cart_calculate_fees', array( 'B2bking_Dynamic_Rules', 'b2bking_dynamic_rule_cart_discount' ) );
+		}
+		$this->added_b2bking_cart_discount = false;
 	}
 
 	/**
@@ -136,9 +183,9 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 			return $this->unavailable( 'WooCommerce runtime is not available.' );
 		}
 		if ( $customer['kind'] === 'walkin' ) {
+			$wc->session  = $this->new_session();
 			$this->set_user( 0 );
 			$wc->customer = $this->new_customer( 0 );
-			$wc->session  = $this->new_session();
 			return true;
 		}
 		$user_id = $this->resolve_customer_user_id( $customer['customerId'] );
@@ -163,9 +210,14 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 				array( 'field' => 'customer' )
 			);
 		}
-		$this->set_user( $user_id );
-		$wc->customer = $this->new_customer( $user_id );
 		$wc->session  = $this->new_session();
+		if ( method_exists( $wc->session, 'set_customer_id' ) ) {
+			$wc->session->set_customer_id( $user_id );
+		}
+		$this->set_user( $user_id );
+		$this->clear_session_cart_bag();
+		$wc->customer = $this->new_customer( $user_id );
+		$this->enable_quote_customer_dynamic_pricing();
 		return true;
 	}
 
@@ -174,11 +226,25 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		if ( ! $wc ) {
 			return $this->unavailable( 'WooCommerce runtime is not available.' );
 		}
+		$this->clear_session_cart_bag();
 		$wc->cart = $this->new_cart();
 		if ( is_object( $wc->cart ) && method_exists( $wc->cart, 'empty_cart' ) ) {
 			$wc->cart->empty_cart( false );
 		}
 		return true;
+	}
+
+	protected function clear_session_cart_bag() {
+		$wc = $this->wc();
+		if ( ! $wc || ! isset( $wc->session ) || ! is_object( $wc->session ) || ! method_exists( $wc->session, 'set' ) ) {
+			return;
+		}
+		$wc->session->set( 'cart', array() );
+		$wc->session->set( 'cart_totals', null );
+		$wc->session->set( 'applied_coupons', array() );
+		$wc->session->set( 'coupon_discount_totals', array() );
+		$wc->session->set( 'coupon_discount_tax_totals', array() );
+		$wc->session->set( 'removed_cart_contents', array() );
 	}
 
 	/**
@@ -260,9 +326,15 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		}
 		$cart     = $wc->cart;
 		$shipping = $this->cart_amount( $cart, 'get_shipping_total', 'shipping_total' );
-		$fees     = $this->cart_amount( $cart, 'get_fee_total', 'fee_total' );
-		if ( $this->amount_is_nonzero( $shipping ) || $this->amount_is_nonzero( $fees ) ) {
-			return $this->unavailable( 'Isolated POS quote still contains storefront shipping or fees; v1 Quote has no shipping field.' );
+		if ( $this->amount_is_nonzero( $shipping ) ) {
+			return $this->unavailable( 'Isolated POS quote still contains storefront shipping; v1 Quote has no shipping field.' );
+		}
+		$fee_minor = $this->signed_minor( $this->cart_amount( $cart, 'get_fee_total', 'fee_total' ) );
+		if ( $fee_minor === null ) {
+			return $this->unavailable( 'Isolated POS quote returned an unreadable Woo fee total.' );
+		}
+		if ( $fee_minor > 0 ) {
+			return $this->unavailable( 'Isolated POS quote still contains a positive Woo fee; v1 Quote has no fee field.' );
 		}
 		$contents = method_exists( $cart, 'get_cart' ) ? $cart->get_cart() : array();
 		$lines    = array();
@@ -273,7 +345,7 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 			}
 			$lines[] = $mapped;
 		}
-		return array(
+		$priced = array(
 			'currency' => $currency,
 			'lines'    => $lines,
 			'subtotal' => $this->cart_amount( $cart, 'get_subtotal', 'subtotal' ),
@@ -281,6 +353,10 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 			'tax'      => $this->cart_amount( $cart, 'get_total_tax', 'total_tax' ),
 			'total'    => $this->cart_total_amount( $cart ),
 		);
+		if ( $fee_minor < 0 ) {
+			$priced = $this->apply_negative_fee_discount( $priced, -$fee_minor );
+		}
+		return $priced;
 	}
 
 	protected function map_cart_item( $item, $currency ) {
@@ -354,6 +430,9 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 				$suffix = wp_strip_all_tags( $suffix );
 			}
 			$suffix = trim( $suffix );
+			if ( $suffix !== '' && function_exists( 'wp_check_invalid_utf8' ) ) {
+				$suffix = wp_check_invalid_utf8( $suffix, true );
+			}
 			if ( $suffix !== '' ) {
 				return $suffix;
 			}
@@ -526,6 +605,49 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 	}
 
 	protected function new_session() {
+		if ( $this->environment->class_exists( 'WC_Session' ) ) {
+			return new class() extends WC_Session {
+				/** @var array<string,mixed> */
+				private $bag = array();
+				/** @var int */
+				private $quote_customer_id = 0;
+
+				public function get( $key, $default = null ) {
+					$key = (string) $key;
+					return array_key_exists( $key, $this->bag ) ? $this->bag[ $key ] : $default;
+				}
+
+				public function set( $key, $value ) {
+					$this->bag[ (string) $key ] = $value;
+				}
+
+				public function get_customer_id() {
+					return $this->quote_customer_id;
+				}
+
+				public function set_customer_id( $id ) {
+					$this->quote_customer_id = (int) $id;
+					if ( property_exists( $this, '_customer_id' ) ) {
+						$this->_customer_id = (string) $this->quote_customer_id;
+					}
+				}
+
+				public function has_session() {
+					return true;
+				}
+
+				public function save_data() {}
+
+				public function set_customer_session_cookie( $set = true ) {
+					unset( $set );
+				}
+
+				public function __call( $name, $arguments ) {
+					unset( $name, $arguments );
+					return null;
+				}
+			};
+		}
 		return new Cetech_Pos_Bridge_Ephemeral_Session();
 	}
 
@@ -538,6 +660,73 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 			}
 		}
 		return null;
+	}
+
+	protected function apply_negative_fee_discount( array $priced, $fee_discount_minor ) {
+		$currency = (string) $priced['currency'];
+		$add      = (int) $fee_discount_minor;
+		if ( $add <= 0 ) {
+			return $priced;
+		}
+		$coupon = Cetech_Pos_Bridge_Money::from_decimal_string( $priced['discount'], $currency );
+		if ( $coupon === null ) {
+			return $this->unavailable( 'Woo coupon discount could not be converted after a negative fee.' );
+		}
+		$lines = $priced['lines'];
+		$n     = count( $lines );
+		if ( $n < 1 ) {
+			return $this->unavailable( 'Negative Woo fee discount had no cart lines to allocate.' );
+		}
+		$subs = array();
+		$sum  = 0;
+		foreach ( $lines as $line ) {
+			$sub = Cetech_Pos_Bridge_Money::from_decimal_string( $line['subtotal'], $currency );
+			if ( $sub === null ) {
+				return $this->unavailable( 'A quote line subtotal could not be converted while allocating a Woo fee discount.' );
+			}
+			$subs[] = $sub;
+			$sum   += $sub;
+		}
+		$left = $add;
+		foreach ( $lines as $i => $line ) {
+			$share = ( $i === $n - 1 ) ? $left : ( $sum > 0 ? intdiv( $add * $subs[ $i ], $sum ) : 0 );
+			if ( $i !== $n - 1 ) {
+				$left -= $share;
+			}
+			$existing = Cetech_Pos_Bridge_Money::from_decimal_string( $line['discount'], $currency );
+			if ( $existing === null ) {
+				return $this->unavailable( 'A quote line discount could not be converted while allocating a Woo fee discount.' );
+			}
+			$combined = $existing + $share;
+			if ( $combined > $subs[ $i ] ) {
+				return $this->unavailable( 'Woo fee discount exceeded a line subtotal; v1 Quote cannot allocate it.' );
+			}
+			$priced['lines'][ $i ]['discount'] = $this->format_minor_as_decimal( $combined );
+		}
+		$priced['discount'] = $this->format_minor_as_decimal( $coupon + $add );
+		return $priced;
+	}
+
+	protected function signed_minor( $decimal ) {
+		$s = trim( (string) $decimal );
+		if ( $s === '' || $s === '0' || $s === '0.0' || $s === '0.00' ) {
+			return 0;
+		}
+		$neg      = strpos( $s, '-' ) === 0;
+		$unsigned = $neg ? substr( $s, 1 ) : $s;
+		$minor    = Cetech_Pos_Bridge_Money::from_decimal_string( $unsigned, $this->currency() );
+		if ( $minor === null ) {
+			return null;
+		}
+		return $neg ? -$minor : $minor;
+	}
+
+	protected function format_minor_as_decimal( $minor ) {
+		$minor = (int) $minor;
+		if ( $minor < 0 ) {
+			$minor = 0;
+		}
+		return sprintf( '%d.%02d', intdiv( $minor, 100 ), $minor % 100 );
 	}
 
 	protected function amount_is_nonzero( $decimal ) {

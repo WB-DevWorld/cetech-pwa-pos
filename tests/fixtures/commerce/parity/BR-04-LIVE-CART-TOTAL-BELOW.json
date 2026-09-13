@@ -1,5 +1,5 @@
 {
-  "caseId": "BR-04-LIVE-B2B-GROUP",
+  "caseId": "BR-04-LIVE-CART-TOTAL-BELOW",
   "environment": "training.cetechbpa.com",
   "utc": "2026-09-13T18:06:43Z",
   "versions": {
@@ -10,42 +10,43 @@
   },
   "customerContextClass": "b2b",
   "productSurrogate": "P-SIMPLE-A",
-  "quantity": "1",
+  "quantity": "9",
   "currency": "GHS",
+  "configuredRuleSurrogate": "49250",
   "authoritative": {
     "lines": [
       {
         "productSurrogate": "P-SIMPLE-A",
-        "quantity": "1",
+        "quantity": "9",
         "unitPriceMinor": 3400,
-        "subtotalMinor": 3400,
+        "subtotalMinor": 30600,
         "discountMinor": 0,
         "taxMinor": 0,
-        "totalMinor": 3400
+        "totalMinor": 30600
       }
     ],
-    "subtotalMinor": 3400,
+    "subtotalMinor": 30600,
     "discountMinor": 0,
     "taxMinor": 0,
-    "totalMinor": 3400
+    "totalMinor": 30600
   },
   "bridge": {
     "lines": [
       {
         "unitPriceMinor": 3400,
-        "subtotalMinor": 3400,
+        "subtotalMinor": 30600,
         "discountMinor": 0,
         "taxMinor": 0,
-        "totalMinor": 3400
+        "totalMinor": 30600
       }
     ],
-    "subtotalMinor": 3400,
+    "subtotalMinor": 30600,
     "discountMinor": 0,
     "taxMinor": 0,
-    "totalMinor": 3400
+    "totalMinor": 30600
   },
   "minorUnitDelta": 0,
   "applicability": "LIVE_TRAINING_CAPTURE",
   "result": "MATCH_EXACT",
-  "reason": "Safe synthetic B2B identity classified by b2bking_b2buser=yes, group 49242. Qty 1 uses the configured group sale 34.00 (retail remains 40.00). Cart-total percentage does not fire below rule 49250. Unauthorized kind switch retail-as-b2b returns 403 FORBIDDEN."
+  "reason": "Safe synthetic B2B identity in group 49242. Published rule 49250 is discount_percentage cart_total with cart_total_quantity greater 9. Qty 9 is below that threshold. Woo fee 0. Group sale unit 34.00. No formula copied."
 }

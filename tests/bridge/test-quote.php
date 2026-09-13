@@ -262,3 +262,53 @@ $closed_keys = array( 'ok', 'data', 'correlationId' );
 br01_assert_eq( $closed_keys, array_keys( $ok_payload ), 'quote success envelope closed' );
 $quote_keys  = array( 'id', 'cartId', 'cartRevision', 'customer', 'locationId', 'currency', 'lines', 'subtotal', 'discount', 'tax', 'total', 'calculatedAt', 'expiresAt', 'purchasable', 'fingerprint' );
 br01_assert_eq( $quote_keys, array_keys( $ok_payload['data'] ), 'Quote object closed field set' );
+
+$plugin_http = new Cetech_Pos_Bridge_Plugin( br01_authorized_env() );
+$quote_http_request = new Cetech_Pos_Bridge_Test_Request(
+	array( 'X-Correlation-ID' => $quote_correlation ),
+	'/cetech-pos/v1/quotes'
+);
+$already = Cetech_Pos_Bridge_Response::failure(
+	'VALIDATION_ERROR',
+	'QuoteRequest is missing a required field.',
+	$quote_correlation,
+	array( 'field' => 'cartId' )
+);
+$rewrapped = $plugin_http->normalize_error_response( $already, null, $quote_http_request );
+$rewrapped_payload = br01_payload( $rewrapped );
+br01_assert_eq( 'VALIDATION_ERROR', $rewrapped_payload['error']['code'], 'rest_post_dispatch keeps bridge error code' );
+br01_assert_eq( 'QuoteRequest is missing a required field.', $rewrapped_payload['error']['message'], 'rest_post_dispatch keeps bridge error message' );
+br01_assert_eq( 'cartId', $rewrapped_payload['error']['details']['field'], 'rest_post_dispatch keeps field details' );
+br01_assert_eq( $quote_correlation, $rewrapped_payload['correlationId'], 'rest_post_dispatch keeps correlation' );
+
+$boom_http_runtime                     = br02_fake_runtime();
+$boom_http_runtime->throw_on_calculate = true;
+$boom_http                             = br02_dispatch_quote(
+	$boom_http_runtime,
+	br02_guest_request( $cart_id, $line_id_a, $location_id ),
+	array( 'X-Correlation-ID' => $quote_correlation )
+);
+$boom_http_payload = br01_payload( $boom_http );
+br01_assert_eq( 503, br01_status( $boom_http ), 'quote abort becomes HTTP 503 not an empty 500' );
+br01_assert_eq( 'INTEGRATION_UNAVAILABLE', $boom_http_payload['error']['code'], 'quote abort uses INTEGRATION_UNAVAILABLE' );
+br01_assert_eq( $quote_correlation, $boom_http_payload['correlationId'], 'quote abort keeps correlation' );
+
+$session = new Cetech_Pos_Bridge_Ephemeral_Session();
+$session->set_customer_id( 13 );
+$session->set( 'cart', array( 'x' => 1 ) );
+br01_assert_eq( 13, $session->get_customer_id(), 'ephemeral session stores customer id' );
+br01_assert_eq( array( 'x' => 1 ), $session->get( 'cart' ), 'ephemeral session stores cart bag' );
+br01_assert_eq( false, $session->set_customer_session_cookie( true ), 'ephemeral session does not set cookies' );
+br01_assert_eq( null, $session->unknown_storefront_method(), 'ephemeral session swallows unknown handler methods' );
+
+$already_served = $plugin_http->serve_namespace_json( true, $ok_quote, $quote_http_request, null );
+br01_assert_eq( true, $already_served, 'serve_namespace_json respects an already-served request' );
+$foreign_serve = $plugin_http->serve_namespace_json( false, $ok_quote, new Cetech_Pos_Bridge_Test_Request( array(), '/wp/v2/users' ), null );
+br01_assert_eq( false, $foreign_serve, 'serve_namespace_json leaves non-bridge routes to WordPress' );
+ob_start();
+$served = $plugin_http->serve_namespace_json( false, $ok_quote, $quote_http_request, null );
+$served_body = ob_get_clean();
+br01_assert_eq( true, $served, 'serve_namespace_json claims the bridge JSON body' );
+$served_json = json_decode( $served_body, true );
+br01_assert( is_array( $served_json ) && ! empty( $served_json['ok'] ), 'serve_namespace_json echoes a JSON success envelope' );
+br01_assert_eq( 1000, $served_json['data']['total']['minor'], 'served JSON keeps quote total' );

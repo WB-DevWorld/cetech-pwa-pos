@@ -1,3 +1,25 @@
+# WS2 current handoff — R3 B2BKING-EFFECT PROGRESS_CHECKPOINT
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T18:09:14Z live concurrent capture
+Task / batch / workstream: BR-02–BR-05 configured B2BKing effect + concurrent HTTP; R3 continuation (not Pass 3)
+Owner / integration editor / requested human reviewer: WS2 @Emmanuel-coder-prog / editor @wbdevworld / request @Ben-001-sys only after FRESH_2 and CI green
+Branch: `batch/r3-authoritative-pricing-parity` / draft PR #44
+Starting/base SHA: `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`
+Continuation start SHA: `d20db41b41225932c0a758e1af2e654e3c8cb6ae`
+Current/final task head SHA: recorded in PR #44 after the evidence/freshness commits
+Contracts changed: none (v1.0.0)
+Database migrations: none
+Architecture decisions: none (escalate environment-scoped `pricingParityVerified`; keep v1 field false)
+Plugin: `0.2.6-br02` on training
+`pricingParityVerified`: false
+Training gate: PASS candidate (see `docs/integration/evidence/R3-B2BKING-EFFECT.md`)
+Issue #4: OPEN
+R4: not started
+Evidence: `docs/integration/evidence/R3-B2BKING-EFFECT.md`, `docs/integration/evidence/R3-B2BKING-EFFECT-START-FRESHNESS.md`
+Next exact action: exact-head suite, two NEW freshness passes, update PR #44, request review only if FRESH_2 + CI green. Do not merge. Do not start R4. No Pass 3.
+
+## Previous current handoff — R3 TRAINING-LIVE SESSION_COMPLETION (FRESH_2)
+
 # WS2 current handoff — R3 TRAINING-LIVE SESSION_COMPLETION (FRESH_2)
 
 Kind / UTC: SESSION_COMPLETION / 2026-09-13T17:08:52Z (Pass-2 cutoff; no Pass 3)

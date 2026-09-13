@@ -60,6 +60,20 @@ class WP_REST_Response {
 	public function is_error() {
 		return $this->status >= 400;
 	}
+
+	public function as_error() {
+		if ( ! $this->is_error() ) {
+			return null;
+		}
+		if ( is_array( $this->data ) && isset( $this->data['code'], $this->data['message'] ) ) {
+			return new WP_Error(
+				$this->data['code'],
+				$this->data['message'],
+				isset( $this->data['data'] ) ? $this->data['data'] : array()
+			);
+		}
+		return new WP_Error( '', null, array( 'status' => $this->status ) );
+	}
 }
 
 class Cetech_Pos_Bridge_Test_Request {

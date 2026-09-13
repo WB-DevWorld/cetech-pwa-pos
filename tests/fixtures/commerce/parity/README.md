@@ -8,4 +8,4 @@ Each case records case ID, environment, UTC, plugin/theme versions, customer-con
 
 Synthetic isolation rows prove the bridge matches an injected Woo runtime. They are not WoodMart/B2BKing live parity.
 
-Live training rows use `LIVE_TRAINING_CAPTURE` or `NOT_APPLICABLE_WITH_EVIDENCE`. Training tax-off remains `NOT_APPLICABLE_WITH_EVIDENCE` from CP-04. `pricingParityVerified` stays false until the R3 gate is actually satisfied.
+Live training rows use `LIVE_TRAINING_CAPTURE` or `NOT_APPLICABLE_WITH_EVIDENCE`. Training tax-off remains `NOT_APPLICABLE_WITH_EVIDENCE` from CP-04. `pricingParityVerified` stays false because frozen v1 BridgeHealth has no environment/artifact field. Training gate evidence: `docs/integration/evidence/R3-B2BKING-EFFECT.md`.

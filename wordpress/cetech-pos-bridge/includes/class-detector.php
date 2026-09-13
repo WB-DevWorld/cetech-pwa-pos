@@ -17,6 +17,10 @@ final class Cetech_Pos_Bridge_Detector {
 	}
 
 	/**
+	 * Frozen v1 BridgeHealth.pricingParityVerified is a global boolean with no
+	 * environment or bridge-artifact identity. Training R3 evidence is recorded
+	 * separately. This field stays false so unverified environments are not claimed.
+	 *
 	 * @return array{status:string,contractVersion:string,wooDetected:bool,woodmartDetected:bool,b2bkingDetected:bool,pricingParityVerified:false}
 	 */
 	public function detect() {

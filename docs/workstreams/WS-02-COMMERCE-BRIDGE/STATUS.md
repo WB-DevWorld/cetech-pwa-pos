@@ -1,8 +1,21 @@
 # WS2 current status
 
-Snapshot 2026-09-13. `origin/main` `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`. Owner: Developer 2 / @Emmanuel-coder-prog. R3 editor: @wbdevworld on `batch/r3-authoritative-pricing-parity` / draft PR #44. Training-live continuation start: `docs/integration/evidence/R3-TRAINING-LIVE-START-FRESHNESS.md`. Live capture: `docs/integration/evidence/R3-TRAINING-LIVE.md`. Final freshness: `docs/integration/evidence/R3-TRAINING-LIVE-FRESHNESS.md` (**FRESH_2**).
+Snapshot 2026-09-13. `origin/main` `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`. Owner: Developer 2 / @Emmanuel-coder-prog. R3 editor: @wbdevworld on `batch/r3-authoritative-pricing-parity` / draft PR #44. Continuation start: `docs/integration/evidence/R3-B2BKING-EFFECT-START-FRESHNESS.md`. Live capture: `docs/integration/evidence/R3-B2BKING-EFFECT.md`. Training plugin **`0.2.6-br02`**.
 
-R3 queue unchanged. Training plugin is `0.2.3-br02`. Live quote matrix captured with zero unexplained minor-unit deltas. Guest remains unpriced (B2BKing guest purchasable off). R3 pricing gate **NOT PASSED**. `pricingParityVerified` false. Issue #4 stays OPEN. Review not requested.
+R3 training pricing-gate **PASS candidate**. Guest REFUSAL_MATCH. Retail/variation/WoodMart 19/20/21 MATCH_EXACT. Configured B2BKing cart-total LIVE MATCH_EXACT. Concurrent 12/12 HTTP isolation VERIFIED. Tax-on N/A. `pricingParityVerified` **false** (no v1 environment field). Issue #4 stays OPEN. Do not start R4. Do not merge until independent review.
+
+| Task | State | Branch / evidence |
+| --- | --- | --- |
+| CP-04 WS2 intake | EVIDENCE RECORDED; not CP-04 complete | Prior `ws2/cp-04-commerce-intake`; `evidence/CP-04-STAGING-INTAKE.md`. W1 still PASS after quotes. |
+| BR-01 | INTEGRATED_AND_TESTED / LIVE WORDPRESS HEALTH VERIFIED on main | Issue #13. `pricingParityVerified` stays false. |
+| BR-02 | LIVE RETAIL/VARIATION MATCH; guest REFUSAL_MATCH; concurrent LIVE VERIFIED | Issue #14. Plugin `0.2.6-br02`. Evidence `docs/integration/evidence/R3-B2BKING-EFFECT.md`. |
+| BR-03 | LIVE WOODMART from-qty 20 MATCH (19/20/21 unit 38.00 at 21) | Issue #15. No invented thresholds. |
+| BR-04 | LIVE cart-total MATCH_EXACT; unconfigured types N/A | Issue #16. Rules 49250/49253 exercised. Kind switch 403. |
+| BR-05 | LIVE OVERLAP MATCH; training gate PASS candidate | Issue #17. Tax-off N/A. `pricingParityVerified` false. |
+| BR-06 | SPECIFIED / BLOCKED | HPOS/prepare; R5. See TASKS.md |
+| BR-07 | SPECIFIED / BLOCKED | Finalize/cancel; R6. See TASKS.md |
+
+## Previous snapshot (R3 training-live 0.2.3 — historical; current section above controls)
 
 | Task | State | Branch / evidence |
 | --- | --- | --- |

@@ -1,5 +1,5 @@
 {
-  "caseId": "BR-04-LIVE-B2B-GROUP",
+  "caseId": "BR-04-LIVE-CART-TOTAL-ABOVE",
   "environment": "training.cetechbpa.com",
   "utc": "2026-09-13T18:06:43Z",
   "versions": {
@@ -10,42 +10,43 @@
   },
   "customerContextClass": "b2b",
   "productSurrogate": "P-SIMPLE-A",
-  "quantity": "1",
+  "quantity": "20",
   "currency": "GHS",
+  "configuredRuleSurrogate": "49253",
   "authoritative": {
     "lines": [
       {
         "productSurrogate": "P-SIMPLE-A",
-        "quantity": "1",
+        "quantity": "20",
         "unitPriceMinor": 3400,
-        "subtotalMinor": 3400,
-        "discountMinor": 0,
+        "subtotalMinor": 68000,
+        "discountMinor": 4760,
         "taxMinor": 0,
-        "totalMinor": 3400
+        "totalMinor": 63240
       }
     ],
-    "subtotalMinor": 3400,
-    "discountMinor": 0,
+    "subtotalMinor": 68000,
+    "discountMinor": 4760,
     "taxMinor": 0,
-    "totalMinor": 3400
+    "totalMinor": 63240
   },
   "bridge": {
     "lines": [
       {
         "unitPriceMinor": 3400,
-        "subtotalMinor": 3400,
-        "discountMinor": 0,
+        "subtotalMinor": 68000,
+        "discountMinor": 4760,
         "taxMinor": 0,
-        "totalMinor": 3400
+        "totalMinor": 63240
       }
     ],
-    "subtotalMinor": 3400,
-    "discountMinor": 0,
+    "subtotalMinor": 68000,
+    "discountMinor": 4760,
     "taxMinor": 0,
-    "totalMinor": 3400
+    "totalMinor": 63240
   },
   "minorUnitDelta": 0,
   "applicability": "LIVE_TRAINING_CAPTURE",
   "result": "MATCH_EXACT",
-  "reason": "Safe synthetic B2B identity classified by b2bking_b2buser=yes, group 49242. Qty 1 uses the configured group sale 34.00 (retail remains 40.00). Cart-total percentage does not fire below rule 49250. Unauthorized kind switch retail-as-b2b returns 403 FORBIDDEN."
+  "reason": "Qty 20 is inside published rule 49253 cart_total_quantity greater-19 window. Woo negative fee -47.60 maps to discountMinor 4760. Group sale unit remains 34.00. WoodMart from-qty 20 does not apply to this B2B context."
 }

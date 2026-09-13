@@ -40,6 +40,7 @@ final class Cetech_Pos_Bridge_Plugin {
 		}
 		if ( function_exists( 'add_filter' ) ) {
 			add_filter( 'rest_post_dispatch', array( $this, 'normalize_error_response' ), 10, 3 );
+			add_filter( 'rest_pre_serve_request', array( $this, 'serve_namespace_json' ), PHP_INT_MAX, 4 );
 		}
 	}
 
@@ -103,6 +104,9 @@ final class Cetech_Pos_Bridge_Plugin {
 		if ( strpos( $route, '/' . Cetech_Pos_Bridge_Constants::NAMESPACE ) !== 0 ) {
 			return $response;
 		}
+		if ( $this->is_bridge_envelope( $response ) ) {
+			return $response;
+		}
 		$error = null;
 		if ( function_exists( 'is_wp_error' ) && is_wp_error( $response ) ) {
 			$error = $response;
@@ -116,6 +120,55 @@ final class Cetech_Pos_Bridge_Plugin {
 		return Cetech_Pos_Bridge_Response::from_wp_error( $error, $correlation );
 	}
 
+	/**
+	 * Serve this namespace's JSON body before WordPress's default REST echo.
+	 * Isolated quotes can succeed and then an empty HTTP 500 happens while the
+	 * storefront session is restored around REST output. This does not change
+	 * the envelope; it only writes the already-normalized payload.
+	 *
+	 * @param bool                     $served
+	 * @param mixed                    $result
+	 * @param object                   $request
+	 * @param mixed                    $server
+	 * @return bool
+	 */
+	public function serve_namespace_json( $served, $result, $request, $server ) {
+		unset( $server );
+		if ( $served ) {
+			return $served;
+		}
+		$route = '';
+		if ( is_object( $request ) && method_exists( $request, 'get_route' ) ) {
+			$route = (string) $request->get_route();
+		}
+		if ( strpos( $route, '/' . Cetech_Pos_Bridge_Constants::NAMESPACE ) !== 0 ) {
+			return $served;
+		}
+		$data = null;
+		if ( is_object( $result ) && method_exists( $result, 'get_data' ) ) {
+			$data = $result->get_data();
+		} elseif ( is_array( $result ) ) {
+			$data = $result;
+		}
+		try {
+			$json = function_exists( 'wp_json_encode' ) ? wp_json_encode( $data ) : json_encode( $data );
+		} catch ( \Throwable $e ) {
+			unset( $e );
+			$json = false;
+		}
+		if ( ! is_string( $json ) || $json === '' ) {
+			$json = '{"ok":false,"error":{"code":"INTEGRATION_UNAVAILABLE","message":"Quote runtime result could not be encoded as JSON.","retryable":true,"nextAction":"resolve"},"correlationId":""}';
+			if ( function_exists( 'status_header' ) ) {
+				status_header( 503 );
+			}
+		}
+		echo $json;
+		if ( function_exists( 'fastcgi_finish_request' ) ) {
+			fastcgi_finish_request();
+		}
+		return true;
+	}
+
 	private function resolve_correlation_for_error( $request, $error ) {
 		$data = array();
 		if ( is_object( $error ) && method_exists( $error, 'get_error_data' ) ) {
@@ -126,6 +179,27 @@ final class Cetech_Pos_Bridge_Plugin {
 		}
 		$header = $this->controller_correlation_or_generated( $request );
 		return $header;
+	}
+
+	/**
+	 * WordPress rest_post_dispatch sees status>=400 as is_error() and as_error()
+	 * looks for top-level code/message. Our frozen envelope uses ok/error/correlationId.
+	 * Re-wrapping that object would wipe VALIDATION_ERROR/FORBIDDEN onto empty code.
+	 *
+	 * @param mixed $response
+	 * @return bool
+	 */
+	private function is_bridge_envelope( $response ) {
+		$data = null;
+		if ( is_object( $response ) && method_exists( $response, 'get_data' ) ) {
+			$data = $response->get_data();
+		} elseif ( is_array( $response ) ) {
+			$data = $response;
+		}
+		return is_array( $data )
+			&& array_key_exists( 'ok', $data )
+			&& array_key_exists( 'correlationId', $data )
+			&& ( array_key_exists( 'error', $data ) || array_key_exists( 'data', $data ) );
 	}
 
 	private function controller_correlation_or_generated( $request ) {

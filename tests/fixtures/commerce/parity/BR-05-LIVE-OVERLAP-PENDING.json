@@ -1,12 +1,12 @@
 {
   "caseId": "BR-05-LIVE-OVERLAP",
   "environment": "training.cetechbpa.com",
-  "utc": "2026-09-13T17:02:00Z",
+  "utc": "2026-09-13T18:06:43Z",
   "versions": {
     "woo": "11.1.0",
     "woodmart": "8.5.7",
     "b2bking": "core-v5.6.30",
-    "bridge": "0.2.3-br02"
+    "bridge": "0.2.6-br02"
   },
   "customerContextClass": "overlap",
   "productSurrogate": "P-SIMPLE-A",
@@ -19,9 +19,10 @@
       "totalMinor": 76000
     },
     "b2bAt20": {
-      "unitPriceMinor": 4000,
-      "subtotalMinor": 80000,
-      "totalMinor": 80000
+      "unitPriceMinor": 3400,
+      "subtotalMinor": 68000,
+      "discountMinor": 4760,
+      "totalMinor": 63240
     }
   },
   "bridge": {
@@ -31,13 +32,14 @@
       "totalMinor": 76000
     },
     "b2bAt20": {
-      "unitPriceMinor": 4000,
-      "subtotalMinor": 80000,
-      "totalMinor": 80000
+      "unitPriceMinor": 3400,
+      "subtotalMinor": 68000,
+      "discountMinor": 4760,
+      "totalMinor": 63240
     }
   },
   "minorUnitDelta": 0,
   "applicability": "LIVE_TRAINING_CAPTURE",
   "result": "MATCH_EXACT",
-  "reason": "Same simple product qty 20: retail receives the WoodMart from-qty-20 unit change; the B2B-classified customer does not. Bridge matches Woo on both contexts. No CETECH precedence formula. Tax remains off."
+  "reason": "Same simple product qty 20: retail receives WoodMart from-qty-20 unit 38.00 total 76000. B2B receives group sale 34.00 plus configured cart-total rule 49253 as a Woo negative fee mapped to discount 4760, total 63240. Bridge matches Woo on both contexts. No CETECH precedence formula. Tax remains off."
 }

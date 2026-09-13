@@ -1,12 +1,12 @@
 {
   "caseId": "BR-02-LIVE-GUEST-REFUSAL",
   "environment": "training.cetechbpa.com",
-  "utc": "2026-09-13T17:02:00Z",
+  "utc": "2026-09-13T18:06:43Z",
   "versions": {
     "woo": "11.1.0",
     "woodmart": "8.5.7",
     "b2bking": "core-v5.6.30",
-    "bridge": "0.2.3-br02"
+    "bridge": "0.2.6-br02"
   },
   "customerContextClass": "walkin",
   "productSurrogate": "P-SIMPLE-A",

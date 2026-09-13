@@ -77,13 +77,25 @@ final class Cetech_Pos_Bridge_Response {
 		$code    = 'VALIDATION_ERROR';
 		$message = 'Request failed.';
 		if ( is_object( $error ) && method_exists( $error, 'get_error_data' ) ) {
-			$data    = (array) $error->get_error_data();
-			$code    = $error->get_error_code();
-			$message = $error->get_error_message();
+			$data         = (array) $error->get_error_data();
+			$error_code   = $error->get_error_code();
+			$error_message = $error->get_error_message();
+			if ( is_string( $error_code ) && $error_code !== '' ) {
+				$code = $error_code;
+			}
+			if ( is_string( $error_message ) && $error_message !== '' ) {
+				$message = $error_message;
+			}
 		} elseif ( is_object( $error ) && ! empty( $error->is_wp_error ) ) {
-			$data    = (array) $error->data;
-			$code    = $error->code;
-			$message = $error->message;
+			$data          = (array) $error->data;
+			$error_code    = $error->code;
+			$error_message = $error->message;
+			if ( is_string( $error_code ) && $error_code !== '' ) {
+				$code = $error_code;
+			}
+			if ( is_string( $error_message ) && $error_message !== '' ) {
+				$message = $error_message;
+			}
 		}
 		$correlation = isset( $data['correlationId'] ) && is_string( $data['correlationId'] ) && $data['correlationId'] !== ''
 			? $data['correlationId']
