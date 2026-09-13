@@ -55,11 +55,13 @@ class WP_REST_Response {
 
 class Cetech_Pos_Bridge_Test_Request {
 	public $headers = array();
+	public $route   = '/cetech-pos/v1/health';
 
-	public function __construct( array $headers = array() ) {
+	public function __construct( array $headers = array(), $route = '/cetech-pos/v1/health' ) {
 		foreach ( $headers as $name => $value ) {
 			$this->headers[ strtolower( $name ) ] = $value;
 		}
+		$this->route = (string) $route;
 	}
 
 	public function get_header( $name ) {
@@ -68,7 +70,7 @@ class Cetech_Pos_Bridge_Test_Request {
 	}
 
 	public function get_route() {
-		return '/cetech-pos/v1/health';
+		return $this->route;
 	}
 }
 
