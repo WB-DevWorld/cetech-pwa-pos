@@ -1,3 +1,11 @@
+# WS3 current handoff — R3 CART-DISCOUNT / ADR-013 (SESSION_COMPLETION FRESH_2)
+
+Kind / UTC: SESSION_COMPLETION / 2026-09-13T19:07:50Z (Pass-2 cutoff; no Pass 3)
+R3 PR #44 OPEN. ADR-013 recorded. Training plugin `0.2.7-br02`. Live multi-line MATCH_EXACT. Freshness **FRESH_2**. `pricingParityVerified` false. Request @Ben-001-sys on the exact final SHA. R4 NOT STARTED. Do not merge.
+Evidence: `docs/integration/evidence/R3-CART-DISCOUNT.md`, `docs/integration/evidence/R3-CART-DISCOUNT-FRESHNESS.md`
+
+## Previous current handoff — R3 CART-DISCOUNT / ADR-013 (PROGRESS_CHECKPOINT)
+
 # WS3 current handoff — R3 CART-DISCOUNT / ADR-013 (PROGRESS_CHECKPOINT)
 
 Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T19:02:25Z
