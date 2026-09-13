@@ -1,6 +1,6 @@
 # WS3 current handoff — R2 closeout / R3 activation (TASK_COMPLETION)
 
-Kind / UTC: TASK_COMPLETION / recorded in `docs/integration/evidence/R2-CLOSEOUT-R3-ACTIVATION.md`
+Kind / UTC: TASK_COMPLETION / 2026-09-13T18:08:11Z (Pass-2 cutoff; Pass 3 not permitted)
 Task / batch / workstream: R2 closeout + explicit R3 activation; WS3 senior coordination
 Owner / integration editor / requested human reviewer: @wbdevworld / same / @Ben-001-sys only on a later R3 gate-ready head (not this closeout)
 Branch: `ws3/r2-closeout-r3-activation`

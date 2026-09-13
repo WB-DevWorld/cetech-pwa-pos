@@ -88,7 +88,7 @@ Observed values are UNVERIFIED until measured; do not interpret blanks as zero. 
 | Human interruptions / prompts per accepted task | UNVERIFIED | UNVERIFIED | UNVERIFIED | Session/handoff counts; distinguish milestone review from routine prompts |
 | Review waiting time / branch age | UNVERIFIED | UNVERIFIED | UNVERIFIED | Ready-for-review, branch start and review/merge UTC |
 | Time since combined integration | UNVERIFIED | Last combined on main: R2 merge `ab9aa5ae…` at `2026-09-13T15:23:35Z`; post-merge CI completed `2026-09-13T15:29:22Z` | UNVERIFIED | Last combined build SHA/UTC |
-| Pass-1 / Pass-2 stale findings | 0 / 0 for workflow adoption; both cutoffs `cd4477f` | 0 / 0; historical R2 continuation cutoffs `aa08d74f…` / `280a73d…` (`2026-09-12T23:28:42Z` / `2026-09-12T23:29:59Z`) | this closeout: recorded in `docs/integration/evidence/R2-CLOSEOUT-R3-ACTIVATION.md` | Final freshness classifications |
+| Pass-1 / Pass-2 stale findings | 0 / 0 for workflow adoption; both cutoffs `cd4477f` | 0 / 0; historical R2 continuation cutoffs `aa08d74f…` / `280a73d…` (`2026-09-12T23:28:42Z` / `2026-09-12T23:29:59Z`) | 0 / 0; this closeout both cutoffs `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77` (`2026-09-13T18:07:45Z` / `2026-09-13T18:08:11Z`); FRESH_2 | Final freshness classifications |
 | Drift rework / integration conflicts | 0 / 0 for workflow adoption; excludes earlier CORE-01 work | UNVERIFIED | Observed draft #44 on same baseline; not imported here | Scoped corrective commits and conflict records |
 | Defects found at review | UNVERIFIED | UNVERIFIED | UNVERIFIED | Findings attributable to this batch |
 | Review duration / comprehension | UNVERIFIED | UNVERIFIED | UNVERIFIED | Reviewer minutes and can explain invariants: yes/no |

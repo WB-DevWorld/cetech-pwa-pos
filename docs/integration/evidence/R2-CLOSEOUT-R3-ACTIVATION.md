@@ -53,8 +53,40 @@ Assignment: post-merge R2 coordination under ADR-012. Close R2 in the senior led
 
 ## Pass 1
 
-Recorded after the closeout edits and an independent fetch. See the continuation of this file after verification.
+- Fetch UTC: `2026-09-13T18:07:45Z`
+- Fetch: `git fetch origin --prune` succeeded
+- FRESHNESS_PASS_1_MAIN_SHA: `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77` (SAME as start)
+- FRESHNESS_PASS_1_BATCH_SHA: NOT_APPLICABLE
+- `check_upstream_drift.py --pass-number 1`: history SAME; changed_paths none
+- Main arrivals since start: none. Classification: IRRELEVANT (empty upstream delta)
+- Observed extra `origin/batch/r3-authoritative-pricing-parity` advanced `7b59358…` → `d20db41b41225932c0a758e1af2e654e3c8cb6ae`. Classification: **IRRELEVANT** to this closeout (not declared consumed input; not imported; no second BR-02 branch created)
+- Remote `ws2/br-02-implement-isolated-woo-runtime-quote-spike`: still absent
+- Reconciliation: none
+- Tests rerun: already EXIT 0 on this tree vs `ab9aa5ae…` (`python scripts/verify_control_plane.py`; 48 tooling tests; `git diff --check`). No main-path change.
 
 ## Pass 2
 
-Independent fetch after Pass 1. No Pass 3.
+- Independent fetch UTC: `2026-09-13T18:08:11Z`
+- Fetch: `git fetch origin --prune` succeeded
+- FRESHNESS_PASS_2_MAIN_SHA: `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77` (SAME as Pass 1)
+- FRESHNESS_PASS_2_BATCH_SHA: NOT_APPLICABLE
+- `check_upstream_drift.py --pass-number 2`: history SAME; changed_paths none
+- Arrivals since Pass 1 on main: none. Classification: IRRELEVANT
+- Observed extra `origin/batch/r3-authoritative-pricing-parity`: still `d20db41b41225932c0a758e1af2e654e3c8cb6ae` (SAME as Pass 1). Not imported.
+- Remote `ws2/br-02-implement-isolated-woo-runtime-quote-spike`: still absent
+- Reconciliation: none
+- Tests rerun: not required (no arrivals, no fix)
+
+## Status
+
+- Final freshness: **FRESH_2**
+- Delivery: **READY_FOR_INTEGRATION** for this coordination-only closeout. BR-02 product implementation is **not** in this delivery.
+- Pass 3: **NOT PERMITTED / NOT RUN**
+- Pre-handoff implementation SHA: `094c9f35e43c418c4c43c0a1d0c96bfb290e5a13`
+- Final task head: this Pass-2 evidence commit (hash not self-referenced here)
+- Known post-cutoff risk: later main movement; further `batch/r3` / #44 commits; creation of `ws2/br-02-…`. Those belong to integration/review or the next assignment. Main CURRENT-WORK remains pre-merge until this closeout lands.
+- R2 closeout: APPROVED / MERGED / VERIFIED
+- R3 activation: YES
+- BR-02 authorized baseline: `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`
+- Central R2 lease: RELEASED
+
