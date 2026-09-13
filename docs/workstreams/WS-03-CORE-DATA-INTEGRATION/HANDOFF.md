@@ -1,4 +1,33 @@
-# WS3 current handoff — R2 BR-01 normalization import (PROGRESS_CHECKPOINT)
+# WS3 current handoff — R2 BR-01 exact-head Make verification (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T14:04:18Z start (new continuation; not Pass 3 of the runtime or blocked-import sessions)
+Task / batch / workstream: R2 — exact-head `make check`/`test` of imported BR-01 normalization tests; WS3 integration
+Owner / integration editor / requested human reviewer: @wbdevworld / same / @Ben-001-sys on the exact final R2 SHA after required CI (do not self-approve; do not merge)
+Branch: `batch/r2-auth-bridge-bff`
+Starting/base SHA: `origin/main` `aa08d74f2cb99301817e5995f01486acb7e2169f`
+Start / tested R2 SHA: `0deafa301411bc226e453446455a1f85d92607d7`
+Ben `CHANGES_REQUESTED` commit: `0deafa301411bc226e453446455a1f85d92607d7`
+Imported contributor SHA (already on tree): `130437d6d9ee1c62c5f661ffb591f41b7e49e65e` as `605e6f2bca5b1c6dfb2ba817b74f6e2dffe6ccdd`
+Files changed this continuation: evidence/STATUS/HANDOFF/CURRENT-WORK only. No bridge production PHP. No architecture.
+Contracts changed: none
+Database migrations: none
+Architecture decisions: none
+Production PHP changed: NO
+`pricingParityVerified`: remains false
+Tests executed on `0deafa3…` (PHP 8.5.0 / GNU Make 4.4.1 / Python 3.14.4):
+- `python scripts/verify_control_plane.py` EXIT 0
+- `make -C wordpress/cetech-pos-bridge check` EXIT 0
+- `make -C wordpress/cetech-pos-bridge test` EXIT 0 (**83 passed, 0 failed**)
+- `git diff --check` EXIT 0
+Historical import checkpoint: remains `BLOCKED_VERIFICATION` (php/make absent). Current classification: **VERIFIED**. See `docs/integration/evidence/R2-BR-01-MAKE-VERIFY.md`.
+R3: NOT STARTED. WS2 contributor branch: not modified. Do not merge main.
+Freshness protocol (this continuation):
+START_FRESHNESS_SNAPSHOT UTC: `2026-09-13T14:04:18Z`
+Pass 1 / Pass 2: pending after this evidence commit
+Pass 3: NOT PERMITTED
+Next exact action: two ADR-012 freshness passes; update PR #43 declared final head to the actual final SHA; request `@Ben-001-sys` re-review when required GitHub Actions on that SHA are green. Do not merge. Do not start R3.
+
+# Previous current handoff — R2 BR-01 normalization import (PROGRESS_CHECKPOINT; historical BLOCKED_VERIFICATION)
 
 Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T13:48:34Z start (new continuation; not Pass 3 of the runtime session)
 Task / batch / workstream: R2 — import WS2 `130437d6…` negative-auth test evidence; WS3 integration

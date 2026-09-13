@@ -1,5 +1,7 @@
 # R2 two-pass freshness — BR-01 normalization import continuation
 
+**Historical record.** Delivery at this cutoff was **BLOCKED** (`BLOCKED_VERIFICATION`). A later authorized continuation executed Make on `0deafa3…` and recorded **83 passed, 0 failed**. See `R2-BR-01-MAKE-VERIFY.md`. This file is not rewritten as PASS.
+
 This is **not** Pass 3 of the prior runtime assignment.
 
 START_FRESHNESS_SNAPSHOT UTC: `2026-09-13T13:48:34Z`

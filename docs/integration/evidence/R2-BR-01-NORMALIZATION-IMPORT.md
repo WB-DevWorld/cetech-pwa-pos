@@ -43,7 +43,9 @@ Not changed by this import:
 
 `pricingParityVerified` remains asserted `false`. Detection is not parity.
 
-## Combined tests on import SHA `605e6f2…`
+## Combined tests on import SHA `605e6f2…` (historical blocked checkpoint)
+
+This table is the truthful record of the import continuation. It is **not** rewritten. Classification at that workstation: `BLOCKED_VERIFICATION`.
 
 | Command | Result |
 | --- | --- |
@@ -52,7 +54,24 @@ Not changed by this import:
 | `make -C wordpress/cetech-pos-bridge test` | **BLOCKED** (same). Assertion count **UNVERIFIED** here. Prior combined R2 tree: 67 passed at `280a73d` import. New assertions added, not executed on this workstation. |
 | `git diff --check` | EXIT 0 |
 
-Do not invent PASS. A PHP/Make-capable machine must rerun `make check`/`test` on `605e6f2…` (or the later evidence head) before treating bridge assertions as green.
+Do not invent PASS from that blocked workstation. GitHub `control-plane` / `control-plane-windows` on a later evidence head do not execute these Make targets.
+
+## Exact-head Make verification (new continuation)
+
+New START_FRESHNESS_SNAPSHOT: `docs/integration/evidence/R2-START-FRESHNESS-BR01-MAKE-VERIFY.md` (`2026-09-13T14:04:18Z`). This is not Pass 3 of the import continuation.
+
+Tested SHA: `0deafa301411bc226e453446455a1f85d92607d7` (PR #43 review head; includes `605e6f2…` plus evidence commits `a12e55b…` / `0deafa3…`).
+
+Environment: PHP **8.5.0**; GNU Make **4.4.1**; Python 3.14.4. No production PHP / `includes/` change in this continuation.
+
+| Command | Result |
+| --- | --- |
+| `python scripts/verify_control_plane.py` | EXIT 0 |
+| `make -C wordpress/cetech-pos-bridge check` | EXIT 0 (PASS) |
+| `make -C wordpress/cetech-pos-bridge test` | EXIT 0 (PASS). **83 passed, 0 failed** |
+| `git diff --check` | EXIT 0 |
+
+Because both Make targets passed, no bridge code change was required. Full command log: `docs/integration/evidence/R2-BR-01-MAKE-VERIFY.md`.
 
 ## Side effects
 
