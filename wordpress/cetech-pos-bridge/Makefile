@@ -20,6 +20,7 @@ PHP_SOURCES := \
 	includes/class-quote-store.php \
 	includes/class-quote-engine.php \
 	includes/class-quote-controller.php \
+	includes/class-pricing-rules.php \
 	includes/class-plugin.php
 
 TEST_SOURCES := \
@@ -28,6 +29,7 @@ TEST_SOURCES := \
 	$(TEST_DIR)/fake-woo-runtime.php \
 	$(TEST_DIR)/test-health.php \
 	$(TEST_DIR)/test-quote.php \
+	$(TEST_DIR)/test-pricing-rules.php \
 	$(TEST_DIR)/parity.php
 
 .PHONY: check test parity

@@ -5,8 +5,14 @@
   "cases": [
     "BR-02-GUEST-SIMPLE.json",
     "BR-02-RETAIL-SIMPLE.json",
+    "BR-03-SYNTHETIC-QTY-BELOW.json",
+    "BR-03-SYNTHETIC-QTY-AT.json",
+    "BR-03-SYNTHETIC-QTY-ABOVE.json",
     "BR-03-LIVE-WOODMART-PENDING.json",
+    "BR-04-SYNTHETIC-B2B-GROUP.json",
     "BR-04-LIVE-B2BKING-PENDING.json",
+    "BR-05-SYNTHETIC-OVERLAP-QTY-B2B.json",
+    "BR-05-TAX-OFF-TRAINING.json",
     "BR-05-LIVE-OVERLAP-PENDING.json"
   ]
 }

@@ -153,6 +153,7 @@ require_once $plugin_dir . '/includes/class-quote-request.php';
 require_once $plugin_dir . '/includes/class-quote-store.php';
 require_once $plugin_dir . '/includes/class-quote-engine.php';
 require_once $plugin_dir . '/includes/class-quote-controller.php';
+require_once $plugin_dir . '/includes/class-pricing-rules.php';
 require_once $plugin_dir . '/includes/class-plugin.php';
 
 class Cetech_Pos_Bridge_Test_Environment extends Cetech_Pos_Bridge_Environment {

@@ -185,3 +185,18 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 		return sprintf( '%d.%02d', intdiv( $minor, 100 ), $minor % 100 );
 	}
 }
+
+class Cetech_Pos_Bridge_Fake_Pricing_Rules extends Cetech_Pos_Bridge_Pricing_Rules {
+	/** @var array<int,array<string,mixed>>|null */
+	public $woodmart_records = null;
+	/** @var array<string,mixed>|null */
+	public $b2bking_records  = null;
+
+	protected function read_woodmart_discount_records() {
+		return $this->woodmart_records;
+	}
+
+	protected function read_b2bking_rule_records() {
+		return $this->b2bking_records;
+	}
+}

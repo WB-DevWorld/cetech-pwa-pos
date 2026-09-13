@@ -49,6 +49,7 @@ $runtime          = new Cetech_Pos_Bridge_Fake_Woo_Runtime( $env );
 $runtime->bag_key = 'cetech_pos_fake_wc_parity';
 $runtime->write_bag( '__idle__', array() );
 $runtime->customers['cust_retail_1']                  = 'retail';
+$runtime->customers['cust_b2b_1']                     = 'b2b';
 $runtime->catalog['walkin']['101']['1']               = array(
 	'unitPrice'   => '10.00',
 	'subtotal'    => '10.00',
@@ -57,9 +58,49 @@ $runtime->catalog['walkin']['101']['1']               = array(
 	'stockStatus' => 'in_stock',
 	'purchasable' => true,
 );
+$runtime->catalog['walkin']['101']['4']               = array(
+	'unitPrice'   => '10.00',
+	'subtotal'    => '40.00',
+	'discount'    => '0.00',
+	'tax'         => '0.00',
+	'stockStatus' => 'in_stock',
+	'purchasable' => true,
+);
+$runtime->catalog['walkin']['101']['5']               = array(
+	'unitPrice'   => '9.00',
+	'subtotal'    => '45.00',
+	'discount'    => '0.00',
+	'tax'         => '0.00',
+	'stockStatus' => 'in_stock',
+	'purchasable' => true,
+);
+$runtime->catalog['walkin']['101']['6']               = array(
+	'unitPrice'   => '8.00',
+	'subtotal'    => '48.00',
+	'discount'    => '0.00',
+	'tax'         => '0.00',
+	'stockStatus' => 'in_stock',
+	'purchasable' => true,
+);
 $runtime->catalog['retail:cust_retail_1']['101']['1'] = array(
 	'unitPrice'   => '8.00',
 	'subtotal'    => '8.00',
+	'discount'    => '0.00',
+	'tax'         => '0.00',
+	'stockStatus' => 'in_stock',
+	'purchasable' => true,
+);
+$runtime->catalog['b2b:cust_b2b_1']['101']['1']       = array(
+	'unitPrice'   => '6.00',
+	'subtotal'    => '6.00',
+	'discount'    => '0.00',
+	'tax'         => '0.00',
+	'stockStatus' => 'in_stock',
+	'purchasable' => true,
+);
+$runtime->catalog['b2b:cust_b2b_1']['101']['5']       = array(
+	'unitPrice'   => '5.00',
+	'subtotal'    => '25.00',
 	'discount'    => '0.00',
 	'tax'         => '0.00',
 	'stockStatus' => 'in_stock',
@@ -76,10 +117,10 @@ foreach ( $manifest['cases'] as $file ) {
 		continue;
 	}
 	$id = $case['caseId'];
-	if ( $case['applicability'] === 'PERMISSION_REQUIRED' ) {
+	if ( $case['applicability'] === 'PERMISSION_REQUIRED' || $case['applicability'] === 'NOT_APPLICABLE_WITH_EVIDENCE' ) {
 		++$skipped;
 		parity_assert( $case['result'] !== 'PASS', $id . ' does not invent a live PASS' );
-		echo "SKIP {$id} PERMISSION_REQUIRED\n";
+		echo "SKIP {$id} " . $case['applicability'] . "\n";
 		continue;
 	}
 	if ( $case['applicability'] !== 'SYNTHETIC_ISOLATION' ) {
@@ -87,12 +128,18 @@ foreach ( $manifest['cases'] as $file ) {
 		echo "SKIP {$id} applicability=" . $case['applicability'] . "\n";
 		continue;
 	}
-	$customer = $case['customerContextClass'] === 'retail'
-		? array(
+	$customer = array( 'kind' => 'walkin' );
+	if ( $case['customerContextClass'] === 'retail' ) {
+		$customer = array(
 			'kind'       => 'retail',
 			'customerId' => 'cust_retail_1',
-		)
-		: array( 'kind' => 'walkin' );
+		);
+	} elseif ( $case['customerContextClass'] === 'b2b' ) {
+		$customer = array(
+			'kind'       => 'b2b',
+			'customerId' => 'cust_b2b_1',
+		);
+	}
 	$request  = array(
 		'cartId'       => $cart_id,
 		'cartRevision' => 1,

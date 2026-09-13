@@ -1,3 +1,16 @@
+# WS2 current handoff — BR-03/04/05 HARNESS (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T15:55:00Z
+Task / batch / workstream: BR-03, BR-04, BR-05 local harness; R3
+Live WoodMart/B2BKing/overlap parity: PERMISSION_REQUIRED
+R3 pricing gate: NOT PASSED
+`pricingParityVerified`: false
+Tests: `php tests/bridge/run.php` **151 passed**; `php tests/bridge/parity.php` **59 passed, 4 skipped**
+Evidence: `evidence/BR-03-04-05-HARNESS.md`
+Next exact action: two-pass freshness, push draft R3 PR, STOP. Do not deploy to training. Do not start R4. Do not request review until the live gate is actually satisfied.
+
+## Previous current handoff — BR-02 PROGRESS_CHECKPOINT
+
 # WS2 current handoff — BR-02 PROGRESS_CHECKPOINT
 
 Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T15:51:35Z

@@ -1,0 +1,34 @@
+{
+  "caseId": "BR-04-SYNTHETIC-B2B-GROUP",
+  "environment": "synthetic-woo-runtime",
+  "utc": "2026-09-13T15:35:02Z",
+  "versions": {
+    "woo": "synthetic",
+    "woodmart": "not-invoked",
+    "b2bking": "config-injected-not-formula"
+  },
+  "customerContextClass": "b2b",
+  "productSurrogate": "P-101",
+  "quantity": "1",
+  "currency": "GHS",
+  "authoritative": {
+    "lines": [
+      {
+        "productSurrogate": "P-101",
+        "quantity": "1",
+        "unitPriceMinor": 600,
+        "subtotalMinor": 600,
+        "discountMinor": 0,
+        "taxMinor": 0,
+        "totalMinor": 600
+      }
+    ],
+    "subtotalMinor": 600,
+    "discountMinor": 0,
+    "taxMinor": 0,
+    "totalMinor": 600
+  },
+  "applicability": "SYNTHETIC_ISOLATION",
+  "result": "PENDING_HARNESS",
+  "note": "Injected B2B runtime total. Not a live B2BKing group price."
+}

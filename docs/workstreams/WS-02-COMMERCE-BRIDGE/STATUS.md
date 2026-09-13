@@ -9,9 +9,9 @@ R2 lease released. R3 current queue: **BR-02 → BR-03 / BR-04 → BR-05**. This
 | CP-04 WS2 intake | EVIDENCE RECORDED; not CP-04 complete | Prior `ws2/cp-04-commerce-intake`; `evidence/CP-04-STAGING-INTAKE.md`. W1/W4 training refs `67ea42c…` / `edf24af…`. |
 | BR-01 | INTEGRATED_AND_TESTED / LIVE WORDPRESS HEALTH VERIFIED on main | Issue #13. Imported `280a73d…` as `0ac2e38…`. Plugin `0.1.0-br01`. `pricingParityVerified` stays false. |
 | BR-02 | LOCAL COMPLETE; live PERMISSION_REQUIRED | Issue #14. Isolated Woo quote + restore-in-finally. Evidence `evidence/BR-02-ISOLATED-QUOTE.md`. `php tests/bridge/run.php` **131 passed**. Live training `/quotes` is `rest_no_route`. |
-| BR-03 | SPECIFIED; ready after tested BR-02 | Issue #15. WoodMart quantity/tier parity; do not invent thresholds. |
-| BR-04 | SPECIFIED; ready after tested BR-02 | Issue #16. B2BKing commercial parity; unconfigured = NOT_APPLICABLE_WITH_EVIDENCE. |
-| BR-05 | SPECIFIED / BLOCKED until BR-03 and BR-04 tested | Issue #17. Overlap matrix / R3 pricing gate. |
+| BR-03 | LOCAL HARNESS COMPLETE; live PARITY PERMISSION_REQUIRED | Issue #15. No invented WoodMart thresholds. Evidence `evidence/BR-03-04-05-HARNESS.md`. |
+| BR-04 | LOCAL HARNESS COMPLETE; live PARITY PERMISSION_REQUIRED | Issue #16. Unconfigured = NOT_APPLICABLE_WITH_EVIDENCE. Unauthorized kind switch denied in unit tests. |
+| BR-05 | LOCAL OVERLAP HARNESS; PRICING GATE NOT PASSED | Issue #17. Unexplained live mismatch still BLOCKS R3. Tax-off training is NOT_APPLICABLE_WITH_EVIDENCE. |
 | BR-06 | SPECIFIED / BLOCKED | HPOS/prepare; R5. See TASKS.md |
 | BR-07 | SPECIFIED / BLOCKED | Finalize/cancel; R6. See TASKS.md |
 
