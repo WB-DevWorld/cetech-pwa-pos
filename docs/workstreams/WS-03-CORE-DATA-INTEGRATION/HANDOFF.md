@@ -1,3 +1,23 @@
+# WS3 current handoff — R3 ACTIVATION (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T15:35:02Z
+Task / batch / workstream: R2 closure / R3 activation; WS3 coordination only
+Owner / integration editor / requested human reviewer: @wbdevworld / same / @Ben-001-sys at R3 gate only (do not self-approve; do not merge)
+Branch: `batch/r3-authoritative-pricing-parity`
+Starting/base SHA: `origin/main` `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`
+R2: APPROVED / MERGED / VERIFIED (PR #43; post-merge CI run 34765462210)
+R2 lease: RELEASED
+R3 queue: BR-02 → BR-03 / BR-04 → BR-05
+Contracts changed: none
+Database migrations: none
+Architecture decisions: none
+Issue #4: remains OPEN
+CP-04: not globally complete
+R4: not started
+Evidence: `docs/integration/evidence/R3-START-FRESHNESS.md`
+
+## Previous current handoff — R2 BR-01 exact-head Make verification (SESSION_COMPLETION) — historical
+
 # WS3 current handoff — R2 BR-01 exact-head Make verification (SESSION_COMPLETION)
 
 Kind / UTC: SESSION_COMPLETION / 2026-09-13T14:09:38Z (Pass-2 cutoff; new continuation, not Pass 3 of prior sessions)

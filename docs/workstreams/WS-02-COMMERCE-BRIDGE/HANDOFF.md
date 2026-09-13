@@ -1,3 +1,33 @@
+# WS2 current handoff — R3 ACTIVATION (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T15:35:02Z
+Task / batch / workstream: R3 activation; WS2 queue BR-02 → BR-03/BR-04 → BR-05
+Owner / requested human reviewer: Developer 2 / @Emmanuel-coder-prog; R3 editor @wbdevworld; independent reviewer @Ben-001-sys only at R3 gate (do not request review from this activation)
+Branch: `batch/r3-authoritative-pricing-parity`
+Starting/base SHA: `origin/main` `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77` (R2 PR #43 MERGED)
+Contracts changed: none
+Database migrations: none
+Architecture decisions: none (ADR-011 CURRENT; ADR-012 ACTIVE)
+Training writes: NO. Production writes: NO. Remote effects: repository/CI only after push.
+Live R3 plugin deploy: PERMISSION_REQUIRED
+
+## START_FRESHNESS_SNAPSHOT
+
+See `evidence/R3-START-FRESHNESS.md` and `docs/integration/evidence/R3-START-FRESHNESS.md`.
+
+- UTC: `2026-09-13T15:35:02Z`
+- origin/main / R2 merge: `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`
+- Post-merge CI: run 34765462210 success (`control-plane` + `control-plane-windows`)
+- Contracts: v1.0.0
+- Issues #14–#17 OPEN; issue #4 OPEN
+- Observed unused WS2 tip: `origin/ws2/br-01-build-bridge-health-and-permission-skeleton` `62608937…` (not blindly merged)
+
+## Next exact action
+
+Implement BR-02 isolated Woo runtime quoting on this branch. Do not copy WoodMart/B2BKing formulas. Do not create orders/stock/payments. Do not assert `pricingParityVerified=true`. Do not start R4.
+
+## Previous current handoff — BR-01 SESSION_COMPLETION (READY_FOR_R2_INTEGRATION) — historical
+
 # WS2 current handoff — BR-01 SESSION_COMPLETION (READY_FOR_R2_INTEGRATION)
 
 Kind / UTC: SESSION_COMPLETION / 2026-09-12T23:09:57Z (Pass-2 cutoff; not an R2 gate and not BR-02)

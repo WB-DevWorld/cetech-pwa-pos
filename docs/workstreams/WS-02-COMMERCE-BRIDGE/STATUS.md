@@ -1,5 +1,24 @@
 # WS2 current status
 
+Snapshot 2026-09-13. `origin/main` `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77` (R2 PR #43 APPROVED / MERGED / VERIFIED; post-merge CI run 34765462210 success). Owner: Developer 2 / @Emmanuel-coder-prog. R3 editor: @wbdevworld on `batch/r3-authoritative-pricing-parity`. ADR-011 CURRENT. ADR-012 ACTIVE. Start snapshot: `evidence/R3-START-FRESHNESS.md`.
+
+R2 lease released. R3 current queue: **BR-02 → BR-03 / BR-04 → BR-05**. This activation does not claim pricing parity, checkout, or production. Live R3 training plugin update is PERMISSION_REQUIRED. Issue #4 stays OPEN. CP-04 is not globally complete. Mail containment must stay preserved.
+
+| Task | State | Branch / evidence |
+| --- | --- | --- |
+| CP-04 WS2 intake | EVIDENCE RECORDED; not CP-04 complete | Prior `ws2/cp-04-commerce-intake`; `evidence/CP-04-STAGING-INTAKE.md`. W1/W4 training refs `67ea42c…` / `edf24af…`. |
+| BR-01 | INTEGRATED_AND_TESTED / LIVE WORDPRESS HEALTH VERIFIED on main | Issue #13. Imported `280a73d…` as `0ac2e38…`. Plugin `0.1.0-br01`. `pricingParityVerified` stays false. |
+| BR-02 | READY | Issue #14. Isolated Woo runtime quote. Implementation follows this activation. |
+| BR-03 | SPECIFIED; ready after tested BR-02 | Issue #15. WoodMart quantity/tier parity; do not invent thresholds. |
+| BR-04 | SPECIFIED; ready after tested BR-02 | Issue #16. B2BKing commercial parity; unconfigured = NOT_APPLICABLE_WITH_EVIDENCE. |
+| BR-05 | SPECIFIED / BLOCKED until BR-03 and BR-04 tested | Issue #17. Overlap matrix / R3 pricing gate. |
+| BR-06 | SPECIFIED / BLOCKED | HPOS/prepare; R5. See TASKS.md |
+| BR-07 | SPECIFIED / BLOCKED | Finalize/cancel; R6. See TASKS.md |
+
+## Previous snapshot (BR-01 refresh — historical; current section above controls)
+
+# WS2 current status
+
 Snapshot 2026-09-12. `origin/main` `aa08d74f2cb99301817e5995f01486acb7e2169f`. Owner: Developer 2 / @Emmanuel-coder-prog. BR-01 contributor refresh onto current accepted main. Previous SHA `fbbf0ea7d016b6149e9f095d449fb15b0dcdf930` was `PROVISIONAL_TEST / STALE_REQUIRES_OWNER_REFRESH`. This refresh does not start BR-02/R3, does not install the plugin, and does not claim pricing parity or live checkout.
 
 R2 current queue: BR-01 contributor input for draft PR #43. R3 progression remains BR-02 → BR-03/BR-04 → BR-05 after declared activation. ADR-011 CURRENT. ADR-012 ACTIVE.

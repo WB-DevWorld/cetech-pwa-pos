@@ -1,5 +1,13 @@
 # WS3 current status
 
+Snapshot 2026-09-13. Main `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`. R1/#40 APPROVED / MERGED / VERIFIED. R2/#43 APPROVED / MERGED / VERIFIED (post-merge CI run 34765462210 success). ADR-012 ACTIVE. R2 integration lease RELEASED. R3 activated on `batch/r3-authoritative-pricing-parity` with queue BR-02 → BR-03/BR-04 → BR-05. Issue #4 OPEN. Overall CP-04 not complete. Pricing parity not yet verified. Do not start R4 from this activation. Evidence: `docs/integration/evidence/R3-START-FRESHNESS.md`.
+
+CURRENT-WORK holds the central R3 lease.
+
+## Previous snapshot (R2 BR-01 Make verification — historical; current section above controls)
+
+# WS3 current status
+
 Snapshot 2026-09-13. Main `aa08d74f2cb99301817e5995f01486acb7e2169f`. R1/#40 APPROVED / MERGED / VERIFIED. ADR-012 ACTIVE. R2 [#43](https://github.com/WB-DevWorld/cetech-pwa-pos/pull/43) ready-for-review. Ben `CHANGES_REQUESTED` on `0deafa301411bc226e453446455a1f85d92607d7` for exact-head BR-01 Make verification. This continuation executed `make check` EXIT 0 and `make test` EXIT 0 on that SHA: **83 passed, 0 failed** (PHP 8.5.0 / GNU Make 4.4.1). Production PHP unchanged; no bridge code fix required. Historical import checkpoint remains `BLOCKED_VERIFICATION` (php/make absent then); current classification is **VERIFIED**. CORE-02 **COMPLETE FOR R2** (issue #21). BR-01 `280a73d…` remains the production-plugin import (`0ac2e38…`); normalization tests imported as `605e6f2…`. CORE-03 live hops unchanged. Pricing parity **FALSE / NOT TESTED**. Issue #4 OPEN. Do not start R3. Evidence: `docs/integration/evidence/R2-BR-01-MAKE-VERIFY.md`.
 
 CURRENT-WORK holds the central R2 lease.
