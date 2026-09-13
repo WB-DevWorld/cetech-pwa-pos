@@ -1,6 +1,6 @@
 # CORE-04 acceptance evidence
 
-Task: CORE-04 / issue #23. Isolated branch `ws3/core-04-implement-catalog-projection-and-durable-loca` from `origin/main` `516d6a49af74cc6677f67bdf843de6e819a05feb`.
+Task: CORE-04 / issue #23. Isolated branch `ws3/core-04-implement-catalog-projection-and-durable-loca` from `origin/main` `516d6a49af74cc6677f67bdf843de6e819a05feb`. Implementation SHA `73b3fd9fbe6028dc1cd5eec9b21945c987882886`.
 
 This is not R4 complete. `pricingParityVerified` remains false. Issue #4 remains OPEN. No sale/payment effects.
 

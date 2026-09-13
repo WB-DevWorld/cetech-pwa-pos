@@ -4,6 +4,7 @@ Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T20:33:42Z
 Task / batch / workstream: CORE-04 catalog projection and durable local journal; issue #23; WS3
 Owner / integration editor / requested human reviewer: @wbdevworld / same / @Ben-001-sys after import into PR #41 (do not self-approve; do not merge)
 Branch: `ws3/core-04-implement-catalog-projection-and-durable-loca` imported into PR #41
+Exact SHA: `73b3fd9fbe6028dc1cd5eec9b21945c987882886`
 Starting/base SHA: `origin/main` `516d6a49af74cc6677f67bdf843de6e819a05feb`
 Contracts changed: none (CatalogPort, CartDraftStore, OperationJournal v1.0.0 consumed)
 Database migrations: `supabase/migrations/20260913200000_pos_catalog_projection.sql` (rebuildable projection; trusted-server write)
