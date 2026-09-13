@@ -1,4 +1,23 @@
-# WS3 current handoff — R2 BR-01 exact-head Make verification (SESSION_COMPLETION)
+# WS3 current handoff — R2 closeout / R3 activation (TASK_COMPLETION)
+
+Kind / UTC: TASK_COMPLETION / recorded in `docs/integration/evidence/R2-CLOSEOUT-R3-ACTIVATION.md`
+Task / batch / workstream: R2 closeout + explicit R3 activation; WS3 senior coordination
+Owner / integration editor / requested human reviewer: @wbdevworld / same / @Ben-001-sys only on a later R3 gate-ready head (not this closeout)
+Branch: `ws3/r2-closeout-r3-activation`
+Starting/base SHA: `origin/main` `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`
+Contracts changed: none (QuoteRequest, Quote, ApiFailure v1.0.0 consumed, not edited)
+Database migrations: none
+Architecture decisions: none
+BR-02 implemented: NO
+Remote `ws2/br-02-implement-isolated-woo-runtime-quote-spike`: absent (not created)
+Observed draft #44 / `batch/r3-authoritative-pricing-parity`: recorded, not imported
+`pricingParityVerified`: remains false
+Issue #4: OPEN
+R2 lease: RELEASED
+R3: EXPLICITLY ACTIVATED; BR-02 issue #14 AUTHORIZED as first executable WS2 task
+Next exact action for WS2: start BR-02 from baseline `ab9aa5ae…`; do not continue the BR-01 branch; do not create a second BR-02 branch while draft #44 exists; do not invent Make/parity PASS.
+
+# Previous current handoff — R2 BR-01 exact-head Make verification (SESSION_COMPLETION)
 
 Kind / UTC: SESSION_COMPLETION / 2026-09-13T14:09:38Z (Pass-2 cutoff; new continuation, not Pass 3 of prior sessions)
 Task / batch / workstream: R2 — exact-head `make check`/`test` of imported BR-01 normalization tests; WS3 integration
