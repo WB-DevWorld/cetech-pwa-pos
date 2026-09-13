@@ -2,8 +2,10 @@
 
 NEW ADR-012 continuation. Not Pass 3 of `R4-REVIEW-REMEDIATION-FRESHNESS.md`.
 Start snapshot: `R4-CROSS-CART-QUOTE-START-FRESHNESS.md` UTC `2026-09-13T23:03:25Z`.
+Final freshness: **FRESH_2** (`R4-CROSS-CART-QUOTE-FRESHNESS.md`). Pass 2 UTC `2026-09-13T23:17:21Z`. Both upstream cutoffs `516d6a49…`.
 
 Reviewed head at assignment: `9703b275e16e3f333756e23c5fd1b23b74d5493c`
+Pre-handoff implementation SHA: `e92659a072b1281a37b8e086c56ebd09505ae875`
 Independent reviewer: @Emmanuel-coder-prog **CHANGES_REQUESTED** on that exact SHA (`2026-09-13T22:53:38Z`). Prior reviews retained as history; not dismissed.
 Base: `origin/main` `516d6a49af74cc6677f67bdf843de6e819a05feb`
 

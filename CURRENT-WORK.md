@@ -49,7 +49,8 @@ Evidence: R3 APPROVED / MERGED / POST-MERGE VERIFIED. PR #44 merge `516d6a49af74
 
 - Batch / milestone: **R4**, ordered tasks CORE-04, then FE-03, then FE-04. One R4 PR: existing **#41**. Independent reviewer for assembled/remediated heads: **@Emmanuel-coder-prog** (PR author @Ben-001-sys cannot satisfy independent GitHub approval). No self-merge. WS1 owner: @Ben-001-sys.
 - Cross-cart quote isolation START_FRESHNESS_SNAPSHOT UTC: `2026-09-13T23:03:25Z`. Reviewed head `9703b275e16e3f333756e23c5fd1b23b74d5493c`. Evidence: `docs/integration/evidence/R4-CROSS-CART-QUOTE-START-FRESHNESS.md`. This is not Pass 3 of the independent-review remediation session.
-- Remaining Emmanuel HIGH on `9703b27…`: remote quote state must be isolated by cart identity across New Sale. Prior three remediations preserved. Evidence: `docs/integration/evidence/R4-CROSS-CART-QUOTE.md`.
+- Remaining Emmanuel HIGH on `9703b27…` remediated: remote quote state isolated by `(cartId, cartRevision)` across New Sale. Prior three remediations preserved. Evidence: `docs/integration/evidence/R4-CROSS-CART-QUOTE.md`.
+- Cross-cart quote isolation final freshness: **FRESH_2**. Evidence: `docs/integration/evidence/R4-CROSS-CART-QUOTE-FRESHNESS.md`. Both upstream cutoffs `516d6a49…`. Pass 2 UTC `2026-09-13T23:17:21Z`. Pre-handoff implementation SHA `e92659a072b1281a37b8e086c56ebd09505ae875`.
 - PRE-R5 HARDENING (recorded, not implemented): catalog query/index performance; QuoteRequest/Quote runtime schema validation.
 - Milestone delivery: **AWAITING INDEPENDENT RE-REVIEW**. Do not merge. Do not start R5. Do not dismiss historical `CHANGES_REQUESTED` reviews.
 - Independent-review remediation START_FRESHNESS_SNAPSHOT UTC: `2026-09-13T22:15:30Z`. Reviewed head `31bbfcccb6e0be6e944c12f4d580cc20ba7c69ad`. Evidence: `docs/integration/evidence/R4-REVIEW-REMEDIATION-START-FRESHNESS.md`. This is not Pass 3 of the journal-idempotency session.
