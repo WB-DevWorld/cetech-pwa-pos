@@ -46,6 +46,7 @@ Evidence: R2 APPROVED / MERGED / VERIFIED. PR #43 merge `ab9aa5ae3dcc79d51efb22c
 - START_FRESHNESS_SNAPSHOT UTC: `2026-09-13T15:35:02Z`. origin/main / R2 merge `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`. Editor candidate `batch/r3-authoritative-pricing-parity` created from that SHA. Contract version v1.0.0. ADRs 011 CURRENT, 012 ACTIVE. Evidence: `docs/integration/evidence/R3-START-FRESHNESS.md`.
 - BR-01: accepted through R2 on main. Exact SHA `280a73d…` imported as `0ac2e38…`. Live WordPress health VERIFIED via CP-04 `67ea42c…` / `edf24af…`. `pricingParityVerified` false.
 - Live training quote/parity: **PERMISSION_REQUIRED** until an explicit R3 training-update authorization. Complete all local implementation/fixtures; do not fake runtime acceptance.
+- Final freshness: **FRESH_2**. Evidence: `docs/integration/evidence/R3-FRESHNESS.md`. R3 pricing gate **NOT PASSED**. Draft PR only. Do not request independent review from this assignment. Do not merge. Do not start R4.
 - Issue #4 stays OPEN. Overall CP-04 not complete. R4–R10 are not activated by this lease. PR #41 remains R4 preparation.
 
 ## R2 batch workflow record — historical (APPROVED / MERGED / VERIFIED)
@@ -81,7 +82,7 @@ Observed values are UNVERIFIED until measured; do not interpret blanks as zero. 
 | Human interruptions / prompts per accepted task | UNVERIFIED | UNVERIFIED | UNVERIFIED | Session/handoff counts; distinguish milestone review from routine prompts |
 | Review waiting time / branch age | UNVERIFIED | UNVERIFIED | UNVERIFIED | Ready-for-review, branch start and review/merge UTC |
 | Time since combined integration | UNVERIFIED | UNVERIFIED | UNVERIFIED | Last combined build SHA/UTC |
-| Pass-1 / Pass-2 stale findings | 0 / 0 for workflow adoption; both cutoffs `cd4477f` | 0 / 0; this continuation both cutoffs `aa08d74f…` / `280a73d…` (`2026-09-12T23:28:42Z` / `2026-09-12T23:29:59Z`) | not yet (start snapshot only) | Final freshness classifications |
+| Pass-1 / Pass-2 stale findings | 0 / 0 for workflow adoption; both cutoffs `cd4477f` | 0 / 0; this continuation both cutoffs `aa08d74f…` / `280a73d…` (`2026-09-12T23:28:42Z` / `2026-09-12T23:29:59Z`) | 0 / 0; both cutoffs `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`; Pass 2 UTC `2026-09-13T15:56:05Z`; FRESH_2 | Final freshness classifications |
 | Drift rework / integration conflicts | 0 / 0 for workflow adoption; excludes earlier CORE-01 work | UNVERIFIED | UNVERIFIED | Scoped corrective commits and conflict records |
 | Defects found at review | UNVERIFIED | UNVERIFIED | UNVERIFIED | Findings attributable to this batch |
 | Review duration / comprehension | UNVERIFIED | UNVERIFIED | UNVERIFIED | Reviewer minutes and can explain invariants: yes/no |

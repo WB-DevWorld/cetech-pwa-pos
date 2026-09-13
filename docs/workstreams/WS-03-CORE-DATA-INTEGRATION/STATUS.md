@@ -1,6 +1,6 @@
 # WS3 current status
 
-Snapshot 2026-09-13. Main `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`. R1/#40 APPROVED / MERGED / VERIFIED. R2/#43 APPROVED / MERGED / VERIFIED (post-merge CI run 34765462210 success). ADR-012 ACTIVE. R2 integration lease RELEASED. R3 activated on `batch/r3-authoritative-pricing-parity` with queue BR-02 → BR-03/BR-04 → BR-05. Issue #4 OPEN. Overall CP-04 not complete. Pricing parity not yet verified. Do not start R4 from this activation. Evidence: `docs/integration/evidence/R3-START-FRESHNESS.md`.
+Snapshot 2026-09-13. Main `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`. R1/#40 APPROVED / MERGED / VERIFIED. R2/#43 APPROVED / MERGED / VERIFIED (post-merge CI run 34765462210 success). ADR-012 ACTIVE. R2 integration lease RELEASED. R3 on `batch/r3-authoritative-pricing-parity`: local quote implemented; live parity PERMISSION_REQUIRED; pricing gate NOT PASSED; freshness FRESH_2. Issue #4 OPEN. Overall CP-04 not complete. Do not start R4. Evidence: `docs/integration/evidence/R3-FRESHNESS.md`.
 
 CURRENT-WORK holds the central R3 lease.
 

@@ -1,3 +1,14 @@
+# WS3 current handoff — R3 SESSION_COMPLETION (FRESH_2 / GATE BLOCKED)
+
+Kind / UTC: SESSION_COMPLETION / 2026-09-13T15:56:05Z
+R2: APPROVED / MERGED / VERIFIED `ab9aa5ae…` / CI 34765462210
+R3: draft milestone branch `batch/r3-authoritative-pricing-parity`; local quote implemented; live parity PERMISSION_REQUIRED; pricing gate NOT PASSED
+Freshness: FRESH_2 (both upstream cutoffs `ab9aa5ae…`)
+Do not request independent review until the live R3 gate is satisfied. Do not merge. Do not start R4.
+Evidence: `docs/integration/evidence/R3-FRESHNESS.md`
+
+## Previous current handoff — R3 ACTIVATION (PROGRESS_CHECKPOINT)
+
 # WS3 current handoff — R3 ACTIVATION (PROGRESS_CHECKPOINT)
 
 Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T15:35:02Z

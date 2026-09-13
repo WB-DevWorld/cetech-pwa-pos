@@ -1,3 +1,21 @@
+# WS2 current handoff — R3 SESSION_COMPLETION (FRESH_2 / GATE BLOCKED)
+
+Kind / UTC: SESSION_COMPLETION / 2026-09-13T15:56:05Z (Pass-2 cutoff; no Pass 3)
+Task / batch / workstream: R3 BR-02–BR-05; WS2
+Branch: `batch/r3-authoritative-pricing-parity`
+Head before this evidence commit: `ab1a0335f4ad575c2c137f8f8589fe092c1edeb4`
+Base: `origin/main` `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`
+Final freshness: FRESH_2
+Delivery: BLOCKED (live parity PERMISSION_REQUIRED). Local isolated quote COMPLETE. R3 pricing gate NOT PASSED.
+`pricingParityVerified`: false
+Issue #4: OPEN
+R4: not started
+Requested reviewer: @Ben-001-sys **only after** live gate is actually satisfied. Do not request review from this handoff. Do not self-approve. Do not merge.
+
+See `docs/integration/evidence/R3-FRESHNESS.md`.
+
+## Previous current handoff — BR-03/04/05 HARNESS (PROGRESS_CHECKPOINT)
+
 # WS2 current handoff — BR-03/04/05 HARNESS (PROGRESS_CHECKPOINT)
 
 Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T15:55:00Z

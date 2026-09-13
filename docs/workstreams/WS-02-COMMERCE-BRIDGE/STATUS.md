@@ -2,13 +2,13 @@
 
 Snapshot 2026-09-13. `origin/main` `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77` (R2 PR #43 APPROVED / MERGED / VERIFIED; post-merge CI run 34765462210 success). Owner: Developer 2 / @Emmanuel-coder-prog. R3 editor: @wbdevworld on `batch/r3-authoritative-pricing-parity`. ADR-011 CURRENT. ADR-012 ACTIVE. Start snapshot: `evidence/R3-START-FRESHNESS.md`.
 
-R2 lease released. R3 current queue: **BR-02 → BR-03 / BR-04 → BR-05**. This activation does not claim pricing parity, checkout, or production. Live R3 training plugin update is PERMISSION_REQUIRED. Issue #4 stays OPEN. CP-04 is not globally complete. Mail containment must stay preserved.
+R2 lease released. R3 current queue: **BR-02 → BR-03 / BR-04 → BR-05**. Local isolated quote implemented. Live R3 training plugin update is PERMISSION_REQUIRED. R3 pricing gate NOT PASSED. Final freshness FRESH_2. Issue #4 stays OPEN. CP-04 is not globally complete. Mail containment must stay preserved.
 
 | Task | State | Branch / evidence |
 | --- | --- | --- |
 | CP-04 WS2 intake | EVIDENCE RECORDED; not CP-04 complete | Prior `ws2/cp-04-commerce-intake`; `evidence/CP-04-STAGING-INTAKE.md`. W1/W4 training refs `67ea42c…` / `edf24af…`. |
 | BR-01 | INTEGRATED_AND_TESTED / LIVE WORDPRESS HEALTH VERIFIED on main | Issue #13. Imported `280a73d…` as `0ac2e38…`. Plugin `0.1.0-br01`. `pricingParityVerified` stays false. |
-| BR-02 | LOCAL COMPLETE; live PERMISSION_REQUIRED | Issue #14. Isolated Woo quote + restore-in-finally. Evidence `evidence/BR-02-ISOLATED-QUOTE.md`. `php tests/bridge/run.php` **131 passed**. Live training `/quotes` is `rest_no_route`. |
+| BR-02 | LOCAL COMPLETE; live PERMISSION_REQUIRED | Issue #14. Isolated Woo quote + restore-in-finally. Evidence `evidence/BR-02-ISOLATED-QUOTE.md`. Combined `php tests/bridge/run.php` **151 passed**. Live training `/quotes` is `rest_no_route`. |
 | BR-03 | LOCAL HARNESS COMPLETE; live PARITY PERMISSION_REQUIRED | Issue #15. No invented WoodMart thresholds. Evidence `evidence/BR-03-04-05-HARNESS.md`. |
 | BR-04 | LOCAL HARNESS COMPLETE; live PARITY PERMISSION_REQUIRED | Issue #16. Unconfigured = NOT_APPLICABLE_WITH_EVIDENCE. Unauthorized kind switch denied in unit tests. |
 | BR-05 | LOCAL OVERLAP HARNESS; PRICING GATE NOT PASSED | Issue #17. Unexplained live mismatch still BLOCKS R3. Tax-off training is NOT_APPLICABLE_WITH_EVIDENCE. |
