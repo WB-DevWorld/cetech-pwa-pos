@@ -8,3 +8,7 @@
 6. PAY-01 → RT-01 contract refinement and scoped WS2 implementation → shift close/PWA → QA-01 → rehearsal.
 
 Each integration PR names producer/consumer versions, database migration order, flags and rollback. Rebase/update small branches after shared changes; never resolve schema conflicts by selecting whichever AI output compiled. Senior reviews staging evidence after each merge; main stays releasable for its actual implemented scope.
+
+## Long-running workflow amendment (2026-09-12)
+
+[ADR-012](../decisions/ADR/012.md) and [LONG-RUNNING-WORK](LONG-RUNNING-WORK.md) control approved batch continuation and final two-pass freshness. [R1–R10](MILESTONE-REVIEWS.md) groups existing tasks without recreating completed foundation. CURRENT-WORK and each workstream TASKS/STATUS/HANDOFF determine the live assignment. Team-wide activation follows the reviewed R1/#40 merge. Existing task stop clauses apply only where not superseded by a declared approved batch.

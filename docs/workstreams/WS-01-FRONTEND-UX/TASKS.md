@@ -1,5 +1,20 @@
 # WS1 bounded execution tasks
 
+## Ordered continuation queue (ADR-012)
+
+Activation and exact current scope: CURRENT-WORK.md at repository root. The table is the approved progression; a later milestone is not activated merely by being listed. Execute one authorized ready task, test/inspect/commit/checkpoint, then continue in the current batch without another prompt or PR. Detailed task contracts below remain unchanged. Dependencies may allow PREP_ONLY mocks or declared PROVISIONAL_TEST composition; these never prove runtime acceptance. Final task/batch delivery uses [two-pass freshness](../../plans/LONG-RUNNING-WORK.md), then STOP after Pass 2.
+
+| Order | Task | Milestone | Prerequisites / current boundary |
+| --- | --- | --- | --- |
+| 1 | FE-03 | R4 | FE-02, CORE-04; FE-02 merged, #41 preparation exists; CORE-04 runtime not accepted |
+| 2 | FE-04 | R4 | FE-03, BR-05 |
+| 3 | FE-05 | R6 | FE-04, CORE-05, BR-06 |
+| 4 | FE-06 | R8 | FE-05, PAY-01, RT-01 |
+| 5 | FE-07 | R9 | FE-05, CORE-07 |
+
+Fallback inside R4: reference-preserving FE-03/FE-04 presentation and failure-state tests against frozen mocks, only evidenced gaps; do not redo complete preparation. PAY/RT UI contributions remain FE-06 scope; no payment verification. Never edit shared schema, core/routes/service worker without a named lease.
+
+
 Baseline scope is committed here. GitHub issues own live assignment/status/evidence; synchronize approved scope changes back by PR.
 
 # FE-01 — Intake approved prototype and map scenarios

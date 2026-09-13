@@ -1,5 +1,7 @@
 # Release gates
 
+Resolve the applicable [CP-04 production deltas](../runbooks/CP-04-REMAINING-WORK.md) before enabling the affected production capability. Their deferral from local development under ADR-011 is not release approval.
+
 All enabled production capabilities must pass; human release approval is a separate final gate.
 
 - Actual Woo/WoodMart/B2BKing pricing/tax parity; no unexplained stock discrepancy or duplicate order.

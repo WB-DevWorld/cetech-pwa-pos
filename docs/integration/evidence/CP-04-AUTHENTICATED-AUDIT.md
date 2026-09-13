@@ -1,5 +1,7 @@
 # CP-04 authenticated staging audit
 
+**Historical audit, preserved.** The later senior decision [ADR-011](../../decisions/ADR/011.md) supersedes this report's blanket CORE-01 blocking conclusion. Development baseline is SATISFIED; the observed unsafe/unverified remote-write findings remain open. No audit values or original conclusions below were rewritten.
+
 ## Audit identity
 
 - UTC start: 2026-09-12T16:08:53Z (SSH connect)

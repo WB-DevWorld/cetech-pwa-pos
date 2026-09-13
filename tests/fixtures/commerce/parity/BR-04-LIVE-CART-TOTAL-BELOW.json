@@ -1,0 +1,52 @@
+{
+  "caseId": "BR-04-LIVE-CART-TOTAL-BELOW",
+  "environment": "training.cetechbpa.com",
+  "utc": "2026-09-13T18:06:43Z",
+  "versions": {
+    "woo": "11.1.0",
+    "woodmart": "8.5.7",
+    "b2bking": "core-v5.6.30",
+    "bridge": "0.2.6-br02"
+  },
+  "customerContextClass": "b2b",
+  "productSurrogate": "P-SIMPLE-A",
+  "quantity": "9",
+  "currency": "GHS",
+  "configuredRuleSurrogate": "49250",
+  "authoritative": {
+    "lines": [
+      {
+        "productSurrogate": "P-SIMPLE-A",
+        "quantity": "9",
+        "unitPriceMinor": 3400,
+        "subtotalMinor": 30600,
+        "discountMinor": 0,
+        "taxMinor": 0,
+        "totalMinor": 30600
+      }
+    ],
+    "subtotalMinor": 30600,
+    "discountMinor": 0,
+    "taxMinor": 0,
+    "totalMinor": 30600
+  },
+  "bridge": {
+    "lines": [
+      {
+        "unitPriceMinor": 3400,
+        "subtotalMinor": 30600,
+        "discountMinor": 0,
+        "taxMinor": 0,
+        "totalMinor": 30600
+      }
+    ],
+    "subtotalMinor": 30600,
+    "discountMinor": 0,
+    "taxMinor": 0,
+    "totalMinor": 30600
+  },
+  "minorUnitDelta": 0,
+  "applicability": "LIVE_TRAINING_CAPTURE",
+  "result": "MATCH_EXACT",
+  "reason": "Safe synthetic B2B identity in group 49242. Published rule 49250 is discount_percentage cart_total with cart_total_quantity greater 9. Qty 9 is below that threshold. Woo fee 0. Group sale unit 34.00. No formula copied."
+}

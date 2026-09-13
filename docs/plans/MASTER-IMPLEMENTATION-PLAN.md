@@ -17,3 +17,7 @@ Testing is embedded in every task; H44–52 is failure/release qualification, no
 Critical path: control plane → contracts → browser/BFF/Supabase/Woo health → authoritative Woo/WoodMart/B2BKing quote → pricing parity → catalog/barcode → Sell → idempotent prepare → cash → electronic payment → returns → shift close → PWA recovery → failure/reconciliation → rehearsal → VitePOS cutover.
 
 Mock shell, RLS and reference mapping can advance independently. Dependent live checkout cannot be built on guessed pricing. Merge order and evidence in docs/integration; task scopes in workstream packages.
+
+## Long-running workflow amendment (2026-09-12)
+
+[ADR-012](../decisions/ADR/012.md) and [LONG-RUNNING-WORK](LONG-RUNNING-WORK.md) control approved batch continuation and final two-pass freshness. [R1–R10](MILESTONE-REVIEWS.md) groups existing tasks without recreating completed foundation. CURRENT-WORK and each workstream TASKS/STATUS/HANDOFF determine the live assignment. Team-wide activation follows the reviewed R1/#40 merge. Existing task stop clauses apply only where not superseded by a declared approved batch.

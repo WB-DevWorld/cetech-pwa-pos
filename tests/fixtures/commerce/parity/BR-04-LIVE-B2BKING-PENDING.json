@@ -1,0 +1,51 @@
+{
+  "caseId": "BR-04-LIVE-B2B-GROUP",
+  "environment": "training.cetechbpa.com",
+  "utc": "2026-09-13T18:06:43Z",
+  "versions": {
+    "woo": "11.1.0",
+    "woodmart": "8.5.7",
+    "b2bking": "core-v5.6.30",
+    "bridge": "0.2.6-br02"
+  },
+  "customerContextClass": "b2b",
+  "productSurrogate": "P-SIMPLE-A",
+  "quantity": "1",
+  "currency": "GHS",
+  "authoritative": {
+    "lines": [
+      {
+        "productSurrogate": "P-SIMPLE-A",
+        "quantity": "1",
+        "unitPriceMinor": 3400,
+        "subtotalMinor": 3400,
+        "discountMinor": 0,
+        "taxMinor": 0,
+        "totalMinor": 3400
+      }
+    ],
+    "subtotalMinor": 3400,
+    "discountMinor": 0,
+    "taxMinor": 0,
+    "totalMinor": 3400
+  },
+  "bridge": {
+    "lines": [
+      {
+        "unitPriceMinor": 3400,
+        "subtotalMinor": 3400,
+        "discountMinor": 0,
+        "taxMinor": 0,
+        "totalMinor": 3400
+      }
+    ],
+    "subtotalMinor": 3400,
+    "discountMinor": 0,
+    "taxMinor": 0,
+    "totalMinor": 3400
+  },
+  "minorUnitDelta": 0,
+  "applicability": "LIVE_TRAINING_CAPTURE",
+  "result": "MATCH_EXACT",
+  "reason": "Safe synthetic B2B identity classified by b2bking_b2buser=yes, group 49242. Qty 1 uses the configured group sale 34.00 (retail remains 40.00). Cart-total percentage does not fire below rule 49250. Unauthorized kind switch retail-as-b2b returns 403 FORBIDDEN."
+}

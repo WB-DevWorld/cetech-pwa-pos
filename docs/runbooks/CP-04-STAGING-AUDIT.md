@@ -1,5 +1,7 @@
 # CP-04 staging audit runbook
 
+[ADR-011](../decisions/ADR/011.md) supersedes blanket development gating. DEVELOPMENT BASELINE: SATISFIED. WRITE-SAFETY / CUTOVER: OPEN / DEFERRED. This runbook governs evidence and remote side effects; it does not block local schema/RLS or local bridge implementation. See [remaining work](CP-04-REMAINING-WORK.md).
+
 Repeatable, **read-only first** procedure for `https://training.cetechbpa.com` (or a later confirmed staging host). This is not a cutover plan and does not authorize production writes.
 
 ## Preconditions
@@ -37,7 +39,7 @@ Do **not** `POST` cart, checkout, VitePOS sale, or webhook calls.
 
 If `GET /wp-json/vitepos/v1/basic/settings` is still unauthenticated, extract only non-secret fields (barcode field, stockable flag, POS mode, payment method **ids/titles/offline flags**, currency code). Redact VAT/TIN, logos are optional, never dump the raw JSON into git.
 
-## Phase 2 — authenticated read-only (when isolation identity is known)
+## Phase 2 — authenticated read-only (on the identified reference host)
 
 Preferred order:
 
@@ -74,17 +76,17 @@ Stop if credentials would have to be pasted into git/chat.
 
 ## Phase 3 — staging isolation gate
 
-Do not start Phase 4 until **all** of the following are evidenced, or explicitly waived by senior review with residual risk recorded:
+Before Phase 4, evidence the containment relevant to the intended operation and approved test environment. Unknown production facts do not block a separately isolated local/synthetic environment. For writes on the training host, unresolved applicable boundaries still prevent the test:
 
 - WP environment type is staging on the audited host.
-- Staging URL ≠ production URL.
-- Database/service fingerprints differ from production (record “fingerprints differ”, not connection strings).
+- Target URL and actual data/service destinations are confirmed as the intended test environment.
+- Dedicated test storage/services and credentials are evidenced. Production fingerprint comparison is useful if available, but not required to create or test a separately isolated local sandbox. Distinct URLs alone do not prove containment.
 - Woo/VitePOS on staging cannot write production stock.
 - Payment gateways are disabled or genuine test/sandbox mode (no live settlement).
 - Production webhooks, fulfillment, and customer email/SMS are not driven by staging events.
 - Customer dataset is sanitized or the remaining PII risk is accepted in writing.
 
-If production comparison is unavailable, record `BLOCKED — production comparison required` and **do not** perform write tests.
+If training containment is unproven, record the specific unsafe/unverified boundary and do not perform the affected training write. Continue local synthetic implementation/testing; use a separately isolated test environment when suitable. Do not demand production access merely to start CORE-01.
 
 Conclusion language:
 
@@ -110,4 +112,4 @@ Update:
 - `LIVE-ENVIRONMENT-FACTS.md`
 - WS3 `STATUS.md` / `HANDOFF.md`
 
-Timestamp every upgrade of a cell. Do not mark CP-04 complete while isolation remains `NOT PROVEN` / `UNSAFE`, even if HPOS and Woo stock options are now verified.
+Timestamp every upgrade of a cell. Record development baseline and write-safety/cutover separately. Development is SATISFIED under ADR-011; issue #4 remains OPEN for residuals. Never upgrade a `NOT PROVEN` / `UNSAFE` remote-write finding without applicable evidence.

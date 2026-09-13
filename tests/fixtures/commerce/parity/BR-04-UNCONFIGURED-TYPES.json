@@ -1,0 +1,21 @@
+{
+  "caseId": "BR-04-UNCONFIGURED-TYPES",
+  "environment": "training.cetechbpa.com",
+  "utc": "2026-09-13T18:06:43Z",
+  "versions": {
+    "woo": "11.1.0",
+    "woodmart": "8.5.7",
+    "b2bking": "core-v5.6.30",
+    "bridge": "0.2.6-br02"
+  },
+  "customerContextClass": "b2b",
+  "productSurrogate": "CONFIG-FACT",
+  "quantity": "1",
+  "currency": "GHS",
+  "authoritative": null,
+  "bridge": null,
+  "minorUnitDelta": null,
+  "applicability": "NOT_APPLICABLE_WITH_EVIDENCE",
+  "result": "NOT_RUN",
+  "reason": "Published B2BKing rules inspected by post type/shape only: 24 b2bking_rule all what=discount_percentage applies=cart_total; 8 groups; 2 custom roles. No published min/max/multiple or tax-exemption rule types. Customer-specific product terms were not used as a test fixture (no PII edits; no rule invention)."
+}

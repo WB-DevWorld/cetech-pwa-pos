@@ -1,3 +1,11 @@
+# WS1 current status
+
+Snapshot 2026-09-12, main `cd4477f185c159e18ed939a20145865d665099b4`. FE-01/#33 and FE-02/#37 are MERGED; issues #6/#7 closed. CI-01/#38 discovery fix is merged. #41 is open at `ede771bdbe5f05c8b517ce5168c9d8515a354e28`: PREPARATION COMPLETE / RUNTIME INTEGRATION BLOCKED BY CORE-04. No real CatalogPort/CustomerPort/Dexie/BFF route/quote/payment acceptance is inferred. FE-04 onward retains TASKS dependencies.
+
+R4 continuation/preparation is declared in CURRENT-WORK and TASKS. No frontend implementation was changed by workflow adoption; existing #41 review evidence belongs to its own head. Final delivery uses canonical handoff/two-pass freshness.
+
+## Previous snapshot (historical; current section above controls)
+
 # WS1 status
 
 Updated: 2026-09-12. Owner: Developer 1 — @Ben-001-sys.

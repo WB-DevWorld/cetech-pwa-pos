@@ -1,0 +1,52 @@
+{
+  "caseId": "BR-04-LIVE-CART-TOTAL-AT",
+  "environment": "training.cetechbpa.com",
+  "utc": "2026-09-13T18:06:43Z",
+  "versions": {
+    "woo": "11.1.0",
+    "woodmart": "8.5.7",
+    "b2bking": "core-v5.6.30",
+    "bridge": "0.2.6-br02"
+  },
+  "customerContextClass": "b2b",
+  "productSurrogate": "P-SIMPLE-A",
+  "quantity": "10",
+  "currency": "GHS",
+  "configuredRuleSurrogate": "49250",
+  "authoritative": {
+    "lines": [
+      {
+        "productSurrogate": "P-SIMPLE-A",
+        "quantity": "10",
+        "unitPriceMinor": 3400,
+        "subtotalMinor": 34000,
+        "discountMinor": 1700,
+        "taxMinor": 0,
+        "totalMinor": 32300
+      }
+    ],
+    "subtotalMinor": 34000,
+    "discountMinor": 1700,
+    "taxMinor": 0,
+    "totalMinor": 32300
+  },
+  "bridge": {
+    "lines": [
+      {
+        "unitPriceMinor": 3400,
+        "subtotalMinor": 34000,
+        "discountMinor": 1700,
+        "taxMinor": 0,
+        "totalMinor": 32300
+      }
+    ],
+    "subtotalMinor": 34000,
+    "discountMinor": 1700,
+    "taxMinor": 0,
+    "totalMinor": 32300
+  },
+  "minorUnitDelta": 0,
+  "applicability": "LIVE_TRAINING_CAPTURE",
+  "result": "MATCH_EXACT",
+  "reason": "Qty 10 crosses published rule 49250 cart_total_quantity greater-9 bound. Independent Woo calculate_totals applied a negative fee; bridge maps that fee into Quote.discount. Expected amounts are Woo totals, not a copied B2BKing formula."
+}

@@ -21,3 +21,7 @@ Read AGENTS.md → source hierarchy → current architecture → Decision Regist
 Paste into each Cursor session: 'Read AGENTS.md and the complete WS[1/2/3] package. Work only on [task ID and issue]. Before editing report allowed/forbidden files, canonical owners, contract version, prerequisites and acceptance commands. Use a task branch; do not change shared contracts/config without an explicit delegation. Implement only this task and hand off evidence.'
 
 Senior remains sole root/contract/migration editor. WS1 asks senior to mount UI into app routes; WS2 asks for schema changes rather than modifying them. Merge small PRs in docs/integration/MERGE-ORDER.md order. If colleague clone access fails, fix the real identity/access; do not create another repository. No production deployment or VitePOS deactivation in this first session.
+
+## Long-running workflow amendment (2026-09-12)
+
+[ADR-012](../decisions/ADR/012.md) and [LONG-RUNNING-WORK](LONG-RUNNING-WORK.md) control approved batch continuation and final two-pass freshness. [R1–R10](MILESTONE-REVIEWS.md) groups existing tasks without recreating completed foundation. CURRENT-WORK and each workstream TASKS/STATUS/HANDOFF determine the live assignment. Team-wide activation follows the reviewed R1/#40 merge. Existing task stop clauses apply only where not superseded by a declared approved batch.

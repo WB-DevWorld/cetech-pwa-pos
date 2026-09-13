@@ -1,0 +1,74 @@
+{
+  "caseId": "BR-04-LIVE-MULTILINE-SEVEN-PERCENT",
+  "environment": "training.cetechbpa.com",
+  "utc": "2026-09-13T19:00:58Z",
+  "versions": {
+    "woo": "11.1.0",
+    "woodmart": "8.5.7",
+    "b2bking": "core-v5.6.30",
+    "bridge": "0.2.7-br02"
+  },
+  "customerContextClass": "b2b",
+  "productSurrogate": "P-SIMPLE-A+VAR-49165",
+  "quantity": "13+7",
+  "currency": "GHS",
+  "configuredRuleSurrogate": "49253",
+  "authoritative": {
+    "lines": [
+      {
+        "productSurrogate": "P-SIMPLE-A",
+        "quantity": "13",
+        "unitPriceMinor": 3400,
+        "subtotalMinor": 44200,
+        "existingLineDiscountMinor": 0,
+        "allocatedCartDiscountMinor": 3094,
+        "discountMinor": 3094,
+        "taxMinor": 0,
+        "totalMinor": 41106
+      },
+      {
+        "productSurrogate": "VAR-49165",
+        "quantity": "7",
+        "unitPriceMinor": 20000,
+        "subtotalMinor": 140000,
+        "existingLineDiscountMinor": 0,
+        "allocatedCartDiscountMinor": 9800,
+        "discountMinor": 9800,
+        "taxMinor": 0,
+        "totalMinor": 130200
+      }
+    ],
+    "subtotalMinor": 184200,
+    "discountMinor": 12894,
+    "taxMinor": 0,
+    "totalMinor": 171306,
+    "wooFeeMinor": -12894,
+    "leftoverMinorUnits": 0
+  },
+  "bridge": {
+    "lines": [
+      {
+        "unitPriceMinor": 3400,
+        "subtotalMinor": 44200,
+        "discountMinor": 3094,
+        "taxMinor": 0,
+        "totalMinor": 41106
+      },
+      {
+        "unitPriceMinor": 20000,
+        "subtotalMinor": 140000,
+        "discountMinor": 9800,
+        "taxMinor": 0,
+        "totalMinor": 130200
+      }
+    ],
+    "subtotalMinor": 184200,
+    "discountMinor": 12894,
+    "taxMinor": 0,
+    "totalMinor": 171306
+  },
+  "minorUnitDelta": 0,
+  "applicability": "LIVE_TRAINING_CAPTURE",
+  "result": "MATCH_EXACT",
+  "reason": "Two-line B2B cart qty 20 triggers published rule 49253. Independent Woo negative fee -128.94. ADR-013 allocation 3094+9800=12894. Not a copied percentage formula."
+}

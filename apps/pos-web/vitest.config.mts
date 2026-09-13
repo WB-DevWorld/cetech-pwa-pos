@@ -16,6 +16,8 @@ const unitTestDiscovery = {
     "src/server/**/*.test.*",
     "src/local/**/*.test.*",
     "../../tests/frontend/**/*.test.*",
+    "../../tests/integration/auth/**/*.test.*",
+    "../../tests/integration/health/**/*.test.*",
   ],
   exclude: [
     "**/node_modules/**",

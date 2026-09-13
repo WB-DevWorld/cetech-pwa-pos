@@ -1,0 +1,34 @@
+{
+  "caseId": "BR-03-SYNTHETIC-QTY-AT",
+  "environment": "synthetic-woo-runtime",
+  "utc": "2026-09-13T15:35:02Z",
+  "versions": {
+    "woo": "synthetic",
+    "woodmart": "config-injected-not-formula",
+    "b2bking": "not-invoked"
+  },
+  "customerContextClass": "walkin",
+  "productSurrogate": "P-101",
+  "quantity": "5",
+  "currency": "GHS",
+  "authoritative": {
+    "lines": [
+      {
+        "productSurrogate": "P-101",
+        "quantity": "5",
+        "unitPriceMinor": 900,
+        "subtotalMinor": 4500,
+        "discountMinor": 0,
+        "taxMinor": 0,
+        "totalMinor": 4500
+      }
+    ],
+    "subtotalMinor": 4500,
+    "discountMinor": 0,
+    "taxMinor": 0,
+    "totalMinor": 4500
+  },
+  "applicability": "SYNTHETIC_ISOLATION",
+  "result": "PENDING_HARNESS",
+  "note": "At injected breakpoint 5. Not a live WoodMart threshold."
+}

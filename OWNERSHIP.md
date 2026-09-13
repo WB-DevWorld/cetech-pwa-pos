@@ -14,3 +14,9 @@ WS3 owns schema/generated domain types, operation and state-machine definitions,
 The default CODEOWNERS fallback is @wbdevworld for shared/root files; explicit WS1 and WS2 paths route to the verified developers above. GitHub uses the last matching pattern, so repeated `*` lines do not accumulate owners. Tests/tooling is WS3 repository tooling. CODEOWNERS routes review only when supported/enforced; it does not grant access or prevent file edits. One owner approving is not equivalent to both technical and architecture review. Senior-authored changes need another human reviewer; the author cannot self-approve a PR. Set a verified backup reviewer before enforcing owner review.
 
 Only the senior integrates main. Human role names do not authorize invitations to guessed identities. Both developer write permissions and the senior admin permission were verified through GitHub on 2026-09-12. Backup architecture reviewer designation remains UNVERIFIED.
+
+## R1 workflow adoption and batch ownership
+
+Senior/user's 2026-09-12 instruction authorizes one WS3 governance/tooling editor on PR #40: AGENTS/CONTRIBUTING/SOURCE-OF-TRUTH/OWNERSHIP/CURRENT-WORK, docs plans/standards/decisions/AI/source manifest, all three workstream policy/queue/status/handoff documents, .cursor rules, PR template, CI contributor triggers, drift helper and its tooling tests. Existing CORE-01 SQL/schema/tests are preserved by this adoption task. Other workstreams do not gain central edit rights. Lease and review state live in CURRENT-WORK.
+
+@Ben-001-sys is requested as the different human R1 reviewer (already requested on #40); approval remains pending until actually recorded for the final head. Backup architecture reviewer remains UNVERIFIED. Review routing/participation is not permission to self-approve. Milestone assembly does not grant the union of contributor paths to every agent.

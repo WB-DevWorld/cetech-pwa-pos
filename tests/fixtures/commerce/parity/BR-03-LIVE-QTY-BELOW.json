@@ -1,0 +1,52 @@
+{
+  "caseId": "BR-03-LIVE-QTY-BELOW",
+  "environment": "training.cetechbpa.com",
+  "utc": "2026-09-13T18:06:43Z",
+  "versions": {
+    "woo": "11.1.0",
+    "woodmart": "8.5.7",
+    "b2bking": "core-v5.6.30",
+    "bridge": "0.2.6-br02"
+  },
+  "customerContextClass": "retail",
+  "productSurrogate": "P-SIMPLE-A",
+  "quantity": "19",
+  "currency": "GHS",
+  "configuredFromQty": "20",
+  "authoritative": {
+    "lines": [
+      {
+        "productSurrogate": "P-SIMPLE-A",
+        "quantity": "19",
+        "unitPriceMinor": 4000,
+        "subtotalMinor": 76000,
+        "discountMinor": 0,
+        "taxMinor": 0,
+        "totalMinor": 76000
+      }
+    ],
+    "subtotalMinor": 76000,
+    "discountMinor": 0,
+    "taxMinor": 0,
+    "totalMinor": 76000
+  },
+  "bridge": {
+    "lines": [
+      {
+        "unitPriceMinor": 4000,
+        "subtotalMinor": 76000,
+        "discountMinor": 0,
+        "taxMinor": 0,
+        "totalMinor": 76000
+      }
+    ],
+    "subtotalMinor": 76000,
+    "discountMinor": 0,
+    "taxMinor": 0,
+    "totalMinor": 76000
+  },
+  "minorUnitDelta": 0,
+  "applicability": "LIVE_TRAINING_CAPTURE",
+  "result": "MATCH_EXACT",
+  "reason": "Qty 19 is below the configured WoodMart from-qty 20. Unit remains 40.00. unitPriceMinor asserted independently of 19 x unit."
+}

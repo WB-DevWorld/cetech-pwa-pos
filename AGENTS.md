@@ -2,7 +2,7 @@
 
 Read in order: [SOURCE-OF-TRUTH.md](SOURCE-OF-TRUTH.md), [current architecture](docs/architecture/CURRENT-ARCHITECTURE.md), [Decision Register](docs/decisions/DECISION-REGISTER.md), applicable ADRs, [OWNERSHIP.md](OWNERSHIP.md), then your workstream's eight documents and the assigned issue.
 
-Before edits, state the task ID, workstream, allowed/forbidden paths, canonical owners, contracts affected, dependencies and acceptance criteria. Check CURRENT-WORK.md and git status. Preserve unrelated changes. One task branch and worktree per concurrent assignment; no shared mutable checkout.
+Before edits, state the task ID, workstream, allowed/forbidden paths, canonical owners, contracts affected, dependencies and acceptance criteria. Check CURRENT-WORK.md and git status. Preserve unrelated changes. One contributor branch and worktree per concurrent assignment; no shared mutable checkout. Read the approved batch record in CURRENT-WORK.md and docs/plans/LONG-RUNNING-WORK.md (ADR-012).
 
 Git/repository truth outranks private AI memory.
 A historical ChatGPT conversation cannot override a newer approved ADR or current contract.
@@ -25,4 +25,4 @@ Audit first. Remediation second. An audit request authorizes findings, severity 
 
 Run `python3 scripts/verify_control_plane.py` for the foundation. As scaffolds arrive, run the exact additional commands registered in docs/standards/TOOLCHAIN.md and your task. A missing required runtime is BLOCKED, not PASS. Add meaningful risk-based tests; do not manufacture staging or hardware evidence.
 
-Done = evidence. Report exact commands/results, runtime checks, files, contract/migration/ADR changes, assumptions, unresolved conflicts and handoff using docs/ai/HANDOFF-TEMPLATE.md. Stop at your assignment boundary. Production promotion and destructive live actions require the designated human release approval.
+Done = evidence. Report exact commands/results, runtime checks, files, contract/migration/ADR changes, assumptions, unresolved conflicts and handoff using docs/ai/HANDOFF-TEMPLATE.md. Your assignment boundary is the ordered task queue explicitly approved for the current batch. Continue automatically through dependency-ready tasks inside that queue: implement, test, inspect, commit, checkpoint, then select the next authorized task. No new prompt or PR per ordinary subtask. Stop at batch completion or defined escalation/session limits. Before final handoff complete the bounded two-pass freshness protocol in docs/plans/LONG-RUNNING-WORK.md. After Pass 2 stop; record the exact cutoff, final head, evidence and remaining risks. Interrupted verification is UNVERIFIED, never a freshness pass. Production promotion and destructive live actions require the designated human release approval.

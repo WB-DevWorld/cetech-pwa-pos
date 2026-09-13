@@ -1,0 +1,51 @@
+{
+  "caseId": "BR-02-LIVE-RETAIL-SIMPLE",
+  "environment": "training.cetechbpa.com",
+  "utc": "2026-09-13T18:06:43Z",
+  "versions": {
+    "woo": "11.1.0",
+    "woodmart": "8.5.7",
+    "b2bking": "core-v5.6.30",
+    "bridge": "0.2.6-br02"
+  },
+  "customerContextClass": "retail",
+  "productSurrogate": "P-SIMPLE-A",
+  "quantity": "1",
+  "currency": "GHS",
+  "authoritative": {
+    "lines": [
+      {
+        "productSurrogate": "P-SIMPLE-A",
+        "quantity": "1",
+        "unitPriceMinor": 4000,
+        "subtotalMinor": 4000,
+        "discountMinor": 0,
+        "taxMinor": 0,
+        "totalMinor": 4000
+      }
+    ],
+    "subtotalMinor": 4000,
+    "discountMinor": 0,
+    "taxMinor": 0,
+    "totalMinor": 4000
+  },
+  "bridge": {
+    "lines": [
+      {
+        "unitPriceMinor": 4000,
+        "subtotalMinor": 4000,
+        "discountMinor": 0,
+        "taxMinor": 0,
+        "totalMinor": 4000
+      }
+    ],
+    "subtotalMinor": 4000,
+    "discountMinor": 0,
+    "taxMinor": 0,
+    "totalMinor": 4000
+  },
+  "minorUnitDelta": 0,
+  "applicability": "LIVE_TRAINING_CAPTURE",
+  "result": "MATCH_EXACT",
+  "reason": "Retail simple qty 1. Isolated counter-sale quote (no storefront shipping). unitPriceMinor recorded independently of totals. Line identity total = subtotal - discount + tax."
+}
