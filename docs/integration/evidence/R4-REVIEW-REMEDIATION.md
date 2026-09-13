@@ -4,6 +4,7 @@ NEW ADR-012 continuation. Not Pass 3 of `R4-JOURNAL-IDEMPOTENCY-FRESHNESS.md`.
 Start snapshot: `R4-REVIEW-REMEDIATION-START-FRESHNESS.md` UTC `2026-09-13T22:15:30Z`.
 
 Reviewed head at assignment: `31bbfcccb6e0be6e944c12f4d580cc20ba7c69ad`
+Pre-handoff implementation SHA: `3621c620dbab4e2ef245637fba4120c0ab346662`
 Independent reviewer: @Emmanuel-coder-prog **CHANGES_REQUESTED** on that exact SHA (`2026-09-13T22:06:44Z`). That review is retained as history; it is not dismissed.
 Base: `origin/main` `516d6a49af74cc6677f67bdf843de6e819a05feb`
 

@@ -49,6 +49,7 @@ Evidence: R3 APPROVED / MERGED / POST-MERGE VERIFIED. PR #44 merge `516d6a49af74
 
 - Batch / milestone: **R4**, ordered tasks CORE-04, then FE-03, then FE-04. One R4 PR: existing **#41**. Independent reviewer for assembled/remediated heads: **@Emmanuel-coder-prog** (PR author @Ben-001-sys cannot satisfy independent GitHub approval). No self-merge. WS1 owner: @Ben-001-sys.
 - Independent-review remediation START_FRESHNESS_SNAPSHOT UTC: `2026-09-13T22:15:30Z`. Reviewed head `31bbfcccb6e0be6e944c12f4d580cc20ba7c69ad`. Evidence: `docs/integration/evidence/R4-REVIEW-REMEDIATION-START-FRESHNESS.md`. This is not Pass 3 of the journal-idempotency session.
+- Independent-review remediation final freshness: **FRESH_2**. Evidence: `docs/integration/evidence/R4-REVIEW-REMEDIATION-FRESHNESS.md`. Both upstream cutoffs `516d6a49…`. Pass 2 UTC `2026-09-13T22:42:36Z`. Pre-handoff implementation SHA `3621c620dbab4e2ef245637fba4120c0ab346662`.
 - Three Emmanuel merge blockers addressed: stable Sell init factories; live same-revision `changed` quote; catalog cursor = last returned id. Evidence: `docs/integration/evidence/R4-REVIEW-REMEDIATION.md`.
 - PRE-R5 HARDENING (recorded, not implemented): catalog query/index performance; QuoteRequest/Quote runtime schema validation.
 - Milestone delivery: **AWAITING INDEPENDENT RE-REVIEW**. Do not merge. Do not start R5. Do not dismiss Emmanuel’s `CHANGES_REQUESTED` on `31bbfcc…`.

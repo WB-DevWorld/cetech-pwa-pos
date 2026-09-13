@@ -1,18 +1,25 @@
-# WS3 current handoff — R4 independent-review remediation (SESSION_COMPLETION pending FRESH_2)
+# WS3 current handoff — R4 independent-review remediation (SESSION_COMPLETION FRESH_2)
 
-Kind / UTC: PROGRESS_CHECKPOINT pending two-pass freshness
+Kind / UTC: SESSION_COMPLETION / 2026-09-13T22:42:36Z (Pass-2 cutoff; no Pass 3)
 Task / batch / workstream: R4 independent-review remediation of PR #41; CORE-04 + FE-03 + FE-04; issues #23, #8, #9; WS3
 Owner / integration editor / requested human reviewer: @wbdevworld / same / **@Emmanuel-coder-prog** (PR author @Ben-001-sys cannot independently approve; do not self-approve; do not merge; do not dismiss the prior CHANGES_REQUESTED)
 Branch: `ws1/fe-03-build-sell-cart-barcode-and-customer-workflow` (PR #41)
 Starting/base SHA: reviewed head `31bbfcccb6e0be6e944c12f4d580cc20ba7c69ad`; `origin/main` `516d6a49af74cc6677f67bdf843de6e819a05feb`
+Pre-handoff implementation SHA: `3621c620dbab4e2ef245637fba4120c0ab346662`
+Freshness: **FRESH_2**. Both upstream cutoffs `516d6a49…`. Pass 2 UTC `2026-09-13T22:42:36Z`.
 Contracts changed: none
 Database migrations: none
 Issue #4: OPEN
 R5: not started
 Milestone: **AWAITING INDEPENDENT RE-REVIEW**
-Evidence: `docs/integration/evidence/R4-REVIEW-REMEDIATION.md`, `docs/integration/evidence/R4-REVIEW-REMEDIATION-START-FRESHNESS.md`
+Evidence: `docs/integration/evidence/R4-REVIEW-REMEDIATION.md`, `docs/integration/evidence/R4-REVIEW-REMEDIATION-START-FRESHNESS.md`, `docs/integration/evidence/R4-REVIEW-REMEDIATION-FRESHNESS.md`
 Tests: control-plane PASS; tooling 48 OK; lint/typecheck PASS; Vitest **42 files / 236 tests**; build PASS; E2E **3 passed**; isolated visual Playwright 12 passed; `git diff --check` clean
 PRE-R5 HARDENING recorded (not implemented): catalog query/index performance; QuoteRequest/Quote runtime schema validation
+Delivery: READY_FOR_INTEGRATION pending @Emmanuel-coder-prog re-review and required CI on the pushed final head
+
+## Previous current handoff — R4 journal idempotency (SESSION_COMPLETION FRESH_2)
+
+# WS3 current handoff — R4 journal idempotency (SESSION_COMPLETION FRESH_2)
 
 ## Previous current handoff — R4 journal idempotency (SESSION_COMPLETION FRESH_2)
 
