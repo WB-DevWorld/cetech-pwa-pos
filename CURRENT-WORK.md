@@ -47,6 +47,7 @@ Evidence: R2 APPROVED / MERGED / VERIFIED. PR #43 merge `ab9aa5ae3dcc79d51efb22c
 - BR-01: accepted through R2 on main. Exact SHA `280a73d…` imported as `0ac2e38…`. Live WordPress health VERIFIED via CP-04 `67ea42c…` / `edf24af…`. `pricingParityVerified` false.
 - Live training quote/parity: **PERMISSION_REQUIRED** until an explicit R3 training-update authorization. Complete all local implementation/fixtures; do not fake runtime acceptance.
 - Continuation START_FRESHNESS_SNAPSHOT UTC: `2026-09-13T16:06:08Z`. Evidence: `docs/integration/evidence/R3-UNITPRICE-START-FRESHNESS.md`. This is not Pass 3 of the prior R3 session.
+- Continuation final freshness: **FRESH_2**. Evidence: `docs/integration/evidence/R3-UNITPRICE-FRESHNESS.md`. Both upstream cutoffs `ab9aa5ae…`.
 - QuoteLine `unitPrice` production mapping defect found after the prior local checkpoint and corrected locally. BR-02 is not live-complete. BR-03/04/05 remain live-gated.
 - Issue #4 stays OPEN. Overall CP-04 not complete. R4–R10 are not activated by this lease. PR #41 remains R4 preparation.
 

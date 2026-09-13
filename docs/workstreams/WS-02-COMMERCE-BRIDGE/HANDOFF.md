@@ -1,3 +1,15 @@
+# WS2 current handoff — R3 UNITPRICE SESSION_COMPLETION (FRESH_2)
+
+Kind / UTC: SESSION_COMPLETION / 2026-09-13T16:11:14Z (Pass-2 cutoff; no Pass 3)
+Task / batch / workstream: BR-02 unitPrice remediation; R3 continuation
+Implementation/fix SHA: `650ddf84cf15292e116c3730c828605bc94520be`
+Freshness: FRESH_2 (both upstream cutoffs `ab9aa5ae…`)
+Delivery: BLOCKED for live gate. Local mapping defect corrected.
+PR #44: DRAFT. Training deployment NOT PERFORMED. Review NOT REQUESTED. R4 NOT STARTED.
+Evidence: `docs/integration/evidence/R3-UNITPRICE-FRESHNESS.md`
+
+## Previous current handoff — BR-02 UNITPRICE REMEDIATION (PROGRESS_CHECKPOINT)
+
 # WS2 current handoff — BR-02 UNITPRICE REMEDIATION (PROGRESS_CHECKPOINT)
 
 Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T16:06:08Z start
