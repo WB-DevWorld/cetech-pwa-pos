@@ -1,0 +1,75 @@
+{
+  "caseId": "BR-04-LIVE-MULTILINE-CART-DISCOUNT",
+  "environment": "training.cetechbpa.com",
+  "utc": "2026-09-13T18:58:36Z",
+  "versions": {
+    "woo": "11.1.0",
+    "woodmart": "8.5.7",
+    "b2bking": "core-v5.6.30",
+    "bridge": "0.2.7-br02"
+  },
+  "customerContextClass": "b2b",
+  "productSurrogate": "P-SIMPLE-A+VAR-49165",
+  "quantity": "3+7",
+  "currency": "GHS",
+  "configuredRuleSurrogate": "49250",
+  "authoritative": {
+    "lines": [
+      {
+        "productSurrogate": "P-SIMPLE-A",
+        "quantity": "3",
+        "unitPriceMinor": 3400,
+        "subtotalMinor": 10200,
+        "existingLineDiscountMinor": 0,
+        "allocatedCartDiscountMinor": 510,
+        "discountMinor": 510,
+        "taxMinor": 0,
+        "totalMinor": 9690
+      },
+      {
+        "productSurrogate": "VAR-49165",
+        "quantity": "7",
+        "unitPriceMinor": 20000,
+        "subtotalMinor": 140000,
+        "existingLineDiscountMinor": 0,
+        "allocatedCartDiscountMinor": 7000,
+        "discountMinor": 7000,
+        "taxMinor": 0,
+        "totalMinor": 133000
+      }
+    ],
+    "subtotalMinor": 150200,
+    "discountMinor": 7510,
+    "taxMinor": 0,
+    "totalMinor": 142690,
+    "allocationBase": "Woo line_total after line coupons before cart fees",
+    "wooFeeMinor": -7510,
+    "leftoverMinorUnits": 0
+  },
+  "bridge": {
+    "lines": [
+      {
+        "unitPriceMinor": 3400,
+        "subtotalMinor": 10200,
+        "discountMinor": 510,
+        "taxMinor": 0,
+        "totalMinor": 9690
+      },
+      {
+        "unitPriceMinor": 20000,
+        "subtotalMinor": 140000,
+        "discountMinor": 7000,
+        "taxMinor": 0,
+        "totalMinor": 133000
+      }
+    ],
+    "subtotalMinor": 150200,
+    "discountMinor": 7510,
+    "taxMinor": 0,
+    "totalMinor": 142690
+  },
+  "minorUnitDelta": 0,
+  "applicability": "LIVE_TRAINING_CAPTURE",
+  "result": "MATCH_EXACT",
+  "reason": "Two-line B2B cart qty 10 triggers published rule 49250. Independent Woo negative fee -75.10 allocated by ADR-013 integer largest-remainder on Woo line_total. Expected amounts are Woo totals, not a copied B2BKing formula. sum(line.discount)=quote.discount."
+}

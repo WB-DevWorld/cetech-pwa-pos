@@ -1,3 +1,58 @@
+# WS3 current handoff — R3 CART-DISCOUNT / ADR-013 (SESSION_COMPLETION FRESH_2)
+
+Kind / UTC: SESSION_COMPLETION / 2026-09-13T19:07:50Z (Pass-2 cutoff; no Pass 3)
+R3 PR #44 OPEN. ADR-013 recorded. Training plugin `0.2.7-br02`. Live multi-line MATCH_EXACT. Freshness **FRESH_2**. `pricingParityVerified` false. Request @Ben-001-sys on the exact final SHA. R4 NOT STARTED. Do not merge.
+Evidence: `docs/integration/evidence/R3-CART-DISCOUNT.md`, `docs/integration/evidence/R3-CART-DISCOUNT-FRESHNESS.md`
+
+## Previous current handoff — R3 CART-DISCOUNT / ADR-013 (PROGRESS_CHECKPOINT)
+
+# WS3 current handoff — R3 CART-DISCOUNT / ADR-013 (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T19:02:25Z
+R3 PR #44 remains OPEN (`CHANGES_REQUESTED` on `99dc34f…`). ADR-013 recorded. Training plugin `0.2.7-br02`. Live multi-line MATCH_EXACT. `pricingParityVerified` false. Review NOT yet re-requested. R4 NOT STARTED. Do not merge.
+Evidence: `docs/integration/evidence/R3-CART-DISCOUNT.md`
+
+## Previous current handoff — R3 UNITPRICE REMEDIATION (PROGRESS_CHECKPOINT)
+
+# WS3 current handoff — R3 UNITPRICE REMEDIATION (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T16:06:08Z
+R3 draft #44 remains DRAFT. BR-02 production `unitPrice` mapping corrected locally. Live parity PERMISSION_REQUIRED. Training deployment NOT PERFORMED. Review NOT REQUESTED. R4 NOT STARTED.
+Evidence: `docs/integration/evidence/R3-UNITPRICE-START-FRESHNESS.md`
+
+## Previous current handoff — R3 SESSION_COMPLETION (FRESH_2 / GATE BLOCKED)
+
+# WS3 current handoff — R3 SESSION_COMPLETION (FRESH_2 / GATE BLOCKED)
+
+Kind / UTC: SESSION_COMPLETION / 2026-09-13T15:56:05Z
+R2: APPROVED / MERGED / VERIFIED `ab9aa5ae…` / CI 34765462210
+R3: draft milestone branch `batch/r3-authoritative-pricing-parity`; local quote implemented; live parity PERMISSION_REQUIRED; pricing gate NOT PASSED
+Freshness: FRESH_2 (both upstream cutoffs `ab9aa5ae…`)
+Do not request independent review until the live R3 gate is satisfied. Do not merge. Do not start R4.
+Evidence: `docs/integration/evidence/R3-FRESHNESS.md`
+
+## Previous current handoff — R3 ACTIVATION (PROGRESS_CHECKPOINT)
+
+# WS3 current handoff — R3 ACTIVATION (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T15:35:02Z
+Task / batch / workstream: R2 closure / R3 activation; WS3 coordination only
+Owner / integration editor / requested human reviewer: @wbdevworld / same / @Ben-001-sys at R3 gate only (do not self-approve; do not merge)
+Branch: `batch/r3-authoritative-pricing-parity`
+Starting/base SHA: `origin/main` `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`
+R2: APPROVED / MERGED / VERIFIED (PR #43; post-merge CI run 34765462210)
+R2 lease: RELEASED
+R3 queue: BR-02 → BR-03 / BR-04 → BR-05
+Contracts changed: none
+Database migrations: none
+Architecture decisions: none
+Issue #4: remains OPEN
+CP-04: not globally complete
+R4: not started
+Evidence: `docs/integration/evidence/R3-START-FRESHNESS.md`
+
+## Previous current handoff — R2 BR-01 exact-head Make verification (SESSION_COMPLETION) — historical
+
 # WS3 current handoff — R2 BR-01 exact-head Make verification (SESSION_COMPLETION)
 
 Kind / UTC: SESSION_COMPLETION / 2026-09-13T14:09:38Z (Pass-2 cutoff; new continuation, not Pass 3 of prior sessions)

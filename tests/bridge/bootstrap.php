@@ -34,6 +34,7 @@ class WP_Error {
 class WP_REST_Response {
 	public $data;
 	public $status;
+	public $headers = array();
 
 	public function __construct( $data, $status = 200 ) {
 		$this->data   = $data;
@@ -48,20 +49,44 @@ class WP_REST_Response {
 		return $this->status;
 	}
 
+	public function header( $name, $value ) {
+		$this->headers[ $name ] = $value;
+	}
+
+	public function get_headers() {
+		return $this->headers;
+	}
+
 	public function is_error() {
 		return $this->status >= 400;
+	}
+
+	public function as_error() {
+		if ( ! $this->is_error() ) {
+			return null;
+		}
+		if ( is_array( $this->data ) && isset( $this->data['code'], $this->data['message'] ) ) {
+			return new WP_Error(
+				$this->data['code'],
+				$this->data['message'],
+				isset( $this->data['data'] ) ? $this->data['data'] : array()
+			);
+		}
+		return new WP_Error( '', null, array( 'status' => $this->status ) );
 	}
 }
 
 class Cetech_Pos_Bridge_Test_Request {
 	public $headers = array();
 	public $route   = '/cetech-pos/v1/health';
+	public $json    = array();
 
-	public function __construct( array $headers = array(), $route = '/cetech-pos/v1/health' ) {
+	public function __construct( array $headers = array(), $route = '/cetech-pos/v1/health', array $json = array() ) {
 		foreach ( $headers as $name => $value ) {
 			$this->headers[ strtolower( $name ) ] = $value;
 		}
 		$this->route = (string) $route;
+		$this->json  = $json;
 	}
 
 	public function get_header( $name ) {
@@ -71,6 +96,10 @@ class Cetech_Pos_Bridge_Test_Request {
 
 	public function get_route() {
 		return $this->route;
+	}
+
+	public function get_json_params() {
+		return $this->json;
 	}
 }
 
@@ -119,6 +148,25 @@ function add_filter( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
 	return true;
 }
 
+function wc_format_decimal( $price, $decimal_points = false, $trim_zeros = false ) {
+	unset( $trim_zeros );
+	if ( false === $decimal_points ) {
+		$decimal_points = 2;
+	}
+	if ( is_string( $price ) ) {
+		$price = trim( $price );
+	}
+	if ( is_int( $price ) ) {
+		return sprintf( '%d.%0' . (int) $decimal_points . 'd', $price, 0 );
+	}
+	if ( is_string( $price ) && preg_match( '/^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/', $price ) ) {
+		$parts = explode( '.', $price, 2 );
+		$frac  = isset( $parts[1] ) ? substr( str_pad( $parts[1], (int) $decimal_points, '0' ), 0, (int) $decimal_points ) : str_repeat( '0', (int) $decimal_points );
+		return $parts[0] . '.' . $frac;
+	}
+	return $price;
+}
+
 function is_wp_error( $thing ) {
 	return $thing instanceof WP_Error;
 }
@@ -131,6 +179,15 @@ require_once $plugin_dir . '/includes/class-correlation.php';
 require_once $plugin_dir . '/includes/class-detector.php';
 require_once $plugin_dir . '/includes/class-response.php';
 require_once $plugin_dir . '/includes/class-health-controller.php';
+require_once $plugin_dir . '/includes/class-money.php';
+require_once $plugin_dir . '/includes/class-cart-discount.php';
+require_once $plugin_dir . '/includes/class-ephemeral-session.php';
+require_once $plugin_dir . '/includes/class-woo-runtime.php';
+require_once $plugin_dir . '/includes/class-quote-request.php';
+require_once $plugin_dir . '/includes/class-quote-store.php';
+require_once $plugin_dir . '/includes/class-quote-engine.php';
+require_once $plugin_dir . '/includes/class-quote-controller.php';
+require_once $plugin_dir . '/includes/class-pricing-rules.php';
 require_once $plugin_dir . '/includes/class-plugin.php';
 
 class Cetech_Pos_Bridge_Test_Environment extends Cetech_Pos_Bridge_Environment {

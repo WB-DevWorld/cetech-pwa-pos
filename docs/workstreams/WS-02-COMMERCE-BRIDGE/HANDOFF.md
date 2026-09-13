@@ -1,3 +1,240 @@
+# WS2 current handoff — R3 CART-DISCOUNT SESSION_COMPLETION (FRESH_2)
+
+Kind / UTC: SESSION_COMPLETION / 2026-09-13T19:07:50Z (Pass-2 cutoff; no Pass 3)
+Task / batch / workstream: ADR-013 cart-level discount semantics + WS2 adapter; R3 continuation
+Owner / integration editor / requested human reviewer: WS2 @Emmanuel-coder-prog / editor @wbdevworld / request @Ben-001-sys on the exact final SHA after this evidence commit
+Branch: `batch/r3-authoritative-pricing-parity` / PR #44
+Starting/base SHA: `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`
+Continuation start SHA / reviewed head: `99dc34fdda4551093ff46a7935b06639371f9cdd`
+Pre-handoff implementation SHA: `006667a12fd1b4d796a1728952e63a7c1fa53675`
+Current/final task head SHA: recorded in PR #44 after this evidence commit (not self-referential)
+Contracts changed: Quote/QuoteLine **semantics** via ADR-013; structural v1.0.0 unchanged (no fee field)
+Database migrations: none
+Architecture decisions: ADR-013 CURRENT pending independent review
+Plugin: `0.2.7-br02` on training
+`pricingParityVerified`: false
+Final freshness: **FRESH_2** (both upstream cutoffs `ab9aa5ae…`)
+Delivery: **READY_FOR_INTEGRATION** (training R3 gate PASS candidate)
+Issue #4: OPEN
+R4: not started
+Evidence: `docs/integration/evidence/R3-CART-DISCOUNT.md`, `docs/integration/evidence/R3-CART-DISCOUNT-FRESHNESS.md`
+Pass 3: NOT PERMITTED. Do not merge. Do not start R4.
+
+## Previous current handoff — R3 CART-DISCOUNT PROGRESS_CHECKPOINT
+
+# WS2 current handoff — R3 CART-DISCOUNT PROGRESS_CHECKPOINT
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T19:02:25Z live capture complete; suite pending in same continuation
+Task / batch / workstream: ADR-013 cart-level discount semantics + WS2 adapter; R3 continuation
+Owner / integration editor / requested human reviewer: WS2 @Emmanuel-coder-prog / editor @wbdevworld / request @Ben-001-sys only after FRESH_2 and CI green
+Branch: `batch/r3-authoritative-pricing-parity` / PR #44
+Starting/base SHA: `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`
+Continuation start SHA / reviewed head: `99dc34fdda4551093ff46a7935b06639371f9cdd`
+Contracts changed: Quote/QuoteLine **semantics** via ADR-013; structural v1.0.0 unchanged (no fee field)
+Database migrations: none
+Architecture decisions: ADR-013 CURRENT pending independent review
+Plugin: `0.2.7-br02` on training
+`pricingParityVerified`: false
+Training gate: PASS candidate (see `docs/integration/evidence/R3-CART-DISCOUNT.md`)
+Issue #4: OPEN
+R4: not started
+Evidence: `docs/integration/evidence/R3-CART-DISCOUNT.md`, `docs/integration/evidence/R3-CART-DISCOUNT-START-FRESHNESS.md`
+Next exact action: exact-head suite, two NEW freshness passes, update PR #44, request review only if FRESH_2 + CI green. Do not merge. Do not start R4. No Pass 3.
+
+## Previous current handoff — R3 B2BKING-EFFECT SESSION_COMPLETION (FRESH_2)
+
+# WS2 current handoff — R3 B2BKING-EFFECT SESSION_COMPLETION (FRESH_2)
+
+Kind / UTC: SESSION_COMPLETION / 2026-09-13T18:18:26Z (Pass-2 cutoff; no Pass 3)
+Task / batch / workstream: BR-02–BR-05 configured B2BKing effect + concurrent HTTP; R3 continuation
+Owner / integration editor / requested human reviewer: WS2 @Emmanuel-coder-prog / editor @wbdevworld / request @Ben-001-sys on the exact final SHA after this evidence commit
+Branch: `batch/r3-authoritative-pricing-parity` / PR #44
+Starting/base SHA: `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`
+Continuation start SHA: `d20db41b41225932c0a758e1af2e654e3c8cb6ae`
+Pre-handoff implementation SHA: `e71bc3ee4f6e540228c67e9bf425b06259e6bc67`
+Current/final task head SHA: recorded in PR #44 after this evidence commit (not self-referential)
+Contracts changed: none (v1.0.0)
+Database migrations: none
+Architecture decisions: none (`pricingParityVerified` stays false; environment-scoped representation escalated)
+Plugin: `0.2.6-br02` on training
+`pricingParityVerified`: false
+Final freshness: **FRESH_2** (both upstream cutoffs `ab9aa5ae…`)
+Delivery: **READY_FOR_INTEGRATION** (training R3 gate PASS candidate)
+Issue #4: OPEN
+R4: not started
+Evidence: `docs/integration/evidence/R3-B2BKING-EFFECT.md`, `docs/integration/evidence/R3-B2BKING-EFFECT-FRESHNESS.md`
+Pass 3: NOT PERMITTED. Do not merge. Do not start R4.
+
+## Previous current handoff — R3 B2BKING-EFFECT PROGRESS_CHECKPOINT
+
+# WS2 current handoff — R3 B2BKING-EFFECT PROGRESS_CHECKPOINT
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T18:09:14Z live concurrent capture
+Task / batch / workstream: BR-02–BR-05 configured B2BKing effect + concurrent HTTP; R3 continuation (not Pass 3)
+Owner / integration editor / requested human reviewer: WS2 @Emmanuel-coder-prog / editor @wbdevworld / request @Ben-001-sys only after FRESH_2 and CI green
+Branch: `batch/r3-authoritative-pricing-parity` / draft PR #44
+Starting/base SHA: `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`
+Continuation start SHA: `d20db41b41225932c0a758e1af2e654e3c8cb6ae`
+Current/final task head SHA: recorded in PR #44 after the evidence/freshness commits
+Contracts changed: none (v1.0.0)
+Database migrations: none
+Architecture decisions: none (escalate environment-scoped `pricingParityVerified`; keep v1 field false)
+Plugin: `0.2.6-br02` on training
+`pricingParityVerified`: false
+Training gate: PASS candidate (see `docs/integration/evidence/R3-B2BKING-EFFECT.md`)
+Issue #4: OPEN
+R4: not started
+Evidence: `docs/integration/evidence/R3-B2BKING-EFFECT.md`, `docs/integration/evidence/R3-B2BKING-EFFECT-START-FRESHNESS.md`
+Next exact action: exact-head suite, two NEW freshness passes, update PR #44, request review only if FRESH_2 + CI green. Do not merge. Do not start R4. No Pass 3.
+
+## Previous current handoff — R3 TRAINING-LIVE SESSION_COMPLETION (FRESH_2)
+
+# WS2 current handoff — R3 TRAINING-LIVE SESSION_COMPLETION (FRESH_2)
+
+Kind / UTC: SESSION_COMPLETION / 2026-09-13T17:08:52Z (Pass-2 cutoff; no Pass 3)
+Task / batch / workstream: BR-02–BR-05 live training quotes; R3
+Owner / integration editor / requested human reviewer: WS2 @Emmanuel-coder-prog / editor @wbdevworld / **do not request** @Ben-001-sys
+Branch: `batch/r3-authoritative-pricing-parity` / draft PR #44
+Starting/base SHA: `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`
+Pre-handoff implementation SHA: `3d3d1bf59b44c3767ca23c387c9f710c40a943ff`
+Current/final task head SHA: recorded in PR #44 after this evidence commit (not self-referential)
+Contracts changed: none (v1.0.0)
+Database migrations: none
+Architecture decisions: none
+Plugin: `0.2.3-br02` on training
+`pricingParityVerified`: false
+Final freshness: **FRESH_2** (both upstream cutoffs `ab9aa5ae…`)
+Delivery: **BLOCKED** (guest unpriced; B2BKing cart_total effect not observed on captured cart; tax-on N/A)
+Evidence: `docs/integration/evidence/R3-TRAINING-LIVE.md`, `docs/integration/evidence/R3-TRAINING-LIVE-FRESHNESS.md`
+Pass 3: NOT PERMITTED. Do not merge. Do not start R4. Do not request review.
+
+## Previous current handoff — R3 TRAINING-LIVE (PROGRESS_CHECKPOINT)
+
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T17:02:00Z live capture
+Task / batch / workstream: BR-02–BR-05 live training quotes; R3
+Owner / integration editor / requested human reviewer: WS2 @Emmanuel-coder-prog / editor @wbdevworld / **do not request** @Ben-001-sys (gate not passed)
+Branch: `batch/r3-authoritative-pricing-parity` / draft PR #44
+Contracts changed: none (v1.0.0)
+Plugin: `0.2.3-br02` on training
+`pricingParityVerified`: false
+Evidence: `docs/integration/evidence/R3-TRAINING-LIVE.md`
+Next exact action: exact-head suite, two freshness passes, keep #44 draft, STOP. Do not merge. Do not start R4.
+
+## Previous current handoff — R3 UNITPRICE SESSION_COMPLETION (FRESH_2)
+
+Kind / UTC: SESSION_COMPLETION / 2026-09-13T16:11:14Z (Pass-2 cutoff; no Pass 3)
+Task / batch / workstream: BR-02 unitPrice remediation; R3 continuation
+Implementation/fix SHA: `650ddf84cf15292e116c3730c828605bc94520be`
+Freshness: FRESH_2 (both upstream cutoffs `ab9aa5ae…`)
+Delivery: BLOCKED for live gate. Local mapping defect corrected.
+PR #44: DRAFT. Training deployment NOT PERFORMED. Review NOT REQUESTED. R4 NOT STARTED.
+Evidence: `docs/integration/evidence/R3-UNITPRICE-FRESHNESS.md`
+
+## Previous current handoff — BR-02 UNITPRICE REMEDIATION (PROGRESS_CHECKPOINT)
+
+# WS2 current handoff — BR-02 UNITPRICE REMEDIATION (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T16:06:08Z start
+Task / batch / workstream: BR-02 QuoteLine unitPrice defect; R3 continuation (not Pass 3)
+Branch: `batch/r3-authoritative-pricing-parity` / draft PR #44
+Contracts changed: none (v1.0.0)
+Plugin: `0.2.1-br02`
+Tests: `php tests/bridge/run.php` **174 passed**; `php tests/bridge/parity.php` **108 passed, 4 skipped**. GNU Make BLOCKED on this workstation.
+Live: PERMISSION_REQUIRED. Training deployment NOT PERFORMED. Review NOT REQUESTED. R4 NOT STARTED.
+`pricingParityVerified`: false
+Evidence: `evidence/BR-02-UNITPRICE-FIX.md`
+Next exact action: two-pass freshness for this continuation, keep #44 draft, STOP.
+
+## Previous current handoff — R3 SESSION_COMPLETION (FRESH_2 / GATE BLOCKED)
+
+# WS2 current handoff — R3 SESSION_COMPLETION (FRESH_2 / GATE BLOCKED)
+
+Kind / UTC: SESSION_COMPLETION / 2026-09-13T15:56:05Z (Pass-2 cutoff; no Pass 3)
+Task / batch / workstream: R3 BR-02–BR-05; WS2
+Branch: `batch/r3-authoritative-pricing-parity`
+Head before this evidence commit: `ab1a0335f4ad575c2c137f8f8589fe092c1edeb4`
+Base: `origin/main` `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`
+Final freshness: FRESH_2
+Delivery: BLOCKED (live parity PERMISSION_REQUIRED). Local isolated quote COMPLETE. R3 pricing gate NOT PASSED.
+`pricingParityVerified`: false
+Issue #4: OPEN
+R4: not started
+Requested reviewer: @Ben-001-sys **only after** live gate is actually satisfied. Do not request review from this handoff. Do not self-approve. Do not merge.
+
+See `docs/integration/evidence/R3-FRESHNESS.md`.
+
+## Previous current handoff — BR-03/04/05 HARNESS (PROGRESS_CHECKPOINT)
+
+# WS2 current handoff — BR-03/04/05 HARNESS (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T15:55:00Z
+Task / batch / workstream: BR-03, BR-04, BR-05 local harness; R3
+Live WoodMart/B2BKing/overlap parity: PERMISSION_REQUIRED
+R3 pricing gate: NOT PASSED
+`pricingParityVerified`: false
+Tests: `php tests/bridge/run.php` **151 passed**; `php tests/bridge/parity.php` **59 passed, 4 skipped**
+Evidence: `evidence/BR-03-04-05-HARNESS.md`
+Next exact action: two-pass freshness, push draft R3 PR, STOP. Do not deploy to training. Do not start R4. Do not request review until the live gate is actually satisfied.
+
+## Previous current handoff — BR-02 PROGRESS_CHECKPOINT
+
+# WS2 current handoff — BR-02 PROGRESS_CHECKPOINT
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T15:51:35Z
+Task / batch / workstream: BR-02 isolated Woo runtime quote (issue #14); R3
+Branch: `batch/r3-authoritative-pricing-parity`
+Contracts changed: none (QuoteRequest/Quote/ApiFailure v1.0.0 consumed)
+Database migrations: none
+Architecture decisions: none
+Training writes: NO. Production writes: NO.
+Live R3 plugin deploy: PERMISSION_REQUIRED
+`pricingParityVerified`: false
+
+Tests: PHP 8.5.0 `C:\tools\php85\php.exe`. GNU Make not on PATH this session.
+- `python scripts/verify_control_plane.py` EXIT 0
+- `php -l` plugin + tests EXIT 0
+- `php tests/bridge/run.php` EXIT 0; **131 passed, 0 failed**
+- `php tests/bridge/parity.php` EXIT 0; 22 passed, 3 PERMISSION_REQUIRED skipped; not a pricing gate
+- `python -m unittest discover -s tests/tooling -v` EXIT 0 (48 tests)
+- `git diff --check` EXIT 0
+
+Next exact action: BR-03 WoodMart quantity/tier parity from actual configured runtime. Do not invent thresholds. Live capture remains PERMISSION_REQUIRED.
+
+Evidence: `evidence/BR-02-ISOLATED-QUOTE.md`
+
+## Previous current handoff — R3 ACTIVATION (PROGRESS_CHECKPOINT)
+
+# WS2 current handoff — R3 ACTIVATION (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T15:35:02Z
+Task / batch / workstream: R3 activation; WS2 queue BR-02 → BR-03/BR-04 → BR-05
+Owner / requested human reviewer: Developer 2 / @Emmanuel-coder-prog; R3 editor @wbdevworld; independent reviewer @Ben-001-sys only at R3 gate (do not request review from this activation)
+Branch: `batch/r3-authoritative-pricing-parity`
+Starting/base SHA: `origin/main` `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77` (R2 PR #43 MERGED)
+Contracts changed: none
+Database migrations: none
+Architecture decisions: none (ADR-011 CURRENT; ADR-012 ACTIVE)
+Training writes: NO. Production writes: NO. Remote effects: repository/CI only after push.
+Live R3 plugin deploy: PERMISSION_REQUIRED
+
+## START_FRESHNESS_SNAPSHOT
+
+See `evidence/R3-START-FRESHNESS.md` and `docs/integration/evidence/R3-START-FRESHNESS.md`.
+
+- UTC: `2026-09-13T15:35:02Z`
+- origin/main / R2 merge: `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`
+- Post-merge CI: run 34765462210 success (`control-plane` + `control-plane-windows`)
+- Contracts: v1.0.0
+- Issues #14–#17 OPEN; issue #4 OPEN
+- Observed unused WS2 tip: `origin/ws2/br-01-build-bridge-health-and-permission-skeleton` `62608937…` (not blindly merged)
+
+## Next exact action
+
+Implement BR-02 isolated Woo runtime quoting on this branch. Do not copy WoodMart/B2BKing formulas. Do not create orders/stock/payments. Do not assert `pricingParityVerified=true`. Do not start R4.
+
+## Previous current handoff — BR-01 SESSION_COMPLETION (READY_FOR_R2_INTEGRATION) — historical
+
 # WS2 current handoff — BR-01 SESSION_COMPLETION (READY_FOR_R2_INTEGRATION)
 
 Kind / UTC: SESSION_COMPLETION / 2026-09-12T23:09:57Z (Pass-2 cutoff; not an R2 gate and not BR-02)

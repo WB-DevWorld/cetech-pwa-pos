@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0.0",
+  "milestone": "R3",
+  "note": "Redacted corpus. Synthetic isolation rows prove BR-02 against an injected Woo runtime. Live training rows are LIVE_TRAINING_CAPTURE or NOT_APPLICABLE_WITH_EVIDENCE. Multi-line ADR-013 evidence: docs/integration/evidence/R3-CART-DISCOUNT.md (plugin 0.2.7-br02). Frozen v1 pricingParityVerified remains false (no environment/artifact field).",
+  "cases": [
+    "BR-02-GUEST-SIMPLE.json",
+    "BR-02-RETAIL-SIMPLE.json",
+    "BR-02-LIVE-GUEST-REFUSAL.json",
+    "BR-02-LIVE-RETAIL-SIMPLE.json",
+    "BR-02-LIVE-VARIATION.json",
+    "BR-02-LIVE-CONCURRENT.json",
+    "BR-03-SYNTHETIC-QTY-BELOW.json",
+    "BR-03-SYNTHETIC-QTY-AT.json",
+    "BR-03-SYNTHETIC-QTY-ABOVE.json",
+    "BR-03-LIVE-QTY-BELOW.json",
+    "BR-03-LIVE-QTY-AT.json",
+    "BR-03-LIVE-QTY-ABOVE.json",
+    "BR-04-SYNTHETIC-B2B-GROUP.json",
+    "BR-04-LIVE-B2BKING-PENDING.json",
+    "BR-04-LIVE-CART-TOTAL-BELOW.json",
+    "BR-04-LIVE-CART-TOTAL-AT.json",
+    "BR-04-LIVE-CART-TOTAL-ABOVE.json",
+    "BR-04-LIVE-MULTILINE-CART-DISCOUNT.json",
+    "BR-04-LIVE-MULTILINE-SEVEN-PERCENT.json",
+    "BR-04-LIVE-MULTILINE-ADD-ORDER.json",
+    "BR-04-LIVE-MULTILINE-REMAINDER.json",
+    "BR-04-UNCONFIGURED-TYPES.json",
+    "BR-05-SYNTHETIC-OVERLAP-QTY-B2B.json",
+    "BR-05-TAX-OFF-TRAINING.json",
+    "BR-05-LIVE-OVERLAP-PENDING.json",
+    "BR-05-LIVE-MULTILINE-OVERLAP.json"
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "caseId": "BR-03-LIVE-QTY-ABOVE",
+  "environment": "training.cetechbpa.com",
+  "utc": "2026-09-13T18:06:43Z",
+  "versions": {
+    "woo": "11.1.0",
+    "woodmart": "8.5.7",
+    "b2bking": "core-v5.6.30",
+    "bridge": "0.2.6-br02"
+  },
+  "customerContextClass": "retail",
+  "productSurrogate": "P-SIMPLE-A",
+  "quantity": "21",
+  "currency": "GHS",
+  "configuredFromQty": "20",
+  "authoritative": {
+    "lines": [
+      {
+        "productSurrogate": "P-SIMPLE-A",
+        "quantity": "21",
+        "unitPriceMinor": 3800,
+        "subtotalMinor": 79800,
+        "discountMinor": 0,
+        "taxMinor": 0,
+        "totalMinor": 79800
+      }
+    ],
+    "subtotalMinor": 79800,
+    "discountMinor": 0,
+    "taxMinor": 0,
+    "totalMinor": 79800
+  },
+  "bridge": {
+    "lines": [
+      {
+        "unitPriceMinor": 3800,
+        "subtotalMinor": 79800,
+        "discountMinor": 0,
+        "taxMinor": 0,
+        "totalMinor": 79800
+      }
+    ],
+    "subtotalMinor": 79800,
+    "discountMinor": 0,
+    "taxMinor": 0,
+    "totalMinor": 79800
+  },
+  "minorUnitDelta": 0,
+  "applicability": "LIVE_TRAINING_CAPTURE",
+  "result": "MATCH_EXACT",
+  "reason": "Configured WoodMart to-qty is empty. Independent fresh-process Woo at qty 21 keeps unit 38.00 (79800). A prior same-process applied-list capture of 40.00 was stale. Not an invented range."
+}

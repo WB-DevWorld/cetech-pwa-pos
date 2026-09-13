@@ -1,5 +1,88 @@
 # WS2 current status
 
+Snapshot 2026-09-13. `origin/main` `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`. Owner: Developer 2 / @Emmanuel-coder-prog. R3 editor: @wbdevworld on `batch/r3-authoritative-pricing-parity` / PR #44. Continuation start: `docs/integration/evidence/R3-CART-DISCOUNT-START-FRESHNESS.md`. Live capture: `docs/integration/evidence/R3-CART-DISCOUNT.md`. Training plugin **`0.2.7-br02`**. ADR-013 CURRENT pending independent review.
+
+Ben `CHANGES_REQUESTED` on `99dc34f…` is addressed by ADR-013 + integer largest-remainder allocation. Multi-line B2B MATCH_EXACT vs Woo (delta 0). Live remainder leftover 0 on configured %. One-cart WoodMart+B2B N/A. `pricingParityVerified` **false**. Issue #4 stays OPEN. Do not start R4. Do not merge until independent review.
+
+| Task | State | Branch / evidence |
+| --- | --- | --- |
+| CP-04 WS2 intake | EVIDENCE RECORDED; not CP-04 complete | Prior `ws2/cp-04-commerce-intake`; `evidence/CP-04-STAGING-INTAKE.md`. W1 still PASS after quotes. |
+| BR-01 | INTEGRATED_AND_TESTED / LIVE WORDPRESS HEALTH VERIFIED on main | Issue #13. `pricingParityVerified` stays false. |
+| BR-02 | LIVE RETAIL/VARIATION MATCH; guest REFUSAL_MATCH; concurrent LIVE VERIFIED | Issue #14. Plugin `0.2.7-br02`. Evidence `docs/integration/evidence/R3-CART-DISCOUNT.md`. |
+| BR-03 | LIVE WOODMART from-qty 20 MATCH (19/20/21 unit 38.00 at 21) | Issue #15. No invented thresholds. Regression on 0.2.7 MATCH. |
+| BR-04 | LIVE cart-total MATCH_EXACT including multi-line ADR-013; unconfigured types N/A | Issue #16. Rules 49250/49253. Kind switch 403. |
+| BR-05 | LIVE OVERLAP MATCH (separate contexts); one-cart WoodMart+fee N/A; training gate PASS candidate | Issue #17. Tax-off N/A. `pricingParityVerified` false. |
+| BR-06 | SPECIFIED / BLOCKED | HPOS/prepare; R5. See TASKS.md |
+| BR-07 | SPECIFIED / BLOCKED | Finalize/cancel; R6. See TASKS.md |
+
+## Previous snapshot (R3 B2BKing-effect 0.2.6 — historical; current section above controls)
+
+# WS2 current status
+
+Snapshot 2026-09-13. `origin/main` `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`. Owner: Developer 2 / @Emmanuel-coder-prog. R3 editor: @wbdevworld on `batch/r3-authoritative-pricing-parity` / draft PR #44. Continuation start: `docs/integration/evidence/R3-B2BKING-EFFECT-START-FRESHNESS.md`. Live capture: `docs/integration/evidence/R3-B2BKING-EFFECT.md`. Training plugin **`0.2.6-br02`**.
+
+R3 training pricing-gate **PASS candidate**. Guest REFUSAL_MATCH. Retail/variation/WoodMart 19/20/21 MATCH_EXACT. Configured B2BKing cart-total LIVE MATCH_EXACT. Concurrent 12/12 HTTP isolation VERIFIED. Tax-on N/A. `pricingParityVerified` **false** (no v1 environment field). Freshness **FRESH_2**. Issue #4 stays OPEN. Do not start R4. Do not merge until independent review.
+
+| Task | State | Branch / evidence |
+| --- | --- | --- |
+| CP-04 WS2 intake | EVIDENCE RECORDED; not CP-04 complete | Prior `ws2/cp-04-commerce-intake`; `evidence/CP-04-STAGING-INTAKE.md`. W1 still PASS after quotes. |
+| BR-01 | INTEGRATED_AND_TESTED / LIVE WORDPRESS HEALTH VERIFIED on main | Issue #13. `pricingParityVerified` stays false. |
+| BR-02 | LIVE RETAIL/VARIATION MATCH; guest REFUSAL_MATCH; concurrent LIVE VERIFIED | Issue #14. Plugin `0.2.6-br02`. Evidence `docs/integration/evidence/R3-B2BKING-EFFECT.md`. |
+| BR-03 | LIVE WOODMART from-qty 20 MATCH (19/20/21 unit 38.00 at 21) | Issue #15. No invented thresholds. |
+| BR-04 | LIVE cart-total MATCH_EXACT; unconfigured types N/A | Issue #16. Rules 49250/49253 exercised. Kind switch 403. |
+| BR-05 | LIVE OVERLAP MATCH; training gate PASS candidate | Issue #17. Tax-off N/A. `pricingParityVerified` false. |
+| BR-06 | SPECIFIED / BLOCKED | HPOS/prepare; R5. See TASKS.md |
+| BR-07 | SPECIFIED / BLOCKED | Finalize/cancel; R6. See TASKS.md |
+
+## Previous snapshot (R3 training-live 0.2.3 — historical; current section above controls)
+
+| Task | State | Branch / evidence |
+| --- | --- | --- |
+| CP-04 WS2 intake | EVIDENCE RECORDED; not CP-04 complete | Prior `ws2/cp-04-commerce-intake`; `evidence/CP-04-STAGING-INTAKE.md`. W1/W4 training refs `67ea42c…` / `edf24af…`. W1 still PASS after quotes. |
+| BR-01 | INTEGRATED_AND_TESTED / LIVE WORDPRESS HEALTH VERIFIED on main | Issue #13. Imported `280a73d…` as `0ac2e38…`. `pricingParityVerified` stays false. |
+| BR-02 | LIVE RETAIL/VARIATION MATCH; guest REFUSAL_MATCH | Issue #14. Plugin `0.2.3-br02`. Evidence `docs/integration/evidence/R3-TRAINING-LIVE.md`. |
+| BR-03 | LIVE WOODMART from-qty 20 MATCH (19/20/21) | Issue #15. No invented thresholds. |
+| BR-04 | LIVE B2B CONTEXT MATCH; unconfigured types N/A | Issue #16. Cart-total rules present; no distinct vs-retail total on the captured cart. Kind switch 403. |
+| BR-05 | LIVE OVERLAP MATCH; PRICING GATE NOT PASSED | Issue #17. Tax-off N/A. Guest priced path absent. `pricingParityVerified` false. |
+| BR-06 | SPECIFIED / BLOCKED | HPOS/prepare; R5. See TASKS.md |
+| BR-07 | SPECIFIED / BLOCKED | Finalize/cancel; R6. See TASKS.md |
+
+## Previous snapshot (R3 unitPrice local — historical; current section above controls)
+
+| Task | State | Branch / evidence |
+| --- | --- | --- |
+| CP-04 WS2 intake | EVIDENCE RECORDED; not CP-04 complete | Prior `ws2/cp-04-commerce-intake`; `evidence/CP-04-STAGING-INTAKE.md`. W1/W4 training refs `67ea42c…` / `edf24af…`. |
+| BR-01 | INTEGRATED_AND_TESTED / LIVE WORDPRESS HEALTH VERIFIED on main | Issue #13. Imported `280a73d…` as `0ac2e38…`. Plugin `0.1.0-br01`. `pricingParityVerified` stays false. |
+| BR-02 | LOCAL MAPPING DEFECT FIXED; live PERMISSION_REQUIRED | Issue #14. Plugin `0.2.1-br02`. Not live-complete. Evidence `evidence/BR-02-UNITPRICE-FIX.md` plus historical `evidence/BR-02-ISOLATED-QUOTE.md`. |
+| BR-03 | LOCAL HARNESS COMPLETE; live PARITY PERMISSION_REQUIRED | Issue #15. Parity now asserts `unitPriceMinor` independently. |
+| BR-04 | LOCAL HARNESS COMPLETE; live PARITY PERMISSION_REQUIRED | Issue #16. Unconfigured = NOT_APPLICABLE_WITH_EVIDENCE. |
+| BR-05 | LOCAL OVERLAP HARNESS; PRICING GATE NOT PASSED | Issue #17. Unexplained live mismatch still BLOCKS R3. |
+| BR-06 | SPECIFIED / BLOCKED | HPOS/prepare; R5. See TASKS.md |
+| BR-07 | SPECIFIED / BLOCKED | Finalize/cancel; R6. See TASKS.md |
+
+## Previous snapshot (R3 FRESH_2 / GATE BLOCKED — historical; current section above controls)
+
+# WS2 current status
+
+Snapshot 2026-09-13. `origin/main` `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77` (R2 PR #43 APPROVED / MERGED / VERIFIED; post-merge CI run 34765462210 success). Owner: Developer 2 / @Emmanuel-coder-prog. R3 editor: @wbdevworld on `batch/r3-authoritative-pricing-parity`. ADR-011 CURRENT. ADR-012 ACTIVE. Start snapshot: `evidence/R3-START-FRESHNESS.md`.
+
+R2 lease released. R3 current queue: **BR-02 → BR-03 / BR-04 → BR-05**. Local isolated quote implemented. Live R3 training plugin update is PERMISSION_REQUIRED. R3 pricing gate NOT PASSED. Final freshness FRESH_2. Issue #4 stays OPEN. CP-04 is not globally complete. Mail containment must stay preserved.
+
+| Task | State | Branch / evidence |
+| --- | --- | --- |
+| CP-04 WS2 intake | EVIDENCE RECORDED; not CP-04 complete | Prior `ws2/cp-04-commerce-intake`; `evidence/CP-04-STAGING-INTAKE.md`. W1/W4 training refs `67ea42c…` / `edf24af…`. |
+| BR-01 | INTEGRATED_AND_TESTED / LIVE WORDPRESS HEALTH VERIFIED on main | Issue #13. Imported `280a73d…` as `0ac2e38…`. Plugin `0.1.0-br01`. `pricingParityVerified` stays false. |
+| BR-02 | LOCAL COMPLETE; live PERMISSION_REQUIRED | Issue #14. Isolated Woo quote + restore-in-finally. Evidence `evidence/BR-02-ISOLATED-QUOTE.md`. Combined `php tests/bridge/run.php` **151 passed**. Live training `/quotes` is `rest_no_route`. |
+| BR-03 | LOCAL HARNESS COMPLETE; live PARITY PERMISSION_REQUIRED | Issue #15. No invented WoodMart thresholds. Evidence `evidence/BR-03-04-05-HARNESS.md`. |
+| BR-04 | LOCAL HARNESS COMPLETE; live PARITY PERMISSION_REQUIRED | Issue #16. Unconfigured = NOT_APPLICABLE_WITH_EVIDENCE. Unauthorized kind switch denied in unit tests. |
+| BR-05 | LOCAL OVERLAP HARNESS; PRICING GATE NOT PASSED | Issue #17. Unexplained live mismatch still BLOCKS R3. Tax-off training is NOT_APPLICABLE_WITH_EVIDENCE. |
+| BR-06 | SPECIFIED / BLOCKED | HPOS/prepare; R5. See TASKS.md |
+| BR-07 | SPECIFIED / BLOCKED | Finalize/cancel; R6. See TASKS.md |
+
+## Previous snapshot (BR-01 refresh — historical; current section above controls)
+
+# WS2 current status
+
 Snapshot 2026-09-12. `origin/main` `aa08d74f2cb99301817e5995f01486acb7e2169f`. Owner: Developer 2 / @Emmanuel-coder-prog. BR-01 contributor refresh onto current accepted main. Previous SHA `fbbf0ea7d016b6149e9f095d449fb15b0dcdf930` was `PROVISIONAL_TEST / STALE_REQUIRES_OWNER_REFRESH`. This refresh does not start BR-02/R3, does not install the plugin, and does not claim pricing parity or live checkout.
 
 R2 current queue: BR-01 contributor input for draft PR #43. R3 progression remains BR-02 → BR-03/BR-04 → BR-05 after declared activation. ADR-011 CURRENT. ADR-012 ACTIVE.

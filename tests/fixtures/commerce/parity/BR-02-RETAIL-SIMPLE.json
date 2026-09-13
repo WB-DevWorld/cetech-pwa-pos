@@ -1,0 +1,33 @@
+{
+  "caseId": "BR-02-RETAIL-SIMPLE",
+  "environment": "synthetic-woo-runtime",
+  "utc": "2026-09-13T15:35:02Z",
+  "versions": {
+    "woo": "synthetic",
+    "woodmart": "not-invoked",
+    "b2bking": "not-invoked"
+  },
+  "customerContextClass": "retail",
+  "productSurrogate": "P-101",
+  "quantity": "1",
+  "currency": "GHS",
+  "authoritative": {
+    "lines": [
+      {
+        "productSurrogate": "P-101",
+        "quantity": "1",
+        "unitPriceMinor": 800,
+        "subtotalMinor": 800,
+        "discountMinor": 0,
+        "taxMinor": 0,
+        "totalMinor": 800
+      }
+    ],
+    "subtotalMinor": 800,
+    "discountMinor": 0,
+    "taxMinor": 0,
+    "totalMinor": 800
+  },
+  "applicability": "SYNTHETIC_ISOLATION",
+  "result": "PENDING_HARNESS"
+}

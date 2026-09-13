@@ -1,0 +1,31 @@
+{
+  "caseId": "BR-02-LIVE-CONCURRENT",
+  "environment": "training.cetechbpa.com",
+  "utc": "2026-09-13T18:09:14Z",
+  "versions": {
+    "woo": "11.1.0",
+    "woodmart": "8.5.7",
+    "b2bking": "core-v5.6.30",
+    "bridge": "0.2.6-br02"
+  },
+  "customerContextClass": "retail+b2b",
+  "productSurrogate": "P-SIMPLE-A",
+  "quantity": "10",
+  "currency": "GHS",
+  "authoritative": {
+    "retailTotalMinor": 40000,
+    "b2bTotalMinor": 32300
+  },
+  "bridge": {
+    "rounds": 12,
+    "okPairs": 12,
+    "pairFail": 0,
+    "crossover": 0,
+    "retailTotalMinor": 40000,
+    "b2bTotalMinor": 32300
+  },
+  "minorUnitDelta": 0,
+  "applicability": "LIVE_TRAINING_CAPTURE",
+  "result": "MATCH_EXACT",
+  "reason": "12 concurrent HTTP POST /quotes pairs. Distinct cartIds, correlationIds, and customer contexts. Retail always 40000; B2B always 32300; correlation pairing held; crossover 0. No order/stock/payment/mail change. HPOS 51 and stock 5455 unchanged."
+}

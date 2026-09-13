@@ -1,0 +1,21 @@
+{
+  "caseId": "BR-04-LIVE-MULTILINE-REMAINDER",
+  "environment": "training.cetechbpa.com",
+  "utc": "2026-09-13T19:00:58Z",
+  "versions": {
+    "woo": "11.1.0",
+    "woodmart": "8.5.7",
+    "b2bking": "core-v5.6.30",
+    "bridge": "0.2.7-br02"
+  },
+  "customerContextClass": "b2b",
+  "productSurrogate": "P-SIMPLE-A+VAR-49165",
+  "quantity": "configured-percentage-windows",
+  "currency": "GHS",
+  "authoritative": null,
+  "bridge": null,
+  "minorUnitDelta": null,
+  "applicability": "NOT_APPLICABLE_WITH_EVIDENCE",
+  "result": "NOT_APPLICABLE_WITH_EVIDENCE",
+  "reason": "Configured 5% and 7% cart_total rules on the safe in-stock 2-decimal bases (34.00 and 200.00) produced leftoverMinorUnits=0 (qty 3+7, 1+9, 13+7). Rules, prices, taxes, and groups were not changed to force a remainder. Uneven leftover is covered by tests/bridge/test-cart-discount.php."
+}

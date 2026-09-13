@@ -1,0 +1,34 @@
+{
+  "caseId": "BR-05-SYNTHETIC-OVERLAP-QTY-B2B",
+  "environment": "synthetic-woo-runtime",
+  "utc": "2026-09-13T15:35:02Z",
+  "versions": {
+    "woo": "synthetic",
+    "woodmart": "config-injected-not-formula",
+    "b2bking": "config-injected-not-formula"
+  },
+  "customerContextClass": "b2b",
+  "productSurrogate": "P-101",
+  "quantity": "5",
+  "currency": "GHS",
+  "authoritative": {
+    "lines": [
+      {
+        "productSurrogate": "P-101",
+        "quantity": "5",
+        "unitPriceMinor": 500,
+        "subtotalMinor": 2500,
+        "discountMinor": 0,
+        "taxMinor": 0,
+        "totalMinor": 2500
+      }
+    ],
+    "subtotalMinor": 2500,
+    "discountMinor": 0,
+    "taxMinor": 0,
+    "totalMinor": 2500
+  },
+  "applicability": "SYNTHETIC_ISOLATION",
+  "result": "PENDING_HARNESS",
+  "note": "Runtime returned this overlap total. The bridge does not encode a CETECH precedence algorithm."
+}
