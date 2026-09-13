@@ -1,4 +1,72 @@
-# WS3 current handoff — R2 PROGRESS_CHECKPOINT (runtime hops proven; freshness follows push)
+# WS3 current handoff — R2 SESSION_COMPLETION (runtime hops proven; FRESH_2)
+
+Kind / UTC: SESSION_COMPLETION / 2026-09-13T13:41:34Z (Pass-2 cutoff; not Pass 3 of any previous session)
+Task / batch / workstream: R2 — Authentication, bridge health and BFF; WS3 CORE-02 (#21) + CORE-03 (#22) + imported BR-01 (#13)
+Owner / integration editor / requested human reviewer: @wbdevworld / same / @Ben-001-sys (request on the exact new head after required CI is green; prior COMMENTED review on `3a1b6b5…` is not approval)
+Branch: `batch/r2-auth-bridge-bff`
+Starting/base SHA: `origin/main` `aa08d74f2cb99301817e5995f01486acb7e2169f`
+Start R2 SHA: `3a1b6b579781130afc9bd9792405b182c7bfe5ca`
+Implementation checkpoint SHA: `7cc6e9aa242d6d5077eb04f844aa7c0fe85bf11b`
+CP-04 evidence branch/head: `origin/ws3/cp-04-r2-runtime-gates` `edf24afaf7d57d6109a761820f5cfb8bc548973f`
+W4 evidence SHA: `67ea42ce03142fb9f0ca18446b8146b0815ea621`
+Final task head SHA: recorded after this freshness evidence commit
+Allowed / forbidden paths and central leases: CURRENT-WORK R2 lease plus one session migration; CP-04 evidence files not imported
+Files changed this continuation: durable `pos_staff_sessions`; Supabase session store; session HTTP; real Supabase health probe; canonical bridge health URL; R2 ledger/evidence; this two-pass freshness record
+Contracts changed: none (v1.0.0 consumed)
+Database migrations: `supabase/migrations/20260913140000_pos_staff_sessions.sql`
+Architecture decisions: none (ADR-011 CURRENT; ADR-012 ACTIVE)
+Completed/current/remaining tasks: BR-01 INTEGRATED_AND_TESTED / LIVE WORDPRESS HEALTH VERIFIED. CORE-02 COMPLETE FOR R2 / durable VERIFIED. CORE-03 LIVE RUNTIME ACCEPTED. CP04-W1 PASS; CP04-W4 PASS on training WordPress side. Mail containment PRESERVED. Pricing parity FALSE / NOT TESTED. Orders/stock/payments/production: NO. Issue #4 OPEN. Overall CP-04 not complete. R3 not started.
+Dependencies: CP-05 ACCEPTED; CORE-01 ACCEPTED through R1; BR-01 local + WordPress + live BFF hops verified
+Tests executed (exact; Windows Node v24.21.0 / pnpm 12.4.1 / Python 3.14.4 / PHP 8.5.0 / GNU Make 4.4.1):
+- `python scripts/verify_control_plane.py` EXIT 0
+- `python -m unittest discover -s tests/tooling -v` EXIT 0 (48)
+- `make -C wordpress/cetech-pos-bridge check` EXIT 0
+- `make -C wordpress/cetech-pos-bridge test` EXIT 0 (**67 passed / 0 failed**)
+- `pnpm install --frozen-lockfile` EXIT 0
+- `pnpm --dir apps/pos-web lint` EXIT 0
+- `pnpm --dir apps/pos-web typecheck` EXIT 0
+- `pnpm --dir apps/pos-web test` EXIT 0 (18 files / 98 tests)
+- `pnpm --dir apps/pos-web build` EXIT 0 (`ƒ /api/pos/v1/health`, `ƒ /api/pos/v1/session`)
+- `pnpm --dir apps/pos-web test:e2e` EXIT 0 (1 passed; scaffold smoke)
+- `git diff --check` EXIT 0
+Runtime verification: `docs/integration/evidence/R2-RUNTIME-ACCEPTANCE.md`
+Remote effects performed: git push of `7cc6e9a…`; issue #4 comment (issue remains OPEN); host-local AP copied to gitignored `.env.local` only; training WP-CLI read-only W1 check; no Woo/stock/payment/email writes; no remote migration; no deploy
+Assumptions / limitations / unresolved risks: local Docker Postgres lacked `pgtap`; 74-case RLS suite rides Linux CI. Detection is not pricing parity. Required GitHub Actions on the final head may still be in progress at cutoff.
+Next exact action: if required CI is green on the final head, mark #43 ready and request @Ben-001-sys on that exact SHA. Do not merge. Do not start R3.
+
+Freshness protocol:
+START_FRESHNESS_SNAPSHOT UTC: `2026-09-13T13:12:55Z`
+Start main SHA: `aa08d74f2cb99301817e5995f01486acb7e2169f`
+Start batch ref/SHA, if declared (else NOT_APPLICABLE): `origin/ws3/cp-04-r2-runtime-gates` `edf24afaf7d57d6109a761820f5cfb8bc548973f`
+Start R2 SHA: `3a1b6b579781130afc9bd9792405b182c7bfe5ca`
+Applicable contracts / ADRs / ownership / queue revision: v1.0.0; ADR-011 CURRENT; ADR-012 ACTIVE; R2 lease in CURRENT-WORK
+
+Pass 1 fetch UTC / success evidence: `2026-09-13T13:41:11Z` `git fetch origin --prune` succeeded
+Pass 1 main SHA: `aa08d74f2cb99301817e5995f01486acb7e2169f`
+Pass 1 batch SHA: `7cc6e9aa242d6d5077eb04f844aa7c0fe85bf11b`
+Pass 1 contributor SHA: `origin/ws2/br-01-…` `62608937a05648a3d6dd077012082c1c0558fe99` (not consumed)
+Relevant upstream paths and dependency/authority effects: none on main/CP-04. WS2 BR-01 test/docs IRRELEVANT.
+Classification per change: main none; CP-04 none; WS2 BR-01 IRRELEVANT
+Actions taken / reconciliation commits: none
+Tests rerun / tested combined SHA: not required
+
+Pass 2 fetch UTC / success evidence: `2026-09-13T13:41:34Z` independent `git fetch origin --prune` succeeded
+Pass 2 main SHA: `aa08d74f2cb99301817e5995f01486acb7e2169f`
+Pass 2 batch SHA: `7cc6e9aa242d6d5077eb04f844aa7c0fe85bf11b`
+Pass 2 contributor SHA: `62608937a05648a3d6dd077012082c1c0558fe99`
+Relevant upstream paths and dependency/authority effects: none
+Classification per change: none
+Actions taken / reconciliation commits: this evidence/handoff commit only
+Tests rerun / tested combined SHA: not required (no arrivals)
+
+Final freshness status: FRESH_2
+Delivery status: READY_FOR_INTEGRATION (R2 live hops proven); merge still requires independent review
+Known post-cutoff risk / integration editor follow-up: later main/CP-04/BR-01 movement; GitHub Actions on `7cc6e9a…` may still be in progress at Pass-2 cutoff
+Pass 3: NOT PERMITTED for this assignment.
+Review/merge/release status and limitations: request Ben on the new exact head after required CI is green; no self-merge; no production promotion
+Metrics delta for CURRENT-WORK (counts/timestamps, never guessed zeroes): Pass-1/Pass-2 stale findings 0/0; both cutoffs `aa08d74f…` / `edf24af…`. Other R2 metrics remain UNVERIFIED.
+
+## Previous current handoff — R2 PROGRESS_CHECKPOINT (runtime hops proven; freshness follows push)
 
 Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T13:37:50Z (new ADR-012 continuation; not Pass 3 of the previous session)
 Task / batch / workstream: R2 — Authentication, bridge health and BFF; WS3 CORE-02 (#21) + CORE-03 (#22) + imported BR-01 (#13)
