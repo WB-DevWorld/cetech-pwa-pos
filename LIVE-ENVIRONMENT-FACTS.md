@@ -40,7 +40,7 @@ WS3 coordinates CP-04; WS2 may contribute Woo/public intake on WS2-owned paths. 
 | Currency and precision | Admin + public: GHS, 2 decimals, left, `.` / `,` | VERIFIED 2026-09-12 16:12 UTC @wbdevworld Woo options `woocommerce_currency=GHS`, `woocommerce_price_num_decimals=2`. Matches earlier public Store API. |
 | Fractional-quantity products | Sampled Store API `multiple_of=1`; Woo decimal-qty setting BLOCKED | 2026-09-12 sample of 20 Store API products. Do not infer policy from price decimals. |
 | Stock reserve/expiry/reduction behavior | hold-stock 60 minutes VERIFIED; reduction-on-payment runtime BLOCKED | 2026-09-12 16:12 UTC @wbdevworld `woocommerce_hold_stock_minutes=60`. No write test. |
-| WordPress bridge service identity/capabilities | Absent on host (`cetech-pos` 404) | VERIFIED 2026-09-12 HEAD `/wp-json/cetech-pos/v1/health` 404. Application Passwords advertised on staging REST. |
+| WordPress bridge service identity/capabilities | Absent on host (`cetech-pos` 404; plugin dir absent) | VERIFIED 2026-09-12 14:10 UTC public HEAD 404. Refresh 2026-09-12T23:58:58Z @wbdevworld: HEAD `/wp-json/cetech-pos/v1/health` 404; REST namespaces have no `cetech-pos`; SSH 2026-09-13 ~00:02Z plugin dir absent. Application Passwords still advertised. |
 | Production staff role mapping | UNVERIFIED | UNVERIFIED |
 | Cash variance approval policy | UNVERIFIED | UNVERIFIED |
 | Current active VitePOS shifts | UNVERIFIED | UNVERIFIED |
@@ -51,6 +51,6 @@ WS3 coordinates CP-04; WS2 may contribute Woo/public intake on WS2-owned paths. 
 | Sprint start/end UTC | UNVERIFIED | UNVERIFIED |
 | Staging dataset sanitization | BLOCKED / not proven sanitized | 2026-09-12 public catalog 54 items. Authenticated counts: 20 users, 12 customer-capability rows, 51 HPOS orders. No PII exported. |
 | Production invoice owner/signoff | UNVERIFIED | UNVERIFIED |
-| Staging isolation vs production writes | NOT PROVEN | 2026-09-12 authenticated: env type staging VERIFIED; staging DB fingerprint recorded; production fingerprint unavailable; Woo webhooks 0 VERIFIED; MailPoet active and `admin_email` domain `cetechbpa.com` → email **UNSAFE** for write tests. No write tests. See CP-04-AUTHENTICATED-AUDIT.md. |
+| Staging isolation vs production writes | NOT PROVEN; email still **UNSAFE** | 2026-09-12 authenticated: env type staging VERIFIED; staging DB fingerprint recorded; production fingerprint unavailable; Woo webhooks 0 VERIFIED; MailPoet active and `admin_email` domain `cetechbpa.com`. Refresh 2026-09-13 @wbdevworld: webhooks still 0; MailPoet 5.37.0 still active; `admin_email` domain still `cetechbpa.com`; MU `cetech-training-safety.php` still states MailPoet is intentionally allowed to send. Do not silently upgrade. See `docs/integration/evidence/CP04-W1-OUTBOUND-CONTAINMENT.md`. No write tests. |
 
 Repository observations belong in docs/runbooks/GITHUB-REALITY.md. Unknowns block only dependent operations, never unrelated local implementation or synthetic tests. Repeat the audit via docs/runbooks/CP-04-STAGING-AUDIT.md.
