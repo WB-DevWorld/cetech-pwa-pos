@@ -48,7 +48,17 @@ export async function handleStoreHealth(input: StoreHealthRequest): Promise<Stor
   }
 
   const sessionId = readCookie(input.cookieHeader, STAFF_SESSION_COOKIE);
-  const stored = sessionId ? await input.sessionStore.get(sessionId, input.now) : null;
+  let stored = null;
+  try {
+    stored = sessionId ? await input.sessionStore.get(sessionId, input.now) : null;
+  } catch {
+    const body = authFailure(
+      "INTEGRATION_UNAVAILABLE",
+      "staff session store is unavailable",
+      correlation.correlationId,
+    );
+    return { status: httpStatusFor(body.error.code), body, headers };
+  }
   if (!stored) {
     const body = authFailure("AUTH_REQUIRED", "staff session is required", correlation.correlationId);
     return { status: httpStatusFor(body.error.code), body, headers };

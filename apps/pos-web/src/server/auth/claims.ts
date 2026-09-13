@@ -76,6 +76,33 @@ export function toSession(claims: StaffIdentityClaims): Session {
   };
 }
 
+/** Fail closed if a stored session payload is missing required staff fields. */
+export function parseSession(value: unknown): Session | null {
+  if (value === null || typeof value !== "object") {
+    return null;
+  }
+  const root = value as Record<string, unknown>;
+  const actorId = firstString(root.actorId);
+  const displayName = firstString(root.displayName);
+  const organizationId = firstString(root.organizationId);
+  const locationIds = parseIdList(root.locationIds);
+  const expiresAt = isTimestamp(root.expiresAt) ? root.expiresAt : null;
+  if (!isPosId(actorId) || !isPosId(organizationId) || locationIds === null || !expiresAt || !displayName) {
+    return null;
+  }
+  if (locationIds.some((id) => !isPosId(id))) {
+    return null;
+  }
+  return {
+    actorId,
+    displayName,
+    organizationId,
+    locationIds,
+    capabilities: parseStringList(root.capabilities),
+    expiresAt,
+  };
+}
+
 function hasBuyerIdentity(
   appMetadata: Record<string, unknown>,
   userMetadata: Record<string, unknown>,

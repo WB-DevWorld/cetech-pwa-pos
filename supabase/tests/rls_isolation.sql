@@ -49,7 +49,7 @@ BEGIN
 END;
 $$;
 
-SELECT plan(66);
+SELECT plan(74);
 
 SELECT pos_test_clear_claims();
 
@@ -800,6 +800,94 @@ SELECT lives_ok(
        'org_a', 'loc_a1', 'shift', 'shift-1', 'shift.opened'
      ) $$,
   'trusted outbox insert accepts same-organization location'
+);
+RESET ROLE;
+
+SELECT pos_test_clear_claims();
+SET ROLE anon;
+SELECT throws_ok(
+  $$ SELECT count(*) FROM pos_staff_sessions $$,
+  '42501',
+  NULL,
+  'anonymous cannot read staff sessions'
+);
+RESET ROLE;
+
+SELECT pos_test_set_claims('org_a', ARRAY['loc_a1'], 'cashier_a', 'reg_a');
+SET ROLE authenticated;
+SELECT throws_ok(
+  $$ SELECT count(*) FROM pos_staff_sessions $$,
+  '42501',
+  NULL,
+  'authenticated cannot read staff sessions'
+);
+SELECT throws_ok(
+  $$ INSERT INTO pos_staff_sessions (
+       organization_id, actor_id, csrf_token, session_payload, expires_at
+     ) VALUES (
+       'org_a',
+       'cashier_a',
+       'csrf-token',
+       jsonb_build_object(
+         'actorId', 'cashier_a',
+         'displayName', 'Cashier A',
+         'organizationId', 'org_a',
+         'locationIds', jsonb_build_array('loc_a1'),
+         'capabilities', jsonb_build_array(),
+         'expiresAt', '2099-01-01T00:00:00.000Z'
+       ),
+       now() + interval '1 hour'
+     ) $$,
+  '42501',
+  NULL,
+  'authenticated cannot insert staff sessions'
+);
+SELECT throws_ok(
+  $$ UPDATE pos_staff_sessions SET revoked_at = now() $$,
+  '42501',
+  NULL,
+  'authenticated cannot update staff sessions'
+);
+RESET ROLE;
+
+SELECT pos_test_clear_claims();
+SET ROLE service_role;
+SELECT lives_ok(
+  $$ INSERT INTO pos_staff_sessions (
+       id, organization_id, actor_id, csrf_token, session_payload, expires_at
+     ) VALUES (
+       'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+       'org_synthetic_session',
+       'actor_synthetic_session',
+       'csrf-token',
+       jsonb_build_object(
+         'actorId', 'actor_synthetic_session',
+         'displayName', 'Synthetic',
+         'organizationId', 'org_synthetic_session',
+         'locationIds', jsonb_build_array('loc_x'),
+         'capabilities', jsonb_build_array(),
+         'expiresAt', '2099-01-01T00:00:00.000Z'
+       ),
+       now() + interval '1 hour'
+     ) $$,
+  'service_role can insert staff sessions as infrastructure access, not business authorization'
+);
+SELECT is(
+  (SELECT count(*)::int FROM pos_staff_sessions WHERE id = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'),
+  1,
+  'service_role can select inserted staff sessions'
+);
+SELECT lives_ok(
+  $$ UPDATE pos_staff_sessions
+     SET revoked_at = now()
+     WHERE id = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee' $$,
+  'service_role revokes staff sessions by update'
+);
+SELECT throws_ok(
+  $$ DELETE FROM pos_staff_sessions WHERE id = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee' $$,
+  '42501',
+  NULL,
+  'service_role cannot delete staff sessions'
 );
 RESET ROLE;
 

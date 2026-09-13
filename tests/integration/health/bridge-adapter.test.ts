@@ -7,6 +7,7 @@ import {
   createBridgeHealthClient,
   createBridgeServiceIdentity,
   mapBridgeHealth,
+  bridgeHealthUrl,
 } from "../../../apps/pos-web/src/server/health/bridge-adapter";
 import { composeBridgeHealthInspect } from "../../../apps/pos-web/src/server/health/compose-bridge-health";
 import { handleStoreHealth } from "../../../apps/pos-web/src/server/health/handle-store-health";
@@ -141,6 +142,44 @@ describe("CORE-03 BFF bridge health/permission adapter", () => {
     expect(check.message).toMatch(/wooDetected=true/);
     expect(check.message).toMatch(/pricingParityVerified=false/);
     expect(check.message).toMatch(/detection is not pricing parity/);
+  });
+
+  test("site-origin BRIDGE_BASE_URL still GETs /wp-json/cetech-pos/v1/health", async () => {
+    expect(bridgeHealthUrl("https://training.example.invalid")).toBe(
+      "https://training.example.invalid/wp-json/cetech-pos/v1/health",
+    );
+    expect(bridgeHealthUrl(`${BRIDGE_BASE}/`)).toBe(`${BRIDGE_BASE}/health`);
+    const captured: { url?: string } = {};
+    const client = createBridgeHealthClient({
+      baseUrl: "https://training.example.invalid",
+      username: "bridge-service",
+      applicationPassword: "app-pass-fixture",
+      fetchImpl: async (url) => {
+        captured.url = url;
+        return { ok: true, status: 200, json: async () => successEnvelope(CORRELATION) };
+      },
+    });
+    await client.inspect(CORRELATION, NOW);
+    expect(captured.url).toBe("https://training.example.invalid/wp-json/cetech-pos/v1/health");
+  });
+
+  test("site-origin BRIDGE_BASE_URL still GETs /wp-json/cetech-pos/v1/health", async () => {
+    expect(bridgeHealthUrl("https://training.example.invalid")).toBe(
+      "https://training.example.invalid/wp-json/cetech-pos/v1/health",
+    );
+    expect(bridgeHealthUrl(`${BRIDGE_BASE}/`)).toBe(`${BRIDGE_BASE}/health`);
+    const captured: { url?: string } = {};
+    const client = createBridgeHealthClient({
+      baseUrl: "https://training.example.invalid",
+      username: "bridge-service",
+      applicationPassword: "app-pass-fixture",
+      fetchImpl: async (url) => {
+        captured.url = url;
+        return { ok: true, status: 200, json: async () => successEnvelope(CORRELATION) };
+      },
+    });
+    await client.inspect(CORRELATION, NOW);
+    expect(captured.url).toBe("https://training.example.invalid/wp-json/cetech-pos/v1/health");
   });
 
   test("401/403 does not become trusted access", async () => {

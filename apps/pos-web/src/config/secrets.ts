@@ -10,7 +10,7 @@ export const SERVER_ONLY_SECRET_NAMES = [
 ] as const;
 
 /** Server-only config names that must not be copied to NEXT_PUBLIC_*. */
-export const SERVER_ONLY_CONFIG_NAMES = ["BRIDGE_USERNAME"] as const;
+export const SERVER_ONLY_CONFIG_NAMES = ["BRIDGE_USERNAME", "BRIDGE_BASE_URL"] as const;
 
 const PUBLIC_PREFIX = "NEXT_PUBLIC_";
 

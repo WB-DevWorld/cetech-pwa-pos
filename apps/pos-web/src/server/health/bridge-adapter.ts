@@ -55,7 +55,7 @@ export function createBridgeHealthClient(options: BridgeHealthClientOptions) {
     username: options.username,
     applicationPassword: options.applicationPassword,
   });
-  const base = options.baseUrl.replace(/\/+$/, "");
+  const healthUrl = bridgeHealthUrl(options.baseUrl);
   const timeoutMs = options.timeoutMs ?? 5_000;
   const fetchImpl = options.fetchImpl;
 
@@ -68,7 +68,7 @@ export function createBridgeHealthClient(options: BridgeHealthClientOptions) {
         async check(now: Date): Promise<HealthCheck> {
           const inspected = await inspectBridgeHealth({
             fetchImpl,
-            url: `${base}/health`,
+            url: healthUrl,
             authorizationHeader: identity.authorizationHeader,
             correlationId,
             timeoutMs,
@@ -81,7 +81,7 @@ export function createBridgeHealthClient(options: BridgeHealthClientOptions) {
     async inspect(correlationId: Uuid, now: Date): Promise<{ check: HealthCheck; health: BridgeHealth }> {
       return inspectBridgeHealth({
         fetchImpl,
-        url: `${base}/health`,
+        url: healthUrl,
         authorizationHeader: identity.authorizationHeader,
         correlationId,
         timeoutMs,
@@ -89,6 +89,18 @@ export function createBridgeHealthClient(options: BridgeHealthClientOptions) {
       });
     },
   };
+}
+
+/** Always GET /wp-json/cetech-pos/v1/health regardless of whether the env base is the site origin or the REST prefix. */
+export function bridgeHealthUrl(baseUrl: string): string {
+  const trimmed = baseUrl.trim().replace(/\/+$/, "");
+  if (trimmed.endsWith("/wp-json/cetech-pos/v1/health")) {
+    return trimmed;
+  }
+  if (trimmed.endsWith("/wp-json/cetech-pos/v1")) {
+    return `${trimmed}/health`;
+  }
+  return `${trimmed}/wp-json/cetech-pos/v1/health`;
 }
 
 export function mapBridgeHealth(body: unknown): BridgeHealth {

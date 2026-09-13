@@ -11,4 +11,14 @@ export {
   STAFF_CSRF_HEADER,
   STAFF_SESSION_COOKIE,
 } from "./auth";
-export { readBridgeServiceEnv, readServerEnv, type BridgeServiceEnv, type ServerEnv } from "./env";
+export {
+  readBridgeServiceEnv,
+  readServerEnv,
+  readSupabaseAuthEnv,
+  readSupabaseInfrastructureEnv,
+  staffAllowedOrigins,
+  type BridgeServiceEnv,
+  type ServerEnv,
+  type SupabaseAuthEnv,
+  type SupabaseInfrastructureEnv,
+} from "./env";

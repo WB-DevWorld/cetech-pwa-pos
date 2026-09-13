@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { readBridgeServiceEnv, readServerEnv } from "../../../apps/pos-web/src/config/env";
+import { readBridgeServiceEnv, readServerEnv, readSupabaseAuthEnv, readSupabaseInfrastructureEnv } from "../../../apps/pos-web/src/config/env";
 
 describe("CORE-03 server env boundary", () => {
   test("public service-role aliases are rejected", () => {
@@ -22,6 +22,14 @@ describe("CORE-03 server env boundary", () => {
     expect(() =>
       readServerEnv({
         NEXT_PUBLIC_BRIDGE_USERNAME: "bridge-service",
+      }),
+    ).toThrow(/must not be exposed/);
+  });
+
+  test("public bridge base-url aliases are rejected", () => {
+    expect(() =>
+      readServerEnv({
+        NEXT_PUBLIC_BRIDGE_BASE_URL: "https://staging-shop.example.invalid/wp-json/cetech-pos/v1",
       }),
     ).toThrow(/must not be exposed/);
   });
@@ -61,5 +69,25 @@ describe("CORE-03 server env boundary", () => {
     });
     expect(identity?.username).toBe("bridge-service");
     expect(identity?.applicationPassword).toBe("app-pass-fixture");
+  });
+
+  test("supabase infrastructure env ignores placeholders and is not a health proof", () => {
+    expect(
+      readSupabaseInfrastructureEnv({
+        SUPABASE_URL: "https://example.supabase.co",
+        SUPABASE_SERVICE_ROLE_KEY: "REPLACE_WITH_SERVER_ONLY_KEY",
+      }),
+    ).toBeNull();
+    const infra = readSupabaseInfrastructureEnv({
+      SUPABASE_URL: "https://example.supabase.co",
+      SUPABASE_SERVICE_ROLE_KEY: "server-only-infrastructure",
+    });
+    expect(infra?.url).toBe("https://example.supabase.co");
+    expect(
+      readSupabaseAuthEnv({
+        SUPABASE_URL: "https://example.supabase.co",
+        SUPABASE_PUBLISHABLE_KEY: "REPLACE_WITH_LOCAL_OR_STAGING_PUBLISHABLE_KEY",
+      }),
+    ).toBeNull();
   });
 });

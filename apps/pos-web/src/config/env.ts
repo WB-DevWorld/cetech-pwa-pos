@@ -1,4 +1,5 @@
 import { SERVER_ONLY_CONFIG_NAMES, SERVER_ONLY_SECRET_NAMES } from "./secrets";
+import { parseAllowedOrigins } from "./auth";
 
 export type ServerEnv = {
   readonly appOrigin: string;
@@ -11,6 +12,16 @@ export type BridgeServiceEnv = {
   readonly baseUrl: string;
   readonly username: string;
   readonly applicationPassword: string;
+};
+
+export type SupabaseAuthEnv = {
+  readonly url: string;
+  readonly publishableKey: string;
+};
+
+export type SupabaseInfrastructureEnv = {
+  readonly url: string;
+  readonly serviceRoleKey: string;
 };
 
 export function readServerEnv(
@@ -43,6 +54,56 @@ export function readBridgeServiceEnv(
     return null;
   }
   return { baseUrl, username, applicationPassword };
+}
+
+/**
+ * Publishable/anon key for Auth introspection. Never a service-role key.
+ * Presence of these names is not a health proof.
+ */
+export function readSupabaseAuthEnv(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): SupabaseAuthEnv | null {
+  rejectPublicServerOnlyNames(env);
+  const url = env.SUPABASE_URL?.trim() ?? "";
+  const publishableKey =
+    env.SUPABASE_PUBLISHABLE_KEY?.trim() ||
+    env.SUPABASE_ANON_KEY?.trim() ||
+    env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ||
+    "";
+  if (!url || !publishableKey) {
+    return null;
+  }
+  if (isUnusableCredential(url) || isUnusableCredential(publishableKey) || publishableKey.toUpperCase().includes("SERVICE_ROLE")) {
+    return null;
+  }
+  return { url, publishableKey };
+}
+
+/**
+ * Service-role / infrastructure credential for the BFF session store and
+ * read-only health probe. This is not staff or cashier authorization.
+ */
+export function readSupabaseInfrastructureEnv(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): SupabaseInfrastructureEnv | null {
+  rejectPublicServerOnlyNames(env);
+  const url = env.SUPABASE_URL?.trim() ?? "";
+  const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY?.trim() || env.SUPABASE_SECRET_KEY?.trim() || "";
+  if (!url || !serviceRoleKey) {
+    return null;
+  }
+  if (isUnusableCredential(url) || isUnusableCredential(serviceRoleKey)) {
+    return null;
+  }
+  return { url, serviceRoleKey };
+}
+
+export function staffAllowedOrigins(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): readonly string[] {
+  const origin = env.APP_ORIGIN ?? env.NEXT_PUBLIC_APP_ORIGIN ?? "http://localhost:3000";
+  const extra = parseAllowedOrigins(env.ALLOWED_ORIGINS);
+  return [origin, ...extra];
 }
 
 function rejectPublicServerOnlyNames(env: Readonly<Record<string, string | undefined>>): void {

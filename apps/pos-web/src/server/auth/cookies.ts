@@ -52,3 +52,13 @@ export function sessionClearCookie(secure = AUTH_COOKIE_OPTIONS.secure): string 
 export function csrfClearCookie(secure = AUTH_COOKIE_OPTIONS.secure): string {
   return csrfSetCookie("", new Date(0), secure);
 }
+
+/** Staging/production always Secure. Local HTTP origins omit Secure so the cookie can be stored. */
+export function staffCookieSecure(env: Readonly<Record<string, string | undefined>> = process.env): boolean {
+  const appEnv = env.APP_ENV ?? "local";
+  if (appEnv === "production" || appEnv === "staging") {
+    return true;
+  }
+  const origin = env.APP_ORIGIN ?? env.NEXT_PUBLIC_APP_ORIGIN ?? "";
+  return origin.startsWith("https://");
+}

@@ -186,6 +186,31 @@ describe("CORE-03 PREP_ONLY store health", () => {
     expect(byId.bridge.status).not.toBe("healthy");
   });
 
+  test("session store infrastructure failure is INTEGRATION_UNAVAILABLE not anonymous", async () => {
+    const { store, cookieHeader } = await staffCookie();
+    const result = await handleStoreHealth({
+      correlationIdHeader: CORRELATION,
+      cookieHeader,
+      now: NOW,
+      sessionStore: {
+        create: store.create.bind(store),
+        revoke: store.revoke.bind(store),
+        async get() {
+          throw new Error("postgrest down");
+        },
+      },
+      supabaseConfigured: true,
+      bridgeConfigured: false,
+      buildId: "test-build",
+    });
+    expect(result.status).toBe(503);
+    expect(result.body.ok).toBe(false);
+    if (result.body.ok) {
+      throw new Error("expected failure");
+    }
+    expect(result.body.error.code).toBe("INTEGRATION_UNAVAILABLE");
+  });
+
   test("PREP_ONLY BridgeHealth never sets detection or pricing parity", () => {
     const health = mockBridgeHealth();
     expect(health.status).toBe("unavailable");
@@ -216,6 +241,8 @@ describe("CORE-03 PREP_ONLY store health", () => {
       "utf8",
     );
     expect(source).toMatch(/composeBridgeHealthInspect/);
+    expect(source).toMatch(/composeStaffSessionStore/);
+    expect(source).toMatch(/composeSupabaseHealthProbe/);
     expect(source).not.toMatch(/NEXT_PUBLIC_BRIDGE_/);
     expect(source).not.toMatch(/BRIDGE_APPLICATION_PASSWORD/);
     expect(source).not.toMatch(/SERVICE_ROLE_KEY\s*=/);

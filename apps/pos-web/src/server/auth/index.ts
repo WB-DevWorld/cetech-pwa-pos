@@ -14,13 +14,14 @@ export {
   type AuthorizeStaffReadInput,
   type AuthorizedStaffContext,
 } from "./authorize";
-export { parseStaffIdentityClaims, toSession, type StaffIdentityClaims } from "./claims";
+export { parseStaffIdentityClaims, parseSession, toSession, type StaffIdentityClaims } from "./claims";
 export {
   csrfClearCookie,
   csrfSetCookie,
   parseCookieHeader,
   sessionClearCookie,
   sessionSetCookie,
+  staffCookieSecure,
 } from "./cookies";
 export { assertMutationProtection } from "./csrf";
 export { authFailure } from "./errors";
@@ -40,6 +41,12 @@ export {
   type StaffPermission,
 } from "./roles";
 export { establishStaffSession, revokeStaffSession } from "./staff-session";
+export {
+  handleEstablishStaffSession,
+  handleRevokeStaffSession,
+} from "./handle-staff-session";
+export { composeStaffSessionStore } from "./compose-session-store";
+export { createSupabaseStaffSessionStore } from "./supabase-session-store";
 export {
   createSupabaseAuthIntrospector,
   credentialLooksLikeServiceRole,
