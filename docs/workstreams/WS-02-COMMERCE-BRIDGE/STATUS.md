@@ -1,6 +1,6 @@
 # WS2 current status
 
-Snapshot 2026-09-13. `origin/main` `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`. Owner: Developer 2 / @Emmanuel-coder-prog. R3 editor: @wbdevworld on `batch/r3-authoritative-pricing-parity` / draft PR #44. Training-live continuation start: `docs/integration/evidence/R3-TRAINING-LIVE-START-FRESHNESS.md`. Live capture: `docs/integration/evidence/R3-TRAINING-LIVE.md`.
+Snapshot 2026-09-13. `origin/main` `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`. Owner: Developer 2 / @Emmanuel-coder-prog. R3 editor: @wbdevworld on `batch/r3-authoritative-pricing-parity` / draft PR #44. Training-live continuation start: `docs/integration/evidence/R3-TRAINING-LIVE-START-FRESHNESS.md`. Live capture: `docs/integration/evidence/R3-TRAINING-LIVE.md`. Final freshness: `docs/integration/evidence/R3-TRAINING-LIVE-FRESHNESS.md` (**FRESH_2**).
 
 R3 queue unchanged. Training plugin is `0.2.3-br02`. Live quote matrix captured with zero unexplained minor-unit deltas. Guest remains unpriced (B2BKing guest purchasable off). R3 pricing gate **NOT PASSED**. `pricingParityVerified` false. Issue #4 stays OPEN. Review not requested.
 

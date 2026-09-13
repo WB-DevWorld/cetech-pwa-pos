@@ -46,9 +46,11 @@ Evidence: R2 APPROVED / MERGED / VERIFIED. PR #43 merge `ab9aa5ae3dcc79d51efb22c
 - START_FRESHNESS_SNAPSHOT UTC: `2026-09-13T15:35:02Z`. origin/main / R2 merge `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`. Editor candidate `batch/r3-authoritative-pricing-parity` created from that SHA. Contract version v1.0.0. ADRs 011 CURRENT, 012 ACTIVE. Evidence: `docs/integration/evidence/R3-START-FRESHNESS.md`.
 - BR-01: accepted through R2 on main. Exact SHA `280a73d…` imported as `0ac2e38…`. Live WordPress health VERIFIED via CP-04 `67ea42c…` / `edf24af…`. `pricingParityVerified` false.
 - Live training quote/parity: captured 2026-09-13T17:02:00Z on training plugin `0.2.3-br02`. Evidence `docs/integration/evidence/R3-TRAINING-LIVE.md`. Guest REFUSAL_MATCH. Retail/WoodMart/B2B/overlap MATCH_EXACT vs Woo. `pricingParityVerified` false. R3 gate NOT PASSED. Do not request review.
-- Continuation START_FRESHNESS_SNAPSHOT UTC: `2026-09-13T16:06:08Z`. Evidence: `docs/integration/evidence/R3-UNITPRICE-START-FRESHNESS.md`. This is not Pass 3 of the prior R3 session.
-- Continuation final freshness: **FRESH_2**. Evidence: `docs/integration/evidence/R3-UNITPRICE-FRESHNESS.md`. Both upstream cutoffs `ab9aa5ae…`.
-- QuoteLine `unitPrice` production mapping defect found after the prior local checkpoint and corrected locally. BR-02 is not live-complete. BR-03/04/05 remain live-gated.
+- Training-live continuation START_FRESHNESS_SNAPSHOT UTC: `2026-09-13T16:23:57Z`. Evidence: `docs/integration/evidence/R3-TRAINING-LIVE-START-FRESHNESS.md`. This is not Pass 3 of the unitPrice session.
+- Training-live continuation final freshness: **FRESH_2**. Evidence: `docs/integration/evidence/R3-TRAINING-LIVE-FRESHNESS.md`. Both upstream cutoffs `ab9aa5ae…`. Pass 2 UTC `2026-09-13T17:08:52Z`. Delivery **BLOCKED**.
+- Prior unitPrice continuation START_FRESHNESS_SNAPSHOT UTC: `2026-09-13T16:06:08Z`. Evidence: `docs/integration/evidence/R3-UNITPRICE-START-FRESHNESS.md`.
+- Prior unitPrice continuation final freshness: **FRESH_2**. Evidence: `docs/integration/evidence/R3-UNITPRICE-FRESHNESS.md`. Both upstream cutoffs `ab9aa5ae…`.
+- QuoteLine `unitPrice` mapping was corrected before the training-live continuation. Guest priced path remains absent. Extra B2BKing rule types and tax-on remain N/A.
 - Issue #4 stays OPEN. Overall CP-04 not complete. R4–R10 are not activated by this lease. PR #41 remains R4 preparation.
 
 ## R2 batch workflow record — historical (APPROVED / MERGED / VERIFIED)
@@ -84,7 +86,7 @@ Observed values are UNVERIFIED until measured; do not interpret blanks as zero. 
 | Human interruptions / prompts per accepted task | UNVERIFIED | UNVERIFIED | UNVERIFIED | Session/handoff counts; distinguish milestone review from routine prompts |
 | Review waiting time / branch age | UNVERIFIED | UNVERIFIED | UNVERIFIED | Ready-for-review, branch start and review/merge UTC |
 | Time since combined integration | UNVERIFIED | UNVERIFIED | UNVERIFIED | Last combined build SHA/UTC |
-| Pass-1 / Pass-2 stale findings | 0 / 0 for workflow adoption; both cutoffs `cd4477f` | 0 / 0; this continuation both cutoffs `aa08d74f…` / `280a73d…` (`2026-09-12T23:28:42Z` / `2026-09-12T23:29:59Z`) | 0 / 0; both cutoffs `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`; Pass 2 UTC `2026-09-13T15:56:05Z`; FRESH_2 | Final freshness classifications |
+| Pass-1 / Pass-2 stale findings | 0 / 0 for workflow adoption; both cutoffs `cd4477f` | 0 / 0; this continuation both cutoffs `aa08d74f…` / `280a73d…` (`2026-09-12T23:28:42Z` / `2026-09-12T23:29:59Z`) | 0 / 0; latest continuation both cutoffs `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`; Pass 2 UTC `2026-09-13T17:08:52Z`; FRESH_2 | Final freshness classifications |
 | Drift rework / integration conflicts | 0 / 0 for workflow adoption; excludes earlier CORE-01 work | UNVERIFIED | UNVERIFIED | Scoped corrective commits and conflict records |
 | Defects found at review | UNVERIFIED | UNVERIFIED | UNVERIFIED | Findings attributable to this batch |
 | Review duration / comprehension | UNVERIFIED | UNVERIFIED | UNVERIFIED | Reviewer minutes and can explain invariants: yes/no |

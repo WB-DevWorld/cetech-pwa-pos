@@ -1,4 +1,24 @@
-# WS2 current handoff — R3 TRAINING-LIVE (PROGRESS_CHECKPOINT)
+# WS2 current handoff — R3 TRAINING-LIVE SESSION_COMPLETION (FRESH_2)
+
+Kind / UTC: SESSION_COMPLETION / 2026-09-13T17:08:52Z (Pass-2 cutoff; no Pass 3)
+Task / batch / workstream: BR-02–BR-05 live training quotes; R3
+Owner / integration editor / requested human reviewer: WS2 @Emmanuel-coder-prog / editor @wbdevworld / **do not request** @Ben-001-sys
+Branch: `batch/r3-authoritative-pricing-parity` / draft PR #44
+Starting/base SHA: `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`
+Pre-handoff implementation SHA: `3d3d1bf59b44c3767ca23c387c9f710c40a943ff`
+Current/final task head SHA: recorded in PR #44 after this evidence commit (not self-referential)
+Contracts changed: none (v1.0.0)
+Database migrations: none
+Architecture decisions: none
+Plugin: `0.2.3-br02` on training
+`pricingParityVerified`: false
+Final freshness: **FRESH_2** (both upstream cutoffs `ab9aa5ae…`)
+Delivery: **BLOCKED** (guest unpriced; B2BKing cart_total effect not observed on captured cart; tax-on N/A)
+Evidence: `docs/integration/evidence/R3-TRAINING-LIVE.md`, `docs/integration/evidence/R3-TRAINING-LIVE-FRESHNESS.md`
+Pass 3: NOT PERMITTED. Do not merge. Do not start R4. Do not request review.
+
+## Previous current handoff — R3 TRAINING-LIVE (PROGRESS_CHECKPOINT)
+
 
 Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T17:02:00Z live capture
 Task / batch / workstream: BR-02–BR-05 live training quotes; R3
