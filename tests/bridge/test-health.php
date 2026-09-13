@@ -9,9 +9,17 @@ function br01_dispatch( Cetech_Pos_Bridge_Test_Environment $env, array $headers 
 	$request    = new Cetech_Pos_Bridge_Test_Request( $headers );
 	$permission = $controller->permission_callback( $request );
 	if ( $permission !== true ) {
-		return Cetech_Pos_Bridge_Response::from_wp_error( $permission, Cetech_Pos_Bridge_Correlation::generate_uuid() );
+		return $plugin->normalize_error_response( $permission, null, $request );
 	}
 	return $controller->handle( $request );
+}
+
+function br01_assert_closed_auth_failure( $payload, $label ) {
+	br01_assert_eq( array( 'ok', 'error', 'correlationId' ), array_keys( $payload ), $label . ' top-level keys exactly ok/error/correlationId' );
+	br01_assert_eq( array( 'code', 'message', 'retryable', 'nextAction' ), array_keys( $payload['error'] ), $label . ' error keys exactly code/message/retryable/nextAction' );
+	br01_assert( ! isset( $payload['data'] ), $label . ' no WordPress-native data envelope' );
+	br01_assert( ! isset( $payload['error']['data'] ), $label . ' no nested WP error data leak' );
+	br01_assert( ! isset( $payload['error']['status'] ), $label . ' no WP status field leak' );
 }
 
 function br01_payload( $response ) {
@@ -50,6 +58,8 @@ br01_assert_eq( false, $unauth_payload['ok'], 'unauthenticated ok=false' );
 br01_assert_eq( 'AUTH_REQUIRED', $unauth_payload['error']['code'], 'unauthenticated code' );
 br01_assert_eq( false, $unauth_payload['error']['retryable'], 'unauthenticated retryable' );
 br01_assert_eq( 'reauthenticate', $unauth_payload['error']['nextAction'], 'unauthenticated nextAction' );
+br01_assert_eq( $valid_correlation, $unauth_payload['correlationId'], 'unauthenticated valid correlation ID echoed unchanged via normalize_error_response' );
+br01_assert_closed_auth_failure( $unauth_payload, 'unauthenticated' );
 
 $admin_without_cap              = new Cetech_Pos_Bridge_Test_Environment();
 $admin_without_cap->logged_in   = true;
@@ -57,9 +67,20 @@ $admin_without_cap->capability  = 'manage_options';
 $denied = br01_dispatch( $admin_without_cap, array( 'X-Correlation-ID' => $valid_correlation ) );
 $denied_payload = br01_payload( $denied );
 br01_assert_eq( 403, br01_status( $denied ), 'authenticated without capability HTTP status' );
+br01_assert_eq( false, $denied_payload['ok'], 'authenticated without capability ok=false' );
 br01_assert_eq( 'FORBIDDEN', $denied_payload['error']['code'], 'authenticated without capability code' );
 br01_assert_eq( false, $denied_payload['error']['retryable'], 'forbidden retryable' );
 br01_assert_eq( 'none', $denied_payload['error']['nextAction'], 'forbidden nextAction' );
+br01_assert_eq( $valid_correlation, $denied_payload['correlationId'], 'unauthorized valid correlation ID echoed unchanged via normalize_error_response' );
+br01_assert_closed_auth_failure( $denied_payload, 'unauthorized' );
+
+$foreign_plugin  = new Cetech_Pos_Bridge_Plugin( new Cetech_Pos_Bridge_Test_Environment() );
+$foreign_error   = new WP_Error( 'rest_forbidden', 'WordPress native denial.', array( 'status' => 401 ) );
+$foreign_request = new Cetech_Pos_Bridge_Test_Request( array(), '/wp/v2/users' );
+$foreign_result  = $foreign_plugin->normalize_error_response( $foreign_error, null, $foreign_request );
+br01_assert( $foreign_result === $foreign_error, 'normalize_error_response leaves non-bridge /wp/v2 routes untouched' );
+br01_assert( $foreign_result instanceof WP_Error, 'non-bridge result remains a WordPress error object' );
+br01_assert_eq( 'rest_forbidden', $foreign_result->get_error_code(), 'non-bridge native error code preserved' );
 
 $allowed = br01_dispatch( br01_authorized_env(), array( 'X-Correlation-ID' => $valid_correlation ) );
 $allowed_payload = br01_payload( $allowed );
