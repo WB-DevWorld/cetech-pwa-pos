@@ -1,3 +1,24 @@
+# WS3 current handoff — R4 combined gate (SESSION_COMPLETION FRESH_2)
+
+Kind / UTC: SESSION_COMPLETION / 2026-09-13T21:12:05Z (Pass-2 cutoff; no Pass 3)
+Task / batch / workstream: R4 CORE-04 + FE-03 + FE-04; issues #23, #8, #9; WS3 integration editor
+Owner / integration editor / requested human reviewer: @wbdevworld / same / **@Ben-001-sys** (do not self-approve; do not merge)
+Branch: `ws1/fe-03-build-sell-cart-barcode-and-customer-workflow` (PR #41)
+Starting/base SHA: `origin/main` `516d6a49af74cc6677f67bdf843de6e819a05feb`
+Pre-handoff implementation SHA: `e0cc5ec407a25e174d5ee0ef376d64d64c818f5f`
+Freshness: **FRESH_2**. Both upstream cutoffs `516d6a49…`. Pass 2 UTC `2026-09-13T21:12:05Z`.
+Contracts changed: none (v1.0.0 consumed)
+Database migrations: `supabase/migrations/20260913200000_pos_catalog_projection.sql`
+Architecture decisions: none authored; ADR-013 remains accepted through reviewed R3 merge
+Issue #4: OPEN
+R4 complete: assembled for independent review; **not merged**
+R5: not started
+Evidence: `docs/integration/evidence/R4-COMBINED-ACCEPTANCE.md`, `docs/integration/evidence/R4-FRESHNESS.md`
+Tests: control-plane PASS; tooling 48 OK; lint/typecheck PASS; Vitest 42 files / 229 tests; build PASS; E2E 1 passed; isolated visual Playwright 12 passed; `git diff --check` clean
+Delivery: READY_FOR_INTEGRATION pending @Ben-001-sys review and required CI on the pushed final head
+
+## Previous current handoff — R4 App Router / quote BFF (PROGRESS_CHECKPOINT)
+
 # WS3 current handoff — R4 App Router / quote BFF (PROGRESS_CHECKPOINT)
 
 Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T21:06:00Z
