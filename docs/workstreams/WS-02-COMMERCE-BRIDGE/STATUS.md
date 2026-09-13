@@ -2,7 +2,7 @@
 
 Snapshot 2026-09-13. `origin/main` `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`. Owner: Developer 2 / @Emmanuel-coder-prog. R3 editor: @wbdevworld on `batch/r3-authoritative-pricing-parity` / draft PR #44. Continuation start: `docs/integration/evidence/R3-B2BKING-EFFECT-START-FRESHNESS.md`. Live capture: `docs/integration/evidence/R3-B2BKING-EFFECT.md`. Training plugin **`0.2.6-br02`**.
 
-R3 training pricing-gate **PASS candidate**. Guest REFUSAL_MATCH. Retail/variation/WoodMart 19/20/21 MATCH_EXACT. Configured B2BKing cart-total LIVE MATCH_EXACT. Concurrent 12/12 HTTP isolation VERIFIED. Tax-on N/A. `pricingParityVerified` **false** (no v1 environment field). Issue #4 stays OPEN. Do not start R4. Do not merge until independent review.
+R3 training pricing-gate **PASS candidate**. Guest REFUSAL_MATCH. Retail/variation/WoodMart 19/20/21 MATCH_EXACT. Configured B2BKing cart-total LIVE MATCH_EXACT. Concurrent 12/12 HTTP isolation VERIFIED. Tax-on N/A. `pricingParityVerified` **false** (no v1 environment field). Freshness **FRESH_2**. Issue #4 stays OPEN. Do not start R4. Do not merge until independent review.
 
 | Task | State | Branch / evidence |
 | --- | --- | --- |
