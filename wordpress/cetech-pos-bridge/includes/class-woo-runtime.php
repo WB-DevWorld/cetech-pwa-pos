@@ -336,6 +336,10 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		if ( $fee_minor > 0 ) {
 			return $this->unavailable( 'Isolated POS quote still contains a positive Woo fee; v1 Quote has no fee field.' );
 		}
+		$cart_level = $this->inspect_cart_level_discount( $cart, $fee_minor );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $cart_level ) ) {
+			return $cart_level;
+		}
 		$contents = method_exists( $cart, 'get_cart' ) ? $cart->get_cart() : array();
 		$lines    = array();
 		foreach ( $contents as $item ) {
@@ -346,15 +350,17 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 			$lines[] = $mapped;
 		}
 		$priced = array(
-			'currency' => $currency,
-			'lines'    => $lines,
-			'subtotal' => $this->cart_amount( $cart, 'get_subtotal', 'subtotal' ),
-			'discount' => $this->cart_amount( $cart, 'get_discount_total', 'discount_total' ),
-			'tax'      => $this->cart_amount( $cart, 'get_total_tax', 'total_tax' ),
-			'total'    => $this->cart_total_amount( $cart ),
+			'currency'                 => $currency,
+			'lines'                    => $lines,
+			'subtotal'                 => $this->cart_amount( $cart, 'get_subtotal', 'subtotal' ),
+			'discount'                 => $this->cart_amount( $cart, 'get_discount_total', 'discount_total' ),
+			'tax'                      => $this->cart_amount( $cart, 'get_total_tax', 'total_tax' ),
+			'total'                    => $this->cart_total_amount( $cart ),
+			'cartLevelDiscountMinor'   => $cart_level,
 		);
-		if ( $fee_minor < 0 ) {
-			$priced = $this->apply_negative_fee_discount( $priced, -$fee_minor );
+		$identity = $this->assert_cart_money_identity( $priced, $fee_minor );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $identity ) ) {
+			return $identity;
 		}
 		return $priced;
 	}
@@ -662,49 +668,109 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		return null;
 	}
 
-	protected function apply_negative_fee_discount( array $priced, $fee_discount_minor ) {
+	/**
+	 * ADR-013: a negative Woo fee total is a cart-level commercial discount only
+	 * when every fee is non-positive, untaxed, and the fee sum matches get_fee_total().
+	 *
+	 * @param object $cart
+	 * @param int    $fee_minor
+	 * @return int|WP_Error
+	 */
+	protected function inspect_cart_level_discount( $cart, $fee_minor ) {
+		$fee_minor = (int) $fee_minor;
+		if ( $fee_minor === 0 ) {
+			return 0;
+		}
+		if ( $fee_minor > 0 ) {
+			return $this->unavailable( 'Isolated POS quote still contains a positive Woo fee; v1 Quote has no fee field.' );
+		}
+		if ( ! is_object( $cart ) || ! method_exists( $cart, 'get_fees' ) ) {
+			return $this->unavailable( 'Woo cart fees cannot be inspected; a negative fee is not a proven commercial discount.' );
+		}
+		$fees = $cart->get_fees();
+		if ( ! is_array( $fees ) || $fees === array() ) {
+			return $this->unavailable( 'Woo reported a negative fee total without inspectable fee rows.' );
+		}
+		$sum = 0;
+		foreach ( $fees as $fee ) {
+			$amount = $this->fee_amount_minor( $fee );
+			if ( $amount === null ) {
+				return $this->unavailable( 'A Woo fee amount could not be converted to minor units.' );
+			}
+			if ( $amount > 0 ) {
+				return $this->unavailable( 'Isolated POS quote contains a positive Woo fee row; v1 Quote has no fee field.' );
+			}
+			$tax = $this->fee_tax_minor( $fee );
+			if ( $tax === null ) {
+				return $this->unavailable( 'A Woo fee tax amount could not be converted to minor units.' );
+			}
+			if ( $tax !== 0 ) {
+				return $this->unavailable( 'A Woo fee carries tax; v1 Quote cannot treat it as a commercial discount.' );
+			}
+			$sum += $amount;
+		}
+		if ( $sum !== $fee_minor ) {
+			return $this->unavailable( 'Inspected Woo fee rows do not sum to get_fee_total().' );
+		}
+		return -$fee_minor;
+	}
+
+	/**
+	 * @param object $fee
+	 * @return int|null
+	 */
+	protected function fee_amount_minor( $fee ) {
+		if ( ! is_object( $fee ) || ! isset( $fee->amount ) ) {
+			return null;
+		}
+		return $this->numeric_to_signed_minor( $fee->amount );
+	}
+
+	/**
+	 * @param object $fee
+	 * @return int|null
+	 */
+	protected function fee_tax_minor( $fee ) {
+		if ( ! is_object( $fee ) ) {
+			return null;
+		}
+		if ( isset( $fee->tax ) ) {
+			return $this->numeric_to_signed_minor( $fee->tax );
+		}
+		return 0;
+	}
+
+	protected function numeric_to_signed_minor( $raw ) {
+		if ( $this->environment->function_exists( 'wc_format_decimal' ) && ( is_string( $raw ) || is_int( $raw ) || is_float( $raw ) || ( is_numeric( $raw ) && ! is_bool( $raw ) ) ) ) {
+			$formatted = wc_format_decimal( $raw, Cetech_Pos_Bridge_Constants::PRICE_DECIMALS );
+			if ( is_string( $formatted ) || is_int( $formatted ) || is_float( $formatted ) || is_numeric( $formatted ) ) {
+				$raw = (string) $formatted;
+			}
+		}
+		return $this->signed_minor( (string) $raw );
+	}
+
+	/**
+	 * Prove the negative fee is the only extra cart component besides coupons/tax.
+	 *
+	 * @param array<string,mixed> $priced
+	 * @param int                 $fee_minor
+	 * @return true|WP_Error
+	 */
+	protected function assert_cart_money_identity( array $priced, $fee_minor ) {
 		$currency = (string) $priced['currency'];
-		$add      = (int) $fee_discount_minor;
-		if ( $add <= 0 ) {
-			return $priced;
+		$sub      = Cetech_Pos_Bridge_Money::from_decimal_string( $priced['subtotal'], $currency );
+		$coupon   = Cetech_Pos_Bridge_Money::from_decimal_string( $priced['discount'], $currency );
+		$tax      = Cetech_Pos_Bridge_Money::from_decimal_string( $priced['tax'], $currency );
+		$total    = Cetech_Pos_Bridge_Money::from_decimal_string( $priced['total'], $currency );
+		if ( $sub === null || $coupon === null || $tax === null || $total === null ) {
+			return $this->unavailable( 'Woo cart totals could not be converted while proving fee-discount identity.' );
 		}
-		$coupon = Cetech_Pos_Bridge_Money::from_decimal_string( $priced['discount'], $currency );
-		if ( $coupon === null ) {
-			return $this->unavailable( 'Woo coupon discount could not be converted after a negative fee.' );
+		$expected = $sub - $coupon + $tax + (int) $fee_minor;
+		if ( $expected !== $total ) {
+			return $this->unavailable( 'Woo cart total is not subtotal - coupon + tax + fee; the fee is not a v1 commercial discount.' );
 		}
-		$lines = $priced['lines'];
-		$n     = count( $lines );
-		if ( $n < 1 ) {
-			return $this->unavailable( 'Negative Woo fee discount had no cart lines to allocate.' );
-		}
-		$subs = array();
-		$sum  = 0;
-		foreach ( $lines as $line ) {
-			$sub = Cetech_Pos_Bridge_Money::from_decimal_string( $line['subtotal'], $currency );
-			if ( $sub === null ) {
-				return $this->unavailable( 'A quote line subtotal could not be converted while allocating a Woo fee discount.' );
-			}
-			$subs[] = $sub;
-			$sum   += $sub;
-		}
-		$left = $add;
-		foreach ( $lines as $i => $line ) {
-			$share = ( $i === $n - 1 ) ? $left : ( $sum > 0 ? intdiv( $add * $subs[ $i ], $sum ) : 0 );
-			if ( $i !== $n - 1 ) {
-				$left -= $share;
-			}
-			$existing = Cetech_Pos_Bridge_Money::from_decimal_string( $line['discount'], $currency );
-			if ( $existing === null ) {
-				return $this->unavailable( 'A quote line discount could not be converted while allocating a Woo fee discount.' );
-			}
-			$combined = $existing + $share;
-			if ( $combined > $subs[ $i ] ) {
-				return $this->unavailable( 'Woo fee discount exceeded a line subtotal; v1 Quote cannot allocate it.' );
-			}
-			$priced['lines'][ $i ]['discount'] = $this->format_minor_as_decimal( $combined );
-		}
-		$priced['discount'] = $this->format_minor_as_decimal( $coupon + $add );
-		return $priced;
+		return true;
 	}
 
 	protected function signed_minor( $decimal ) {
@@ -719,14 +785,6 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 			return null;
 		}
 		return $neg ? -$minor : $minor;
-	}
-
-	protected function format_minor_as_decimal( $minor ) {
-		$minor = (int) $minor;
-		if ( $minor < 0 ) {
-			$minor = 0;
-		}
-		return sprintf( '%d.%02d', intdiv( $minor, 100 ), $minor % 100 );
 	}
 
 	protected function amount_is_nonzero( $decimal ) {

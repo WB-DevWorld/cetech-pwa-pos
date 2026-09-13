@@ -1,3 +1,11 @@
+# WS3 current handoff — R3 CART-DISCOUNT / ADR-013 (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T19:02:25Z
+R3 PR #44 remains OPEN (`CHANGES_REQUESTED` on `99dc34f…`). ADR-013 recorded. Training plugin `0.2.7-br02`. Live multi-line MATCH_EXACT. `pricingParityVerified` false. Review NOT yet re-requested. R4 NOT STARTED. Do not merge.
+Evidence: `docs/integration/evidence/R3-CART-DISCOUNT.md`
+
+## Previous current handoff — R3 UNITPRICE REMEDIATION (PROGRESS_CHECKPOINT)
+
 # WS3 current handoff — R3 UNITPRICE REMEDIATION (PROGRESS_CHECKPOINT)
 
 Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T16:06:08Z

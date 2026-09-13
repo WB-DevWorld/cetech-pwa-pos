@@ -1,0 +1,44 @@
+{
+  "caseId": "BR-05-LIVE-MULTILINE-OVERLAP",
+  "environment": "training.cetechbpa.com",
+  "utc": "2026-09-13T19:01:04Z",
+  "versions": {
+    "woo": "11.1.0",
+    "woodmart": "8.5.7",
+    "b2bking": "core-v5.6.30",
+    "bridge": "0.2.7-br02"
+  },
+  "customerContextClass": "overlap",
+  "productSurrogate": "P-SIMPLE-A+VAR-49165",
+  "quantity": "20+1 retail / 3+7 b2b",
+  "currency": "GHS",
+  "authoritative": {
+    "retailTwoLine": {
+      "simpleUnitPriceMinor": 3800,
+      "simpleSubtotalMinor": 76000,
+      "variationUnitPriceMinor": 20000,
+      "cartSubtotalMinor": 96000,
+      "cartDiscountMinor": 0,
+      "cartTotalMinor": 96000
+    },
+    "b2bTwoLine": {
+      "simpleUnitPriceMinor": 3400,
+      "cartDiscountMinor": 7510,
+      "note": "See BR-04-LIVE-MULTILINE-CART-DISCOUNT; WoodMart 38.00 does not apply"
+    }
+  },
+  "bridge": {
+    "retailTwoLine": {
+      "simpleUnitPriceMinor": 3800,
+      "simpleSubtotalMinor": 76000,
+      "variationUnitPriceMinor": 20000,
+      "cartSubtotalMinor": 96000,
+      "cartDiscountMinor": 0,
+      "cartTotalMinor": 96000
+    }
+  },
+  "minorUnitDelta": 0,
+  "applicability": "NOT_APPLICABLE_WITH_EVIDENCE",
+  "result": "NOT_APPLICABLE_WITH_EVIDENCE",
+  "reason": "One cart cannot receive WoodMart unit 38.00 and a B2BKing cart-level fee without changing configuration. Retail 20+1 gets WoodMart and no fee. B2B 3+7 gets group sale 34.00 plus a negative fee and no WoodMart 38.00. Synthetic allocator test covers WoodMart-priced bases plus cart-level discount."
+}

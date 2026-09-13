@@ -24,6 +24,14 @@ final class Cetech_Pos_Bridge_Money {
 		return ( (int) $whole * 100 ) + (int) $frac;
 	}
 
+	public static function to_decimal_string( $minor ) {
+		$minor = (int) $minor;
+		if ( $minor < 0 ) {
+			return null;
+		}
+		return sprintf( '%d.%02d', intdiv( $minor, 100 ), $minor % 100 );
+	}
+
 	public static function envelope( $minor, $currency = Cetech_Pos_Bridge_Constants::SETTLEMENT_CURRENCY ) {
 		return array(
 			'minor'    => (int) $minor,

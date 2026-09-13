@@ -1,0 +1,70 @@
+{
+  "caseId": "BR-04-LIVE-MULTILINE-ADD-ORDER",
+  "environment": "training.cetechbpa.com",
+  "utc": "2026-09-13T19:00:47Z",
+  "versions": {
+    "woo": "11.1.0",
+    "woodmart": "8.5.7",
+    "b2bking": "core-v5.6.30",
+    "bridge": "0.2.7-br02"
+  },
+  "customerContextClass": "b2b",
+  "productSurrogate": "VAR-49165+P-SIMPLE-A",
+  "quantity": "7+3",
+  "currency": "GHS",
+  "configuredRuleSurrogate": "49250",
+  "authoritative": {
+    "lines": [
+      {
+        "productSurrogate": "VAR-49165",
+        "quantity": "7",
+        "unitPriceMinor": 20000,
+        "subtotalMinor": 140000,
+        "allocatedCartDiscountMinor": 7000,
+        "discountMinor": 7000,
+        "taxMinor": 0,
+        "totalMinor": 133000
+      },
+      {
+        "productSurrogate": "P-SIMPLE-A",
+        "quantity": "3",
+        "unitPriceMinor": 4000,
+        "subtotalMinor": 12000,
+        "allocatedCartDiscountMinor": 600,
+        "discountMinor": 600,
+        "taxMinor": 0,
+        "totalMinor": 11400
+      }
+    ],
+    "subtotalMinor": 152000,
+    "discountMinor": 7600,
+    "taxMinor": 0,
+    "totalMinor": 144400
+  },
+  "bridge": {
+    "lines": [
+      {
+        "unitPriceMinor": 20000,
+        "subtotalMinor": 140000,
+        "discountMinor": 7000,
+        "taxMinor": 0,
+        "totalMinor": 133000
+      },
+      {
+        "unitPriceMinor": 4000,
+        "subtotalMinor": 12000,
+        "discountMinor": 600,
+        "taxMinor": 0,
+        "totalMinor": 11400
+      }
+    ],
+    "subtotalMinor": 152000,
+    "discountMinor": 7600,
+    "taxMinor": 0,
+    "totalMinor": 144400
+  },
+  "minorUnitDelta": 0,
+  "applicability": "LIVE_TRAINING_CAPTURE",
+  "result": "MATCH_EXACT",
+  "reason": "Variation added before P-SIMPLE-A. Woo priced P-SIMPLE-A at catalog 40.00 instead of group sale 34.00. Bridge allocated the resulting -76.00 fee 7000+600. This is provider add-order pricing, not ADR-013 tie-break drift. Identical-base lineId tie-break is a production-runtime test."
+}

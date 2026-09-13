@@ -1,5 +1,24 @@
 # WS2 current status
 
+Snapshot 2026-09-13. `origin/main` `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`. Owner: Developer 2 / @Emmanuel-coder-prog. R3 editor: @wbdevworld on `batch/r3-authoritative-pricing-parity` / PR #44. Continuation start: `docs/integration/evidence/R3-CART-DISCOUNT-START-FRESHNESS.md`. Live capture: `docs/integration/evidence/R3-CART-DISCOUNT.md`. Training plugin **`0.2.7-br02`**. ADR-013 CURRENT pending independent review.
+
+Ben `CHANGES_REQUESTED` on `99dc34f…` is addressed by ADR-013 + integer largest-remainder allocation. Multi-line B2B MATCH_EXACT vs Woo (delta 0). Live remainder leftover 0 on configured %. One-cart WoodMart+B2B N/A. `pricingParityVerified` **false**. Issue #4 stays OPEN. Do not start R4. Do not merge until independent review.
+
+| Task | State | Branch / evidence |
+| --- | --- | --- |
+| CP-04 WS2 intake | EVIDENCE RECORDED; not CP-04 complete | Prior `ws2/cp-04-commerce-intake`; `evidence/CP-04-STAGING-INTAKE.md`. W1 still PASS after quotes. |
+| BR-01 | INTEGRATED_AND_TESTED / LIVE WORDPRESS HEALTH VERIFIED on main | Issue #13. `pricingParityVerified` stays false. |
+| BR-02 | LIVE RETAIL/VARIATION MATCH; guest REFUSAL_MATCH; concurrent LIVE VERIFIED | Issue #14. Plugin `0.2.7-br02`. Evidence `docs/integration/evidence/R3-CART-DISCOUNT.md`. |
+| BR-03 | LIVE WOODMART from-qty 20 MATCH (19/20/21 unit 38.00 at 21) | Issue #15. No invented thresholds. Regression on 0.2.7 MATCH. |
+| BR-04 | LIVE cart-total MATCH_EXACT including multi-line ADR-013; unconfigured types N/A | Issue #16. Rules 49250/49253. Kind switch 403. |
+| BR-05 | LIVE OVERLAP MATCH (separate contexts); one-cart WoodMart+fee N/A; training gate PASS candidate | Issue #17. Tax-off N/A. `pricingParityVerified` false. |
+| BR-06 | SPECIFIED / BLOCKED | HPOS/prepare; R5. See TASKS.md |
+| BR-07 | SPECIFIED / BLOCKED | Finalize/cancel; R6. See TASKS.md |
+
+## Previous snapshot (R3 B2BKing-effect 0.2.6 — historical; current section above controls)
+
+# WS2 current status
+
 Snapshot 2026-09-13. `origin/main` `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`. Owner: Developer 2 / @Emmanuel-coder-prog. R3 editor: @wbdevworld on `batch/r3-authoritative-pricing-parity` / draft PR #44. Continuation start: `docs/integration/evidence/R3-B2BKING-EFFECT-START-FRESHNESS.md`. Live capture: `docs/integration/evidence/R3-B2BKING-EFFECT.md`. Training plugin **`0.2.6-br02`**.
 
 R3 training pricing-gate **PASS candidate**. Guest REFUSAL_MATCH. Retail/variation/WoodMart 19/20/21 MATCH_EXACT. Configured B2BKing cart-total LIVE MATCH_EXACT. Concurrent 12/12 HTTP isolation VERIFIED. Tax-on N/A. `pricingParityVerified` **false** (no v1 environment field). Freshness **FRESH_2**. Issue #4 stays OPEN. Do not start R4. Do not merge until independent review.

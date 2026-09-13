@@ -33,6 +33,7 @@ class Cetech_Pos_Bridge_Stub_Cart {
 	public $total          = '0.00';
 	public $shipping_total = '0';
 	public $fee_total      = '0';
+	public $fees           = array();
 
 	public function get_cart() {
 		return $this->items;
@@ -56,6 +57,10 @@ class Cetech_Pos_Bridge_Stub_Cart {
 
 	public function get_fee_total() {
 		return isset( $this->fee_total ) ? $this->fee_total : '0';
+	}
+
+	public function get_fees() {
+		return isset( $this->fees ) && is_array( $this->fees ) ? $this->fees : array();
 	}
 
 	public function get_total( $context = 'edit' ) {
@@ -102,6 +107,14 @@ function br02_stub_cart_item( array $args ) {
 		$item['variation_id'] = $args['variationId'];
 	}
 	return $item;
+}
+
+function br02_stub_fee( $amount, $tax = '0.00' ) {
+	$fee          = new stdClass();
+	$fee->amount  = $amount;
+	$fee->tax     = $tax;
+	$fee->taxable = false;
+	return $fee;
 }
 
 $qty5_cart              = new Cetech_Pos_Bridge_Stub_Cart();
@@ -287,18 +300,46 @@ $neg_fee_cart->items[]   = br02_stub_cart_item(
 $neg_fee_cart->subtotal  = '340.00';
 $neg_fee_cart->total     = '323.00';
 $neg_fee_cart->fee_total = '-17';
+$neg_fee_cart->fees      = array( br02_stub_fee( '-17.00' ) );
 $neg_fee                 = br02_production_runtime_with_cart( $neg_fee_cart )->get_priced_cart();
-br01_assert( is_array( $neg_fee ), 'negative Woo fee discount is mapped into Quote.discount' );
+br01_assert( is_array( $neg_fee ), 'negative Woo fee is accepted as a cart-level commercial discount candidate' );
+br01_assert_eq( 1700, $neg_fee['cartLevelDiscountMinor'], 'negative fee -17.00 becomes cartLevelDiscountMinor 1700' );
 $neg_line_disc           = Cetech_Pos_Bridge_Money::from_decimal_string( $neg_fee['lines'][0]['discount'], 'GHS' );
-$neg_cart_disc           = Cetech_Pos_Bridge_Money::from_decimal_string( $neg_fee['discount'], 'GHS' );
-$neg_cart_total          = Cetech_Pos_Bridge_Money::from_decimal_string( $neg_fee['total'], 'GHS' );
-$neg_line_sub            = Cetech_Pos_Bridge_Money::from_decimal_string( $neg_fee['lines'][0]['subtotal'], 'GHS' );
-$neg_line_tax            = Cetech_Pos_Bridge_Money::from_decimal_string( $neg_fee['lines'][0]['tax'], 'GHS' );
+br01_assert_eq( 0, $neg_line_disc, 'get_priced_cart does not allocate cart-level discount onto lines' );
+$neg_applied             = Cetech_Pos_Bridge_Cart_Discount::apply_to_priced_cart(
+	$neg_fee,
+	array(
+		array( 'lineId' => 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1' ),
+	)
+);
+br01_assert( is_array( $neg_applied ), 'ADR-013 allocation applies the proven cart-level discount' );
+$neg_line_disc           = Cetech_Pos_Bridge_Money::from_decimal_string( $neg_applied['lines'][0]['discount'], 'GHS' );
+$neg_cart_disc           = Cetech_Pos_Bridge_Money::from_decimal_string( $neg_applied['discount'], 'GHS' );
+$neg_cart_total          = Cetech_Pos_Bridge_Money::from_decimal_string( $neg_applied['total'], 'GHS' );
+$neg_line_sub            = Cetech_Pos_Bridge_Money::from_decimal_string( $neg_applied['lines'][0]['subtotal'], 'GHS' );
+$neg_line_tax            = Cetech_Pos_Bridge_Money::from_decimal_string( $neg_applied['lines'][0]['tax'], 'GHS' );
 $neg_line_total          = Cetech_Pos_Bridge_Money::line_total( $neg_line_sub, $neg_line_disc, $neg_line_tax );
 br01_assert_eq( 1700, $neg_line_disc, 'negative fee -17.00 becomes line discountMinor 1700' );
 br01_assert_eq( 1700, $neg_cart_disc, 'cart discountMinor matches allocated fee discount' );
 br01_assert_eq( 32300, $neg_cart_total, 'cart total remains Woo get_total including the negative fee' );
 br01_assert_eq( 32300, $neg_line_total, 'line identity subtotal - discount + tax after fee allocation' );
+
+$taxed_fee_cart            = new Cetech_Pos_Bridge_Stub_Cart();
+$taxed_fee_cart->items[]   = br02_stub_cart_item(
+	array(
+		'productId' => '101',
+		'quantity'  => '1',
+		'unitPrice' => '40.00',
+		'subtotal'  => '40.00',
+	)
+);
+$taxed_fee_cart->subtotal  = '40.00';
+$taxed_fee_cart->total     = '38.00';
+$taxed_fee_cart->fee_total = '-2';
+$taxed_fee_cart->fees      = array( br02_stub_fee( '-2.00', '0.20' ) );
+$taxed_fee                 = br02_production_runtime_with_cart( $taxed_fee_cart )->get_priced_cart();
+br01_assert( Cetech_Pos_Bridge_Quote_Request::is_error( $taxed_fee ), 'ambiguous/unsupported taxed fee fails closed' );
+br01_assert_eq( 'INTEGRATION_UNAVAILABLE', $taxed_fee->get_error_code(), 'taxed fee cannot enter v1 Quote.discount' );
 
 class Cetech_Pos_Bridge_Kind_Runtime extends Cetech_Pos_Bridge_Harness_Woo_Runtime {
 	public $stored_flag = '';

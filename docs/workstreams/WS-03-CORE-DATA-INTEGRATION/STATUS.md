@@ -1,5 +1,13 @@
 # WS3 current status
 
+Snapshot 2026-09-13. Main `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`. R3 PR #44. ADR-013 records provider-neutral cart-level commercial discounts in existing Quote v1 fields (no fee field). Training plugin `0.2.7-br02`. `pricingParityVerified` false. Issue #4 OPEN. Do not start R4. Evidence: `docs/integration/evidence/R3-CART-DISCOUNT.md`.
+
+CURRENT-WORK holds the central R3 lease.
+
+## Previous snapshot (R3 UNITPRICE — historical; current section above controls)
+
+# WS3 current status
+
 Snapshot 2026-09-13. Main `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`. R3 draft #44. Bounded BR-02 `unitPrice` remediation on `batch/r3-authoritative-pricing-parity` before any training plugin update. Live parity PERMISSION_REQUIRED. Pricing gate NOT PASSED. Issue #4 OPEN. Do not start R4. Evidence: `docs/integration/evidence/R3-UNITPRICE-START-FRESHNESS.md`.
 
 CURRENT-WORK holds the central R3 lease.

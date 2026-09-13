@@ -14,6 +14,7 @@ PHP_SOURCES := \
 	includes/class-response.php \
 	includes/class-health-controller.php \
 	includes/class-money.php \
+	includes/class-cart-discount.php \
 	includes/class-ephemeral-session.php \
 	includes/class-woo-runtime.php \
 	includes/class-quote-request.php \
@@ -31,6 +32,7 @@ TEST_SOURCES := \
 	$(TEST_DIR)/test-quote.php \
 	$(TEST_DIR)/test-woo-runtime.php \
 	$(TEST_DIR)/test-pricing-rules.php \
+	$(TEST_DIR)/test-cart-discount.php \
 	$(TEST_DIR)/parity.php
 
 .PHONY: check test parity

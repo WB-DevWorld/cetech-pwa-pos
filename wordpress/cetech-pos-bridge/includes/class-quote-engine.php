@@ -104,6 +104,11 @@ final class Cetech_Pos_Bridge_Quote_Engine {
 				503
 			);
 		}
+		$priced = Cetech_Pos_Bridge_Cart_Discount::apply_to_priced_cart( $priced, $request_lines );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $priced ) ) {
+			return $priced;
+		}
+		$priced_lines = $priced['lines'];
 		$sum_subtotal = 0;
 		$sum_discount = 0;
 		$sum_tax      = 0;
