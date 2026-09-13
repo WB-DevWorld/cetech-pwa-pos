@@ -7,8 +7,8 @@ R2 dependency head: `3a1b6b579781130afc9bd9792405b182c7bfe5ca`
 BR-01 source SHA: `280a73dbcd53ac0e03883775b4fabdec7465a4a8`  
 Imported R2 checkpoint: `0ac2e38befb54c9ada404e6854a80285bebb69b9`
 
-Remote mutation authorization: **NOT GRANTED** by this assignment prompt.  
-W1 mail containment: **BLOCKED**. Repository policy: do not proceed to remote W4.
+Remote mutation authorization: **NOT GRANTED** for W4 Actions A–G.
+W1 mail containment: **PASS** (`docs/integration/evidence/CP04-W1-CONTAINMENT-APPLY.md`). Repository policy: do not proceed to remote W4 without a separate operator grant.
 
 ## Exact artifact / security model
 
@@ -62,7 +62,7 @@ If the operator later authorizes W1 containment **and** these writes, execute E 
 ## Classification
 
 CP04-W4 = **PERMISSION_REQUIRED** / **BLOCKED**  
-Blockers: (1) no explicit operator authorization for Actions A–G; (2) CP04-W1 mail **UNSAFE** / **BLOCKED**.
+Blockers: no explicit operator authorization for Actions A–G. W1 mail is no longer the blocker.
 
 R2 bridge remote gate: **BLOCKED**  
 Issue #4: remains **OPEN**  

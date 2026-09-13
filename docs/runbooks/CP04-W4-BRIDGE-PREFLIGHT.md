@@ -4,7 +4,7 @@ Use with [CP-04 remaining work](CP-04-REMAINING-WORK.md) and [staging audit](CP-
 
 ## Preconditions
 
-- CP04-W1 mail/outbound containment **PASS** for this host, or operator written acceptance of residual risk (not implied here).
+- CP04-W1 mail/outbound containment **PASS** for this host (apply evidence `docs/integration/evidence/CP04-W1-CONTAINMENT-APPLY.md`). W4 still needs its own operator grant.
 - CP04-W2 write boundary recorded.
 - Explicit operator authorization for each of Actions A–G on `https://training.cetechbpa.com`.
 - Artifact SHA `280a73dbcd53ac0e03883775b4fabdec7465a4a8`.
