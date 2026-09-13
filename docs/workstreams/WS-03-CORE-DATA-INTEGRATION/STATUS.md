@@ -1,6 +1,6 @@
 # WS3 current status
 
-Snapshot 2026-09-13. CORE-04 INTEGRATED_AND_TESTED on PR #41. Isolated SHA `73b3fd9fbe6028dc1cd5eec9b21945c987882886` plus active-cart/cashier seed `0b9414102a048a03ba25f4f331238477c7b8d4fc`. WS3 App Router mounts Sell runtime and POST `/api/pos/v1/quotes` (session+CSRF; no browser pricing). Issue #23 OPEN until reviewed merge. R4 assembled / not merged. `pricingParityVerified` false. Issue #4 OPEN. Do not start R5. Evidence: `docs/integration/evidence/CORE-04-ACCEPTANCE.md`. CURRENT-WORK holds the central R4 lease on PR #41.
+Snapshot 2026-09-13. CORE-04 INTEGRATED_AND_TESTED on PR #41 with journal idempotency remediation SHA `11bdbd9c6bb5004e9dd70a203a53becdf191728e`: same key + different `requestHash` is `IDEMPOTENCY_CONFLICT` including after `acknowledged`. Isolated SHA `73b3fd9fbe6028dc1cd5eec9b21945c987882886` plus active-cart/cashier seed `0b9414102a048a03ba25f4f331238477c7b8d4fc`. Issue #23 OPEN until reviewed merge. R4 assembled / not merged. `pricingParityVerified` false. Issue #4 OPEN. Do not start R5. Evidence: `docs/integration/evidence/R4-JOURNAL-IDEMPOTENCY.md`. CURRENT-WORK holds the central R4 lease on PR #41.
 
 ## Previous snapshot (R4 ACTIVATION — historical; current section above controls)
 

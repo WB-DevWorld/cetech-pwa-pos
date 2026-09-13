@@ -47,10 +47,12 @@ Evidence: R3 APPROVED / MERGED / POST-MERGE VERIFIED. PR #44 merge `516d6a49af74
 
 ## R4 batch workflow record — current (supersedes the R3 editor lease)
 
-- Batch / milestone: **R4**, ordered tasks CORE-04, then FE-03, then FE-04. One R4 PR: existing **#41**. Independent reviewer: **@Ben-001-sys**. No self-merge. WS1 owner: @Ben-001-sys.
+- Batch / milestone: **R4**, ordered tasks CORE-04, then FE-03, then FE-04. One R4 PR: existing **#41**. Independent reviewer for assembled/remediated heads: **@Emmanuel-coder-prog** (PR author @Ben-001-sys cannot satisfy independent GitHub approval). No self-merge. WS1 owner: @Ben-001-sys.
 - START_FRESHNESS_SNAPSHOT UTC: `2026-09-13T20:11:27Z`. origin/main / R3 merge `516d6a49af74cc6677f67bdf843de6e819a05feb`. Evidence: `docs/integration/evidence/R4-START-FRESHNESS.md`.
+- Journal-idempotency continuation START_FRESHNESS_SNAPSHOT UTC: `2026-09-13T21:25:29Z`. Evidence: `docs/integration/evidence/R4-JOURNAL-IDEMPOTENCY-START-FRESHNESS.md`. This is not Pass 3 of the assembled-R4 session.
+- Journal-idempotency continuation final freshness: **FRESH_2**. Evidence: `docs/integration/evidence/R4-JOURNAL-IDEMPOTENCY-FRESHNESS.md`. Both upstream cutoffs `516d6a49…`. Pass 2 UTC `2026-09-13T21:39:35Z`. Pre-handoff implementation SHA `11bdbd9c6bb5004e9dd70a203a53becdf191728e`.
 - PR #41 previous head `700dc3289d7d108d2eba8682c72c95feb2079c26` forward-merged `origin/main` to `a23f3d67293f6c5ddada89811ae9c2c0039de00b` without history rewrite. Six preparation commits preserved.
-- Pre-handoff implementation SHA: `e0cc5ec407a25e174d5ee0ef376d64d64c818f5f`. Combined evidence: `docs/integration/evidence/R4-COMBINED-ACCEPTANCE.md`. Final freshness **FRESH_2**: `docs/integration/evidence/R4-FRESHNESS.md`.
+- Prior assembled implementation SHA: `e0cc5ec407a25e174d5ee0ef376d64d64c818f5f`. Combined evidence: `docs/integration/evidence/R4-COMBINED-ACCEPTANCE.md`. Prior freshness **FRESH_2**: `docs/integration/evidence/R4-FRESHNESS.md`.
 - CORE-04 contributor worktree: `C:\Users\Jane\Desktop\Learning 2026\Cursor\cetech-pwa-pos-ws3-core-04` from `516d6a49…`. Isolated FE-03 `ws1/fe-03-runtime-catalog-ports`; isolated FE-04 `ws1/fe-04-quote-state-runtime`.
 - `pricingParityVerified` remains false. Issue #4 stays OPEN. Training plugin/evidence remains training-specific. R5 is not activated.
 
