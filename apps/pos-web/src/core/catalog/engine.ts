@@ -137,9 +137,17 @@ export class CatalogProjectionEngine {
     if (input.cursor) {
       candidates = candidates.filter((item) => item.id > input.cursor!);
     }
-    const page = candidates.slice(0, limit).map(toCatalogItem);
-    const next = candidates[limit];
-    return next ? { items: page, nextCursor: next.id } : { items: page };
+    const pageCandidates = candidates.slice(0, limit);
+    const hasMore = candidates.length > limit;
+    const lastReturned = pageCandidates[pageCandidates.length - 1];
+    return hasMore && lastReturned
+      ? {
+          items: pageCandidates.map(toCatalogItem),
+          nextCursor: lastReturned.id,
+        }
+      : {
+          items: pageCandidates.map(toCatalogItem),
+        };
   }
 
   rebuild(records: ReadonlyArray<CatalogSourceRecord>, sourceVersion: string, updatedAt: string): CatalogProjectionMeta {

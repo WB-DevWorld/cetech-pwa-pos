@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CartDraftStore, CatalogPort, CustomerPort, PricingPort } from "../../../../../../docs/contracts/ports";
 import { SellScreen } from "../SellScreen";
 import type { CatalogAvailability, CustomerSearchResultView, SellProductView, SellWorkspaceState } from "../state/sellView";
@@ -45,8 +45,10 @@ function availabilityFromNetwork(online: boolean, searchFailed: boolean, hasCach
 }
 
 export function SellRuntimeScreen(ports: SellSessionPorts) {
-  const createCartId = ports.createCartId ?? defaultIdFactory("cart");
-  const createLineId = ports.createLineId ?? defaultIdFactory("line");
+  const fallbackCreateCartId = useMemo(() => defaultIdFactory("cart"), []);
+  const fallbackCreateLineId = useMemo(() => defaultIdFactory("line"), []);
+  const createCartId = ports.createCartId ?? fallbackCreateCartId;
+  const createLineId = ports.createLineId ?? fallbackCreateLineId;
   const now = useMemo(() => ports.now ?? defaultNow, [ports.now]);
   const online = useMemo(() => ports.online ?? defaultOnline, [ports.online]);
   const catalog = ports.catalog;
@@ -55,6 +57,8 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
   const rememberCartId = ports.rememberCartId;
   const recallCartId = ports.recallCartId;
   const locationId = ports.locationId;
+  const nowRef = useRef(now);
+  const onlineRef = useRef(online);
   const [ready, setReady] = useState(false);
   const [initialState, setInitialState] = useState<SellWorkspaceState | undefined>(undefined);
   const [browseCatalog, setBrowseCatalog] = useState<readonly SellProductView[]>([]);
@@ -62,6 +66,7 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
   const [searchStatus, setSearchStatus] = useState<SellWorkspaceState["search"]["status"]>("idle");
   const [availability, setAvailability] = useState<CatalogAvailability>("fresh");
   const [workspace, setWorkspace] = useState<SellWorkspaceState | undefined>(undefined);
+  const [restoreCount, setRestoreCount] = useState(0);
   const connected = online();
   const presentedQuote = useCartQuote({
     pricing: ports.pricing,
@@ -73,9 +78,14 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
   });
 
   useEffect(() => {
+    nowRef.current = now;
+    onlineRef.current = online;
+  }, [now, online]);
+
+  useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const connected = online();
+      const connectedNow = onlineRef.current();
       const browse = await searchCatalogViews(catalog, "");
       const customerPage = await customersPort.search("");
       const views = browse.ok ? browse.items : [];
@@ -86,10 +96,10 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
         recallCartId,
         browseCatalog: views,
         deps: { createCartId, createLineId },
-        availability: availabilityFromNetwork(connected, !browse.ok, views.length > 0),
+        availability: availabilityFromNetwork(connectedNow, !browse.ok, views.length > 0),
       });
       if (cancelled) return;
-      await drafts.save(workspaceToCartDraft(restored, locationId, now().toISOString()));
+      await drafts.save(workspaceToCartDraft(restored, locationId, nowRef.current().toISOString()));
       await rememberCartId(restored.cartId);
       if (cancelled) return;
       setBrowseCatalog(views);
@@ -98,12 +108,13 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
       setSearchStatus(browse.ok ? "ready" : "error");
       setInitialState(restored);
       setWorkspace(restored);
+      setRestoreCount((count) => count + 1);
       setReady(true);
     })();
     return () => {
       cancelled = true;
     };
-  }, [catalog, createCartId, createLineId, customersPort, drafts, locationId, now, online, recallCartId, rememberCartId]);
+  }, [catalog, createCartId, createLineId, customersPort, drafts, locationId, recallCartId, rememberCartId]);
 
   const persist = useCallback(
     (state: SellWorkspaceState) => {
@@ -172,21 +183,23 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
   }
 
   return (
-    <SellScreen
-      catalog={browseCatalog}
-      customers={customers}
-      initialState={initialState}
-      catalogAvailability={availability}
-      searchStatus={searchStatus}
-      createCartId={createCartId}
-      createLineId={createLineId}
-      searchCatalog={searchCatalog}
-      resolveBarcodeCatalog={resolveBarcodeCatalog}
-      loadVariations={loadVariations}
-      onCustomerQueryChange={searchCustomers}
-      onWorkspaceChange={persist}
-      quote={presentedQuote.quote}
-      eligibility={presentedQuote.eligibility}
-    />
+    <div data-sell-restore-count={restoreCount}>
+      <SellScreen
+        catalog={browseCatalog}
+        customers={customers}
+        initialState={initialState}
+        catalogAvailability={availability}
+        searchStatus={searchStatus}
+        createCartId={createCartId}
+        createLineId={createLineId}
+        searchCatalog={searchCatalog}
+        resolveBarcodeCatalog={resolveBarcodeCatalog}
+        loadVariations={loadVariations}
+        onCustomerQueryChange={searchCustomers}
+        onWorkspaceChange={persist}
+        quote={presentedQuote.quote}
+        eligibility={presentedQuote.eligibility}
+      />
+    </div>
   );
 }

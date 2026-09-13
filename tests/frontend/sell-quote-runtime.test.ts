@@ -8,6 +8,7 @@ import {
   requestWholeCartQuote,
   quotingState,
 } from "../../apps/pos-web/src/features/sell/runtime/quoteRequest";
+import { previousConfirmedQuoteForRequest } from "../../apps/pos-web/src/features/sell/runtime/useCartQuote";
 import { quoteStateToDisplay } from "../../apps/pos-web/src/features/sell/runtime/mapQuoteDisplay";
 
 const CART = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -211,5 +212,83 @@ describe("FE-04 whole-cart quote revision safety", () => {
         quote: { status: "stale" },
       }).reason,
     ).toBe("QUOTE_STALE");
+  });
+});
+
+describe("same-revision previous confirmed quote selection", () => {
+  test("reuses confirmed state only for the same cart identity and revision", () => {
+    const confirmed = {
+      status: "confirmed" as const,
+      revision: 4,
+      quote: quoteFixture(4, 1500, "before"),
+    };
+    const stored = { cartId: CART, revision: 4, state: confirmed };
+    expect(previousConfirmedQuoteForRequest(stored, CART, 4)).toEqual(confirmed);
+    expect(previousConfirmedQuoteForRequest(stored, CART, 5)).toEqual({ status: "missing" });
+    expect(previousConfirmedQuoteForRequest(stored, "dddddddd-dddd-4ddd-8ddd-dddddddddddd", 4)).toEqual({
+      status: "missing",
+    });
+    expect(
+      previousConfirmedQuoteForRequest(
+        { cartId: CART, revision: 4, state: quotingState(4) },
+        CART,
+        4,
+      ),
+    ).toEqual({ status: "missing" });
+  });
+
+  test("quoting eligibility is blocked while a same-revision fingerprint change is compared", async () => {
+    expect(
+      checkoutEligibilityFromQuote({
+        cartEmpty: false,
+        shiftOpen: true,
+        online: true,
+        quote: quotingState(4),
+      }),
+    ).toMatchObject({ allowed: false, reason: "QUOTE_REQUIRED" });
+
+    const stored = {
+      cartId: CART,
+      revision: 4,
+      state: {
+        status: "confirmed" as const,
+        revision: 4,
+        quote: quoteFixture(4, 1500, "before"),
+      },
+    };
+    const pricing: PricingPort = {
+      async quote() {
+        return {
+          ok: true,
+          data: quoteFixture(4, 1800, "after"),
+          correlationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        };
+      },
+    };
+    const previous = previousConfirmedQuoteForRequest(stored, CART, 4);
+    const next = await requestWholeCartQuote(
+      pricing,
+      {
+        cartId: CART,
+        cartRevision: 4,
+        customer: { kind: "walkin" },
+        locationId: "loc-front-1",
+        lines: [{ lineId: LINE, productId: "p-hardener", quantity: "1" }],
+      },
+      previous,
+    );
+    expect(next.status).toBe("changed");
+    if (next.status === "changed") {
+      expect(next.previous.fingerprint).toBe("before");
+      expect(next.current.fingerprint).toBe("after");
+    }
+    expect(
+      checkoutEligibilityFromQuote({
+        cartEmpty: false,
+        shiftOpen: true,
+        online: true,
+        quote: next,
+      }),
+    ).toMatchObject({ allowed: false, reason: "QUOTE_REQUIRED" });
   });
 });

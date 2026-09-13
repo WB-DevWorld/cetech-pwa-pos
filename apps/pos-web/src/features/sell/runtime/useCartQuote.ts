@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
-import type { QuoteState } from "../../../../../../docs/contracts/domain.generated";
+import { useEffect, useRef, useState } from "react";
+import type { QuoteRequest, QuoteState } from "../../../../../../docs/contracts/domain.generated";
 import type { PricingPort } from "../../../../../../docs/contracts/ports";
 import type { CheckoutEligibilityView, QuoteDisplayState } from "../state/quotePresentation";
-import type { SellWorkspaceState } from "../state/sellView";
+import type { CartLineView, CustomerSearchResultView, SellWorkspaceState } from "../state/sellView";
+import { customerContextFromSelection } from "./mapCartDraft";
 import { checkoutEligibilityFromQuote } from "./checkoutEligibility";
 import { quoteStateToDisplay } from "./mapQuoteDisplay";
-import { buildQuoteRequest, expireQuoteIfNeeded, requestWholeCartQuote, quotingState } from "./quoteRequest";
+import { expireQuoteIfNeeded, requestWholeCartQuote, quotingState } from "./quoteRequest";
 
 export type UseCartQuoteInput = {
   readonly pricing?: PricingPort;
@@ -21,7 +22,8 @@ export type UseCartQuoteResult = {
   readonly eligibility?: CheckoutEligibilityView;
 };
 
-type RemoteQuote = {
+export type StoredRemoteQuote = {
+  readonly cartId: string;
   readonly revision: number;
   readonly state: QuoteState;
 };
@@ -45,52 +47,124 @@ function localQuoteState(input: UseCartQuoteInput): QuoteState | undefined {
   return undefined;
 }
 
+function quoteRequestFromCart(
+  cartId: string,
+  cartRevision: number,
+  lines: readonly CartLineView[],
+  selectedCustomer: CustomerSearchResultView | null | undefined,
+  locationId: string,
+): QuoteRequest | null {
+  if (lines.length === 0) {
+    return null;
+  }
+  return {
+    cartId,
+    cartRevision,
+    customer: customerContextFromSelection(selectedCustomer ?? null),
+    locationId,
+    lines: lines.map((line) => ({
+      lineId: line.lineId,
+      productId: line.catalogItemId,
+      variationId: line.variationId,
+      quantity: line.quantity,
+    })),
+  };
+}
+
+/** Same cart identity + revision only. A confirmed quote never compares across a different cart or revision. */
+export function previousConfirmedQuoteForRequest(
+  stored: StoredRemoteQuote | null,
+  cartId: string,
+  revision: number,
+): QuoteState {
+  if (stored?.cartId === cartId && stored.revision === revision && stored.state.status === "confirmed") {
+    return stored.state;
+  }
+  return { status: "missing" };
+}
+
 export function useCartQuote(input: UseCartQuoteInput): UseCartQuoteResult {
-  const [remote, setRemote] = useState<RemoteQuote | null>(null);
+  const [remote, setRemote] = useState<StoredRemoteQuote | null>(null);
+  const remoteRef = useRef<StoredRemoteQuote | null>(null);
+  const [appliedEpoch, setAppliedEpoch] = useState(0);
+  const [onlineEpoch, setOnlineEpoch] = useState(0);
+  const [seenOnline, setSeenOnline] = useState(input.online);
+  if (input.online !== seenOnline) {
+    setSeenOnline(input.online);
+    if (input.online) {
+      setOnlineEpoch((epoch) => epoch + 1);
+    }
+  }
+
   const local = localQuoteState(input);
   const revision = input.workspace?.cartRevision ?? 0;
   const nowIso = input.now().toISOString();
+  const awaitingRevalidation = onlineEpoch !== appliedEpoch;
   const quote: QuoteState = local
-    ?? (remote && remote.revision === revision
-      ? expireQuoteIfNeeded(remote.state, nowIso)
-      : quotingState(revision));
+    ?? (awaitingRevalidation
+      ? quotingState(revision)
+      : remote && remote.revision === revision
+        ? expireQuoteIfNeeded(remote.state, nowIso)
+        : quotingState(revision));
+
+  const cartId = input.workspace?.cartId;
+  const cartRevision = input.workspace?.cartRevision;
+  const lines = input.workspace?.lines;
+  const selectedCustomer = input.workspace?.selectedCustomer;
+  const pricing = input.pricing;
+  const locationId = input.locationId;
+  const online = input.online;
 
   useEffect(() => {
-    const workspace = input.workspace;
-    const pricing = input.pricing;
-    if (!workspace || !pricing || !input.online || workspace.lines.length === 0) {
+    if (!cartId || cartRevision === undefined || !pricing || !online || !lines || lines.length === 0) {
       return;
     }
-    const request = buildQuoteRequest(workspace, input.locationId);
+    const request = quoteRequestFromCart(cartId, cartRevision, lines, selectedCustomer, locationId);
     if (!request) {
       return;
     }
     const requestRevision = request.cartRevision;
+    const previous = previousConfirmedQuoteForRequest(remoteRef.current, cartId, requestRevision);
+    const requestEpoch = onlineEpoch;
     let cancelled = false;
-    void requestWholeCartQuote(pricing, request, { status: "missing" }).then((next) => {
-      if (cancelled) return;
-      setRemote((current) => {
-        if (current && current.revision > requestRevision) {
-          return current;
-        }
-        return { revision: requestRevision, state: next };
-      });
+    void requestWholeCartQuote(pricing, request, previous).then((next) => {
+      if (cancelled) {
+        return;
+      }
+      const latest = remoteRef.current;
+      if (latest && latest.revision > requestRevision) {
+        return;
+      }
+      const committed: StoredRemoteQuote = {
+        cartId,
+        revision: requestRevision,
+        state: next,
+      };
+      remoteRef.current = committed;
+      setAppliedEpoch(requestEpoch);
+      setRemote(committed);
     });
     return () => {
       cancelled = true;
     };
-    // Quote only when commercial cart identity changes, not on search/browse state.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- workspace object also carries search/notice
-  }, [input.locationId, input.online, input.pricing, input.workspace?.cartId, input.workspace?.cartRevision, input.workspace?.lines, input.workspace?.selectedCustomer]);
+  }, [cartId, cartRevision, lines, locationId, online, onlineEpoch, pricing, selectedCustomer]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
       return;
     }
     const timer = window.setInterval(() => {
-      setRemote((current) =>
-        current ? { revision: current.revision, state: expireQuoteIfNeeded(current.state, new Date().toISOString()) } : current,
-      );
+      const current = remoteRef.current;
+      if (!current) {
+        return;
+      }
+      const nextState = expireQuoteIfNeeded(current.state, new Date().toISOString());
+      if (nextState === current.state) {
+        return;
+      }
+      const next = { ...current, state: nextState };
+      remoteRef.current = next;
+      setRemote(next);
     }, 1000);
     return () => window.clearInterval(timer);
   }, []);

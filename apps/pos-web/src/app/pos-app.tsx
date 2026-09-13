@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SellRuntimeScreen, type SellSessionPorts } from "../features/sell";
 import { createBrowserPricingPort } from "../features/sell/runtime/pricingClient";
@@ -20,6 +20,7 @@ export function PosApp({ route }: { route: PosRoute }) {
   const router = useRouter();
   const [online, setOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
   const [ports, setPorts] = useState<SellSessionPorts | null>(null);
+  const readOnline = useCallback(() => online, [online]);
 
   useEffect(() => {
     function sync() {
@@ -61,7 +62,7 @@ export function PosApp({ route }: { route: PosRoute }) {
     >
       {route === "sell" ? (
         ports ? (
-          <SellRuntimeScreen {...ports} online={() => online} />
+          <SellRuntimeScreen {...ports} online={readOnline} />
         ) : (
           <p className="muted">Loading catalog…</p>
         )

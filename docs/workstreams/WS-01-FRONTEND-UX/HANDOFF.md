@@ -1,3 +1,15 @@
+# WS1 current handoff — R4 independent-review remediation (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13
+Task: FE-03 stable Sell init + FE-04 live `changed` quote; issues #8 and #9 on PR #41
+Owner / requested reviewer: @Ben-001-sys owns WS1; independent reviewer **@Emmanuel-coder-prog** (do not ask Ben to independently approve; do not self-approve; do not merge)
+Contracts: CatalogPort, CustomerPort, CartDraftStore, PricingPort, QuoteState, CheckoutEligibility v1.0.0 consumed; none changed
+R4 complete: assembled; three merge blockers remediated; **AWAITING INDEPENDENT RE-REVIEW**; not merged.
+Evidence: `docs/integration/evidence/R4-REVIEW-REMEDIATION.md`
+Next: @Emmanuel-coder-prog re-review of the new exact head after required CI is green. Do not start R5.
+
+## Previous current handoff — FE-03/FE-04 imported into PR #41 (PROGRESS_CHECKPOINT)
+
 # WS1 current handoff — FE-03/FE-04 imported into PR #41 (PROGRESS_CHECKPOINT)
 
 Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T21:05:00Z

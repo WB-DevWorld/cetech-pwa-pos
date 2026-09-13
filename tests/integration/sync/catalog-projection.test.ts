@@ -1,6 +1,7 @@
 import "fake-indexeddb/auto";
 import { afterEach, describe, expect, test } from "vitest";
 import { CatalogProjectionEngine } from "../../../apps/pos-web/src/core/catalog/engine";
+import type { CatalogSourceRecord } from "../../../apps/pos-web/src/core/catalog/source";
 import { createLocalCatalogPort, persistCatalogEngine } from "../../../apps/pos-web/src/local/catalog-repository";
 import { createCartDraftStore } from "../../../apps/pos-web/src/local/cart-draft-store";
 import {
@@ -154,4 +155,93 @@ describe("CORE-04 catalog projection", () => {
     expect(restored?.lines[0]?.productId).toBe(LEADING_ZERO_ITEM_ID);
     await closePosLocalDatabase(db.name);
   });
+
+  test("search cursor is the last returned id and walks the full result set without skip or duplicate", () => {
+    const engine = new CatalogProjectionEngine();
+    engine.rebuild(
+      [
+        cursorRecord("cursor-a", "Cursor item A"),
+        cursorRecord("cursor-b", "Cursor item B"),
+        cursorRecord("cursor-c", "Cursor item C"),
+        cursorRecord("cursor-d", "Cursor item D"),
+        cursorRecord("cursor-e", "Cursor item E"),
+      ],
+      "cursor-v1",
+      "2026-09-13T20:00:00.000Z",
+    );
+    const first = engine.search({ limit: 2 });
+    expect(first.items.map((item) => item.id)).toEqual(["cursor-a", "cursor-b"]);
+    expect(first.nextCursor).toBe("cursor-b");
+    const second = engine.search({ limit: 2, cursor: first.nextCursor });
+    expect(second.items.map((item) => item.id)).toEqual(["cursor-c", "cursor-d"]);
+    expect(second.nextCursor).toBe("cursor-d");
+    const third = engine.search({ limit: 2, cursor: second.nextCursor });
+    expect(third.items.map((item) => item.id)).toEqual(["cursor-e"]);
+    expect(third.nextCursor).toBeUndefined();
+    const walked = [...first.items, ...second.items, ...third.items].map((item) => item.id);
+    expect(walked).toEqual(["cursor-a", "cursor-b", "cursor-c", "cursor-d", "cursor-e"]);
+    expect(new Set(walked).size).toBe(walked.length);
+  });
+
+  test("filtered search and parentId pages use the same last-returned cursor rule", () => {
+    const engine = new CatalogProjectionEngine();
+    engine.rebuild(
+      [
+        cursorRecord("glue-a", "Adhesive alpha"),
+        cursorRecord("glue-b", "Adhesive beta"),
+        cursorRecord("glue-c", "Adhesive gamma"),
+        cursorRecord("other-z", "Unrelated solvent"),
+        cursorRecord("var-parent", "Variable parent", { kind: "variable" }),
+        cursorRecord("var-c1", "Child one", { kind: "variation", parentId: "var-parent" }),
+        cursorRecord("var-c2", "Child two", { kind: "variation", parentId: "var-parent" }),
+        cursorRecord("var-c3", "Child three", { kind: "variation", parentId: "var-parent" }),
+      ],
+      "cursor-filter-v1",
+      "2026-09-13T20:00:00.000Z",
+    );
+
+    const searchFirst = engine.search({ query: "Adhesive", limit: 2 });
+    expect(searchFirst.items.map((item) => item.id)).toEqual(["glue-a", "glue-b"]);
+    expect(searchFirst.nextCursor).toBe("glue-b");
+    const searchSecond = engine.search({ query: "Adhesive", limit: 2, cursor: searchFirst.nextCursor });
+    expect(searchSecond.items.map((item) => item.id)).toEqual(["glue-c"]);
+    expect(searchSecond.nextCursor).toBeUndefined();
+    const searchWalked = [...searchFirst.items, ...searchSecond.items].map((item) => item.id);
+    expect(searchWalked).toEqual(["glue-a", "glue-b", "glue-c"]);
+    expect(searchWalked.includes("other-z")).toBe(false);
+
+    const childFirst = engine.search({ parentId: "var-parent", limit: 2 });
+    expect(childFirst.items.map((item) => item.id)).toEqual(["var-c1", "var-c2"]);
+    expect(childFirst.nextCursor).toBe("var-c2");
+    const childSecond = engine.search({ parentId: "var-parent", limit: 2, cursor: childFirst.nextCursor });
+    expect(childSecond.items.map((item) => item.id)).toEqual(["var-c3"]);
+    expect(childSecond.nextCursor).toBeUndefined();
+    expect([...childFirst.items, ...childSecond.items].map((item) => item.id)).toEqual([
+      "var-c1",
+      "var-c2",
+      "var-c3",
+    ]);
+  });
 });
+
+function cursorRecord(
+  posItemId: string,
+  name: string,
+  options: { kind?: CatalogSourceRecord["kind"]; parentId?: string } = {},
+): CatalogSourceRecord {
+  return {
+    posItemId,
+    sourceSystem: "transitional-commerce",
+    sourceItemId: posItemId,
+    sourceVersion: "1",
+    name,
+    sku: posItemId,
+    barcodes: [],
+    kind: options.kind ?? "simple",
+    parentId: options.parentId,
+    variationLabel: options.kind === "variation" ? name : undefined,
+    displayPrice: { minor: 100, currency: "GHS" },
+    stockStatus: "in_stock",
+    sourceUpdatedAt: "2026-09-13T20:00:00.000Z",
+  };
+}
