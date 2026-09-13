@@ -1,5 +1,8 @@
 export { SellScreen, type SellScreenProps } from "./SellScreen";
 export { SellRuntimeScreen, type SellSessionPorts } from "./runtime/SellRuntimeScreen";
+export { createBrowserPricingPort } from "./runtime/pricingClient";
+export { checkoutEligibilityFromQuote } from "./runtime/checkoutEligibility";
+export { applyQuoteStateForRevision } from "./runtime/quoteRequest";
 export { CartPanel } from "./components/CartPanel";
 export { QuoteStatus } from "./components/QuoteStatus";
 export {

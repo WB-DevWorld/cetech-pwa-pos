@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { CartDraftStore, CatalogPort, CustomerPort } from "../../../../../../docs/contracts/ports";
+import type { CartDraftStore, CatalogPort, CustomerPort, PricingPort } from "../../../../../../docs/contracts/ports";
 import { SellScreen } from "../SellScreen";
 import type { CatalogAvailability, CustomerSearchResultView, SellProductView, SellWorkspaceState } from "../state/sellView";
 import { lookupBarcodeViews, lookupVariations, searchCatalogViews } from "./catalogLookup";
 import { customerViewFromSummary, workspaceToCartDraft } from "./mapCartDraft";
 import { restoreSellWorkspace } from "./restoreWorkspace";
+import { useCartQuote } from "./useCartQuote";
 
 export type SellSessionPorts = {
   readonly catalog: CatalogPort;
@@ -19,6 +20,8 @@ export type SellSessionPorts = {
   readonly online?: () => boolean;
   readonly createCartId?: () => string;
   readonly createLineId?: () => string;
+  readonly pricing?: PricingPort;
+  readonly shiftOpen?: boolean;
 };
 
 function defaultNow(): Date {
@@ -58,6 +61,16 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
   const [customers, setCustomers] = useState<readonly CustomerSearchResultView[]>([]);
   const [searchStatus, setSearchStatus] = useState<SellWorkspaceState["search"]["status"]>("idle");
   const [availability, setAvailability] = useState<CatalogAvailability>("fresh");
+  const [workspace, setWorkspace] = useState<SellWorkspaceState | undefined>(undefined);
+  const connected = online();
+  const presentedQuote = useCartQuote({
+    pricing: ports.pricing,
+    workspace,
+    locationId,
+    online: connected,
+    shiftOpen: ports.shiftOpen ?? true,
+    now,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -84,6 +97,7 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
       setAvailability(restored.catalogAvailability);
       setSearchStatus(browse.ok ? "ready" : "error");
       setInitialState(restored);
+      setWorkspace(restored);
       setReady(true);
     })();
     return () => {
@@ -93,6 +107,7 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
 
   const persist = useCallback(
     (state: SellWorkspaceState) => {
+      setWorkspace(state);
       void drafts.save(workspaceToCartDraft(state, locationId, now().toISOString()));
       void rememberCartId(state.cartId);
     },
@@ -170,6 +185,8 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
       loadVariations={loadVariations}
       onCustomerQueryChange={searchCustomers}
       onWorkspaceChange={persist}
+      quote={presentedQuote.quote}
+      eligibility={presentedQuote.eligibility}
     />
   );
 }
