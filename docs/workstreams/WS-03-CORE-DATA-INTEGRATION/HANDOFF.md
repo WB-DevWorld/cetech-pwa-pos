@@ -1,14 +1,16 @@
-# WS3 current handoff — R2 BR-01 exact-head Make verification (PROGRESS_CHECKPOINT)
+# WS3 current handoff — R2 BR-01 exact-head Make verification (SESSION_COMPLETION)
 
-Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T14:04:18Z start (new continuation; not Pass 3 of the runtime or blocked-import sessions)
+Kind / UTC: SESSION_COMPLETION / 2026-09-13T14:09:38Z (Pass-2 cutoff; new continuation, not Pass 3 of prior sessions)
 Task / batch / workstream: R2 — exact-head `make check`/`test` of imported BR-01 normalization tests; WS3 integration
 Owner / integration editor / requested human reviewer: @wbdevworld / same / @Ben-001-sys on the exact final R2 SHA after required CI (do not self-approve; do not merge)
 Branch: `batch/r2-auth-bridge-bff`
 Starting/base SHA: `origin/main` `aa08d74f2cb99301817e5995f01486acb7e2169f`
 Start / tested R2 SHA: `0deafa301411bc226e453446455a1f85d92607d7`
 Ben `CHANGES_REQUESTED` commit: `0deafa301411bc226e453446455a1f85d92607d7`
+Evidence checkpoint SHA: `097412ad6db1b512354b14ff8a54d6064a964034`
+Final task head SHA: recorded in PR #43 after this freshness evidence commit
 Imported contributor SHA (already on tree): `130437d6d9ee1c62c5f661ffb591f41b7e49e65e` as `605e6f2bca5b1c6dfb2ba817b74f6e2dffe6ccdd`
-Files changed this continuation: evidence/STATUS/HANDOFF/CURRENT-WORK only. No bridge production PHP. No architecture.
+Files changed this continuation: evidence/STATUS/HANDOFF/CURRENT-WORK/MILESTONE-REVIEWS only. No bridge production PHP. No architecture.
 Contracts changed: none
 Database migrations: none
 Architecture decisions: none
@@ -23,9 +25,22 @@ Historical import checkpoint: remains `BLOCKED_VERIFICATION` (php/make absent). 
 R3: NOT STARTED. WS2 contributor branch: not modified. Do not merge main.
 Freshness protocol (this continuation):
 START_FRESHNESS_SNAPSHOT UTC: `2026-09-13T14:04:18Z`
-Pass 1 / Pass 2: pending after this evidence commit
+Start main SHA: `aa08d74f2cb99301817e5995f01486acb7e2169f`
+Start batch ref/SHA: NOT_APPLICABLE (editor candidate is #43); inspected R2 `0deafa3…`
+Pass 1 fetch UTC / success: `2026-09-13T14:09:02Z` EXIT 0
+Pass 1 main SHA: `aa08d74f2cb99301817e5995f01486acb7e2169f` SAME
+Pass 1 batch SHA: `097412ad6db1b512354b14ff8a54d6064a964034`
+Classification: none
+Actions / tests rerun: none required
+Pass 2 fetch UTC / success: `2026-09-13T14:09:38Z` EXIT 0
+Pass 2 main SHA: `aa08d74f2cb99301817e5995f01486acb7e2169f` SAME
+Pass 2 batch SHA: `097412ad6db1b512354b14ff8a54d6064a964034`
+Classification: none
+Final freshness: FRESH_2
+Delivery: READY_FOR_REVIEW (not merge authorization)
 Pass 3: NOT PERMITTED
-Next exact action: two ADR-012 freshness passes; update PR #43 declared final head to the actual final SHA; request `@Ben-001-sys` re-review when required GitHub Actions on that SHA are green. Do not merge. Do not start R3.
+Post-cutoff risk: arrivals after Pass-2 `aa08d74` / WS2 `6260893`
+Next exact action: update PR #43 declared final head to the actual freshness SHA; wait for required GitHub Actions; request `@Ben-001-sys` re-review on that exact SHA. Do not merge. Do not start R3.
 
 # Previous current handoff — R2 BR-01 normalization import (PROGRESS_CHECKPOINT; historical BLOCKED_VERIFICATION)
 
