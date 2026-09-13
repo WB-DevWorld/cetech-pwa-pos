@@ -48,7 +48,7 @@ BEGIN
 END;
 $$;
 
-SELECT plan(74);
+SELECT plan(81);
 
 SELECT pos_test_clear_claims();
 
@@ -887,6 +887,78 @@ SELECT throws_ok(
   '42501',
   NULL,
   'service_role cannot delete staff sessions'
+);
+RESET ROLE;
+
+SELECT pos_test_clear_claims();
+SET ROLE anon;
+SELECT throws_ok(
+  $$ SELECT count(*) FROM pos_catalog_items $$,
+  '42501',
+  NULL,
+  'anonymous cannot read catalog projection'
+);
+RESET ROLE;
+
+SELECT pos_test_set_claims('org_a', ARRAY['loc_a1'], 'cashier_a', 'reg_a');
+SET ROLE authenticated;
+SELECT throws_ok(
+  $$ SELECT count(*) FROM pos_catalog_items $$,
+  '42501',
+  NULL,
+  'authenticated cannot select catalog projection'
+);
+SELECT throws_ok(
+  $$ INSERT INTO pos_catalog_items (
+       organization_id, item_id, source_system, source_item_id, source_version,
+       projection_version, kind, name, barcodes, stock_status
+     ) VALUES (
+       'org_a', 'item-forge', 'transitional-commerce', 'src-forge', '1',
+       1, 'simple', 'Forged', ARRAY['999'], 'unknown'
+     ) $$,
+  '42501',
+  NULL,
+  'authenticated cannot insert catalog projection'
+);
+RESET ROLE;
+
+SELECT pos_test_clear_claims();
+SET ROLE service_role;
+SELECT lives_ok(
+  $$ INSERT INTO pos_catalog_items (
+       organization_id, item_id, source_system, source_item_id, source_version,
+       projection_version, kind, name, sku, barcodes, stock_status
+     ) VALUES
+     (
+       'org_a', 'item-0000001', 'transitional-commerce', 'src-1', '1',
+       1, 'simple', 'Synthetic one', '0001234567890', ARRAY['0001234567890'], 'unknown'
+     ),
+     (
+       'org_a', 'item-0000002', 'transitional-commerce', 'src-2', '1',
+       1, 'simple', 'Synthetic two', 'SKU-DUP-A', ARRAY['DUP000000001'], 'unknown'
+     ),
+     (
+       'org_a', 'item-0000003', 'transitional-commerce', 'src-3', '1',
+       1, 'simple', 'Synthetic three', 'SKU-DUP-B', ARRAY['DUP000000001'], 'unknown'
+     ) $$,
+  'service_role can insert catalog projection including duplicate barcodes and leading-zero sku'
+);
+SELECT is(
+  (SELECT sku FROM pos_catalog_items WHERE item_id = 'item-0000001'),
+  '0001234567890',
+  'catalog sku/barcode strings preserve leading zeroes'
+);
+SELECT lives_ok(
+  $$ UPDATE pos_catalog_items
+     SET tombstoned_at = now(), barcodes = ARRAY[]::text[]
+     WHERE item_id = 'item-0000003' $$,
+  'service_role can tombstone a catalog projection row'
+);
+SELECT throws_ok(
+  $$ DELETE FROM pos_catalog_items WHERE item_id = 'item-0000001' $$,
+  '42501',
+  NULL,
+  'service_role cannot delete catalog projection rows'
 );
 RESET ROLE;
 

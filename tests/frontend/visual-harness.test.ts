@@ -7,6 +7,14 @@ import {
   buildRegisterHarnessHtml,
   buildShellHarnessHtml,
 } from "./visual/build-harness";
+import {
+  buildSellCustomerHarnessHtml,
+  buildSellDesktopHarnessHtml,
+  buildSellOfflineHarnessHtml,
+  buildSellPhoneHarnessHtml,
+  buildSellUnknownBarcodeHarnessHtml,
+  buildSellVariationHarnessHtml,
+} from "./visual/build-sell-harness";
 
 const evidenceDir = resolve(dirname(fileURLToPath(import.meta.url)), "evidence");
 
@@ -26,5 +34,37 @@ describe("FE-02 isolated visual harness markup", () => {
     expect(register).toContain('id="opening-float"');
     expect(`${shell}${login}${register}`).not.toContain("Demo controls");
     expect(`${shell}${login}${register}`).not.toContain("Ama Mensah");
+  });
+
+  test("writes isolated FE-03 Sell workspace HTML evidence", () => {
+    mkdirSync(evidenceDir, { recursive: true });
+    const desktop = buildSellDesktopHarnessHtml();
+    const phone = buildSellPhoneHarnessHtml();
+    const variation = buildSellVariationHarnessHtml();
+    const unknown = buildSellUnknownBarcodeHarnessHtml();
+    const customer = buildSellCustomerHarnessHtml();
+    const offline = buildSellOfflineHarnessHtml();
+    writeFileSync(resolve(evidenceDir, "sell-desktop.html"), desktop);
+    writeFileSync(resolve(evidenceDir, "sell-tablet.html"), desktop);
+    writeFileSync(resolve(evidenceDir, "sell-phone.html"), phone);
+    writeFileSync(resolve(evidenceDir, "sell-variation.html"), variation);
+    writeFileSync(resolve(evidenceDir, "sell-unknown-barcode.html"), unknown);
+    writeFileSync(resolve(evidenceDir, "sell-customer.html"), customer);
+    writeFileSync(resolve(evidenceDir, "sell-offline.html"), offline);
+
+    expect(desktop).toContain("Scan barcode or search products");
+    expect(desktop).toContain("Epoxy Hardener 1L");
+    expect(phone).toContain("mobile-open");
+    expect(variation).toContain("Choose variation");
+    expect(unknown).toContain("9999999999999");
+    expect(customer).toContain("Buildworks Ltd");
+    expect(customer).toContain("Wholesale");
+    expect(offline).toContain("Cached catalog is available");
+    expect(`${desktop}${phone}${variation}${unknown}${customer}${offline}`).not.toContain("demo-barcodes");
+    expect(`${desktop}${phone}${variation}${unknown}${customer}${offline}`).not.toContain("Demo controls");
+    expect(`${desktop}${phone}${variation}${unknown}${customer}${offline}`).not.toContain("later task");
+    expect(`${desktop}${phone}${variation}${unknown}${customer}${offline}`).not.toContain("preparation pass");
+    expect(`${desktop}${phone}${variation}${unknown}${customer}${offline}`.toLowerCase()).not.toContain("adapter");
+    expect(`${desktop}${phone}${variation}${unknown}${customer}${offline}`).not.toContain("unwired");
   });
 });

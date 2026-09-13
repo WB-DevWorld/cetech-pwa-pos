@@ -1,5 +1,31 @@
 # WS3 current status
 
+Snapshot 2026-09-13. CORE-04 INTEGRATED_AND_TESTED on PR #41. Cross-cart quote isolation continuation after Emmanuel `CHANGES_REQUESTED` on `9703b27…` (prior three remediations accepted). Pre-handoff SHA `e92659a…`. Freshness **FRESH_2**. Issue #23 OPEN until reviewed merge. R4 **AWAITING INDEPENDENT RE-REVIEW** / not merged. `pricingParityVerified` false. Issue #4 OPEN. Do not start R5. Evidence: `docs/integration/evidence/R4-CROSS-CART-QUOTE.md`, `docs/integration/evidence/R4-CROSS-CART-QUOTE-FRESHNESS.md`. CURRENT-WORK holds the central R4 lease on PR #41.
+
+## Previous snapshot (independent-review remediation — historical; current section above controls)
+
+# WS3 current status
+
+Snapshot 2026-09-13. CORE-04 INTEGRATED_AND_TESTED on PR #41. Independent-review remediation of Emmanuel `CHANGES_REQUESTED` on `31bbfcc…`: catalog cursor last-returned semantics plus journal idempotency already on the branch. Issue #23 OPEN until reviewed merge. R4 **AWAITING INDEPENDENT RE-REVIEW** / not merged. `pricingParityVerified` false. Issue #4 OPEN. Do not start R5. Evidence: `docs/integration/evidence/R4-REVIEW-REMEDIATION.md`. CURRENT-WORK holds the central R4 lease on PR #41.
+
+## Previous snapshot (journal idempotency — historical; current section above controls)
+
+# WS3 current status
+
+Snapshot 2026-09-13. CORE-04 INTEGRATED_AND_TESTED on PR #41 with journal idempotency remediation SHA `11bdbd9c6bb5004e9dd70a203a53becdf191728e`: same key + different `requestHash` is `IDEMPOTENCY_CONFLICT` including after `acknowledged`. Isolated SHA `73b3fd9fbe6028dc1cd5eec9b21945c987882886` plus active-cart/cashier seed `0b9414102a048a03ba25f4f331238477c7b8d4fc`. Issue #23 OPEN until reviewed merge. R4 assembled / not merged. `pricingParityVerified` false. Issue #4 OPEN. Do not start R5. Evidence: `docs/integration/evidence/R4-JOURNAL-IDEMPOTENCY.md`. CURRENT-WORK holds the central R4 lease on PR #41.
+
+## Previous snapshot (R4 ACTIVATION — historical; current section above controls)
+
+# WS3 current status
+
+Snapshot 2026-09-13. Main `516d6a49af74cc6677f67bdf843de6e819a05feb`. R3 PR #44 APPROVED / MERGED / POST-MERGE VERIFIED (CI run 34778771391). ADR-013 accepted through that reviewed merge. Training plugin/evidence remains training-specific. `pricingParityVerified` false. Issue #4 OPEN. CP-04 not globally complete. R3 lease RELEASED. R4 ACTIVATED on existing PR #41. Queue CORE-04 → FE-03 → FE-04. Do not start R5. Evidence: `docs/integration/evidence/R4-START-FRESHNESS.md`.
+
+CURRENT-WORK holds the central R4 lease.
+
+## Previous snapshot (R3 CART-DISCOUNT — historical; current section above controls)
+
+# WS3 current status
+
 Snapshot 2026-09-13. Main `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`. R3 PR #44. ADR-013 records provider-neutral cart-level commercial discounts in existing Quote v1 fields (no fee field). Training plugin `0.2.7-br02`. `pricingParityVerified` false. Issue #4 OPEN. Do not start R4. Evidence: `docs/integration/evidence/R3-CART-DISCOUNT.md`.
 
 CURRENT-WORK holds the central R3 lease.

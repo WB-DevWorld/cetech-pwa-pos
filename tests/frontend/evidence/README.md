@@ -62,3 +62,42 @@ Viewport classes used:
 | `shell-phone.png` | 390×844 | Bottom navigation, Settings/brand hidden |
 | `login-desktop.png` | 1440×900 | Production Sign in, no fictional staff |
 | `register-desktop.png` | 1440×900 | Opening-float money input, adapter register list |
+
+## FE-03 isolated Sell evidence
+
+FE-03 adds isolated Sell workspace HTML/screenshots generated the same way: Vitest writes static markup, Playwright `setContent`s it. These are **not** integrated App Router captures and **not** pixel-perfect matches of `verification-sell-desktop.png` / `verification-mobile-cart.png`.
+
+Comparison scope for FE-03:
+
+- two-pane desktop/tablet Sell layout (products left, cart right)
+- phone cart overlay / Back control
+- variation chooser dialog copy
+- unknown-barcode alert
+- customer display name plus optional server-supplied Wholesale context
+- stale/offline catalog banners in cashier language
+- Pay remains visible and disabled
+- no demo barcode chips
+
+Cashier-facing copy in the Sell UI is operator language. Preparation/runtime-gate limitations live in this README, not in the rendered workspace.
+
+FE-03 does **not** prove:
+
+- live CatalogPort / CustomerPort / CartDraftStore behavior
+- Dexie draft persistence
+- barcode mapping from a real catalog projection
+- quote/pricing/checkout (FE-04)
+- pixel parity with the approved Sell/cart PNGs
+- integrated `src/app` route appearance
+- interactive modal focus trapping (the visual harness is static HTML without React event handlers)
+
+The presentation components and pure cart/barcode rules are reusable. CORE-04 integration still needs a port-backed controller/orchestration pass for asynchronous catalog/customer search and durable CartDraftStore IO.
+
+| File | Viewport | Expected Sell presentation |
+| --- | --- | --- |
+| `sell-desktop.png` | 1440×900 | Product pane left, cart right, Pay disabled |
+| `sell-tablet.png` | 900×800 | Split survives; narrower cart |
+| `sell-phone.png` | 390×844 | Full-screen cart overlay |
+| `sell-variation.png` | 1440×900 | Choose-variation dialog |
+| `sell-unknown-barcode.png` | 1440×900 | Unknown barcode alert |
+| `sell-customer.png` | 1440×900 | Selected b2b customer + Wholesale display |
+| `sell-offline.png` | 1440×900 | Offline cached catalog + saved draft banners |
