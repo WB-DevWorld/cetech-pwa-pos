@@ -1,5 +1,13 @@
 # WS3 current status
 
+Snapshot 2026-09-13. Main `516d6a49af74cc6677f67bdf843de6e819a05feb`. R3 PR #44 APPROVED / MERGED / POST-MERGE VERIFIED (CI run 34778771391). ADR-013 accepted through that reviewed merge. Training plugin/evidence remains training-specific. `pricingParityVerified` false. Issue #4 OPEN. CP-04 not globally complete. R3 lease RELEASED. R4 ACTIVATED on existing PR #41. Queue CORE-04 → FE-03 → FE-04. Do not start R5. Evidence: `docs/integration/evidence/R4-START-FRESHNESS.md`.
+
+CURRENT-WORK holds the central R4 lease.
+
+## Previous snapshot (R3 CART-DISCOUNT — historical; current section above controls)
+
+# WS3 current status
+
 Snapshot 2026-09-13. Main `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`. R3 PR #44. ADR-013 records provider-neutral cart-level commercial discounts in existing Quote v1 fields (no fee field). Training plugin `0.2.7-br02`. `pricingParityVerified` false. Issue #4 OPEN. Do not start R4. Evidence: `docs/integration/evidence/R3-CART-DISCOUNT.md`.
 
 CURRENT-WORK holds the central R3 lease.

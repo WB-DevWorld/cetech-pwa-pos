@@ -1,3 +1,24 @@
+# WS3 current handoff — R4 ACTIVATION (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T20:11:27Z
+Task / batch / workstream: R3 closure / R4 activation; WS3 coordination + PR #41 forward-merge
+Owner / integration editor / requested human reviewer: @wbdevworld / same / @Ben-001-sys at R4 gate only (do not self-approve; do not merge)
+Branch: `ws1/fe-03-build-sell-cart-barcode-and-customer-workflow` (PR #41)
+Starting/base SHA: `origin/main` `516d6a49af74cc6677f67bdf843de6e819a05feb`
+R3: APPROVED / MERGED / POST-MERGE VERIFIED (PR #44; post-merge CI run 34778771391)
+R3 lease: RELEASED
+R4 queue: CORE-04 → FE-03 → FE-04
+PR #41 forward-merge SHA: `a23f3d67293f6c5ddada89811ae9c2c0039de00b` (six preparation commits preserved)
+Contracts changed: none
+Database migrations: none
+Architecture decisions: ADR-013 register/status recorded as accepted through reviewed R3 merge; v1.0.0 structure unchanged
+Issue #4: remains OPEN
+CP-04: not globally complete
+R5: not started
+Evidence: `docs/integration/evidence/R4-START-FRESHNESS.md`
+
+## Previous current handoff — R3 CART-DISCOUNT / ADR-013 (SESSION_COMPLETION FRESH_2)
+
 # WS3 current handoff — R3 CART-DISCOUNT / ADR-013 (SESSION_COMPLETION FRESH_2)
 
 Kind / UTC: SESSION_COMPLETION / 2026-09-13T19:07:50Z (Pass-2 cutoff; no Pass 3)
