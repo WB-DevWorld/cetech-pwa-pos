@@ -1,3 +1,145 @@
+# WS3 current handoff — R4 cross-cart quote isolation (SESSION_COMPLETION FRESH_2)
+
+Kind / UTC: SESSION_COMPLETION / 2026-09-13T23:17:21Z (Pass-2 cutoff; no Pass 3)
+Task / batch / workstream: R4 cross-cart quote isolation on PR #41; FE-04; issue #9; WS3
+Owner / integration editor / requested human reviewer: @wbdevworld / same / **@Emmanuel-coder-prog** (PR author @Ben-001-sys cannot independently approve; do not self-approve; do not merge; do not dismiss historical CHANGES_REQUESTED)
+Branch: `ws1/fe-03-build-sell-cart-barcode-and-customer-workflow` (PR #41)
+Starting/base SHA: reviewed head `9703b275e16e3f333756e23c5fd1b23b74d5493c`; `origin/main` `516d6a49af74cc6677f67bdf843de6e819a05feb`
+Pre-handoff implementation SHA: `e92659a072b1281a37b8e086c56ebd09505ae875`
+Freshness: **FRESH_2**. Both upstream cutoffs `516d6a49…`. Pass 2 UTC `2026-09-13T23:17:21Z`.
+Contracts changed: none
+Database migrations: none
+Issue #4: OPEN
+R5: not started
+Milestone: **AWAITING INDEPENDENT RE-REVIEW**
+Evidence: `docs/integration/evidence/R4-CROSS-CART-QUOTE.md`, `docs/integration/evidence/R4-CROSS-CART-QUOTE-START-FRESHNESS.md`, `docs/integration/evidence/R4-CROSS-CART-QUOTE-FRESHNESS.md`
+Tests: control-plane PASS; tooling 48 OK; lint/typecheck PASS; Vitest **42 files / 240 tests**; build PASS; E2E **5 passed**; isolated visual Playwright 12 passed; `git diff --check` clean
+PRE-R5 HARDENING still deferred: catalog query/index performance; QuoteRequest/Quote runtime schema validation
+Delivery: READY_FOR_INTEGRATION pending @Emmanuel-coder-prog re-review and required CI on the pushed final head
+
+## Previous current handoff — R4 independent-review remediation (SESSION_COMPLETION FRESH_2)
+
+# WS3 current handoff — R4 independent-review remediation (SESSION_COMPLETION FRESH_2)
+
+Kind / UTC: SESSION_COMPLETION / 2026-09-13T22:42:36Z (Pass-2 cutoff; no Pass 3)
+Task / batch / workstream: R4 independent-review remediation of PR #41; CORE-04 + FE-03 + FE-04; issues #23, #8, #9; WS3
+Owner / integration editor / requested human reviewer: @wbdevworld / same / **@Emmanuel-coder-prog** (PR author @Ben-001-sys cannot independently approve; do not self-approve; do not merge; do not dismiss the prior CHANGES_REQUESTED)
+Branch: `ws1/fe-03-build-sell-cart-barcode-and-customer-workflow` (PR #41)
+Starting/base SHA: reviewed head `31bbfcccb6e0be6e944c12f4d580cc20ba7c69ad`; `origin/main` `516d6a49af74cc6677f67bdf843de6e819a05feb`
+Pre-handoff implementation SHA: `3621c620dbab4e2ef245637fba4120c0ab346662`
+Freshness: **FRESH_2**. Both upstream cutoffs `516d6a49…`. Pass 2 UTC `2026-09-13T22:42:36Z`.
+Contracts changed: none
+Database migrations: none
+Issue #4: OPEN
+R5: not started
+Milestone: **AWAITING INDEPENDENT RE-REVIEW**
+Evidence: `docs/integration/evidence/R4-REVIEW-REMEDIATION.md`, `docs/integration/evidence/R4-REVIEW-REMEDIATION-START-FRESHNESS.md`, `docs/integration/evidence/R4-REVIEW-REMEDIATION-FRESHNESS.md`
+Tests: control-plane PASS; tooling 48 OK; lint/typecheck PASS; Vitest **42 files / 236 tests**; build PASS; E2E **3 passed**; isolated visual Playwright 12 passed; `git diff --check` clean
+PRE-R5 HARDENING recorded (not implemented): catalog query/index performance; QuoteRequest/Quote runtime schema validation
+Delivery: READY_FOR_INTEGRATION pending @Emmanuel-coder-prog re-review and required CI on the pushed final head
+
+## Previous current handoff — R4 journal idempotency (SESSION_COMPLETION FRESH_2)
+
+# WS3 current handoff — R4 journal idempotency (SESSION_COMPLETION FRESH_2)
+
+## Previous current handoff — R4 journal idempotency (SESSION_COMPLETION FRESH_2)
+
+# WS3 current handoff — R4 journal idempotency (SESSION_COMPLETION FRESH_2)
+
+Kind / UTC: SESSION_COMPLETION / 2026-09-13T21:39:35Z (Pass-2 cutoff; no Pass 3)
+Task / batch / workstream: R4 CORE-04 OperationJournal idempotency remediation; issue #23; WS3
+Owner / integration editor / requested human reviewer: @wbdevworld / same / **@Emmanuel-coder-prog** (PR author @Ben-001-sys cannot independently approve; do not self-approve; do not merge)
+Branch: `ws1/fe-03-build-sell-cart-barcode-and-customer-workflow` (PR #41)
+Starting/base SHA: assembled head `76218ffaeb41c27eb568a2a27c461bbb70a14db8`; `origin/main` `516d6a49af74cc6677f67bdf843de6e819a05feb`
+Pre-handoff implementation SHA: `11bdbd9c6bb5004e9dd70a203a53becdf191728e`
+Freshness: **FRESH_2**. Both upstream cutoffs `516d6a49…`. Pass 2 UTC `2026-09-13T21:39:35Z`.
+Contracts changed: none
+Database migrations: none
+Issue #4: OPEN
+R5: not started
+Evidence: `docs/integration/evidence/R4-JOURNAL-IDEMPOTENCY.md`, `docs/integration/evidence/R4-JOURNAL-IDEMPOTENCY-FRESHNESS.md`
+Tests: control-plane PASS; tooling 48 OK; lint/typecheck PASS; Vitest **42 files / 232 tests**; build PASS; E2E 1 passed; isolated visual Playwright 12 passed; `git diff --check` clean
+Delivery: READY_FOR_INTEGRATION pending @Emmanuel-coder-prog review and required CI on the pushed final head
+
+## Previous current handoff — R4 combined gate (SESSION_COMPLETION FRESH_2)
+
+# WS3 current handoff — R4 combined gate (SESSION_COMPLETION FRESH_2)
+
+Kind / UTC: SESSION_COMPLETION / 2026-09-13T21:12:05Z (Pass-2 cutoff; no Pass 3)
+Task / batch / workstream: R4 CORE-04 + FE-03 + FE-04; issues #23, #8, #9; WS3 integration editor
+Owner / integration editor / requested human reviewer: @wbdevworld / same / **@Ben-001-sys** (do not self-approve; do not merge)
+Branch: `ws1/fe-03-build-sell-cart-barcode-and-customer-workflow` (PR #41)
+Starting/base SHA: `origin/main` `516d6a49af74cc6677f67bdf843de6e819a05feb`
+Pre-handoff implementation SHA: `e0cc5ec407a25e174d5ee0ef376d64d64c818f5f`
+Freshness: **FRESH_2**. Both upstream cutoffs `516d6a49…`. Pass 2 UTC `2026-09-13T21:12:05Z`.
+Contracts changed: none (v1.0.0 consumed)
+Database migrations: `supabase/migrations/20260913200000_pos_catalog_projection.sql`
+Architecture decisions: none authored; ADR-013 remains accepted through reviewed R3 merge
+Issue #4: OPEN
+R4 complete: assembled for independent review; **not merged**
+R5: not started
+Evidence: `docs/integration/evidence/R4-COMBINED-ACCEPTANCE.md`, `docs/integration/evidence/R4-FRESHNESS.md`
+Tests: control-plane PASS; tooling 48 OK; lint/typecheck PASS; Vitest 42 files / 229 tests; build PASS; E2E 1 passed; isolated visual Playwright 12 passed; `git diff --check` clean
+Delivery: READY_FOR_INTEGRATION pending @Ben-001-sys review and required CI on the pushed final head
+
+## Previous current handoff — R4 App Router / quote BFF (PROGRESS_CHECKPOINT)
+
+# WS3 current handoff — R4 App Router / quote BFF (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T21:06:00Z
+Task / batch / workstream: R4 combined integration; CORE-04 + FE-03 + FE-04 on PR #41; WS3
+Owner / integration editor / requested human reviewer: @wbdevworld / same / @Ben-001-sys (do not self-approve; do not merge)
+Branch: `ws1/fe-03-build-sell-cart-barcode-and-customer-workflow` (PR #41)
+Imported SHAs: CORE-04 `73b3fd9…` / `0b94141…`; FE-03 `99b6102…`; FE-04 `910c31c…`
+This checkpoint: WS3 App Router mounts `SellRuntimeScreen`; POST `/api/pos/v1/quotes` (session + CSRF; bridge optional → INTEGRATION_UNAVAILABLE). No sale/payment.
+Contracts changed: none
+Database migrations: none beyond CORE-04 catalog projection
+Issue #4: remains OPEN
+R4 complete: NO until combined suite + two ADR-012 freshness passes
+R5: not started
+
+## Previous current handoff — CORE-04 (PROGRESS_CHECKPOINT)
+
+# WS3 current handoff — CORE-04 (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T20:33:42Z
+Task / batch / workstream: CORE-04 catalog projection and durable local journal; issue #23; WS3
+Owner / integration editor / requested human reviewer: @wbdevworld / same / @Ben-001-sys after import into PR #41 (do not self-approve; do not merge)
+Branch: `ws3/core-04-implement-catalog-projection-and-durable-loca` imported into PR #41
+Exact SHA: `73b3fd9fbe6028dc1cd5eec9b21945c987882886`
+Starting/base SHA: `origin/main` `516d6a49af74cc6677f67bdf843de6e819a05feb`
+Contracts changed: none (CatalogPort, CartDraftStore, OperationJournal v1.0.0 consumed)
+Database migrations: `supabase/migrations/20260913200000_pos_catalog_projection.sql` (rebuildable projection; trusted-server write)
+Architecture decisions: none
+Issue #4: remains OPEN
+R4 complete: NO
+R5: not started
+Evidence: `docs/integration/evidence/CORE-04-ACCEPTANCE.md`
+Tests: control-plane PASS; tooling 48 OK; lint PASS; typecheck PASS; Vitest 36 files / 210 tests PASS including 5,000-item fixture (build 18.14 ms on this workstation)
+
+## Previous current handoff — R4 ACTIVATION (PROGRESS_CHECKPOINT)
+
+# WS3 current handoff — R4 ACTIVATION (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T20:11:27Z
+Task / batch / workstream: R3 closure / R4 activation; WS3 coordination + PR #41 forward-merge
+Owner / integration editor / requested human reviewer: @wbdevworld / same / @Ben-001-sys at R4 gate only (do not self-approve; do not merge)
+Branch: `ws1/fe-03-build-sell-cart-barcode-and-customer-workflow` (PR #41)
+Starting/base SHA: `origin/main` `516d6a49af74cc6677f67bdf843de6e819a05feb`
+R3: APPROVED / MERGED / POST-MERGE VERIFIED (PR #44; post-merge CI run 34778771391)
+R3 lease: RELEASED
+R4 queue: CORE-04 → FE-03 → FE-04
+PR #41 forward-merge SHA: `a23f3d67293f6c5ddada89811ae9c2c0039de00b` (six preparation commits preserved)
+Contracts changed: none
+Database migrations: none
+Architecture decisions: ADR-013 register/status recorded as accepted through reviewed R3 merge; v1.0.0 structure unchanged
+Issue #4: remains OPEN
+CP-04: not globally complete
+R5: not started
+Evidence: `docs/integration/evidence/R4-START-FRESHNESS.md`
+
+## Previous current handoff — R3 CART-DISCOUNT / ADR-013 (SESSION_COMPLETION FRESH_2)
+
 # WS3 current handoff — R3 CART-DISCOUNT / ADR-013 (SESSION_COMPLETION FRESH_2)
 
 Kind / UTC: SESSION_COMPLETION / 2026-09-13T19:07:50Z (Pass-2 cutoff; no Pass 3)

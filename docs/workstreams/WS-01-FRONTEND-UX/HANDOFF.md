@@ -1,3 +1,55 @@
+# WS1 current handoff — R4 cross-cart quote isolation (SESSION_COMPLETION FRESH_2)
+
+Kind / UTC: SESSION_COMPLETION / 2026-09-13T23:17:21Z
+Task: FE-04 quote state scoped by cart identity across New Sale; issue #9 on PR #41
+Owner / requested reviewer: @Ben-001-sys owns WS1; independent reviewer **@Emmanuel-coder-prog** (do not ask Ben to independently approve; do not self-approve; do not merge)
+Contracts: PricingPort, QuoteState, CheckoutEligibility v1.0.0 consumed; none changed
+R4 complete: assembled; cross-cart isolation remediated; prior three remediations preserved; **FRESH_2**; **AWAITING INDEPENDENT RE-REVIEW**; not merged.
+Evidence: `docs/integration/evidence/R4-CROSS-CART-QUOTE.md`, `docs/integration/evidence/R4-CROSS-CART-QUOTE-FRESHNESS.md`
+Pre-handoff implementation SHA: `e92659a072b1281a37b8e086c56ebd09505ae875`
+Next: @Emmanuel-coder-prog re-review of the replacement exact head after required CI is green. Do not start R5.
+
+## Previous current handoff — R4 independent-review remediation (PROGRESS_CHECKPOINT)
+
+# WS1 current handoff — R4 independent-review remediation (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13
+Task: FE-03 stable Sell init + FE-04 live `changed` quote; issues #8 and #9 on PR #41
+Owner / requested reviewer: @Ben-001-sys owns WS1; independent reviewer **@Emmanuel-coder-prog** (do not ask Ben to independently approve; do not self-approve; do not merge)
+Contracts: CatalogPort, CustomerPort, CartDraftStore, PricingPort, QuoteState, CheckoutEligibility v1.0.0 consumed; none changed
+R4 complete: assembled; three merge blockers remediated; **AWAITING INDEPENDENT RE-REVIEW**; not merged.
+Evidence: `docs/integration/evidence/R4-REVIEW-REMEDIATION.md`
+Next: @Emmanuel-coder-prog re-review of the new exact head after required CI is green. Do not start R5.
+
+## Previous current handoff — FE-03/FE-04 imported into PR #41 (PROGRESS_CHECKPOINT)
+
+# WS1 current handoff — FE-03/FE-04 imported into PR #41 (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T21:05:00Z
+Task: FE-03 runtime + FE-04 quote-state; issues #8 and #9; imported into PR #41
+Owner / requested reviewer: @Ben-001-sys (do not self-approve; do not merge)
+FE-03 isolated SHA: `99b61023984f22a8a3c0444e083cce3d0a1fdc5b` (imported as `2eb10a5…`)
+FE-04 isolated SHA: `910c31cd5037d674caf23d1fcc576b8d8b0462c6` (imported as `1cdb7e1…`)
+Contracts: CatalogPort, CustomerPort, CartDraftStore, PricingPort, QuoteState, CheckoutEligibility v1.0.0 consumed; none changed
+R4 complete: assembled on #41; FRESH_2; not merged. Independent reviewer @Ben-001-sys.
+Next: review of frozen #41 head after required CI is green. Do not start R5.
+
+## Previous current handoff — FE-03 runtime (PROGRESS_CHECKPOINT)
+
+# WS1 current handoff — FE-03 runtime (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T20:52:35Z
+Task: FE-03 runtime CatalogPort/CustomerPort/CartDraftStore integration; issue #8
+Branch: `ws1/fe-03-runtime-catalog-ports`
+Base: combined R4 SHA `ae7b325b9cadb9d4da0566c22e15c94ccebd9821`
+Allowed paths: `apps/pos-web/src/features/**`, `apps/pos-web/src/ui/**`, `tests/frontend/**`, this STATUS/HANDOFF
+Contracts: CatalogPort, CustomerPort, CartDraftStore v1.0.0 consumed; none changed
+R4 complete: NO
+Evidence: Vitest 40 files / 220 tests PASS; lint PASS; typecheck PASS
+Next: import tested SHA into PR #41; WS3 mounts `src/app`; then FE-04
+
+## Previous current handoff — WS1 workflow transition
+
 # WS1 workflow transition handoff
 
 Workflow decision: ADR-012, activated team-wide when reviewed R1/#40 lands on main. Read [canonical handoff](../../ai/HANDOFF-TEMPLATE.md) and [two-pass policy](../../plans/LONG-RUNNING-WORK.md). Current queue/status are TASKS.md, STATUS.md and CURRENT-WORK. R1 changed only policy/coordination for this workstream; its feature evidence is not recreated. Adoption verification belongs in `docs/integration/evidence/R1-WORKFLOW-ADOPTION.md` and final PR handoff.
@@ -211,3 +263,115 @@ Senior / integration authority (@wbdevworld)
 Recommended next task:
 
 Complete PR #37 review/merge. Do not start FE-03 until FE-02 is merged and remaining declared FE-03 prerequisites are satisfied.
+
+## FE-03
+
+Task: FE-03 / issue #8 — Sell cart, barcode and customer workflow
+
+Branch: `ws1/fe-03-build-sell-cart-barcode-and-customer-workflow`
+
+PR: #41 — DRAFT
+
+Initial preparation commit: `2700a378b67cbde22b316ea9ce60d7aa209bde5d`
+
+Senior-review remediation commit: `a7510172e0504ff1ff59d12930ddfb954efa2961`
+
+Status:
+
+```text
+PREPARATION COMPLETE
+PR #41 — FINAL REVIEW STATE GITHUB-AUTHORITATIVE
+FULL FE-03 RUNTIME INTEGRATION NOT COMPLETE
+```
+
+Scope:
+
+```text
+apps/pos-web/src/features/sell/**
+tests/frontend/**
+docs/workstreams/WS-01-FRONTEND-UX/STATUS.md
+docs/workstreams/WS-01-FRONTEND-UX/HANDOFF.md
+```
+
+The two WS1 evidence docs are included only because the senior reviewer explicitly authorized them for this remediation.
+
+What exists:
+
+- Sell presentation
+- product search presentation
+- barcode handling
+- leading-zero preservation
+- exact variation bypass
+- collision/unknown states
+- cart quantity/revision rules, including Quantity overflow rejection
+- customer presentation
+- stale/offline presentation
+- modal/scanner behavior, including unavailable-catalog mutation gating
+- isolated visual evidence
+
+What does not exist:
+
+- live CatalogPort wiring
+- live CustomerPort wiring
+- CartDraftStore/Dexie
+- active-cart restore
+- BFF/API integration
+- App Router mount
+- authoritative production barcode mapping
+- verified offline persistence
+- pricing/quote
+- enabled Pay
+
+Contracts changed: none
+
+Migrations: none
+
+ADRs authored: none
+
+Reviewer: @wbdevworld
+
+Historical review:
+
+Senior review on `2700a378b67cbde22b316ea9ce60d7aa209bde5d` requested three preparation-layer corrections:
+
+1. WS1 STATUS/HANDOFF evidence
+2. Quantity arithmetic upper-bound validation
+3. unavailable-catalog mutation gating
+
+Those substantive findings were addressed on `a7510172e0504ff1ff59d12930ddfb954efa2961`.
+Final review state is GitHub-authoritative.
+
+Issue #8 remains OPEN.
+
+### Verification
+
+Targeted FE-03 Vitest (`pnpm --dir apps/pos-web exec vitest run` on quantity, cartState, sellWorkspace, SellScreen, sell-boundaries): **5 files / 38 tests PASS**
+
+Post-remediation full commands (worktree `H:\cursor\cetech-pwa-pos-fe-03-prep`):
+
+- `python scripts/verify_control_plane.py` — PASS (exit 0). `PASS: 3 workstream packages, 30 scoped tasks/DAG, 28 immutable reference files, 61 schemas, 22 contract fixtures...` `LIMIT: no application/bridge/RLS/live payment/pricing/hardware tests have run in this foundation check.`
+- `pnpm install --frozen-lockfile` — PASS (exit 0)
+- `pnpm --dir apps/pos-web lint` — PASS (exit 0)
+- `pnpm --dir apps/pos-web typecheck` — PASS (exit 0)
+- `pnpm --dir apps/pos-web test` — PASS (exit 0). Actual discovery: **18 files / 78 tests**
+- `pnpm --dir apps/pos-web build` — PASS (exit 0)
+- `pnpm --dir apps/pos-web test:e2e` — PASS (exit 0). 1 scaffold spec passed
+- `pnpm --dir apps/pos-web exec playwright test --config ../../tests/frontend/visual/playwright.config.ts` — PASS. **12 passed**
+
+Runtime evidence limitation:
+
+```text
+Visual evidence remains isolated component/harness evidence.
+No App Router/live runtime integration is claimed.
+```
+
+Requested reviewer:
+
+Senior / integration authority (@wbdevworld)
+
+Recommended next step:
+
+```text
+Obtain final senior review of PR #41.
+Full FE-03 runtime integration follows when required WS3 runtime capabilities are available/confirmed.
+```
