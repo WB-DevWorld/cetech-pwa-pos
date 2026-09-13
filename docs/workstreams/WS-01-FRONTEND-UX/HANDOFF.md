@@ -1,3 +1,17 @@
+# WS1 current handoff — FE-03 runtime (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T20:52:35Z
+Task: FE-03 runtime CatalogPort/CustomerPort/CartDraftStore integration; issue #8
+Branch: `ws1/fe-03-runtime-catalog-ports`
+Base: combined R4 SHA `ae7b325b9cadb9d4da0566c22e15c94ccebd9821`
+Allowed paths: `apps/pos-web/src/features/**`, `apps/pos-web/src/ui/**`, `tests/frontend/**`, this STATUS/HANDOFF
+Contracts: CatalogPort, CustomerPort, CartDraftStore v1.0.0 consumed; none changed
+R4 complete: NO
+Evidence: Vitest 40 files / 220 tests PASS; lint PASS; typecheck PASS
+Next: import tested SHA into PR #41; WS3 mounts `src/app`; then FE-04
+
+## Previous current handoff — WS1 workflow transition
+
 # WS1 workflow transition handoff
 
 Workflow decision: ADR-012, activated team-wide when reviewed R1/#40 lands on main. Read [canonical handoff](../../ai/HANDOFF-TEMPLATE.md) and [two-pass policy](../../plans/LONG-RUNNING-WORK.md). Current queue/status are TASKS.md, STATUS.md and CURRENT-WORK. R1 changed only policy/coordination for this workstream; its feature evidence is not recreated. Adoption verification belongs in `docs/integration/evidence/R1-WORKFLOW-ADOPTION.md` and final PR handoff.

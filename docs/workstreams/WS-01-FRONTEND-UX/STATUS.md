@@ -1,5 +1,11 @@
 # WS1 current status
 
+Snapshot 2026-09-13. FE-03 RUNTIME COMPLETE on isolated `ws1/fe-03-runtime-catalog-ports` from combined CORE-04/#41 SHA `ae7b325b9cadb9d4da0566c22e15c94ccebd9821`. CatalogPort.search, barcode projection mapping, CustomerPort.search, CartDraftStore save/load, reload restore, customer switch, and new-sale reset are wired in `features/sell/runtime`. App Router mounting remains WS3. FE-04 not started on this branch. Issue #8 remains OPEN until #41 review. `pricingParityVerified` false. R4 not complete.
+
+## Previous snapshot (historical; current section above controls)
+
+# WS1 current status
+
 Snapshot 2026-09-12, main `cd4477f185c159e18ed939a20145865d665099b4`. FE-01/#33 and FE-02/#37 are MERGED; issues #6/#7 closed. CI-01/#38 discovery fix is merged. #41 is open at `ede771bdbe5f05c8b517ce5168c9d8515a354e28`: PREPARATION COMPLETE / RUNTIME INTEGRATION BLOCKED BY CORE-04. No real CatalogPort/CustomerPort/Dexie/BFF route/quote/payment acceptance is inferred. FE-04 onward retains TASKS dependencies.
 
 R4 continuation/preparation is declared in CURRENT-WORK and TASKS. No frontend implementation was changed by workflow adoption; existing #41 review evidence belongs to its own head. Final delivery uses canonical handoff/two-pass freshness.

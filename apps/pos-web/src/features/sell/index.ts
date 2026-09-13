@@ -1,4 +1,5 @@
 export { SellScreen, type SellScreenProps } from "./SellScreen";
+export { SellRuntimeScreen, type SellSessionPorts } from "./runtime/SellRuntimeScreen";
 export { CartPanel } from "./components/CartPanel";
 export { QuoteStatus } from "./components/QuoteStatus";
 export {
@@ -37,10 +38,12 @@ export {
 export {
   createSellWorkspace,
   applySearchQuery,
+  applyCatalogSearchResults,
   applyNameSearch,
   applyBarcodeScan,
   applyProductSelect,
   applyVariationSelect,
+  applyVariationChooser,
   applyQuantityChange,
   applyRemoveLine,
   applySelectCustomer,

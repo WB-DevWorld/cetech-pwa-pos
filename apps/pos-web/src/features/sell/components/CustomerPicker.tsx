@@ -11,12 +11,14 @@ export function CustomerPicker({
   onSelect,
   onClear,
   onCancel,
+  onQueryChange,
 }: {
   customers: readonly CustomerSearchResultView[];
   selectedId: string | null;
   onSelect: (customer: CustomerSearchResultView) => void;
   onClear: () => void;
   onCancel: () => void;
+  onQueryChange?: (query: string) => void;
 }) {
   const [query, setQuery] = useState("");
   const results = useMemo(() => filterCustomerResults(customers, query), [customers, query]);
@@ -30,7 +32,11 @@ export function CustomerPicker({
           id="customer-search"
           className="input"
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={(event) => {
+            const next = event.target.value;
+            setQuery(next);
+            onQueryChange?.(next);
+          }}
           placeholder="Search name, company, phone…"
           autoComplete="off"
         />

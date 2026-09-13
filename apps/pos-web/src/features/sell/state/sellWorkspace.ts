@@ -80,6 +80,22 @@ export function applySearchQuery(state: SellWorkspaceState, query: string, catal
   };
 }
 
+export function applyCatalogSearchResults(
+  state: SellWorkspaceState,
+  query: string,
+  results: readonly SellProductView[],
+  status: SellWorkspaceState["search"]["status"],
+): SellWorkspaceState {
+  return {
+    ...state,
+    search: {
+      query,
+      status,
+      results: results.filter((item) => item.kind !== "variation"),
+    },
+  };
+}
+
 export function applyBarcodeScan(
   state: SellWorkspaceState,
   barcode: string,
@@ -159,6 +175,18 @@ export function applyVariationSelect(
     deps.createLineId,
   );
   return { ...withCart(state, cart), notice: null };
+}
+
+export function applyVariationChooser(
+  state: SellWorkspaceState,
+  product: SellProductView,
+  variations: readonly SellProductView[],
+): SellWorkspaceState {
+  if (!catalogMutationAllowed(state.catalogAvailability)) return state;
+  return {
+    ...state,
+    notice: { kind: "chooser", product, variations },
+  };
 }
 
 export function applyQuantityChange(state: SellWorkspaceState, lineId: string, rawQuantity: string): SellWorkspaceState {

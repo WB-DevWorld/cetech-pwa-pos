@@ -5,13 +5,21 @@ import { describe, expect, test } from "vitest";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const sellRoot = resolve(repoRoot, "apps/pos-web/src/features/sell");
+const presentationDirs = [
+  resolve(sellRoot, "components"),
+  resolve(sellRoot, "hooks"),
+  resolve(sellRoot, "state"),
+  sellRoot,
+];
 
 function collectSource(dir: string): string {
   let out = "";
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);
-    if (entry.isDirectory()) out += collectSource(path);
-    else if (/\.(tsx|ts|css)$/.test(entry.name) && !entry.name.endsWith(".test.ts") && !entry.name.endsWith(".test.tsx")) {
+    if (entry.isDirectory()) {
+      if (entry.name === "runtime") continue;
+      out += collectSource(path);
+    } else if (/\.(tsx|ts|css)$/.test(entry.name) && !entry.name.endsWith(".test.ts") && !entry.name.endsWith(".test.tsx")) {
       out += `\n/* ${path} */\n` + readFileSync(path, "utf8");
     }
   }
@@ -19,7 +27,7 @@ function collectSource(dir: string): string {
 }
 
 describe("FE-03 sell layer stays presentation-only", () => {
-  const source = collectSource(sellRoot);
+  const source = presentationDirs.map(collectSource).join("\n");
 
   test("does not copy privileged contracts or import docs/contracts", () => {
     expect(source).not.toMatch(/from ["']docs\/contracts/);

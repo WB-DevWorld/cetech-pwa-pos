@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BarcodeCollisionDialog } from "./components/BarcodeCollisionDialog";
 import { CartPanel } from "./components/CartPanel";
 import { CatalogStatusBanners } from "./components/CatalogStatus";
@@ -21,6 +21,7 @@ import type {
 } from "./state/sellView";
 import {
   applyBarcodeScan,
+  applyCatalogSearchResults,
   applyClearCustomer,
   applyMobileCartOpen,
   applyNameSearch,
@@ -32,6 +33,7 @@ import {
   applyRemoveLine,
   applySearchQuery,
   applySelectCustomer,
+  applyVariationChooser,
   applyVariationSelect,
   catalogMutationAllowed as isCatalogMutationAllowed,
   createSellWorkspace,
@@ -66,6 +68,11 @@ export type SellScreenProps = {
   onNewSale?: () => void;
   quote?: QuoteDisplayState;
   eligibility?: CheckoutEligibilityView;
+  searchCatalog?: (query: string) => Promise<readonly SellProductView[]>;
+  resolveBarcodeCatalog?: (barcode: string) => Promise<readonly SellProductView[]>;
+  loadVariations?: (parentId: string) => Promise<readonly SellProductView[]>;
+  onCustomerQueryChange?: (query: string) => void;
+  onWorkspaceChange?: (state: SellWorkspaceState) => void;
 };
 
 export function SellScreen({
@@ -88,6 +95,11 @@ export function SellScreen({
   onNewSale,
   quote,
   eligibility,
+  searchCatalog,
+  resolveBarcodeCatalog,
+  loadVariations,
+  onCustomerQueryChange,
+  onWorkspaceChange,
 }: SellScreenProps) {
   const deps = useMemo<SellWorkspaceDeps>(
     () => ({
@@ -98,6 +110,12 @@ export function SellScreen({
   );
   const [state, setState] = useState(() => initialState ?? createSellWorkspace(deps, catalog));
   const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
+  const searchSeq = useRef(0);
+  const barcodeSeq = useRef(0);
+
+  useEffect(() => {
+    onWorkspaceChange?.(state);
+  }, [onWorkspaceChange, state]);
 
   const displayed: SellWorkspaceState = {
     ...state,
@@ -133,7 +151,7 @@ export function SellScreen({
       }
       if (event.key === "Escape") {
         setCustomerPickerOpen(false);
-        setState((current) => dismissNotice(current));
+        setState((current) => (dismissNotice(current)));
       }
     }
     window.addEventListener("keydown", onKeyDown);
@@ -144,16 +162,30 @@ export function SellScreen({
     (barcode: string) => {
       if (!catalogMutationAllowed) return;
       onBarcodeScanned?.(barcode);
-      setState((current) => applyBarcodeScan(current, barcode, catalog, deps));
+      const seq = ++barcodeSeq.current;
+      void (async () => {
+        const slice = resolveBarcodeCatalog ? await resolveBarcodeCatalog(barcode) : catalog;
+        if (seq !== barcodeSeq.current) return;
+        setState((current) => (applyBarcodeScan(current, barcode, slice, deps)));
+      })();
     },
-    [catalog, catalogMutationAllowed, deps, onBarcodeScanned],
+    [catalog, catalogMutationAllowed, deps, onBarcodeScanned, resolveBarcodeCatalog],
   );
 
   useBarcodeScanner(scanBarcode, !modalOpen && catalogMutationAllowed);
 
   function handleQueryChange(query: string) {
     onSearch?.(query);
-    setState((current) => applySearchQuery(current, query, catalog));
+    if (!searchCatalog) {
+      setState((current) => (applySearchQuery(current, query, catalog)));
+      return;
+    }
+    const seq = ++searchSeq.current;
+    setState((current) => (applyCatalogSearchResults(current, query, current.search.results, "loading")));
+    void searchCatalog(query).then((results) => {
+      if (seq !== searchSeq.current) return;
+      setState((current) => (applyCatalogSearchResults(current, query, results, "ready")));
+    });
   }
 
   function handleSearchSubmit(query: string) {
@@ -164,7 +196,15 @@ export function SellScreen({
       scanBarcode(query.trim());
       return;
     }
-    setState((current) => applyNameSearch(current, query, catalog));
+    if (!searchCatalog) {
+      setState((current) => (applyNameSearch(current, query, catalog)));
+      return;
+    }
+    const seq = ++searchSeq.current;
+    void searchCatalog(query).then((results) => {
+      if (seq !== searchSeq.current) return;
+      setState((current) => (applyCatalogSearchResults(current, query, results, "ready")));
+    });
   }
 
   function handleScan(query: string) {
@@ -176,41 +216,47 @@ export function SellScreen({
   function handleSelectProduct(item: SellProductView) {
     if (!catalogMutationAllowed) return;
     onSelectProduct?.(item.id);
-    setState((current) => applyProductSelect(current, item, catalog, deps));
+    if (item.kind === "variable" && loadVariations) {
+      void loadVariations(item.id).then((variations) => {
+        setState((current) => (applyVariationChooser(current, item, variations)));
+      });
+      return;
+    }
+    setState((current) => (applyProductSelect(current, item, catalog, deps)));
   }
 
   function handleSelectVariation(variation: SellProductView) {
     if (!catalogMutationAllowed) return;
     onSelectVariation?.(variation.id);
-    setState((current) => applyVariationSelect(current, variation, deps));
+    setState((current) => (applyVariationSelect(current, variation, deps)));
   }
 
   function handleQuantityChange(lineId: string, quantity: string) {
     onChangeQuantity?.(lineId, quantity);
-    setState((current) => applyQuantityChange(current, lineId, quantity));
+    setState((current) => (applyQuantityChange(current, lineId, quantity)));
   }
 
   function handleRemove(lineId: string) {
     onRemoveLine?.(lineId);
-    setState((current) => applyRemoveLine(current, lineId));
+    setState((current) => (applyRemoveLine(current, lineId)));
   }
 
   function handleSelectCustomer(customer: CustomerSearchResultView) {
     onSelectCustomer?.(customer.id);
-    setState((current) => applySelectCustomer(current, customer));
+    setState((current) => (applySelectCustomer(current, customer)));
     setCustomerPickerOpen(false);
   }
 
   function handleClearCustomer() {
     onClearCustomer?.();
-    setState((current) => applyClearCustomer(current));
+    setState((current) => (applyClearCustomer(current)));
     setCustomerPickerOpen(false);
   }
 
   function handleNewSale() {
     onNewSale?.();
     setCustomerPickerOpen(false);
-    setState((current) => applyNewSale(current, catalog, deps));
+    setState((current) => (applyNewSale(current, catalog, deps)));
   }
 
   const itemCount = displayed.lines.length;
@@ -274,11 +320,11 @@ export function SellScreen({
             mobileOpen={displayed.mobileCartOpen}
             onOpenCustomers={() => setCustomerPickerOpen(true)}
             onNewSale={handleNewSale}
-            onIncrement={(lineId) => setState((current) => applyQuantityIncrement(current, lineId))}
-            onDecrement={(lineId) => setState((current) => applyQuantityDecrement(current, lineId))}
+            onIncrement={(lineId) => setState((current) => (applyQuantityIncrement(current, lineId)))}
+            onDecrement={(lineId) => setState((current) => (applyQuantityDecrement(current, lineId)))}
             onQuantityChange={handleQuantityChange}
             onRemove={handleRemove}
-            onCloseMobile={() => setState((current) => applyMobileCartOpen(current, false))}
+            onCloseMobile={() => setState((current) => (applyMobileCartOpen(current, false)))}
             quote={presentedQuote.quote}
             eligibility={presentedQuote.eligibility}
           />
@@ -293,7 +339,7 @@ export function SellScreen({
                   : "Price pending"}
               </div>
             </div>
-            <button type="button" className="btn primary" onClick={() => setState((current) => applyMobileCartOpen(current, true))}>
+            <button type="button" className="btn primary" onClick={() => setState((current) => (applyMobileCartOpen(current, true)))}>
               View Cart / Pay
             </button>
           </div>
@@ -322,6 +368,7 @@ export function SellScreen({
           onSelect={handleSelectCustomer}
           onClear={handleClearCustomer}
           onCancel={closeCustomerPicker}
+          onQueryChange={onCustomerQueryChange}
         />
       ) : null}
     </div>
