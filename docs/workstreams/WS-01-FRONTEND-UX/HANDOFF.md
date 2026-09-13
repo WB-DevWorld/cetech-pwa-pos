@@ -1,3 +1,15 @@
+# WS1 current handoff — R4 cross-cart quote isolation (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13
+Task: FE-04 quote state scoped by cart identity across New Sale; issue #9 on PR #41
+Owner / requested reviewer: @Ben-001-sys owns WS1; independent reviewer **@Emmanuel-coder-prog** (do not ask Ben to independently approve; do not self-approve; do not merge)
+Contracts: PricingPort, QuoteState, CheckoutEligibility v1.0.0 consumed; none changed
+R4 complete: assembled; cross-cart isolation remediated; prior three remediations preserved; **AWAITING INDEPENDENT RE-REVIEW**; not merged.
+Evidence: `docs/integration/evidence/R4-CROSS-CART-QUOTE.md`
+Next: @Emmanuel-coder-prog re-review of the replacement exact head after required CI is green. Do not start R5.
+
+## Previous current handoff — R4 independent-review remediation (PROGRESS_CHECKPOINT)
+
 # WS1 current handoff — R4 independent-review remediation (PROGRESS_CHECKPOINT)
 
 Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 test("Sell runtime restores workspace once and cart edits do not restore again", async ({ page }) => {
   await page.goto("/sell");
@@ -89,6 +89,71 @@ test("same-revision quote revalidation reaches changed and blocks checkout", asy
   await expect(page.getByRole("button", { name: "Pay" })).toBeDisabled();
 });
 
+test("New Sale Cart B quote is accepted even when Cart A had a higher revision", async ({ page }) => {
+  await installIdentityQuotes(page, { delayNewCartMs: 800 });
+  await page.goto("/sell");
+  await expect(page.getByRole("heading", { level: 1, name: "Sell" })).toBeVisible({ timeout: 30_000 });
+  await scanHardener(page);
+  const cart = page.getByRole("complementary", { name: "Current cart" });
+  await expect(cart.getByText("Epoxy Hardener 1L")).toBeVisible();
+  for (let step = 0; step < 3; step += 1) {
+    await page.getByRole("button", { name: "Increase quantity" }).click();
+  }
+  await expect(cart.locator(".qty-input")).toHaveValue("4");
+  await expect(cart).toContainText("Rev 4");
+  await expect(page.locator("[data-quote-status='confirmed']")).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator("[data-quote-status='confirmed']")).toContainText("GHS 40.00");
+
+  await page.getByRole("button", { name: "New sale" }).click();
+  await expect(cart.getByText("Your cart is empty")).toBeVisible();
+  await expect(cart).toContainText("Rev 0");
+  await expect(page.locator("[data-quote-status='confirmed']")).toHaveCount(0);
+  await expect(page.locator("[data-quote-status='changed']")).toHaveCount(0);
+  await expect(page.getByText("GHS 40.00")).toHaveCount(0);
+
+  await scanHardener(page);
+  await expect(cart.getByText("Epoxy Hardener 1L")).toBeVisible();
+  await expect(cart).toContainText("Rev 1");
+  await expect(page.locator("[data-quote-status='quoting']")).toBeVisible();
+  await expect(page.getByText("GHS 40.00")).toHaveCount(0);
+  await expect(page.locator("[data-eligibility-allowed='false']")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Pay" })).toBeDisabled();
+
+  await expect(page.locator("[data-quote-status='confirmed']")).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator("[data-quote-status='confirmed']")).toContainText("GHS 15.00");
+  await expect(page.getByText("GHS 40.00")).toHaveCount(0);
+  await expect(page.locator("[data-quote-status='changed']")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Pay" })).toBeDisabled();
+});
+
+test("equal revision across New Sale cannot reuse Cart A quote while Cart B is quoting", async ({ page }) => {
+  await installIdentityQuotes(page, { delayNewCartMs: 800 });
+  await page.goto("/sell");
+  await expect(page.getByRole("heading", { level: 1, name: "Sell" })).toBeVisible({ timeout: 30_000 });
+  await scanHardener(page);
+  const cart = page.getByRole("complementary", { name: "Current cart" });
+  await expect(cart).toContainText("Rev 1");
+  await expect(page.locator("[data-quote-status='confirmed']")).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator("[data-quote-status='confirmed']")).toContainText("GHS 40.00");
+
+  await page.getByRole("button", { name: "New sale" }).click();
+  await expect(cart.getByText("Your cart is empty")).toBeVisible();
+  await expect(page.getByText("GHS 40.00")).toHaveCount(0);
+
+  await scanHardener(page);
+  await expect(cart).toContainText("Rev 1");
+  await expect(page.locator("[data-quote-status='quoting']")).toBeVisible();
+  await expect(page.getByText("GHS 40.00")).toHaveCount(0);
+  await expect(page.locator("[data-eligibility-allowed='false']")).toBeVisible();
+  await expect(page.locator("[data-eligibility-reason='QUOTE_REQUIRED']")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Pay" })).toBeDisabled();
+
+  await expect(page.locator("[data-quote-status='confirmed']")).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator("[data-quote-status='confirmed']")).toContainText("GHS 15.00");
+  await expect(page.getByText("GHS 40.00")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Pay" })).toBeDisabled();
+});
+
 function quotePayload(
   request: {
     cartId: string;
@@ -102,7 +167,7 @@ function quotePayload(
 ) {
   const money = { minor: totalMinor, currency: "GHS" };
   return {
-    id: fingerprint === "fp-a" ? "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" : "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    id: quoteIdFor(fingerprint),
     fingerprint,
     cartId: request.cartId,
     cartRevision: request.cartRevision,
@@ -131,4 +196,58 @@ function quotePayload(
     expiresAt: "2099-01-01T00:00:00.000Z",
     purchasable: true,
   };
+}
+
+async function scanHardener(page: Page): Promise<void> {
+  await page.locator("#product-search").fill("0012345678901");
+  await page.getByRole("button", { name: "Scan" }).click();
+}
+
+async function installIdentityQuotes(page: Page, options: { delayNewCartMs?: number } = {}): Promise<void> {
+  const seenCarts: string[] = [];
+  await page.route("**/api/pos/v1/quotes", async (route) => {
+    if (route.request().method() !== "POST") {
+      await route.continue();
+      return;
+    }
+    const posted = route.request().postDataJSON() as {
+      cartId: string;
+      cartRevision: number;
+      customer: { kind: "walkin" | "retail" | "b2b"; customerId?: string };
+      locationId: string;
+      lines: Array<{ lineId: string; productId: string; quantity: string; variationId?: string }>;
+    };
+    if (!seenCarts.includes(posted.cartId)) {
+      seenCarts.push(posted.cartId);
+    }
+    const cartIndex = seenCarts.indexOf(posted.cartId);
+    if (cartIndex > 0 && options.delayNewCartMs) {
+      await new Promise((resolve) => setTimeout(resolve, options.delayNewCartMs));
+    }
+    const fingerprint = cartIndex === 0 ? "fp-cart-a" : "fp-cart-b";
+    const total = cartIndex === 0 ? 4000 : 1500;
+    const correlationId = route.request().headers()["x-correlation-id"] ?? "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        correlationId,
+        data: quotePayload(posted, fingerprint, total),
+      }),
+    });
+  });
+}
+
+function quoteIdFor(fingerprint: string): string {
+  switch (fingerprint) {
+    case "fp-a":
+      return "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    case "fp-b":
+      return "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    case "fp-cart-a":
+      return "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+    default:
+      return "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+  }
 }

@@ -1,5 +1,11 @@
 # WS3 current status
 
+Snapshot 2026-09-13. CORE-04 INTEGRATED_AND_TESTED on PR #41. Cross-cart quote isolation continuation after Emmanuel `CHANGES_REQUESTED` on `9703b27…` (prior three remediations accepted). Issue #23 OPEN until reviewed merge. R4 **AWAITING INDEPENDENT RE-REVIEW** / not merged. `pricingParityVerified` false. Issue #4 OPEN. Do not start R5. Evidence: `docs/integration/evidence/R4-CROSS-CART-QUOTE.md`. CURRENT-WORK holds the central R4 lease on PR #41.
+
+## Previous snapshot (independent-review remediation — historical; current section above controls)
+
+# WS3 current status
+
 Snapshot 2026-09-13. CORE-04 INTEGRATED_AND_TESTED on PR #41. Independent-review remediation of Emmanuel `CHANGES_REQUESTED` on `31bbfcc…`: catalog cursor last-returned semantics plus journal idempotency already on the branch. Issue #23 OPEN until reviewed merge. R4 **AWAITING INDEPENDENT RE-REVIEW** / not merged. `pricingParityVerified` false. Issue #4 OPEN. Do not start R5. Evidence: `docs/integration/evidence/R4-REVIEW-REMEDIATION.md`. CURRENT-WORK holds the central R4 lease on PR #41.
 
 ## Previous snapshot (journal idempotency — historical; current section above controls)

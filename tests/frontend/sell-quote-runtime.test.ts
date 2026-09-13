@@ -8,17 +8,24 @@ import {
   requestWholeCartQuote,
   quotingState,
 } from "../../apps/pos-web/src/features/sell/runtime/quoteRequest";
-import { previousConfirmedQuoteForRequest } from "../../apps/pos-web/src/features/sell/runtime/useCartQuote";
+import { previousConfirmedQuoteForRequest, remoteQuoteForCartRevision, shouldIgnoreStaleQuoteResponse } from "../../apps/pos-web/src/features/sell/runtime/useCartQuote";
 import { quoteStateToDisplay } from "../../apps/pos-web/src/features/sell/runtime/mapQuoteDisplay";
 
 const CART = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const CART_B = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
 const LINE = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 
-function quoteFixture(revision: number, totalMinor: number, fingerprint: string, expiresAt = "2026-09-13T21:00:00.000Z"): Quote {
+function quoteFixture(
+  revision: number,
+  totalMinor: number,
+  fingerprint: string,
+  expiresAt = "2026-09-13T21:00:00.000Z",
+  cartId = CART,
+): Quote {
   return {
     id: `quote-${fingerprint}`,
     fingerprint,
-    cartId: CART,
+    cartId,
     cartRevision: revision,
     customer: { kind: "walkin" },
     locationId: "loc-front-1",
@@ -290,5 +297,79 @@ describe("same-revision previous confirmed quote selection", () => {
         quote: next,
       }),
     ).toMatchObject({ allowed: false, reason: "QUOTE_REQUIRED" });
+  });
+});
+
+describe("quote authority is scoped by cart identity and revision", () => {
+  test("render selection requires both cartId and revision", () => {
+    const confirmed = {
+      status: "confirmed" as const,
+      revision: 1,
+      quote: quoteFixture(1, 4000, "cart-a"),
+    };
+    const stored = { cartId: CART, revision: 1, state: confirmed };
+    expect(remoteQuoteForCartRevision(stored, CART, 1)?.state).toEqual(confirmed);
+    expect(remoteQuoteForCartRevision(stored, CART_B, 1)).toBeNull();
+    expect(remoteQuoteForCartRevision(stored, CART, 4)).toBeNull();
+    expect(remoteQuoteForCartRevision(stored, undefined, 1)).toBeNull();
+  });
+
+  test("a higher Cart A revision cannot suppress a lower Cart B response", () => {
+    const cartA = {
+      cartId: CART,
+      revision: 4,
+      state: { status: "confirmed" as const, revision: 4, quote: quoteFixture(4, 4000, "cart-a") },
+    };
+    expect(shouldIgnoreStaleQuoteResponse(cartA, CART_B, 1)).toBe(false);
+    expect(shouldIgnoreStaleQuoteResponse(cartA, CART, 1)).toBe(true);
+  });
+
+  test("same-cart late lower revision is still ignored", () => {
+    const cartBRev2 = {
+      cartId: CART_B,
+      revision: 2,
+      state: { status: "confirmed" as const, revision: 2, quote: quoteFixture(2, 1800, "cart-b-2", undefined, CART_B) },
+    };
+    expect(shouldIgnoreStaleQuoteResponse(cartBRev2, CART_B, 1)).toBe(true);
+    expect(shouldIgnoreStaleQuoteResponse(cartBRev2, CART_B, 2)).toBe(false);
+    expect(shouldIgnoreStaleQuoteResponse(null, CART_B, 1)).toBe(false);
+  });
+
+  test("confirmed Cart A never yields changed for Cart B at any revision", async () => {
+    const stored = {
+      cartId: CART,
+      revision: 1,
+      state: { status: "confirmed" as const, revision: 1, quote: quoteFixture(1, 4000, "cart-a") },
+    };
+    const pricing: PricingPort = {
+      async quote(input) {
+        return {
+          ok: true,
+          data: quoteFixture(input.cartRevision, 1500, "cart-b", undefined, input.cartId),
+          correlationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        };
+      },
+    };
+    for (const revision of [1, 0, 4] as const) {
+      const previous = previousConfirmedQuoteForRequest(stored, CART_B, revision);
+      expect(previous).toEqual({ status: "missing" });
+      const next = await requestWholeCartQuote(
+        pricing,
+        {
+          cartId: CART_B,
+          cartRevision: revision,
+          customer: { kind: "walkin" },
+          locationId: "loc-front-1",
+          lines: [{ lineId: LINE, productId: "p-hardener", quantity: "1" }],
+        },
+        previous,
+      );
+      expect(next.status).toBe("confirmed");
+      if (next.status === "confirmed") {
+        expect(next.quote.fingerprint).toBe("cart-b");
+        expect(next.quote.cartId).toBe(CART_B);
+        expect(next.quote.total.minor).toBe(1500);
+      }
+    }
   });
 });

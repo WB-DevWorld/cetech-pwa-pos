@@ -83,6 +83,27 @@ export function previousConfirmedQuoteForRequest(
   return { status: "missing" };
 }
 
+/** A stored remote quote is applicable only for this cart identity and revision. */
+export function remoteQuoteForCartRevision(
+  stored: StoredRemoteQuote | null,
+  cartId: string | undefined,
+  revision: number,
+): StoredRemoteQuote | null {
+  if (stored && cartId && stored.cartId === cartId && stored.revision === revision) {
+    return stored;
+  }
+  return null;
+}
+
+/** Revision ordering is meaningful only within the same cart identity. */
+export function shouldIgnoreStaleQuoteResponse(
+  latest: StoredRemoteQuote | null,
+  cartId: string,
+  requestRevision: number,
+): boolean {
+  return Boolean(latest && latest.cartId === cartId && latest.revision > requestRevision);
+}
+
 export function useCartQuote(input: UseCartQuoteInput): UseCartQuoteResult {
   const [remote, setRemote] = useState<StoredRemoteQuote | null>(null);
   const remoteRef = useRef<StoredRemoteQuote | null>(null);
@@ -97,18 +118,19 @@ export function useCartQuote(input: UseCartQuoteInput): UseCartQuoteResult {
   }
 
   const local = localQuoteState(input);
-  const revision = input.workspace?.cartRevision ?? 0;
+  const cartId = input.workspace?.cartId;
+  const cartRevision = input.workspace?.cartRevision;
+  const revision = cartRevision ?? 0;
   const nowIso = input.now().toISOString();
   const awaitingRevalidation = onlineEpoch !== appliedEpoch;
+  const applicableRemote = remoteQuoteForCartRevision(remote, cartId, revision);
   const quote: QuoteState = local
     ?? (awaitingRevalidation
       ? quotingState(revision)
-      : remote && remote.revision === revision
-        ? expireQuoteIfNeeded(remote.state, nowIso)
+      : applicableRemote
+        ? expireQuoteIfNeeded(applicableRemote.state, nowIso)
         : quotingState(revision));
 
-  const cartId = input.workspace?.cartId;
-  const cartRevision = input.workspace?.cartRevision;
   const lines = input.workspace?.lines;
   const selectedCustomer = input.workspace?.selectedCustomer;
   const pricing = input.pricing;
@@ -132,7 +154,7 @@ export function useCartQuote(input: UseCartQuoteInput): UseCartQuoteResult {
         return;
       }
       const latest = remoteRef.current;
-      if (latest && latest.revision > requestRevision) {
+      if (shouldIgnoreStaleQuoteResponse(latest, cartId, requestRevision)) {
         return;
       }
       const committed: StoredRemoteQuote = {
