@@ -1,8 +1,21 @@
 # WS2 current status
 
-Snapshot 2026-09-13. `origin/main` `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`. Owner: Developer 2 / @Emmanuel-coder-prog. R3 editor: @wbdevworld on `batch/r3-authoritative-pricing-parity` / draft PR #44. Continuation start: `docs/integration/evidence/R3-UNITPRICE-START-FRESHNESS.md`.
+Snapshot 2026-09-13. `origin/main` `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`. Owner: Developer 2 / @Emmanuel-coder-prog. R3 editor: @wbdevworld on `batch/r3-authoritative-pricing-parity` / draft PR #44. Training-live continuation start: `docs/integration/evidence/R3-TRAINING-LIVE-START-FRESHNESS.md`. Live capture: `docs/integration/evidence/R3-TRAINING-LIVE.md`.
 
-R3 queue unchanged. Production QuoteLine `unitPrice` defect found after the prior local checkpoint and corrected locally (`evidence/BR-02-UNITPRICE-FIX.md`). Live R3 training plugin update remains PERMISSION_REQUIRED. R3 pricing gate NOT PASSED. Issue #4 stays OPEN. `pricingParityVerified` false. Training deployment not performed.
+R3 queue unchanged. Training plugin is `0.2.3-br02`. Live quote matrix captured with zero unexplained minor-unit deltas. Guest remains unpriced (B2BKing guest purchasable off). R3 pricing gate **NOT PASSED**. `pricingParityVerified` false. Issue #4 stays OPEN. Review not requested.
+
+| Task | State | Branch / evidence |
+| --- | --- | --- |
+| CP-04 WS2 intake | EVIDENCE RECORDED; not CP-04 complete | Prior `ws2/cp-04-commerce-intake`; `evidence/CP-04-STAGING-INTAKE.md`. W1/W4 training refs `67ea42c…` / `edf24af…`. W1 still PASS after quotes. |
+| BR-01 | INTEGRATED_AND_TESTED / LIVE WORDPRESS HEALTH VERIFIED on main | Issue #13. Imported `280a73d…` as `0ac2e38…`. `pricingParityVerified` stays false. |
+| BR-02 | LIVE RETAIL/VARIATION MATCH; guest REFUSAL_MATCH | Issue #14. Plugin `0.2.3-br02`. Evidence `docs/integration/evidence/R3-TRAINING-LIVE.md`. |
+| BR-03 | LIVE WOODMART from-qty 20 MATCH (19/20/21) | Issue #15. No invented thresholds. |
+| BR-04 | LIVE B2B CONTEXT MATCH; unconfigured types N/A | Issue #16. Cart-total rules present; no distinct vs-retail total on the captured cart. Kind switch 403. |
+| BR-05 | LIVE OVERLAP MATCH; PRICING GATE NOT PASSED | Issue #17. Tax-off N/A. Guest priced path absent. `pricingParityVerified` false. |
+| BR-06 | SPECIFIED / BLOCKED | HPOS/prepare; R5. See TASKS.md |
+| BR-07 | SPECIFIED / BLOCKED | Finalize/cancel; R6. See TASKS.md |
+
+## Previous snapshot (R3 unitPrice local — historical; current section above controls)
 
 | Task | State | Branch / evidence |
 | --- | --- | --- |

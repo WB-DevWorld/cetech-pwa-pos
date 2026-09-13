@@ -117,7 +117,7 @@ foreach ( $manifest['cases'] as $file ) {
 		continue;
 	}
 	$id = $case['caseId'];
-	if ( $case['applicability'] === 'PERMISSION_REQUIRED' || $case['applicability'] === 'NOT_APPLICABLE_WITH_EVIDENCE' ) {
+	if ( $case['applicability'] === 'PERMISSION_REQUIRED' || $case['applicability'] === 'NOT_APPLICABLE_WITH_EVIDENCE' || $case['applicability'] === 'LIVE_TRAINING_CAPTURE' ) {
 		++$skipped;
 		parity_assert( $case['result'] !== 'PASS', $id . ' does not invent a live PASS' );
 		echo "SKIP {$id} " . $case['applicability'] . "\n";

@@ -39,6 +39,9 @@ final class Cetech_Pos_Bridge_Quote_Engine {
 		}
 		$snapshot = $this->runtime->snapshot();
 		try {
+			if ( method_exists( $this->runtime, 'isolate_counter_sale_shipping' ) ) {
+				$this->runtime->isolate_counter_sale_shipping();
+			}
 			$installed = $this->runtime->install_customer_context( $parsed['customer'] );
 			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $installed ) ) {
 				return $installed;

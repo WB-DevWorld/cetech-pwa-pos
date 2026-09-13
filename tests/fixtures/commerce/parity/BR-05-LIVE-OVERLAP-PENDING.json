@@ -1,20 +1,43 @@
 {
-  "caseId": "BR-05-LIVE-OVERLAP-PENDING",
+  "caseId": "BR-05-LIVE-OVERLAP",
   "environment": "training.cetechbpa.com",
-  "utc": "2026-09-13T15:35:02Z",
+  "utc": "2026-09-13T17:02:00Z",
   "versions": {
     "woo": "11.1.0",
     "woodmart": "8.5.7",
-    "b2bking": "core-5.2.50-pro-5.6.30"
+    "b2bking": "core-v5.6.30",
+    "bridge": "0.2.3-br02"
   },
   "customerContextClass": "overlap",
-  "productSurrogate": "UNCAPTURED",
-  "quantity": "UNCAPTURED",
+  "productSurrogate": "P-SIMPLE-A",
+  "quantity": "20",
   "currency": "GHS",
-  "authoritative": null,
-  "bridge": null,
-  "minorUnitDelta": null,
-  "applicability": "PERMISSION_REQUIRED",
-  "result": "NOT_RUN",
-  "reason": "Plugin-overlap matrix requires live Woo runtime with both WoodMart and B2BKing configured. R3 pricing gate remains blocked until those captures exist. Tax-off training behavior is a recorded CP-04 fact, not a fabricated tax PASS. When captured, record authoritative unitPriceMinor independently of line/cart totals."
+  "authoritative": {
+    "retailAt20": {
+      "unitPriceMinor": 3800,
+      "subtotalMinor": 76000,
+      "totalMinor": 76000
+    },
+    "b2bAt20": {
+      "unitPriceMinor": 4000,
+      "subtotalMinor": 80000,
+      "totalMinor": 80000
+    }
+  },
+  "bridge": {
+    "retailAt20": {
+      "unitPriceMinor": 3800,
+      "subtotalMinor": 76000,
+      "totalMinor": 76000
+    },
+    "b2bAt20": {
+      "unitPriceMinor": 4000,
+      "subtotalMinor": 80000,
+      "totalMinor": 80000
+    }
+  },
+  "minorUnitDelta": 0,
+  "applicability": "LIVE_TRAINING_CAPTURE",
+  "result": "MATCH_EXACT",
+  "reason": "Same simple product qty 20: retail receives the WoodMart from-qty-20 unit change; the B2B-classified customer does not. Bridge matches Woo on both contexts. No CETECH precedence formula. Tax remains off."
 }

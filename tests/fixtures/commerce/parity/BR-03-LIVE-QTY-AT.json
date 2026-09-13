@@ -1,0 +1,52 @@
+{
+  "caseId": "BR-03-LIVE-QTY-AT",
+  "environment": "training.cetechbpa.com",
+  "utc": "2026-09-13T17:02:00Z",
+  "versions": {
+    "woo": "11.1.0",
+    "woodmart": "8.5.7",
+    "b2bking": "core-v5.6.30",
+    "bridge": "0.2.3-br02"
+  },
+  "customerContextClass": "retail",
+  "productSurrogate": "P-SIMPLE-A",
+  "quantity": "20",
+  "currency": "GHS",
+  "configuredFromQty": "20",
+  "authoritative": {
+    "lines": [
+      {
+        "productSurrogate": "P-SIMPLE-A",
+        "quantity": "20",
+        "unitPriceMinor": 3800,
+        "subtotalMinor": 76000,
+        "discountMinor": 0,
+        "taxMinor": 0,
+        "totalMinor": 76000
+      }
+    ],
+    "subtotalMinor": 76000,
+    "discountMinor": 0,
+    "taxMinor": 0,
+    "totalMinor": 76000
+  },
+  "bridge": {
+    "lines": [
+      {
+        "unitPriceMinor": 3800,
+        "subtotalMinor": 76000,
+        "discountMinor": 0,
+        "taxMinor": 0,
+        "totalMinor": 76000
+      }
+    ],
+    "subtotalMinor": 76000,
+    "discountMinor": 0,
+    "taxMinor": 0,
+    "totalMinor": 76000
+  },
+  "minorUnitDelta": 0,
+  "applicability": "LIVE_TRAINING_CAPTURE",
+  "result": "MATCH_EXACT",
+  "reason": "One published WoodMart bulk rule on all simple products; configured from-qty 20. At 20, Woo runtime unitPrice is 38.00 not 40.00. Discount is in the unit price, not a coupon line."
+}

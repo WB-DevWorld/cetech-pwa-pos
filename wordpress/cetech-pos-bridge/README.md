@@ -2,7 +2,7 @@
 
 Local WordPress plugin workspace for the server-only CETECH POS commerce bridge.
 
-BR-02 implements authenticated `POST /wp-json/cetech-pos/v1/quotes`. The bridge creates an isolated Woo cart/session/customer context, asks Woo runtime to `calculate_totals()`, normalizes the frozen v1 Quote, and restores every mutated global in `finally`. It does not copy WoodMart or B2BKing formulas, create orders, reduce stock, take payment, or assert `pricingParityVerified`.
+BR-02 implements authenticated `POST /wp-json/cetech-pos/v1/quotes`. The bridge creates an isolated Woo cart/session/customer context, asks Woo runtime to `calculate_totals()`, normalizes the frozen v1 Quote, and restores every mutated global in `finally`. Isolated quotes are counter sales: storefront shipping/fees are filtered out because v1 Quote has no shipping field and cart total must equal summed line totals. It does not copy WoodMart or B2BKing formulas, create orders, reduce stock, take payment, or assert `pricingParityVerified`.
 
 BR-01 health/permission behavior is unchanged: `GET /wp-json/cetech-pos/v1/health` still requires `cetech_pos_bridge_access`, and detection is not parity.
 

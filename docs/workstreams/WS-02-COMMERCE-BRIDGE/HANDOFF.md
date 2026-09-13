@@ -1,4 +1,16 @@
-# WS2 current handoff — R3 UNITPRICE SESSION_COMPLETION (FRESH_2)
+# WS2 current handoff — R3 TRAINING-LIVE (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T17:02:00Z live capture
+Task / batch / workstream: BR-02–BR-05 live training quotes; R3
+Owner / integration editor / requested human reviewer: WS2 @Emmanuel-coder-prog / editor @wbdevworld / **do not request** @Ben-001-sys (gate not passed)
+Branch: `batch/r3-authoritative-pricing-parity` / draft PR #44
+Contracts changed: none (v1.0.0)
+Plugin: `0.2.3-br02` on training
+`pricingParityVerified`: false
+Evidence: `docs/integration/evidence/R3-TRAINING-LIVE.md`
+Next exact action: exact-head suite, two freshness passes, keep #44 draft, STOP. Do not merge. Do not start R4.
+
+## Previous current handoff — R3 UNITPRICE SESSION_COMPLETION (FRESH_2)
 
 Kind / UTC: SESSION_COMPLETION / 2026-09-13T16:11:14Z (Pass-2 cutoff; no Pass 3)
 Task / batch / workstream: BR-02 unitPrice remediation; R3 continuation

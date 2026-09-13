@@ -19,6 +19,8 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		'payments' => 0,
 		'mail'     => 0,
 	);
+	/** @var int */
+	protected $counter_sale_isolation_depth = 0;
 
 	public function __construct( Cetech_Pos_Bridge_Environment $environment ) {
 		$this->environment = $environment;
@@ -71,6 +73,7 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 	 * @param array<string,mixed> $snapshot
 	 */
 	public function restore( array $snapshot ) {
+		$this->release_counter_sale_shipping();
 		if ( $this->environment->function_exists( 'wp_set_current_user' ) && array_key_exists( 'user_id', $snapshot ) ) {
 			wp_set_current_user( (int) $snapshot['user_id'] );
 		}
@@ -86,6 +89,38 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		}
 		if ( array_key_exists( 'cart', $snapshot ) ) {
 			$wc->cart = $snapshot['cart'];
+		}
+	}
+
+	/**
+	 * POS quotes are counter sales. Frozen v1 Quote has no shipping field and
+	 * requires cart total to equal summed line totals. Storefront shipping
+	 * must not enter the isolated cart. Woo REST-request mode is also masked
+	 * so frontend pricing hooks still run inside POST /quotes.
+	 */
+	public function isolate_counter_sale_shipping() {
+		if ( $this->counter_sale_isolation_depth === 0 && $this->environment->function_exists( 'add_filter' ) ) {
+			add_filter( 'woocommerce_cart_needs_shipping', array( $this, 'counter_sale_needs_no_shipping' ), 9999 );
+			add_filter( 'woocommerce_cart_needs_shipping_address', array( $this, 'counter_sale_needs_no_shipping' ), 9999 );
+			add_filter( 'woocommerce_is_rest_api_request', array( $this, 'counter_sale_needs_no_shipping' ), 9999 );
+		}
+		++$this->counter_sale_isolation_depth;
+	}
+
+	public function counter_sale_needs_no_shipping( $needs = false ) {
+		unset( $needs );
+		return false;
+	}
+
+	protected function release_counter_sale_shipping() {
+		if ( $this->counter_sale_isolation_depth <= 0 ) {
+			return;
+		}
+		--$this->counter_sale_isolation_depth;
+		if ( $this->counter_sale_isolation_depth === 0 && $this->environment->function_exists( 'remove_filter' ) ) {
+			remove_filter( 'woocommerce_cart_needs_shipping', array( $this, 'counter_sale_needs_no_shipping' ), 9999 );
+			remove_filter( 'woocommerce_cart_needs_shipping_address', array( $this, 'counter_sale_needs_no_shipping' ), 9999 );
+			remove_filter( 'woocommerce_is_rest_api_request', array( $this, 'counter_sale_needs_no_shipping' ), 9999 );
 		}
 	}
 
@@ -224,6 +259,11 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 			);
 		}
 		$cart     = $wc->cart;
+		$shipping = $this->cart_amount( $cart, 'get_shipping_total', 'shipping_total' );
+		$fees     = $this->cart_amount( $cart, 'get_fee_total', 'fee_total' );
+		if ( $this->amount_is_nonzero( $shipping ) || $this->amount_is_nonzero( $fees ) ) {
+			return $this->unavailable( 'Isolated POS quote still contains storefront shipping or fees; v1 Quote has no shipping field.' );
+		}
 		$contents = method_exists( $cart, 'get_cart' ) ? $cart->get_cart() : array();
 		$lines    = array();
 		foreach ( $contents as $item ) {
@@ -364,7 +404,12 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 			return $this->missing_unit_price_error();
 		}
 		$raw = $product->get_price();
-		if ( is_int( $raw ) ) {
+		if ( $this->environment->function_exists( 'wc_format_decimal' ) && ( is_string( $raw ) || is_int( $raw ) || is_float( $raw ) || ( is_numeric( $raw ) && ! is_bool( $raw ) ) ) ) {
+			$formatted = wc_format_decimal( $raw, Cetech_Pos_Bridge_Constants::PRICE_DECIMALS );
+			if ( is_string( $formatted ) || is_int( $formatted ) || is_float( $formatted ) || is_numeric( $formatted ) ) {
+				$raw = (string) $formatted;
+			}
+		} elseif ( is_int( $raw ) ) {
 			$raw = (string) $raw;
 		}
 		if ( ! is_string( $raw ) ) {
@@ -418,6 +463,10 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 	}
 
 	protected function detect_customer_kind( $user_id ) {
+		$flag = $this->b2bking_stored_user_flag( $user_id );
+		if ( $flag === 'yes' ) {
+			return 'b2b';
+		}
 		if ( $this->environment->function_exists( 'b2bking_is_b2b_user' ) && b2bking_is_b2b_user( $user_id ) ) {
 			return 'b2b';
 		}
@@ -425,6 +474,20 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 			return 'retail';
 		}
 		return 'retail';
+	}
+
+	/**
+	 * B2BKing stores commercial class in usermeta. Do not infer kind from group IDs alone.
+	 *
+	 * @param int $user_id
+	 * @return string
+	 */
+	protected function b2bking_stored_user_flag( $user_id ) {
+		if ( ! $this->environment->function_exists( 'get_user_meta' ) ) {
+			return '';
+		}
+		$flag = get_user_meta( (int) $user_id, 'b2bking_b2buser', true );
+		return is_string( $flag ) ? $flag : '';
 	}
 
 	protected function current_user_id() {
@@ -467,10 +530,22 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 	}
 
 	protected function count_orders() {
-		if ( $this->environment->function_exists( 'wc_orders_count' ) ) {
-			return (int) wc_orders_count( 'any' );
+		global $wpdb;
+		if ( isset( $wpdb ) && is_object( $wpdb ) && isset( $wpdb->prefix ) && method_exists( $wpdb, 'get_var' ) ) {
+			$counted = $wpdb->get_var( 'SELECT COUNT(*) FROM ' . $wpdb->prefix . 'wc_orders' );
+			if ( $counted !== null ) {
+				return (int) $counted;
+			}
 		}
 		return null;
+	}
+
+	protected function amount_is_nonzero( $decimal ) {
+		$minor = Cetech_Pos_Bridge_Money::from_decimal_string( (string) $decimal, $this->currency() );
+		if ( $minor === null ) {
+			return (string) $decimal !== '' && (string) $decimal !== '0';
+		}
+		return $minor !== 0;
 	}
 
 	protected function as_positive_int( $value ) {

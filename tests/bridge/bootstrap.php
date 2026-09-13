@@ -134,6 +134,25 @@ function add_filter( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
 	return true;
 }
 
+function wc_format_decimal( $price, $decimal_points = false, $trim_zeros = false ) {
+	unset( $trim_zeros );
+	if ( false === $decimal_points ) {
+		$decimal_points = 2;
+	}
+	if ( is_string( $price ) ) {
+		$price = trim( $price );
+	}
+	if ( is_int( $price ) ) {
+		return sprintf( '%d.%0' . (int) $decimal_points . 'd', $price, 0 );
+	}
+	if ( is_string( $price ) && preg_match( '/^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/', $price ) ) {
+		$parts = explode( '.', $price, 2 );
+		$frac  = isset( $parts[1] ) ? substr( str_pad( $parts[1], (int) $decimal_points, '0' ), 0, (int) $decimal_points ) : str_repeat( '0', (int) $decimal_points );
+		return $parts[0] . '.' . $frac;
+	}
+	return $price;
+}
+
 function is_wp_error( $thing ) {
 	return $thing instanceof WP_Error;
 }

@@ -1,0 +1,52 @@
+{
+  "caseId": "BR-02-LIVE-VARIATION",
+  "environment": "training.cetechbpa.com",
+  "utc": "2026-09-13T17:02:00Z",
+  "versions": {
+    "woo": "11.1.0",
+    "woodmart": "8.5.7",
+    "b2bking": "core-v5.6.30",
+    "bridge": "0.2.3-br02"
+  },
+  "customerContextClass": "retail",
+  "productSurrogate": "P-VAR-A",
+  "variationSurrogate": "V-A",
+  "quantity": "1",
+  "currency": "GHS",
+  "authoritative": {
+    "lines": [
+      {
+        "productSurrogate": "P-VAR-A",
+        "quantity": "1",
+        "unitPriceMinor": 20000,
+        "subtotalMinor": 20000,
+        "discountMinor": 0,
+        "taxMinor": 0,
+        "totalMinor": 20000
+      }
+    ],
+    "subtotalMinor": 20000,
+    "discountMinor": 0,
+    "taxMinor": 0,
+    "totalMinor": 20000
+  },
+  "bridge": {
+    "lines": [
+      {
+        "unitPriceMinor": 20000,
+        "subtotalMinor": 20000,
+        "discountMinor": 0,
+        "taxMinor": 0,
+        "totalMinor": 20000
+      }
+    ],
+    "subtotalMinor": 20000,
+    "discountMinor": 0,
+    "taxMinor": 0,
+    "totalMinor": 20000
+  },
+  "minorUnitDelta": 0,
+  "applicability": "LIVE_TRAINING_CAPTURE",
+  "result": "MATCH_EXACT",
+  "reason": "Retail variation qty 1 and qty 2 (40000) both matched Woo. unitPriceMinor 20000 is not the line subtotal at qty 2."
+}

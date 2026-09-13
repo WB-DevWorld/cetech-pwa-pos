@@ -1,0 +1,29 @@
+{
+  "caseId": "BR-02-LIVE-GUEST-REFUSAL",
+  "environment": "training.cetechbpa.com",
+  "utc": "2026-09-13T17:02:00Z",
+  "versions": {
+    "woo": "11.1.0",
+    "woodmart": "8.5.7",
+    "b2bking": "core-v5.6.30",
+    "bridge": "0.2.3-br02"
+  },
+  "customerContextClass": "walkin",
+  "productSurrogate": "P-SIMPLE-A",
+  "quantity": "1",
+  "currency": "GHS",
+  "authoritative": {
+    "purchasable": false,
+    "wooNotice": "Sorry, this product cannot be purchased.",
+    "source": "B2BKing filter b2bking_disable_purchasable_guest_users; is_purchasable false for user 0"
+  },
+  "bridge": {
+    "http": 400,
+    "code": "VALIDATION_ERROR",
+    "message": "WooCommerce rejected a quote line."
+  },
+  "minorUnitDelta": null,
+  "applicability": "LIVE_TRAINING_CAPTURE",
+  "result": "REFUSAL_MATCH",
+  "reason": "Training B2BKing disables guest purchasable. Independent add_to_cart and POST /quotes both reject. Not a priced guest quote. Do not disable that filter to manufacture guest parity."
+}

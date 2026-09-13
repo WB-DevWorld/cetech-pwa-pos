@@ -31,6 +31,8 @@ class Cetech_Pos_Bridge_Stub_Cart {
 	public $discount_total = '0.00';
 	public $total_tax      = '0.00';
 	public $total          = '0.00';
+	public $shipping_total = '0';
+	public $fee_total      = '0';
 
 	public function get_cart() {
 		return $this->items;
@@ -46,6 +48,14 @@ class Cetech_Pos_Bridge_Stub_Cart {
 
 	public function get_total_tax() {
 		return $this->total_tax;
+	}
+
+	public function get_shipping_total() {
+		return isset( $this->shipping_total ) ? $this->shipping_total : '0';
+	}
+
+	public function get_fee_total() {
+		return isset( $this->fee_total ) ? $this->fee_total : '0';
 	}
 
 	public function get_total( $context = 'edit' ) {
@@ -224,6 +234,47 @@ $float_item             = br02_stub_cart_item(
 	)
 );
 $float_cart->items[]    = $float_item;
+$float_cart->subtotal   = '45.00';
+$float_cart->total      = '45.00';
 $float_price            = br02_production_runtime_with_cart( $float_cart )->get_priced_cart();
-br01_assert( Cetech_Pos_Bridge_Quote_Request::is_error( $float_price ), 'binary float get_price fails closed' );
-br01_assert_eq( 'INTEGRATION_UNAVAILABLE', $float_price->get_error_code(), 'float unit price is not accepted' );
+br01_assert( is_array( $float_price ), 'numeric get_price is accepted after wc_format_decimal' );
+$float_unit             = Cetech_Pos_Bridge_Money::from_decimal_string( $float_price['lines'][0]['unitPrice'], 'GHS' );
+br01_assert_eq( 900, $float_unit, 'float get_price 9.00 becomes unitPriceMinor 900 via Woo decimal format' );
+
+br01_assert_eq( false, ( new Cetech_Pos_Bridge_Woo_Runtime( br01_authorized_env() ) )->counter_sale_needs_no_shipping( true ), 'POS counter isolation rejects storefront shipping' );
+
+$ship_cart           = new Cetech_Pos_Bridge_Stub_Cart();
+$ship_cart->items[]  = br02_stub_cart_item(
+	array(
+		'productId' => '101',
+		'quantity'  => '1',
+		'unitPrice' => '40.00',
+		'subtotal'  => '40.00',
+	)
+);
+$ship_cart->subtotal = '40.00';
+$ship_cart->total    = '1040.00';
+$ship_cart->shipping_total = '1000';
+$shipped             = br02_production_runtime_with_cart( $ship_cart )->get_priced_cart();
+br01_assert( Cetech_Pos_Bridge_Quote_Request::is_error( $shipped ), 'storefront shipping in cart fails closed' );
+br01_assert_eq( 'INTEGRATION_UNAVAILABLE', $shipped->get_error_code(), 'shipping cannot enter v1 Quote.total' );
+
+class Cetech_Pos_Bridge_Kind_Runtime extends Cetech_Pos_Bridge_Harness_Woo_Runtime {
+	public $stored_flag = '';
+
+	protected function b2bking_stored_user_flag( $user_id ) {
+		unset( $user_id );
+		return $this->stored_flag;
+	}
+
+	public function expose_kind( $user_id ) {
+		return $this->detect_customer_kind( $user_id );
+	}
+}
+
+$kind_runtime               = new Cetech_Pos_Bridge_Kind_Runtime( br01_authorized_env() );
+$kind_runtime->stored_flag  = 'yes';
+br01_assert_eq( 'b2b', $kind_runtime->expose_kind( 8 ), 'B2BKing b2bking_b2buser=yes is b2b' );
+$kind_runtime->stored_flag  = '';
+br01_assert_eq( 'retail', $kind_runtime->expose_kind( 13 ), 'absent B2BKing flag is retail' );
+

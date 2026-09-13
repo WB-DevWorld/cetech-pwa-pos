@@ -1,5 +1,5 @@
 {
-  "caseId": "BR-04-LIVE-B2B-GROUP",
+  "caseId": "BR-03-LIVE-QTY-ABOVE",
   "environment": "training.cetechbpa.com",
   "utc": "2026-09-13T17:02:00Z",
   "versions": {
@@ -8,44 +8,45 @@
     "b2bking": "core-v5.6.30",
     "bridge": "0.2.3-br02"
   },
-  "customerContextClass": "b2b",
+  "customerContextClass": "retail",
   "productSurrogate": "P-SIMPLE-A",
-  "quantity": "1",
+  "quantity": "21",
   "currency": "GHS",
+  "configuredFromQty": "20",
   "authoritative": {
     "lines": [
       {
         "productSurrogate": "P-SIMPLE-A",
-        "quantity": "1",
+        "quantity": "21",
         "unitPriceMinor": 4000,
-        "subtotalMinor": 4000,
+        "subtotalMinor": 84000,
         "discountMinor": 0,
         "taxMinor": 0,
-        "totalMinor": 4000
+        "totalMinor": 84000
       }
     ],
-    "subtotalMinor": 4000,
+    "subtotalMinor": 84000,
     "discountMinor": 0,
     "taxMinor": 0,
-    "totalMinor": 4000
+    "totalMinor": 84000
   },
   "bridge": {
     "lines": [
       {
         "unitPriceMinor": 4000,
-        "subtotalMinor": 4000,
+        "subtotalMinor": 84000,
         "discountMinor": 0,
         "taxMinor": 0,
-        "totalMinor": 4000
+        "totalMinor": 84000
       }
     ],
-    "subtotalMinor": 4000,
+    "subtotalMinor": 84000,
     "discountMinor": 0,
     "taxMinor": 0,
-    "totalMinor": 4000
+    "totalMinor": 84000
   },
   "minorUnitDelta": 0,
   "applicability": "LIVE_TRAINING_CAPTURE",
   "result": "MATCH_EXACT",
-  "reason": "Customer classified by B2BKing usermeta b2bking_b2buser=yes. 24 published b2bking_rule posts are discount_percentage on cart_total. On this simple qty-1 cart, Woo totals equal retail 40.00; no distinct B2BKing discount appeared. Unauthorized kind switch retail-as-b2b returns 403 FORBIDDEN. Product-tier tables, min/max/multiples, and tax exemptions were not present as published rule types: see BR-04-UNCONFIGURED-TYPES."
+  "reason": "Configured WoodMart to-qty is empty. Actual runtime at qty 21 does not keep the qty-20 unit price; unit returns to 40.00. Recorded as observed Woo behavior, not an invented range."
 }
