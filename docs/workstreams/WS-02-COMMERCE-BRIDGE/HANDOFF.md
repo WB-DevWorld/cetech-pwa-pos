@@ -1,4 +1,57 @@
-# WS2 current handoff — BR-01 SESSION_COMPLETION (READY_FOR_R2_INTEGRATION)
+# WS2 current handoff — BR-01 R2 verification remediation (SESSION_COMPLETION / BLOCKED)
+
+Kind / UTC: SESSION_COMPLETION / 2026-09-13T13:38:52Z (Pass-2 cutoff; not an R2 gate and not BR-02)
+Task / batch / workstream: BR-01 R2 verification remediation (issue #13); WS2
+Owner / requested human reviewer: Developer 2 / @Emmanuel-coder-prog; R2 integration editor @wbdevworld. Do not request R2 review from this handoff.
+Branch: `ws2/br-01-build-bridge-health-and-permission-skeleton`
+Starting contributor SHA: `280a73dbcd53ac0e03883775b4fabdec7465a4a8`
+Implementation/test checkpoint SHA: `130437d6d9ee1c62c5f661ffb591f41b7e49e65e` — `test(ws2): exercise bridge REST error normalization`
+Also recorded: `fbbf0ea7d016b6149e9f095d449fb15b0dcdf930` — `feat(ws2): add bridge health and permission skeleton`
+Starting/base SHA: `origin/main` `aa08d74f2cb99301817e5995f01486acb7e2169f`
+R2 provisional baseline: `origin/batch/r2-auth-bridge-bff` `3a1b6b579781130afc9bd9792405b182c7bfe5ca`
+Files changed this remediation:
+- `tests/bridge/bootstrap.php`
+- `tests/bridge/test-health.php`
+- `docs/workstreams/WS-02-COMMERCE-BRIDGE/STATUS.md`
+- `docs/workstreams/WS-02-COMMERCE-BRIDGE/HANDOFF.md`
+- `docs/workstreams/WS-02-COMMERCE-BRIDGE/evidence/BR-01-R2-NORMALIZATION.md`
+Contracts changed: none (v1.0.0)
+Database migrations: none
+Architecture decisions: none
+Production PHP changed: NO (tests exposed no production defect)
+Training writes: NO. Production writes: NO. Remote effects: repository only.
+
+Tests executed:
+- `python scripts/verify_control_plane.py` EXIT 0
+- `php -v` / `make --version`: not on PATH. `make -C wordpress/cetech-pos-bridge check` **BLOCKED**. `make -C wordpress/cetech-pos-bridge test` **BLOCKED**. Not invented PASS. Assertion count on this workstation: UNVERIFIED.
+- `git diff --check` EXIT 0 on the test checkpoint
+
+Freshness protocol:
+START_FRESHNESS_SNAPSHOT UTC: `2026-09-13T13:36:46Z`
+Start main SHA: `aa08d74f2cb99301817e5995f01486acb7e2169f`
+Start R2 SHA: `3a1b6b579781130afc9bd9792405b182c7bfe5ca`
+Start published contributor SHA: `280a73dbcd53ac0e03883775b4fabdec7465a4a8`
+Contracts v1.0.0; ADR-011 CURRENT; ADR-012 ACTIVE; R2/BR-01 authorized; R3 not activated; PR #43 draft / gate NOT PASSED; CP04-W4 PERMISSION_REQUIRED
+
+Pass 1 fetch UTC / success: `2026-09-13T13:38:37Z` succeeded
+Pass 1 main SHA: `aa08d74f2cb99301817e5995f01486acb7e2169f` SAME
+Pass 1 batch SHA: `3a1b6b579781130afc9bd9792405b182c7bfe5ca` SAME
+Classification: no arrivals
+Reconciliation/tests: none / verifier already EXIT 0; make BLOCKED
+
+Pass 2 fetch UTC / success: `2026-09-13T13:38:52Z` independent fetch succeeded
+Pass 2 main SHA: `aa08d74f2cb99301817e5995f01486acb7e2169f` SAME
+Pass 2 batch SHA: `3a1b6b579781130afc9bd9792405b182c7bfe5ca` SAME
+Classification: no arrivals since Pass 1
+Reconciliation/tests: none; make still BLOCKED
+
+Final freshness status: FRESH_2
+Delivery status: BLOCKED (BLOCKED_VERIFICATION — PHP/Make unavailable on this workstation)
+Pass 3: NOT PERMITTED
+Post-cutoff risk: arrivals after Pass-2 cutoff `aa08d74` / `3a1b6b5` are POST_CUTOFF_RISK for the R2 editor
+Next exact action: R2 integration editor @wbdevworld inspects/imports exact contributor SHA `130437d6d9ee1c62c5f661ffb591f41b7e49e65e` into PR #43 and reruns combined acceptance on a PHP/Make-capable machine. WS2 does not start BR-02.
+
+# Previous current handoff — BR-01 SESSION_COMPLETION (READY_FOR_R2_INTEGRATION)
 
 Kind / UTC: SESSION_COMPLETION / 2026-09-12T23:09:57Z (Pass-2 cutoff; not an R2 gate and not BR-02)
 Task / batch / workstream: BR-01 (issue #13) contributor input for R2; WS2
