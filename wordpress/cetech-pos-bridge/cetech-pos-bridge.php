@@ -2,7 +2,7 @@
 /**
  * Plugin Name: CETECH POS Bridge
  * Description: Server-only CETECH POS WooCommerce bridge. Isolated quote uses Woo runtime totals; it does not copy WoodMart/B2BKing formulas.
- * Version: 0.2.0-br02
+ * Version: 0.2.1-br02
  * Requires at least: 6.0
  * Requires PHP: 8.0
  * Text Domain: cetech-pos-bridge

@@ -158,13 +158,30 @@ foreach ( $manifest['cases'] as $file ) {
 	if ( ! is_array( $quote ) ) {
 		continue;
 	}
-	$expected = $case['authoritative']['totalMinor'];
+	$expected_auth = $case['authoritative'];
+	parity_assert( isset( $expected_auth['lines'][0]['unitPriceMinor'] ), $id . ' fixture records unitPriceMinor' );
+	$actual_line   = $quote['lines'][0];
+	$expected_line = $expected_auth['lines'][0];
+	parity_assert( $actual_line['unitPrice']['minor'] === $expected_line['unitPriceMinor'], $id . ' unitPriceMinor' );
+	parity_assert( $actual_line['subtotal']['minor'] === $expected_line['subtotalMinor'], $id . ' line subtotalMinor' );
+	parity_assert( $actual_line['discount']['minor'] === $expected_line['discountMinor'], $id . ' line discountMinor' );
+	parity_assert( $actual_line['tax']['minor'] === $expected_line['taxMinor'], $id . ' line taxMinor' );
+	parity_assert( $actual_line['total']['minor'] === $expected_line['totalMinor'], $id . ' line totalMinor' );
+	parity_assert(
+		$actual_line['total']['minor'] === Cetech_Pos_Bridge_Money::line_total(
+			$actual_line['subtotal']['minor'],
+			$actual_line['discount']['minor'],
+			$actual_line['tax']['minor']
+		),
+		$id . ' line total identity subtotal - discount + tax'
+	);
+	$expected = $expected_auth['totalMinor'];
 	$actual   = $quote['total']['minor'];
 	$delta    = $actual - $expected;
-	parity_assert( $delta === 0, $id . " minor-unit delta {$delta}" );
-	parity_assert( $quote['subtotal']['minor'] === $case['authoritative']['subtotalMinor'], $id . ' subtotal' );
-	parity_assert( $quote['discount']['minor'] === $case['authoritative']['discountMinor'], $id . ' discount' );
-	parity_assert( $quote['tax']['minor'] === $case['authoritative']['taxMinor'], $id . ' tax' );
+	parity_assert( $delta === 0, $id . " cart minor-unit delta {$delta}" );
+	parity_assert( $quote['subtotal']['minor'] === $expected_auth['subtotalMinor'], $id . ' cart subtotal' );
+	parity_assert( $quote['discount']['minor'] === $expected_auth['discountMinor'], $id . ' cart discount' );
+	parity_assert( $quote['tax']['minor'] === $expected_auth['taxMinor'], $id . ' cart tax' );
 	parity_assert( $runtime->side_effect_counts()['orders'] === 0, $id . ' no orders' );
 }
 

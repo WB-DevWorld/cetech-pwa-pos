@@ -2,8 +2,10 @@
 
 No customer names, emails, phones, addresses, passwords, Application Passwords, cookies, or service credentials.
 
-Each case records case ID, environment, UTC, plugin/theme versions, customer-context class, product/variation surrogate, quantity, currency, authoritative expected totals when known, applicability, and result.
+Each case records case ID, environment, UTC, plugin/theme versions, customer-context class, product/variation surrogate, quantity, currency, authoritative expected **unit price and** line/cart totals, applicability, and result.
+
+`unitPriceMinor` is the display-rounded authoritative per-unit price. It is asserted independently of line/cart totals. Do not derive line total as `unitPrice × quantity`. Line identity remains `total = subtotal - discount + tax`.
 
 Synthetic isolation rows prove the bridge matches an injected Woo runtime. They are not WoodMart/B2BKing live parity.
 
-Live training rows stay `PERMISSION_REQUIRED` until an explicit R3 plugin-update authorization. Training tax-off is `NOT_APPLICABLE_WITH_EVIDENCE` from CP-04.
+Live training rows stay `PERMISSION_REQUIRED` until an explicit R3 plugin-update authorization. When those rows are captured they must preserve `unitPriceMinor` as well as line/cart totals. Training tax-off is `NOT_APPLICABLE_WITH_EVIDENCE` from CP-04.

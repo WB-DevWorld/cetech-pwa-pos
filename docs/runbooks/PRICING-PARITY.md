@@ -7,7 +7,7 @@ WS2 captures Woo checkout and bridge outputs using identical staging cart, buyer
 | Walk-in/guest | Actual Woo checkout | Synthetic isolated runtime: exact minor-unit match in `tests/fixtures/commerce/parity/BR-02-GUEST-SIMPLE.json`. Live training quote **PERMISSION_REQUIRED** (R3 plugin not deployed; `/quotes` is `rest_no_route` on training). | SYNTHETIC_ISOLATION PASS; live BLOCKED |
 | Registered retail | Actual Woo checkout | Synthetic isolated runtime: exact match in `BR-02-RETAIL-SIMPLE.json`. Live **PERMISSION_REQUIRED**. | SYNTHETIC_ISOLATION PASS; live BLOCKED |
 | WoodMart below threshold | Actual Woo checkout | Synthetic isolation `BR-03-SYNTHETIC-QTY-BELOW.json` (injected breakpoint, not training). Live **PERMISSION_REQUIRED**. | SYNTHETIC_ISOLATION; live BLOCKED |
-| WoodMart at threshold | Actual Woo checkout | Synthetic isolation `BR-03-SYNTHETIC-QTY-AT.json`. Live **PERMISSION_REQUIRED**. | SYNTHETIC_ISOLATION; live BLOCKED |
+| WoodMart at threshold | Actual Woo checkout | Synthetic isolation `BR-03-SYNTHETIC-QTY-AT.json` (qty 5 / unit 9.00 / subtotal 45.00). Harness asserts `unitPriceMinor` independently of totals after the discovered production mapping defect. Live **PERMISSION_REQUIRED**. | SYNTHETIC_ISOLATION; live BLOCKED |
 | WoodMart above threshold | Actual Woo checkout | Synthetic isolation `BR-03-SYNTHETIC-QTY-ABOVE.json`. Live **PERMISSION_REQUIRED**. | SYNTHETIC_ISOLATION; live BLOCKED |
 | B2BKing group | Actual Woo checkout | Synthetic isolation `BR-04-SYNTHETIC-B2B-GROUP.json`. Live **PERMISSION_REQUIRED**. Unauthorized kind switch denied in unit tests. | SYNTHETIC_ISOLATION; live BLOCKED |
 | B2BKing tier | Actual Woo checkout | Live configuration unread in this process. | PERMISSION_REQUIRED |

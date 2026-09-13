@@ -16,5 +16,5 @@
   "minorUnitDelta": null,
   "applicability": "PERMISSION_REQUIRED",
   "result": "NOT_RUN",
-  "reason": "R2 W4 grant does not cover an R3 plugin mutation or live quote capture. Do not invent WoodMart thresholds."
+  "reason": "R2 W4 grant does not cover an R3 plugin mutation or live quote capture. Do not invent WoodMart thresholds. When captured, record authoritative unitPriceMinor independently of line/cart totals; do not derive totals from unitPrice × quantity."
 }

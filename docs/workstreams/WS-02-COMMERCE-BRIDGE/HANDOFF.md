@@ -1,3 +1,18 @@
+# WS2 current handoff — BR-02 UNITPRICE REMEDIATION (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T16:06:08Z start
+Task / batch / workstream: BR-02 QuoteLine unitPrice defect; R3 continuation (not Pass 3)
+Branch: `batch/r3-authoritative-pricing-parity` / draft PR #44
+Contracts changed: none (v1.0.0)
+Plugin: `0.2.1-br02`
+Tests: `php tests/bridge/run.php` **174 passed**; `php tests/bridge/parity.php` **108 passed, 4 skipped**. GNU Make BLOCKED on this workstation.
+Live: PERMISSION_REQUIRED. Training deployment NOT PERFORMED. Review NOT REQUESTED. R4 NOT STARTED.
+`pricingParityVerified`: false
+Evidence: `evidence/BR-02-UNITPRICE-FIX.md`
+Next exact action: two-pass freshness for this continuation, keep #44 draft, STOP.
+
+## Previous current handoff — R3 SESSION_COMPLETION (FRESH_2 / GATE BLOCKED)
+
 # WS2 current handoff — R3 SESSION_COMPLETION (FRESH_2 / GATE BLOCKED)
 
 Kind / UTC: SESSION_COMPLETION / 2026-09-13T15:56:05Z (Pass-2 cutoff; no Pass 3)

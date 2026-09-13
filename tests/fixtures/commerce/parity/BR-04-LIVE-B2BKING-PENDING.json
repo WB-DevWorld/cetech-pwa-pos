@@ -16,5 +16,5 @@
   "minorUnitDelta": null,
   "applicability": "PERMISSION_REQUIRED",
   "result": "NOT_RUN",
-  "reason": "Live B2BKing commercial capture requires explicit R3 training authorization. Unconfigured cases stay NOT_APPLICABLE_WITH_EVIDENCE after inspection, never synthetic parity."
+  "reason": "Live B2BKing commercial capture requires explicit R3 training authorization. Unconfigured cases stay NOT_APPLICABLE_WITH_EVIDENCE after inspection, never synthetic parity. When captured, record authoritative unitPriceMinor independently of line/cart totals."
 }

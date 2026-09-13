@@ -16,5 +16,5 @@
   "minorUnitDelta": null,
   "applicability": "PERMISSION_REQUIRED",
   "result": "NOT_RUN",
-  "reason": "Plugin-overlap matrix requires live Woo runtime with both WoodMart and B2BKing configured. R3 pricing gate remains blocked until those captures exist. Tax-off training behavior is a recorded CP-04 fact, not a fabricated tax PASS."
+  "reason": "Plugin-overlap matrix requires live Woo runtime with both WoodMart and B2BKing configured. R3 pricing gate remains blocked until those captures exist. Tax-off training behavior is a recorded CP-04 fact, not a fabricated tax PASS. When captured, record authoritative unitPriceMinor independently of line/cart totals."
 }

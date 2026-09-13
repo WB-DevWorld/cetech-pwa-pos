@@ -1,3 +1,11 @@
+# WS3 current handoff — R3 UNITPRICE REMEDIATION (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T16:06:08Z
+R3 draft #44 remains DRAFT. BR-02 production `unitPrice` mapping corrected locally. Live parity PERMISSION_REQUIRED. Training deployment NOT PERFORMED. Review NOT REQUESTED. R4 NOT STARTED.
+Evidence: `docs/integration/evidence/R3-UNITPRICE-START-FRESHNESS.md`
+
+## Previous current handoff — R3 SESSION_COMPLETION (FRESH_2 / GATE BLOCKED)
+
 # WS3 current handoff — R3 SESSION_COMPLETION (FRESH_2 / GATE BLOCKED)
 
 Kind / UTC: SESSION_COMPLETION / 2026-09-13T15:56:05Z

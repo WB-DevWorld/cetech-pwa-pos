@@ -227,7 +227,11 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		$contents = method_exists( $cart, 'get_cart' ) ? $cart->get_cart() : array();
 		$lines    = array();
 		foreach ( $contents as $item ) {
-			$lines[] = $this->map_cart_item( $item, $currency );
+			$mapped = $this->map_cart_item( $item, $currency );
+			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $mapped ) ) {
+				return $mapped;
+			}
+			$lines[] = $mapped;
 		}
 		return array(
 			'currency' => $currency,
@@ -253,7 +257,10 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		if ( $stock === 'out_of_stock' ) {
 			$purchasable = false;
 		}
-		$unit = $this->unit_price_string( $subtotal, $qty );
+		$unit = $this->authoritative_unit_price_string( $product );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $unit ) ) {
+			return $unit;
+		}
 		$mapped = array(
 			'productId'    => $product_id,
 			'quantity'     => $qty,
@@ -345,11 +352,40 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		return '1';
 	}
 
-	protected function unit_price_string( $subtotal, $qty ) {
-		if ( $qty === '1' ) {
-			return $subtotal;
+	/**
+	 * Display-rounded per-unit price from the priced cart item's Woo product after hooks.
+	 * Never divides line subtotal by quantity. Never copies plugin formulas.
+	 *
+	 * @param mixed $product
+	 * @return string|WP_Error Woo decimal string accepted by the Money adapter.
+	 */
+	protected function authoritative_unit_price_string( $product ) {
+		if ( ! is_object( $product ) || ! method_exists( $product, 'get_price' ) ) {
+			return $this->missing_unit_price_error();
 		}
-		return $subtotal;
+		$raw = $product->get_price();
+		if ( is_int( $raw ) ) {
+			$raw = (string) $raw;
+		}
+		if ( ! is_string( $raw ) ) {
+			return $this->missing_unit_price_error();
+		}
+		$raw = trim( $raw );
+		if ( Cetech_Pos_Bridge_Money::from_decimal_string( $raw, Cetech_Pos_Bridge_Constants::SETTLEMENT_CURRENCY ) === null ) {
+			return $this->missing_unit_price_error();
+		}
+		return $raw;
+	}
+
+	protected function missing_unit_price_error() {
+		return Cetech_Pos_Bridge_Response::wp_error(
+			'INTEGRATION_UNAVAILABLE',
+			'Woo cart item did not provide an authoritative per-unit price after pricing hooks.',
+			true,
+			'resolve',
+			503,
+			array( 'field' => 'lines' )
+		);
 	}
 
 	protected function decimal_subtract( $left, $right ) {

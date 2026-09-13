@@ -1,5 +1,13 @@
 # WS3 current status
 
+Snapshot 2026-09-13. Main `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`. R3 draft #44. Bounded BR-02 `unitPrice` remediation on `batch/r3-authoritative-pricing-parity` before any training plugin update. Live parity PERMISSION_REQUIRED. Pricing gate NOT PASSED. Issue #4 OPEN. Do not start R4. Evidence: `docs/integration/evidence/R3-UNITPRICE-START-FRESHNESS.md`.
+
+CURRENT-WORK holds the central R3 lease.
+
+## Previous snapshot (R3 FRESH_2 / GATE BLOCKED — historical; current section above controls)
+
+# WS3 current status
+
 Snapshot 2026-09-13. Main `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`. R1/#40 APPROVED / MERGED / VERIFIED. R2/#43 APPROVED / MERGED / VERIFIED (post-merge CI run 34765462210 success). ADR-012 ACTIVE. R2 integration lease RELEASED. R3 on `batch/r3-authoritative-pricing-parity`: local quote implemented; live parity PERMISSION_REQUIRED; pricing gate NOT PASSED; freshness FRESH_2. Issue #4 OPEN. Overall CP-04 not complete. Do not start R4. Evidence: `docs/integration/evidence/R3-FRESHNESS.md`.
 
 CURRENT-WORK holds the central R3 lease.

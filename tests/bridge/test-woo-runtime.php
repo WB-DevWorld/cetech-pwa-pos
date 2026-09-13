@@ -1,0 +1,229 @@
+<?php
+
+/**
+ * Exercises production Cetech_Pos_Bridge_Woo_Runtime cart mapping.
+ * Fake_Woo_Runtime is not used here: it bypasses map_cart_item.
+ */
+
+class Cetech_Pos_Bridge_Stub_Product {
+	public $price;
+	public $purchasable = true;
+	public $stock       = 'instock';
+
+	public function get_price() {
+		return $this->price;
+	}
+
+	public function is_purchasable() {
+		return (bool) $this->purchasable;
+	}
+
+	public function get_stock_status() {
+		return $this->stock;
+	}
+}
+
+class Cetech_Pos_Bridge_Stub_Product_Without_Price {}
+
+class Cetech_Pos_Bridge_Stub_Cart {
+	public $items          = array();
+	public $subtotal       = '0.00';
+	public $discount_total = '0.00';
+	public $total_tax      = '0.00';
+	public $total          = '0.00';
+
+	public function get_cart() {
+		return $this->items;
+	}
+
+	public function get_subtotal() {
+		return $this->subtotal;
+	}
+
+	public function get_discount_total() {
+		return $this->discount_total;
+	}
+
+	public function get_total_tax() {
+		return $this->total_tax;
+	}
+
+	public function get_total( $context = 'edit' ) {
+		unset( $context );
+		return $this->total;
+	}
+}
+
+class Cetech_Pos_Bridge_Stub_Wc {
+	public $cart;
+}
+
+class Cetech_Pos_Bridge_Harness_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
+	/** @var object */
+	public $stub_wc;
+
+	protected function wc() {
+		return $this->stub_wc;
+	}
+}
+
+function br02_production_runtime_with_cart( Cetech_Pos_Bridge_Stub_Cart $cart ) {
+	$env             = br01_authorized_env();
+	$env->woo        = true;
+	$runtime         = new Cetech_Pos_Bridge_Harness_Woo_Runtime( $env );
+	$wc              = new Cetech_Pos_Bridge_Stub_Wc();
+	$wc->cart        = $cart;
+	$runtime->stub_wc = $wc;
+	return $runtime;
+}
+
+function br02_stub_cart_item( array $args ) {
+	$product        = new Cetech_Pos_Bridge_Stub_Product();
+	$product->price = $args['unitPrice'];
+	$item           = array(
+		'product_id'    => $args['productId'],
+		'quantity'      => $args['quantity'],
+		'line_subtotal' => $args['subtotal'],
+		'line_total'    => isset( $args['lineTotal'] ) ? $args['lineTotal'] : $args['subtotal'],
+		'line_tax'      => isset( $args['tax'] ) ? $args['tax'] : '0',
+		'data'          => $product,
+	);
+	if ( ! empty( $args['variationId'] ) ) {
+		$item['variation_id'] = $args['variationId'];
+	}
+	return $item;
+}
+
+$qty5_cart              = new Cetech_Pos_Bridge_Stub_Cart();
+$qty5_cart->items[]     = br02_stub_cart_item(
+	array(
+		'productId' => '101',
+		'quantity'  => '5',
+		'unitPrice' => '9.00',
+		'subtotal'  => '45.00',
+	)
+);
+$qty5_cart->subtotal    = '45.00';
+$qty5_cart->total       = '45.00';
+$qty5                   = br02_production_runtime_with_cart( $qty5_cart )->get_priced_cart();
+br01_assert( is_array( $qty5 ), 'production mapping qty>1 returns priced cart' );
+$qty5_unit              = Cetech_Pos_Bridge_Money::from_decimal_string( $qty5['lines'][0]['unitPrice'], 'GHS' );
+$qty5_sub               = Cetech_Pos_Bridge_Money::from_decimal_string( $qty5['lines'][0]['subtotal'], 'GHS' );
+$qty5_discount          = Cetech_Pos_Bridge_Money::from_decimal_string( $qty5['lines'][0]['discount'], 'GHS' );
+$qty5_tax               = Cetech_Pos_Bridge_Money::from_decimal_string( $qty5['lines'][0]['tax'], 'GHS' );
+$qty5_line_total        = Cetech_Pos_Bridge_Money::line_total( $qty5_sub, $qty5_discount, $qty5_tax );
+$qty5_cart_total        = Cetech_Pos_Bridge_Money::from_decimal_string( $qty5['total'], 'GHS' );
+br01_assert_eq( 900, $qty5_unit, 'qty 5 authoritative unitPrice minor 900 not line subtotal' );
+br01_assert_eq( 4500, $qty5_sub, 'qty 5 line subtotal minor 4500' );
+br01_assert( $qty5_unit !== $qty5_sub, 'unitPrice is not substituted from line subtotal' );
+br01_assert_eq( 4500, $qty5_line_total, 'qty 5 line total identity subtotal - discount + tax' );
+br01_assert_eq( 4500, $qty5_cart_total, 'qty 5 cart total matches independent line identity' );
+br01_assert_eq( '5', $qty5['lines'][0]['quantity'], 'qty 5 quantity preserved' );
+
+$qty1_cart              = new Cetech_Pos_Bridge_Stub_Cart();
+$qty1_cart->items[]     = br02_stub_cart_item(
+	array(
+		'productId' => '101',
+		'quantity'  => '1',
+		'unitPrice' => '10.00',
+		'subtotal'  => '10.00',
+	)
+);
+$qty1_cart->subtotal    = '10.00';
+$qty1_cart->total       = '10.00';
+$qty1                   = br02_production_runtime_with_cart( $qty1_cart )->get_priced_cart();
+$qty1_unit              = Cetech_Pos_Bridge_Money::from_decimal_string( $qty1['lines'][0]['unitPrice'], 'GHS' );
+$qty1_sub               = Cetech_Pos_Bridge_Money::from_decimal_string( $qty1['lines'][0]['subtotal'], 'GHS' );
+br01_assert_eq( 1000, $qty1_unit, 'qty 1 unitPrice from product get_price' );
+br01_assert_eq( 1000, $qty1_sub, 'qty 1 subtotal unchanged' );
+
+$var_cart               = new Cetech_Pos_Bridge_Stub_Cart();
+$var_cart->items[]      = br02_stub_cart_item(
+	array(
+		'productId'   => '200',
+		'variationId' => '201',
+		'quantity'    => '2',
+		'unitPrice'   => '12.00',
+		'subtotal'    => '24.00',
+		'lineTotal'   => '23.00',
+		'tax'         => '0',
+	)
+);
+$var_cart->subtotal     = '24.00';
+$var_cart->discount_total = '1.00';
+$var_cart->total        = '23.00';
+$variation_mapped       = br02_production_runtime_with_cart( $var_cart )->get_priced_cart();
+$var_unit               = Cetech_Pos_Bridge_Money::from_decimal_string( $variation_mapped['lines'][0]['unitPrice'], 'GHS' );
+$var_sub                = Cetech_Pos_Bridge_Money::from_decimal_string( $variation_mapped['lines'][0]['subtotal'], 'GHS' );
+$var_discount           = Cetech_Pos_Bridge_Money::from_decimal_string( $variation_mapped['lines'][0]['discount'], 'GHS' );
+$var_tax                = Cetech_Pos_Bridge_Money::from_decimal_string( $variation_mapped['lines'][0]['tax'], 'GHS' );
+br01_assert_eq( '201', $variation_mapped['lines'][0]['variationId'], 'variationId preserved on production mapping' );
+br01_assert_eq( 1200, $var_unit, 'variation unitPrice from product get_price not subtotal' );
+br01_assert_eq( 2400, $var_sub, 'variation line subtotal' );
+br01_assert_eq( 100, $var_discount, 'variation discount from runtime line_subtotal minus line_total' );
+br01_assert_eq(
+	2300,
+	Cetech_Pos_Bridge_Money::line_total( $var_sub, $var_discount, $var_tax ),
+	'variation line total identity is not unitPrice times quantity'
+);
+
+$frac_cart              = new Cetech_Pos_Bridge_Stub_Cart();
+$frac_cart->items[]     = br02_stub_cart_item(
+	array(
+		'productId' => '101',
+		'quantity'  => '2.5',
+		'unitPrice' => '9.00',
+		'subtotal'  => '22.50',
+	)
+);
+$frac_cart->subtotal    = '22.50';
+$frac_cart->total       = '22.50';
+$frac                   = br02_production_runtime_with_cart( $frac_cart )->get_priced_cart();
+$frac_unit              = Cetech_Pos_Bridge_Money::from_decimal_string( $frac['lines'][0]['unitPrice'], 'GHS' );
+$frac_sub               = Cetech_Pos_Bridge_Money::from_decimal_string( $frac['lines'][0]['subtotal'], 'GHS' );
+br01_assert_eq( 900, $frac_unit, 'fractional qty does not divide subtotal for unitPrice' );
+br01_assert_eq( 2250, $frac_sub, 'fractional qty subtotal from Woo line_subtotal' );
+br01_assert_eq( '2.5', $frac['lines'][0]['quantity'], 'fractional Quantity preserved' );
+
+$missing_cart           = new Cetech_Pos_Bridge_Stub_Cart();
+$missing_item           = br02_stub_cart_item(
+	array(
+		'productId' => '101',
+		'quantity'  => '5',
+		'unitPrice' => '9.00',
+		'subtotal'  => '45.00',
+	)
+);
+$missing_item['data']   = new Cetech_Pos_Bridge_Stub_Product_Without_Price();
+$missing_cart->items[]  = $missing_item;
+$missing                = br02_production_runtime_with_cart( $missing_cart )->get_priced_cart();
+br01_assert( Cetech_Pos_Bridge_Quote_Request::is_error( $missing ), 'missing get_price fails closed' );
+br01_assert_eq( 'INTEGRATION_UNAVAILABLE', $missing->get_error_code(), 'missing unit price is INTEGRATION_UNAVAILABLE' );
+
+$empty_cart             = new Cetech_Pos_Bridge_Stub_Cart();
+$empty_item             = br02_stub_cart_item(
+	array(
+		'productId' => '101',
+		'quantity'  => '5',
+		'unitPrice' => '',
+		'subtotal'  => '45.00',
+	)
+);
+$empty_cart->items[]    = $empty_item;
+$empty_price            = br02_production_runtime_with_cart( $empty_cart )->get_priced_cart();
+br01_assert( Cetech_Pos_Bridge_Quote_Request::is_error( $empty_price ), 'empty get_price fails closed' );
+br01_assert_eq( 'INTEGRATION_UNAVAILABLE', $empty_price->get_error_code(), 'empty unit price is not subtotal fallback' );
+
+$float_cart             = new Cetech_Pos_Bridge_Stub_Cart();
+$float_item             = br02_stub_cart_item(
+	array(
+		'productId' => '101',
+		'quantity'  => '5',
+		'unitPrice' => 9.00,
+		'subtotal'  => '45.00',
+	)
+);
+$float_cart->items[]    = $float_item;
+$float_price            = br02_production_runtime_with_cart( $float_cart )->get_priced_cart();
+br01_assert( Cetech_Pos_Bridge_Quote_Request::is_error( $float_price ), 'binary float get_price fails closed' );
+br01_assert_eq( 'INTEGRATION_UNAVAILABLE', $float_price->get_error_code(), 'float unit price is not accepted' );

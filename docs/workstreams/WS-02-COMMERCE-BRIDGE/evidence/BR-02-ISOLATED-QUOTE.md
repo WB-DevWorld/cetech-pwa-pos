@@ -1,5 +1,7 @@
 # BR-02 isolated Woo runtime quote — checkpoint
 
+**Later finding:** after this checkpoint, production `map_cart_item()` was found to emit line subtotal as `unitPrice` for quantity > 1. That defect is recorded and corrected in `BR-02-UNITPRICE-FIX.md`. This document remains the original isolated-quote checkpoint and is not rewritten as if the bug never existed.
+
 UTC: 2026-09-13 (session after R3 activation `da73928`)
 Task: BR-02 / issue #14
 Branch: `batch/r3-authoritative-pricing-parity`
