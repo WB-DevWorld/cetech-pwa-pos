@@ -40,7 +40,7 @@ WS3 coordinates CP-04; WS2 may contribute Woo/public intake on WS2-owned paths. 
 | Currency and precision | Admin + public: GHS, 2 decimals, left, `.` / `,` | VERIFIED 2026-09-12 16:12 UTC @wbdevworld Woo options `woocommerce_currency=GHS`, `woocommerce_price_num_decimals=2`. Matches earlier public Store API. |
 | Fractional-quantity products | Sampled Store API `multiple_of=1`; Woo decimal-qty setting BLOCKED | 2026-09-12 sample of 20 Store API products. Do not infer policy from price decimals. |
 | Stock reserve/expiry/reduction behavior | hold-stock 60 minutes VERIFIED; reduction-on-payment runtime BLOCKED | 2026-09-12 16:12 UTC @wbdevworld `woocommerce_hold_stock_minutes=60`. No write test. |
-| WordPress bridge service identity/capabilities | Absent on host (`cetech-pos` 404; plugin dir absent) | VERIFIED 2026-09-12 14:10 UTC public HEAD 404. Refresh 2026-09-12T23:58:58Z @wbdevworld: HEAD `/wp-json/cetech-pos/v1/health` 404; REST namespaces have no `cetech-pos`; SSH 2026-09-13 ~00:02Z plugin dir absent. Application Passwords still advertised. |
+| WordPress bridge service identity/capabilities | Dedicated subscriber `cetech-pos-bridge-svc` (ID 22) + `cetech_pos_bridge_access`; plugin `cetech-pos-bridge` 0.1.0-br01 **active**; health 401/403/200 evidenced | VERIFIED 2026-09-13T06:23:54Z @wbdevworld. Artifact SHA `280a73d`. Application Password label `cetech-pos-bff-r2-health` uuid `6bd36d36-1da6-424f-af0f-d54809f78bd5`. Secret host-local only; not committed. Detection is not pricing parity. See `docs/integration/evidence/CP04-W4-BRIDGE-SERVICE-ACCESS.md`. |
 | Production staff role mapping | UNVERIFIED | UNVERIFIED |
 | Cash variance approval policy | UNVERIFIED | UNVERIFIED |
 | Current active VitePOS shifts | UNVERIFIED | UNVERIFIED |

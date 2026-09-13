@@ -1,8 +1,8 @@
 # CP04-W3 synthetic fixtures for R2 bridge health
 
 Observer: WS3 senior / @wbdevworld  
-UTC: `2026-09-13T00:05:00Z` (plan only; no records created)  
-Host: `https://training.cetechbpa.com` (confirmed; W4 not executed)
+UTC: `2026-09-13T00:05:00Z` (plan); identities created in authorized W4 `2026-09-13T06:22:23Z`
+Host: `https://training.cetechbpa.com`
 
 Health acceptance does **not** require a customer order.
 
@@ -11,15 +11,15 @@ Customer/order fixtures created: **NO**
 PII copied: **NO**  
 Production customers/orders exported: **NO**
 
-## Proposed identities (not created)
+## Identities
 
-| Item | Proposed value | Status |
+| Item | Value | Status |
 | --- | --- | --- |
-| Dedicated bridge username | `cetech-pos-bridge-svc` | PROPOSED; must not be created until W4 Action C is explicitly authorized |
-| WordPress base role | least-privilege role that can authenticate and hold an Application Password (typically a custom/subscriber-class role, **not** administrator, cashier, or customer) | PROPOSED |
-| Dedicated capability | `cetech_pos_bridge_access` only | frozen BR-01 |
-| Application Password label | `cetech-pos-bff-r2-health` | PROPOSED; never commit the secret |
-| Operator-approved non-customer test email/sink | **not established** (blocked by W1) | PERMISSION_REQUIRED |
+| Dedicated bridge username | `cetech-pos-bridge-svc` (ID 22) | CREATED in W4 |
+| WordPress base role | subscriber | CREATED |
+| Dedicated capability | `cetech_pos_bridge_access` only | GRANTED in W4 Action F |
+| Application Password label | `cetech-pos-bff-r2-health` uuid `6bd36d36-1da6-424f-af0f-d54809f78bd5` | CREATED; secret not committed |
+| Operator-approved non-customer test email/sink | `cp04-w1-sink@training.invalid` plus host-local capture | PASS via W1 |
 
 Do not use an administrator, human cashier, buyer/customer, or Supabase service-role credential as the BFF service identity.
 
@@ -74,4 +74,4 @@ Safe to record: HTTP status, capability name, username **if** non-secret policy 
 
 Never create `NEXT_PUBLIC_BRIDGE_USERNAME` or `NEXT_PUBLIC_BRIDGE_APPLICATION_PASSWORD`.
 
-CP04-W3 = **PASS** as a fixture **plan**. No WordPress user was created.
+CP04-W3 = **PASS**. No commerce/customer fixtures. Service identity created only in authorized W4.

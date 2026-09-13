@@ -73,6 +73,18 @@ Recorded now, before any W4:
 
 Stock aggregate was not recomputed (avoid catalog/PII). Historical manage-stock=yes remains.
 
+## Post-W4 fingerprints (`2026-09-13T06:23:54Z`)
+
+| Fingerprint | Value |
+| --- | --- |
+| HPOS order count | 51 (unchanged) |
+| Woo webhook count | 0 (unchanged) |
+| User count | 21 (approved service user only) |
+| Bridge plugin | `cetech-pos-bridge` active `0.1.0-br01` |
+| Bridge REST | 401 anonymous / 200 authenticated-with-cap |
+| MailPoet | inactive |
+| W1 intercept | still loaded |
+
 ## Rollback owners
 
 | Change (only if later authorized) | Owner | Rollback |
@@ -89,4 +101,4 @@ Stock aggregate was not recomputed (avoid catalog/PII). Historical manage-stock=
 - Delivery-engine incidental behaviour on activate
 - Live BFF secret-storage location
 
-CP04-W2 = **PASS** as a read-only resource/write-boundary map for this operation. It does **not** authorize W4 and does **not** prove staging vs production isolation.
+CP04-W2 = **PASS** as a resource/write-boundary map. Post-W4 fingerprints show only the approved plugin/user writes. Staging vs production isolation remains NOT PROVEN.
