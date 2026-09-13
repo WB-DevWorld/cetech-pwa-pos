@@ -1,5 +1,11 @@
 # WS3 current status
 
+Snapshot 2026-09-13. CORE-04 CHECKPOINTED on `ws3/core-04-implement-catalog-projection-and-durable-loca` from main `516d6a49af74cc6677f67bdf843de6e819a05feb`. Catalog projection + Dexie CartDraftStore/OperationJournal. 5,000-item synthetic fixture evidenced. Issue #23 OPEN. R4 not complete. `pricingParityVerified` false. Issue #4 OPEN. Do not start R5. Evidence: `docs/integration/evidence/CORE-04-ACCEPTANCE.md`. CURRENT-WORK holds the central R4 lease on PR #41.
+
+## Previous snapshot (R4 ACTIVATION — historical; current section above controls)
+
+# WS3 current status
+
 Snapshot 2026-09-13. Main `516d6a49af74cc6677f67bdf843de6e819a05feb`. R3 PR #44 APPROVED / MERGED / POST-MERGE VERIFIED (CI run 34778771391). ADR-013 accepted through that reviewed merge. Training plugin/evidence remains training-specific. `pricingParityVerified` false. Issue #4 OPEN. CP-04 not globally complete. R3 lease RELEASED. R4 ACTIVATED on existing PR #41. Queue CORE-04 → FE-03 → FE-04. Do not start R5. Evidence: `docs/integration/evidence/R4-START-FRESHNESS.md`.
 
 CURRENT-WORK holds the central R4 lease.
