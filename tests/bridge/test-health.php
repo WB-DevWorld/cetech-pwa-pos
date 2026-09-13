@@ -43,11 +43,13 @@ function br01_authorized_env() {
 $plugin = new Cetech_Pos_Bridge_Plugin( new Cetech_Pos_Bridge_Test_Environment() );
 $plugin->register_routes();
 $routes = $plugin->get_registered_routes();
-br01_assert( count( $routes ) === 1, 'registers exactly one route' );
+br01_assert( count( $routes ) === 2, 'registers health and quote routes' );
 br01_assert_eq( 'cetech-pos/v1', $routes[0]['namespace'], 'route namespace' );
-br01_assert_eq( '/health', $routes[0]['route'], 'route path' );
-br01_assert_eq( 'GET', $routes[0]['args']['methods'], 'route method' );
+br01_assert_eq( '/health', $routes[0]['route'], 'health route path' );
+br01_assert_eq( 'GET', $routes[0]['args']['methods'], 'health route method' );
 br01_assert( isset( $routes[0]['args']['permission_callback'] ), 'permission_callback present' );
+br01_assert_eq( '/quotes', $routes[1]['route'], 'quote route path' );
+br01_assert_eq( 'POST', $routes[1]['args']['methods'], 'quote route method' );
 br01_assert( isset( $GLOBALS['cetech_pos_registered_routes'][0] ), 'register_rest_route invoked' );
 br01_assert_eq( 'cetech-pos/v1', $GLOBALS['cetech_pos_registered_routes'][0]['namespace'], 'captured namespace' );
 

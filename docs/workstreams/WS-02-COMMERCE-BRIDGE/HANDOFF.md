@@ -1,3 +1,29 @@
+# WS2 current handoff — BR-02 PROGRESS_CHECKPOINT
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T15:51:35Z
+Task / batch / workstream: BR-02 isolated Woo runtime quote (issue #14); R3
+Branch: `batch/r3-authoritative-pricing-parity`
+Contracts changed: none (QuoteRequest/Quote/ApiFailure v1.0.0 consumed)
+Database migrations: none
+Architecture decisions: none
+Training writes: NO. Production writes: NO.
+Live R3 plugin deploy: PERMISSION_REQUIRED
+`pricingParityVerified`: false
+
+Tests: PHP 8.5.0 `C:\tools\php85\php.exe`. GNU Make not on PATH this session.
+- `python scripts/verify_control_plane.py` EXIT 0
+- `php -l` plugin + tests EXIT 0
+- `php tests/bridge/run.php` EXIT 0; **131 passed, 0 failed**
+- `php tests/bridge/parity.php` EXIT 0; 22 passed, 3 PERMISSION_REQUIRED skipped; not a pricing gate
+- `python -m unittest discover -s tests/tooling -v` EXIT 0 (48 tests)
+- `git diff --check` EXIT 0
+
+Next exact action: BR-03 WoodMart quantity/tier parity from actual configured runtime. Do not invent thresholds. Live capture remains PERMISSION_REQUIRED.
+
+Evidence: `evidence/BR-02-ISOLATED-QUOTE.md`
+
+## Previous current handoff — R3 ACTIVATION (PROGRESS_CHECKPOINT)
+
 # WS2 current handoff — R3 ACTIVATION (PROGRESS_CHECKPOINT)
 
 Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T15:35:02Z

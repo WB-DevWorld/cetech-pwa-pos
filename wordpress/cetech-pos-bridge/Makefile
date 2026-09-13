@@ -13,14 +13,24 @@ PHP_SOURCES := \
 	includes/class-detector.php \
 	includes/class-response.php \
 	includes/class-health-controller.php \
+	includes/class-money.php \
+	includes/class-ephemeral-session.php \
+	includes/class-woo-runtime.php \
+	includes/class-quote-request.php \
+	includes/class-quote-store.php \
+	includes/class-quote-engine.php \
+	includes/class-quote-controller.php \
 	includes/class-plugin.php
 
 TEST_SOURCES := \
 	$(TEST_DIR)/run.php \
 	$(TEST_DIR)/bootstrap.php \
-	$(TEST_DIR)/test-health.php
+	$(TEST_DIR)/fake-woo-runtime.php \
+	$(TEST_DIR)/test-health.php \
+	$(TEST_DIR)/test-quote.php \
+	$(TEST_DIR)/parity.php
 
-.PHONY: check test
+.PHONY: check test parity
 
 check:
 	@command -v $(PHP) >/dev/null 2>&1 || { echo "BLOCKED: php is not available"; exit 2; }
@@ -32,3 +42,7 @@ check:
 test:
 	@command -v $(PHP) >/dev/null 2>&1 || { echo "BLOCKED: php is not available"; exit 2; }
 	$(PHP) "$(ROOT)/tests/bridge/run.php"
+
+parity:
+	@command -v $(PHP) >/dev/null 2>&1 || { echo "BLOCKED: php is not available"; exit 2; }
+	$(PHP) "$(ROOT)/tests/bridge/parity.php"

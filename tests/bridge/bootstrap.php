@@ -34,6 +34,7 @@ class WP_Error {
 class WP_REST_Response {
 	public $data;
 	public $status;
+	public $headers = array();
 
 	public function __construct( $data, $status = 200 ) {
 		$this->data   = $data;
@@ -48,6 +49,14 @@ class WP_REST_Response {
 		return $this->status;
 	}
 
+	public function header( $name, $value ) {
+		$this->headers[ $name ] = $value;
+	}
+
+	public function get_headers() {
+		return $this->headers;
+	}
+
 	public function is_error() {
 		return $this->status >= 400;
 	}
@@ -56,12 +65,14 @@ class WP_REST_Response {
 class Cetech_Pos_Bridge_Test_Request {
 	public $headers = array();
 	public $route   = '/cetech-pos/v1/health';
+	public $json    = array();
 
-	public function __construct( array $headers = array(), $route = '/cetech-pos/v1/health' ) {
+	public function __construct( array $headers = array(), $route = '/cetech-pos/v1/health', array $json = array() ) {
 		foreach ( $headers as $name => $value ) {
 			$this->headers[ strtolower( $name ) ] = $value;
 		}
 		$this->route = (string) $route;
+		$this->json  = $json;
 	}
 
 	public function get_header( $name ) {
@@ -71,6 +82,10 @@ class Cetech_Pos_Bridge_Test_Request {
 
 	public function get_route() {
 		return $this->route;
+	}
+
+	public function get_json_params() {
+		return $this->json;
 	}
 }
 
@@ -131,6 +146,13 @@ require_once $plugin_dir . '/includes/class-correlation.php';
 require_once $plugin_dir . '/includes/class-detector.php';
 require_once $plugin_dir . '/includes/class-response.php';
 require_once $plugin_dir . '/includes/class-health-controller.php';
+require_once $plugin_dir . '/includes/class-money.php';
+require_once $plugin_dir . '/includes/class-ephemeral-session.php';
+require_once $plugin_dir . '/includes/class-woo-runtime.php';
+require_once $plugin_dir . '/includes/class-quote-request.php';
+require_once $plugin_dir . '/includes/class-quote-store.php';
+require_once $plugin_dir . '/includes/class-quote-engine.php';
+require_once $plugin_dir . '/includes/class-quote-controller.php';
 require_once $plugin_dir . '/includes/class-plugin.php';
 
 class Cetech_Pos_Bridge_Test_Environment extends Cetech_Pos_Bridge_Environment {

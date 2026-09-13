@@ -4,8 +4,8 @@ WS2 captures Woo checkout and bridge outputs using identical staging cart, buyer
 
 | Scenario | Expected source | Bridge result / evidence | Status |
 | --- | --- | --- | --- |
-| Walk-in/guest | Actual Woo checkout | UNVERIFIED | BLOCKED |
-| Registered retail | Actual Woo checkout | UNVERIFIED | BLOCKED |
+| Walk-in/guest | Actual Woo checkout | Synthetic isolated runtime: exact minor-unit match in `tests/fixtures/commerce/parity/BR-02-GUEST-SIMPLE.json`. Live training quote **PERMISSION_REQUIRED** (R3 plugin not deployed; `/quotes` is `rest_no_route` on training). | SYNTHETIC_ISOLATION PASS; live BLOCKED |
+| Registered retail | Actual Woo checkout | Synthetic isolated runtime: exact match in `BR-02-RETAIL-SIMPLE.json`. Live **PERMISSION_REQUIRED**. | SYNTHETIC_ISOLATION PASS; live BLOCKED |
 | WoodMart below threshold | Actual Woo checkout | UNVERIFIED | BLOCKED |
 | WoodMart at threshold | Actual Woo checkout | UNVERIFIED | BLOCKED |
 | WoodMart above threshold | Actual Woo checkout | UNVERIFIED | BLOCKED |

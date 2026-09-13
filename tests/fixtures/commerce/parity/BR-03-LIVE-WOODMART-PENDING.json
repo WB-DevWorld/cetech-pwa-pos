@@ -1,0 +1,20 @@
+{
+  "caseId": "BR-03-LIVE-WOODMART-PENDING",
+  "environment": "training.cetechbpa.com",
+  "utc": "2026-09-13T15:35:02Z",
+  "versions": {
+    "woo": "11.1.0",
+    "woodmart": "8.5.7",
+    "b2bking": "core-5.2.50-pro-5.6.30"
+  },
+  "customerContextClass": "walkin",
+  "productSurrogate": "UNCAPTURED",
+  "quantity": "UNCAPTURED",
+  "currency": "GHS",
+  "authoritative": null,
+  "bridge": null,
+  "minorUnitDelta": null,
+  "applicability": "PERMISSION_REQUIRED",
+  "result": "NOT_RUN",
+  "reason": "R2 W4 grant does not cover an R3 plugin mutation or live quote capture. Do not invent WoodMart thresholds."
+}

@@ -1,7 +1,7 @@
 <?php
 /**
- * Lightweight BR-01 PHP test runner. Executes real assertions.
- * Not live WordPress, Woo, or staging proof.
+ * Lightweight bridge PHP test runner. Executes real assertions.
+ * Not live WordPress, Woo, staging, or pricing-gate proof.
  */
 
 error_reporting( E_ALL );
@@ -26,7 +26,9 @@ function br01_assert_eq( $expected, $actual, $message ) {
 }
 
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/fake-woo-runtime.php';
 require_once __DIR__ . '/test-health.php';
+require_once __DIR__ . '/test-quote.php';
 
 echo "\n{$passed} passed, {$failed} failed\n";
 exit( $failed === 0 ? 0 : 1 );

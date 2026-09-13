@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1.0.0",
+  "milestone": "R3",
+  "note": "Redacted corpus. Synthetic isolation rows prove BR-02 against an injected Woo runtime. Live WoodMart/B2BKing rows stay PERMISSION_REQUIRED until an explicit R3 training-update authorization. Do not treat this file as a pricing-gate PASS.",
+  "cases": [
+    "BR-02-GUEST-SIMPLE.json",
+    "BR-02-RETAIL-SIMPLE.json",
+    "BR-03-LIVE-WOODMART-PENDING.json",
+    "BR-04-LIVE-B2BKING-PENDING.json",
+    "BR-05-LIVE-OVERLAP-PENDING.json"
+  ]
+}

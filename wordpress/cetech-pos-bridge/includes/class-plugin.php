@@ -9,6 +9,8 @@ final class Cetech_Pos_Bridge_Plugin {
 	private static $instance = null;
 	/** @var Cetech_Pos_Bridge_Health_Controller */
 	private $controller;
+	/** @var Cetech_Pos_Bridge_Quote_Controller */
+	private $quote_controller;
 	/** @var array<int,array<string,mixed>> */
 	private $registered_routes = array();
 
@@ -19,11 +21,17 @@ final class Cetech_Pos_Bridge_Plugin {
 		return self::$instance;
 	}
 
-	public function __construct( Cetech_Pos_Bridge_Environment $environment ) {
-		$auth              = new Cetech_Pos_Bridge_Auth( $environment );
-		$correlation       = new Cetech_Pos_Bridge_Correlation();
-		$detector          = new Cetech_Pos_Bridge_Detector( $environment );
-		$this->controller  = new Cetech_Pos_Bridge_Health_Controller( $auth, $correlation, $detector );
+	public function __construct( Cetech_Pos_Bridge_Environment $environment, $runtime = null ) {
+		$auth             = new Cetech_Pos_Bridge_Auth( $environment );
+		$correlation      = new Cetech_Pos_Bridge_Correlation();
+		$detector         = new Cetech_Pos_Bridge_Detector( $environment );
+		$this->controller = new Cetech_Pos_Bridge_Health_Controller( $auth, $correlation, $detector );
+		if ( ! $runtime instanceof Cetech_Pos_Bridge_Woo_Runtime ) {
+			$runtime = new Cetech_Pos_Bridge_Woo_Runtime( $environment );
+		}
+		$store                  = new Cetech_Pos_Bridge_Quote_Store();
+		$engine                 = new Cetech_Pos_Bridge_Quote_Engine( $runtime, $store );
+		$this->quote_controller = new Cetech_Pos_Bridge_Quote_Controller( $auth, $correlation, $engine );
 	}
 
 	public function boot() {
@@ -36,21 +44,36 @@ final class Cetech_Pos_Bridge_Plugin {
 	}
 
 	public function register_routes() {
-		$args = array(
+		$health_args = array(
 			'methods'             => 'GET',
 			'callback'            => array( $this->controller, 'handle' ),
 			'permission_callback' => array( $this->controller, 'permission_callback' ),
 		);
+		$quote_args  = array(
+			'methods'             => 'POST',
+			'callback'            => array( $this->quote_controller, 'handle' ),
+			'permission_callback' => array( $this->quote_controller, 'permission_callback' ),
+		);
 		$this->registered_routes[] = array(
 			'namespace' => Cetech_Pos_Bridge_Constants::NAMESPACE,
 			'route'     => Cetech_Pos_Bridge_Constants::HEALTH_ROUTE,
-			'args'      => $args,
+			'args'      => $health_args,
+		);
+		$this->registered_routes[] = array(
+			'namespace' => Cetech_Pos_Bridge_Constants::NAMESPACE,
+			'route'     => Cetech_Pos_Bridge_Constants::QUOTE_ROUTE,
+			'args'      => $quote_args,
 		);
 		if ( function_exists( 'register_rest_route' ) ) {
 			register_rest_route(
 				Cetech_Pos_Bridge_Constants::NAMESPACE,
 				Cetech_Pos_Bridge_Constants::HEALTH_ROUTE,
-				$args
+				$health_args
+			);
+			register_rest_route(
+				Cetech_Pos_Bridge_Constants::NAMESPACE,
+				Cetech_Pos_Bridge_Constants::QUOTE_ROUTE,
+				$quote_args
 			);
 		}
 	}
@@ -61,6 +84,10 @@ final class Cetech_Pos_Bridge_Plugin {
 
 	public function get_controller() {
 		return $this->controller;
+	}
+
+	public function get_quote_controller() {
+		return $this->quote_controller;
 	}
 
 	/**
