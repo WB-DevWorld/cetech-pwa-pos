@@ -1,5 +1,7 @@
 # R2 two-pass freshness — runtime continuation
 
+**Superseded classification:** a later authorized continuation reclassified contributor SHA `130437d6…` as COMPATIBLE/RELEVANT and imported it. See `R2-BR-01-NORMALIZATION-IMPORT.md`. This file remains the prior runtime session record.
+
 This is **not** Pass 3 of any previous assignment.
 
 START_FRESHNESS_SNAPSHOT UTC: `2026-09-13T13:12:55Z`

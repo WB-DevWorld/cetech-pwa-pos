@@ -1,4 +1,26 @@
-# WS3 current handoff — R2 SESSION_COMPLETION (runtime hops proven; FRESH_2)
+# WS3 current handoff — R2 BR-01 normalization import (PROGRESS_CHECKPOINT)
+
+Kind / UTC: PROGRESS_CHECKPOINT / 2026-09-13T13:48:34Z start (new continuation; not Pass 3 of the runtime session)
+Task / batch / workstream: R2 — import WS2 `130437d6…` negative-auth test evidence; WS3 integration
+Owner / integration editor / requested human reviewer: @wbdevworld / same / @Ben-001-sys on the eventual final R2 head after required CI
+Branch: `batch/r2-auth-bridge-bff`
+Starting/base SHA: `origin/main` `aa08d74f2cb99301817e5995f01486acb7e2169f`
+Start R2 SHA: `b077f2da72816cfbfdef5cdeaa0c18f92a646592`
+Imported contributor SHA: `130437d6d9ee1c62c5f661ffb591f41b7e49e65e`
+Combined import SHA: `605e6f2bca5b1c6dfb2ba817b74f6e2dffe6ccdd`
+Not imported: `62608937a05648a3d6dd077012082c1c0558fe99`
+Files changed this continuation so far: `tests/bridge/bootstrap.php`, `tests/bridge/test-health.php`, plus this evidence/handoff
+Contracts changed: none
+Database migrations: none from this import
+Architecture decisions: none
+Production PHP changed: NO
+`pricingParityVerified`: remains false
+Tests: verifier EXIT 0; `make check`/`test` BLOCKED on this workstation (php/make absent). Assertion count UNVERIFIED.
+Classification supersession: `130437d` is COMPATIBLE/RELEVANT (not IRRELEVANT). See `docs/integration/evidence/R2-BR-01-NORMALIZATION-IMPORT.md`.
+R3: NOT STARTED. WS2 contributor branch: not modified. Do not merge main.
+Next: two-pass freshness for this continuation, then STOP.
+
+# Previous current handoff — R2 SESSION_COMPLETION (runtime hops proven; FRESH_2)
 
 Kind / UTC: SESSION_COMPLETION / 2026-09-13T13:41:34Z (Pass-2 cutoff; not Pass 3 of any previous session)
 Task / batch / workstream: R2 — Authentication, bridge health and BFF; WS3 CORE-02 (#21) + CORE-03 (#22) + imported BR-01 (#13)
