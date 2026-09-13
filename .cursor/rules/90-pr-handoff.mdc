@@ -5,3 +5,5 @@ alwaysApply: true
 ---
 
 Use docs/ai/HANDOFF-TEMPLATE.md for checkpoint, interruption and final delivery. Follow docs/plans/LONG-RUNNING-WORK.md: start snapshot, Pass 1 inspect/reconcile/test, independent Pass 2 inspect/reconcile/test, then STOP. No autonomous Pass 3. Record exact upstream cutoff and final task head. One milestone PR, no PR per ordinary subtask. Audit first; no silent redesign. CI/review never grants production approval.
+
+ADR-014: record declared/implementing human, source branch/SHA, imported SHA, tested combined baseline and receiving owner. Route review fixes to the task owner. R5+ milestone PRs use neutral WS3-owned batch/rN-* branches; #41 remains the R4 exception. Canonical details stay in docs/plans/LONG-RUNNING-WORK.md.

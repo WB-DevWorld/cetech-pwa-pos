@@ -2,7 +2,7 @@
 
 ## Ordered continuation queue (ADR-012)
 
-Activation and exact current scope: CURRENT-WORK.md at repository root. The table is the approved progression; a later milestone is not activated merely by being listed. Execute one authorized ready task, test/inspect/commit/checkpoint, then continue in the current batch without another prompt or PR. Detailed task contracts below remain unchanged. Dependencies may allow PREP_ONLY mocks or declared PROVISIONAL_TEST composition; these never prove runtime acceptance. Final task/batch delivery uses [two-pass freshness](../../plans/LONG-RUNNING-WORK.md), then STOP after Pass 2.
+Activation and exact current scope: CURRENT-WORK.md at repository root. The table is the approved progression; a later milestone is not activated merely by being listed. Execute only tasks whose declared human/workstream owner matches Emmanuel / @Emmanuel-coder-prog / WS2 (or a prior explicit senior reassignment in CURRENT-WORK), with authorized paths/leases. Test/inspect/commit/checkpoint, then continue only within that same owner's queue. At a cross-owner edge stop implementation and publish a tested provisional-SHA handoff; the integrator does not take the task. Review fixes return to the owning human. See ADR-014. Detailed task contracts below remain unchanged. Dependencies may allow PREP_ONLY mocks or declared PROVISIONAL_TEST composition; these never prove runtime acceptance. Final task/batch delivery uses [two-pass freshness](../../plans/LONG-RUNNING-WORK.md), then STOP after Pass 2.
 
 | Order | Task | Milestone | Prerequisites / current boundary |
 | --- | --- | --- | --- |

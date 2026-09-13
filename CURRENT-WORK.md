@@ -2,6 +2,33 @@
 
 Updated 2026-09-13. Canonical repo WB-DevWorld/cetech-pwa-pos. Senior @wbdevworld owns integration/migrations/contracts/config. GitHub issues are live task/status evidence; this table is the cross-workstream coordination summary.
 
+## Ownership correction before R5 — current coordination override
+
+Updated by explicit senior/user direction, 2026-09-13. [ADR-014](docs/decisions/ADR/014.md) and the [canonical handoff rule](docs/plans/LONG-RUNNING-WORK.md#ownership-preserving-milestone-execution) control cross-owner execution. This section narrows any older combined allowed-path lease below; it does not rewrite historical evidence or grant new implementation scope.
+
+- Live observation: main `516d6a49af74cc6677f67bdf843de6e819a05feb` (R3). R4/#41 open at `6a87e62034a26e5991af8c06cda92e7b7a72b02b`, awaiting Emmanuel re-review. The old R3-in-progress and R4-preparation entries below are retained snapshot history. PR #41's own R4 evidence remains with that branch; it has not been imported by this governance task. Refresh GitHub before review/activation; no approval or R4 completion is claimed here.
+- WF-OWN-01 correction: WS3 / @wbdevworld on `fix/ownership-preserving-milestones`, separate narrowly scoped governance PR. Human authorization: the senior's 2026-09-13 ownership-preserving workflow instruction. Independent requested reviewer: @Ben-001-sys, subject to actual GitHub request/review evidence. It is one additional corrective review outside R1–R10; the ten delivery milestones remain unchanged.
+- Central lease for this assignment: policy/ADR/register/agent/Cursor instructions, CURRENT-WORK/OWNERSHIP, contribution/review/handoff/planner templates, six transition prompts, workstream TASKS/IMPLEMENTATION-PLAN guidance, integration/standards and this correction's evidence. No product files, domain contracts, migration, CI workflow, packages/lockfiles, reference edits, R4 takeover or remote business effects. Lease expires at final handoff; later edits require a new recorded editor/assignment. R4 implementation is left intact.
+- Approved assignment is this bounded governance correction only. An implementation task requires both the acting human/workstream owner match and its scope/lease. The milestone integration editor can import another owner's declared commits but cannot implement that owner's tasks/fixes. A combined path list or an unavailable contributor does not reassign ownership.
+- Explicit implementation reassignments: **NONE**. Future exceptions must record task, old/new human/workstream, exact scope/paths, senior instruction reference/date, reason, start/expiry, dependency/lease state, handoff status and independent reviewer before work begins. Agent-written plans are not reassignment authority.
+- R4 findings: FE-03/FE-04 → Ben/WS1; CORE-04/local/BFF/App Router → WS3. A bridge finding → Emmanuel/WS2. Returning a review fix does not create a per-task PR; the owner supplies tested source SHAs, WS3 imports/tests, then the existing milestone is re-reviewed. This correction does not perform or authorize additional product fixes.
+- R5 activation: **BLOCKED / NOT STARTED** until R4 is independently accepted/merged, this correction is reviewed/adopted, PRE-R5 hardening is evidenced and a senior R5 activation/lease is recorded. Hardening remains: catalog query/index performance (WS3); QuoteRequest/Quote runtime schema validation split between WS3 BFF and WS2 bridge. Each needs bounded scope/evidence; no implicit cross-owner fix permission and no unsupported `pricingParityVerified=true`.
+- R5 planned integration branch: `batch/r5-idempotent-prepare-cash` (PLANNED, not created by this task). PR: NOT_CREATED. Editor: WS3 / @wbdevworld. Proposed independent R5 reviewer: Ben (actual request when ready). Contributors keep `ws2/br-06-prepare-sale` and `ws3/core-05-cash-orchestration`, or their existing declared branches; names do not grant authority.
+- R5 assembly order after activation: Emmanuel/WS2 BR-06 → import/test → publish full BR06_INTEGRATION_SHA → WS3 CORE-05 on its own contributor branch based on that SHA → import/test → one milestone review. CORE-05 mock preparation may run independently only if explicitly queued; its existing no-BR-07 dependency is preserved. Combined testing accompanies imports.
+- R6 ownership: BR-07 Emmanuel/WS2; FE-05 Ben/WS1; CORE-06 senior/WS3. Exchange declared provisional integration SHAs without per-task main merges. Do not activate R6 from this roadmap.
+
+| R5 dependency handoff field | Current value |
+| --- | --- |
+| Producing task / human / workstream | BR-06 / @Emmanuel-coder-prog / WS2 |
+| Source contributor branch / full source SHA(s) | UNVERIFIED / UNVERIFIED; owner records on activation/checkpoint |
+| Imported SHA(s) / tested combined integration SHA | UNVERIFIED / UNVERIFIED; not yet implemented/imported/tested |
+| Receiving task / human / workstream | CORE-05 / @wbdevworld / WS3 |
+| Baseline classification / acceptance evidence | BLOCKED; no provisional baseline claimed |
+| Receiving owner's acknowledgment / next action | Pending exact tested baseline and R5 activation |
+| Reassignment | NONE |
+
+Keep this table in CURRENT-WORK; detailed evidence belongs in the task handoff, not a second scheduler. At handoff name the actual implementer as well as the declared owner. Unknown source/import provenance blocks acceptance. If #41 and this PR both update the ledger, retain the newest R4 runtime/review facts and this ownership restriction during owner-led integration; do not take either whole file wholesale. Human review and required checks remain mandatory before merge.
+
 Controlling interpretation: [ADR-011](docs/decisions/ADR/011.md). Training Woo is the development/integration reference. Unavailable production facts are cutover/release deltas unless a task specifically requires them. Remaining CP-04 work: [CP-04 checklist](docs/runbooks/CP-04-REMAINING-WORK.md).
 
 | Task | Owner | Branch | Status | Dependencies / blocked by | Contracts | Merge order |

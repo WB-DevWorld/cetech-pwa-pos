@@ -24,3 +24,9 @@ R1/#40 and R2/#43 are merged. #41 is retained for R4; its current preparation-on
 Domain suites arrive in the same milestone as their code: PHP/capability/HPOS negatives with bridge code, real parity with R3, preparation/concurrency with R5, integrated sale with R6, provider callback/verification with R7, refund invariants with R8, installed PWA/close with R9. R10 is qualification, not first integration. Missing suites are not PASS. CI command registration remains in TOOLCHAIN and each task's acceptance.
 
 If scope is unreviewable, split it, document risk and new budget, and keep all checks/reviews. No unconditional sixty-hour completion claim. The next live assignment and leases are only in CURRENT-WORK; this table is not a second scheduler.
+
+## Ownership correction before R5 (2026-09-13)
+
+The snapshot above is historical: live main is R3 `516d6a49af74cc6677f67bdf843de6e819a05feb`; #41 R4 is open at observed `6a87e62034a26e5991af8c06cda92e7b7a72b02b` awaiting Emmanuel re-review. Preserve its current review and history. ADR-014 is a separate narrow governance correction; one additional corrective review is explicitly accounted for outside the ten planned delivery closures. This does not renumber or recreate R1–R10.
+
+From R5 onward each milestone has a neutral WS3-owned batch/rN-* branch/PR; contributors retain ownership and branches. R5 planned destination is `batch/r5-idempotent-prepare-cash`; BR-06 belongs to Emmanuel, CORE-05 to WS3. A table row is not the integrator's personal implementation queue. R6 has BR-07 Emmanuel, FE-05 Ben, CORE-06 WS3. Exchange exact tested provisional integration SHAs and import only declared commits, preserving provenance. CURRENT-WORK records activation, gates and leases. Review fixes return to their owners. See [canonical rule](LONG-RUNNING-WORK.md#ownership-preserving-milestone-execution).

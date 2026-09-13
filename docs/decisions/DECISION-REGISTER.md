@@ -18,6 +18,8 @@ Current baseline established 2026-09-11 under explicit bootstrap authorization. 
 | [ADR-012](ADR/012.md) | Milestone batching, bounded continuation and exactly two freshness passes | CURRENT decision; R1 merge activates team-wide | 2026-09-12 | Reduce interruptions with executable checks and bounded drift correction | Only ADR-007 cadence / old single-task stop clauses; ten is a review budget | Workflow/handoff only; v1 unchanged | WS1/2/3 |
 | [ADR-013](ADR/013.md) | Provider-neutral cart-level commercial discounts in Quote v1 | CURRENT on R3/#44 pending independent review | 2026-09-13 | Negative Woo cart-level fees may occupy Quote.discount only when proven commercial; largest-remainder integer allocation | Undocumented last-line remainder stuffing on R3 `0.2.6-br02` | Quote, QuoteLine, Money; v1.0.0 structure unchanged | WS1/2/3 |
 
+| [ADR-014](ADR/014.md) | Ownership-preserving milestone execution and cross-owner provisional-SHA handoff | CURRENT human direction; repository adoption pending correction review/merge | 2026-09-13 | Prevent integration queue from becoming cross-owner implementation authority | ADR-012 unqualified continuation / R5+ contributor-PR reuse only | Workflow/handoff only; v1 unchanged | WS1/2/3 |
+
 | Fact/proposal | Status | Controlling treatment |
 | --- | --- | --- |
 | Medusa/Vendure as urgent POS backend | SUPERSEDED | ADR-001; no current implementation |

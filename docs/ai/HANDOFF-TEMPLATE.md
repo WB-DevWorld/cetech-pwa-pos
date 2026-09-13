@@ -56,3 +56,26 @@ Metrics delta for CURRENT-WORK (counts/timestamps, never guessed zeroes):
 ```
 
 The final hash cannot be embedded in its own commit: record it in the PR handoff or a later checkpoint. Record pre-handoff implementation SHA in committed evidence. No secrets or unnecessary customer data. No completion claim from prose alone.
+
+## Cross-owner dependency / review-fix handoff (ADR-014)
+
+```text
+Handoff kind: DEPENDENCY_READY / WAITING_FOR_OWNER / REVIEW_FIX_RETURN
+Milestone / task / next task:
+Acting human / workstream / mode (IMPLEMENT or INTEGRATE):
+Declared task owner / actual implementing human / workstream:
+Source contributor branch / full source SHA(s):
+Imported SHA(s) / exact tested combined integration SHA:
+Integration branch / classification (PROVISIONAL_TEST / INTEGRATED_AND_TESTED):
+Allowed / forbidden paths / applicable central leases:
+Contract version / acceptance limits / exact tests and results:
+Receiving human / workstream / acknowledgment checkpoint:
+Review finding / severity / owning task / fix source/import SHAs:
+Explicit senior reassignment authority / scope / expiry (or NONE):
+Final two-pass evidence / cutoff (or clearly progress-only UNVERIFIED):
+Remote effects allowed (not inferred from this handoff):
+Next exact action for receiving owner:
+Other independently authorized same-owner work (or WAITING_FOR_OWNER):
+```
+
+Record this with the existing task handoff; CURRENT-WORK remains the only cross-workstream scheduler. Missing provenance is UNVERIFIED and blocks contribution acceptance. Git committer identity is not a substitute for declared human ownership. Final task delivery still uses the full two-pass fields above.
