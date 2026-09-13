@@ -18,7 +18,15 @@ Production PHP changed: NO
 Tests: verifier EXIT 0; `make check`/`test` BLOCKED on this workstation (php/make absent). Assertion count UNVERIFIED.
 Classification supersession: `130437d` is COMPATIBLE/RELEVANT (not IRRELEVANT). See `docs/integration/evidence/R2-BR-01-NORMALIZATION-IMPORT.md`.
 R3: NOT STARTED. WS2 contributor branch: not modified. Do not merge main.
-Next: two-pass freshness for this continuation, then STOP.
+Freshness protocol (this continuation):
+START_FRESHNESS_SNAPSHOT UTC: `2026-09-13T13:48:34Z`
+Pass 1 UTC: `2026-09-13T13:52:28Z` main `aa08d74…` SAME; WS2 `6260893…` SAME; classification none
+Pass 2 UTC: `2026-09-13T13:52:50Z` main SAME; WS2 SAME; classification none
+Final freshness: FRESH_2
+Delivery: BLOCKED (BLOCKED_VERIFICATION — php/make absent)
+Pass 3: NOT PERMITTED
+Post-cutoff risk: arrivals after Pass-2 `aa08d74` / WS2 `6260893`
+Next exact action: PHP/Make-capable environment reruns `make -C wordpress/cetech-pos-bridge check|test` on `605e6f2…` (or later evidence head) and records the assertion count. Independent human review still required on the eventual final R2 head. Do not merge. Do not start R3.
 
 # Previous current handoff — R2 SESSION_COMPLETION (runtime hops proven; FRESH_2)
 
