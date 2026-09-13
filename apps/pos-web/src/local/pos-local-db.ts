@@ -4,7 +4,8 @@ import type { CartDraft, CustomerSummary, PendingOperation } from "../../../../d
 
 export const POS_LOCAL_DB_NAME = "cetech-pos-local";
 export const POS_LOCAL_SCHEMA_V1 = 1;
-export const POS_LOCAL_SCHEMA_CURRENT = 2;
+export const POS_LOCAL_SCHEMA_V2 = 2;
+export const POS_LOCAL_SCHEMA_CURRENT = 3;
 
 export type CatalogMetaRow = CatalogProjectionMeta & { readonly key: "catalog" };
 export type BarcodeIndexRow = { readonly barcode: string; readonly itemIds: ReadonlyArray<string> };
@@ -17,6 +18,7 @@ export type JournalRecord = PendingOperation & {
   }>;
 };
 export type SchemaMetaRow = { readonly key: "schema"; readonly localSchema: number; readonly appBuild: string };
+export type KvRow = { readonly key: string; readonly value: string };
 
 export class PosLocalDatabase extends Dexie {
   catalogItems!: EntityTable<ProjectedCatalogItem, "id">;
@@ -26,6 +28,7 @@ export class PosLocalDatabase extends Dexie {
   journal!: EntityTable<JournalRecord, "id">;
   customers!: EntityTable<CustomerSummary & { readonly searchNormalized: string }, "id">;
   schemaMeta!: EntityTable<SchemaMetaRow, "key">;
+  kv!: EntityTable<KvRow, "key">;
 
   constructor(name = POS_LOCAL_DB_NAME) {
     super(name);
@@ -38,6 +41,20 @@ export class PosLocalDatabase extends Dexie {
       customers: "id, searchNormalized",
       schemaMeta: "key",
     });
+    this.version(POS_LOCAL_SCHEMA_V2)
+      .stores({
+        catalogItems: "id, parentId, kind, searchNormalized, tombstoned, sourceItemId",
+        barcodeIndex: "barcode",
+        catalogMeta: "key",
+        cartDrafts: "cartId, updatedAt",
+        journal: "id, status, idempotencyKey, transactionId, operation, [operation+idempotencyKey]",
+        customers: "id, searchNormalized",
+        schemaMeta: "key",
+      })
+      .upgrade(async (tx) => {
+        const meta = tx.table("schemaMeta");
+        await meta.put({ key: "schema", localSchema: POS_LOCAL_SCHEMA_V2, appBuild: "core-04" });
+      });
     this.version(POS_LOCAL_SCHEMA_CURRENT)
       .stores({
         catalogItems: "id, parentId, kind, searchNormalized, tombstoned, sourceItemId",
@@ -47,6 +64,7 @@ export class PosLocalDatabase extends Dexie {
         journal: "id, status, idempotencyKey, transactionId, operation, [operation+idempotencyKey]",
         customers: "id, searchNormalized",
         schemaMeta: "key",
+        kv: "key",
       })
       .upgrade(async (tx) => {
         const meta = tx.table("schemaMeta");

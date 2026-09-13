@@ -2,6 +2,7 @@ export {
   POS_LOCAL_DB_NAME,
   POS_LOCAL_SCHEMA_CURRENT,
   POS_LOCAL_SCHEMA_V1,
+  POS_LOCAL_SCHEMA_V2,
   closePosLocalDatabase,
   deletePosLocalDatabase,
   openPosLocalDatabase,
@@ -17,3 +18,10 @@ export {
 export { createLocalCustomerPort, replaceLocalCustomers } from "./customer-store";
 export { rebuildableCatalogClear, recordLocalSchema } from "./pwa-upgrade";
 export { assertJournalPayloadHasNoSecrets, journalPayloadContainsSecrets } from "./secrets-guard";
+export { clearActiveCartId, recallActiveCartId, rememberActiveCartId } from "./active-cart";
+export {
+  CASHIER_SEED_CATALOG,
+  CASHIER_SEED_CUSTOMERS,
+  CASHIER_SEED_LOCATION_ID,
+  ensureCashierLocalSeed,
+} from "./cashier-seed";
