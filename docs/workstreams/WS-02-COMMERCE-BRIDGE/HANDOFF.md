@@ -1,3 +1,98 @@
+# WS2 current handoff — HARDEN-03 / #48 bridge quote-schema enforcement (TASK_COMPLETION)
+
+Kind / UTC: TASK_COMPLETION / 2026-09-14T08:29:11Z (Pass-2 cutoff; no Pass 3)
+Task / batch / workstream: HARDEN-03 / issue #48 — enforce QuoteRequest/Quote JSON Schema at the Woo bridge boundary; PRE-R5 hardening; WS2
+Owner / actual implementer: @Emmanuel-coder-prog / @Emmanuel-coder-prog (commit author `Emmanuel Owusu Boakye <boakyeowusu738@gmail.com>`)
+Integration destination / requested human reviewer: WS3 import into `batch/pre-r5-hardening` (draft PR #51) / independent reviewer requested by WS3, not from this contributor handoff
+Branch: `ws2/pre-r5-quote-schema-bridge`
+Starting/base SHA: `origin/main` `29cea52acbee2729175df61d2ae1a6658c5c04b1`
+Implementation SHA: `c06c9e67108d372e25e815a43e05029ba12e6ab5`
+Final source/evidence SHA: this evidence commit on the same branch (not self-referential)
+Contracts changed: **NONE** — `QuoteRequest`, `Quote`, `ApiFailure` v1.0.0 consumed, not edited; `docs/contracts/**` untouched
+ADR changes: **NONE**
+Dependency changes: **NONE** — no composer/npm/lockfile change; validator is plain PHP with no new runtime dependency
+Pricing semantics changed: **NONE** — Woo subtotal, WoodMart thresholds, B2BKing customer/group/cart-total, ADR-013 allocation, tax and variation pricing untouched
+`pricingParityVerified`: **false**
+Issue #4: OPEN. BR-06: not started. CORE-05: not implemented. R5: not activated.
+
+## Files changed
+
+Implementation commit `c06c9e6…` — 10 files, +1481 / -2:
+
+- `wordpress/cetech-pos-bridge/schema/quote-contract.v1.json` (new) — shipped projection of the canonical schema
+- `wordpress/cetech-pos-bridge/tools/derive-quote-contract.php` (new) — deterministic derivation + `--check` / `--write`
+- `wordpress/cetech-pos-bridge/includes/class-schema.php` (new) — runtime JSON Schema validator
+- `wordpress/cetech-pos-bridge/includes/class-quote-request.php` — ingress schema gate before normalisation
+- `wordpress/cetech-pos-bridge/includes/class-quote-engine.php` — egress fail-closed gate before store/return
+- `wordpress/cetech-pos-bridge/cetech-pos-bridge.php`, `wordpress/cetech-pos-bridge/Makefile`, `tests/bridge/bootstrap.php`, `tests/bridge/run.php` — wiring
+- `tests/bridge/test-quote-schema.php` (new) — positive/negative coverage
+
+No `apps/**`, `supabase/**`, `docs/contracts/**`, `.github/**`, `reference/**`, root config or lockfile changed.
+
+## Contract-source rule
+
+One source of contract truth is preserved. `docs/contracts/pos-domain.schema.json` remains authoritative and unedited. Because that file is not shipped inside the WordPress plugin, `tools/derive-quote-contract.php` extracts the transitive `$defs` closure reachable from `QuoteRequest` and `Quote` into `schema/quote-contract.v1.json`, which the plugin loads at runtime. The derivation is deterministic (`ksort` on the subset, canonical node order preserved) and refuses any keyword the validator does not implement, so an under-enforced contract fails derivation instead of passing silently.
+
+Divergence is detectable three ways: the bridge suite re-derives the artifact and asserts equality with the committed file; it asserts eight individual `$defs` entries are identical to the canonical definitions; and `php wordpress/cetech-pos-bridge/tools/derive-quote-contract.php --check` exits non-zero on drift (verified: `artifact matches the canonical contract`, exit 0). The validator itself holds no field names, enums, formats or version strings of its own, and fails closed on an unrecognised keyword. Contract version `1.0.0`, field names, enums, required sets, Quantity/Money/CustomerContext/Quote-line semantics and ADR-013 cart-discount semantics are unchanged. No contract conflict with accepted runtime behaviour was found.
+
+## Ingress behaviour
+
+`Cetech_Pos_Bridge_Quote_Request::parse()` validates the decoded body against canonical `QuoteRequest` before the existing normalisation and before the engine touches the runtime. Rejection uses the existing normalized envelope and canonical mapping: `VALIDATION_ERROR`, HTTP 400, `retryable:false`, `nextAction:"none"`, correlation preserved. `details` carries only the top-level field name via `Cetech_Pos_Bridge_Schema::field_of()` and the existing `sanitize_details()` allowlist, so no rejected payload, Woo internal, stack trace, secret or customer data is emitted or logged.
+
+## Egress behaviour
+
+`Cetech_Pos_Bridge_Quote_Engine::assert_quote_contract()` runs after authoritative Woo pricing and normalisation and before `store->put()` and the success return. An invalid candidate Quote fails closed as `INTEGRATION_UNAVAILABLE` / HTTP 503 / `retryable:true` / `nextAction:"resolve"` — the same class the surrounding runtime-integrity checks already use for internal contract breaches, rather than the caller-facing `VALIDATION_ERROR`. Nothing is stripped, coerced or repaired; the invalid Quote is not stored and never leaves as `{ok:true}`.
+
+## Proof: invalid ingress does not enter pricing
+
+`tests/bridge/test-quote-schema.php` adds `Cetech_Pos_Bridge_Spy_Woo_Runtime`, which counts `available`, `snapshot`, `install_customer_context`, `reset_cart`, `add_line`, `calculate_totals` and `get_priced_cart`. For each of **36** schema-invalid requests the suite asserts `VALIDATION_ERROR` **and** that the runtime call total is 0 — this asserts the pricing path was not invoked, not merely that the status was 400. One case is expanded per entry point: `snapshot`, `install_customer_context`, `reset_cart`, `add_line`, `calculate_totals`, `get_priced_cart` and `available` are each individually 0, with `orders` and `stock` side-effect counts 0. The converse is pinned too: a valid request does reach `calculate_totals` and `get_priced_cart`.
+
+Covered invalid ingress cases: missing required top-level field (`cartId`, `lines`); unexpected top-level field under `additionalProperties:false`; invalid and wrong-typed `cartId`; negative, string and float `cartRevision`; non-object customer; invalid customer kind; retail customer missing `customerId`; walkin customer carrying `customerId`; unexpected customer field; `customerId` with a forbidden character; empty and wrong-typed `locationId`; empty `lines`; `lines` as an object; line not an object; line missing `lineId`/`productId`/`quantity`; unexpected line field; non-UUID `lineId`; invalid and empty `productId`; invalid and wrong-typed `variationId`; quantity zero, `0.00`, negative, seven fractional digits, trailing zero, non-numeric, numeric rather than string, and leading zero.
+
+## Proof: invalid egress cannot leave as success
+
+Two end-to-end fail-closed regressions drive real defects through authoritative pricing. The spy runtime injects an out-of-contract `stockStatus` (`onbackorder`, Woo's raw term rather than the canonical `backorder`) and an out-of-contract `QuoteProblem` code. Both previously would have been emitted as successful Quotes; both now return `INTEGRATION_UNAVAILABLE` after `get_priced_cart` ran, confirming the gate sits after pricing. Over REST the invalid Quote yields HTTP **503**, `ok:false`, no `data` key, `retryable:true`, `nextAction:"resolve"`, preserved correlation, the frozen `code/message/retryable/nextAction/details` envelope, and `details` containing only `field`.
+
+A further **30** direct negatives mutate a known-valid produced Quote: missing required Quote field; missing and too-short `fingerprint`; unexpected Quote field; lowercase and wrong-length currency; malformed Money; Money `minor` as string; negative Money `minor`; Money with an extra field; `discount` as a bare string; emptied `lines`; `lines` as an object; QuoteLine missing `unitPrice` and `problems`; unexpected QuoteLine field; invalid and numeric QuoteLine quantity; invalid `stockStatus` enum; `purchasable` as a string; incorrectly nested Money; invalid QuoteProblem code; QuoteProblem missing `message`; unexpected QuoteProblem field; invalid `calculatedAt` and empty `expiresAt`; invalid `cartId`; negative `cartRevision`; invalid customer context; `purchasable` as a string.
+
+## Valid round trip
+
+Guest/walkin and registered-retail quotes both still produce Quotes that satisfy the canonical `Quote` schema (`validate(...) === null`), with guest total `1000` minor and currency `GHS` unchanged, and zero order/stock side effects. Over REST a valid quote still returns HTTP 200 with `ok:true` and a success body that validates against canonical `Quote`. Optional `pricingLabel`/`variationId` and in-contract `QuoteProblem` codes remain accepted, so the gate is not over-strict.
+
+## Verification (exact results)
+
+Workstation had neither `php` nor `make` on PATH. PHP 8.5.10 (NTS x64) was installed into `%LOCALAPPDATA%\cetech-toolchain\php` outside the repository; nothing was committed and no repository dependency changed. GNU Make remains unavailable, so the Makefile's own recipes were executed directly with that `php`. This is recorded honestly: the four required commands were satisfied by their exact recipes, not by substituted or synthetic results, but `make` itself was not the driver and CI should re-run the canonical `make` targets.
+
+- `python scripts/verify_control_plane.py` → **PASS**, exit 0. "3 workstream packages, 30 scoped tasks/DAG, 28 immutable reference files, 61 schemas, 22 contract fixtures, shared OpenAPI refs, generated types, errors/state guards, local links and secret tripwires." Stated limit: no application/bridge/RLS/live payment/pricing/hardware tests in that check.
+- `make -C wordpress/cetech-pos-bridge check` → **BLOCKED (make absent)**; recipe executed as `php -l` over the Makefile's `PHP_SOURCES` + `TEST_SOURCES`: **30 files, 0 lint failures**, status 0.
+- `make -C wordpress/cetech-pos-bridge test` → **BLOCKED (make absent)**; recipe executed as `php tests/bridge/run.php`: **445 passed, 0 failed**, exit 0. Baseline on `29cea52…` in a detached worktree: **245 passed, 0 failed**. Delta **+200** assertions, **0** regressions. Counted subsets: 36 ingress rejections, 36 pricing-not-entered assertions, 30 direct Quote negatives.
+- `make -C wordpress/cetech-pos-bridge parity` → **BLOCKED (make absent)**; recipe executed as `php tests/bridge/parity.php`: **138 passed, 0 failed, 19 permission-required/skipped**, exit 0 — identical to the `29cea52…` baseline, and the harness still refuses to invent a live WoodMart/B2BKing PASS. Not the R3 pricing gate.
+- `git diff --check` → clean, exit 0.
+- `php wordpress/cetech-pos-bridge/tools/derive-quote-contract.php --check` → "artifact matches the canonical contract", exit 0.
+
+## Limitations and blockers
+
+- `make` was unavailable; canonical `make` invocation is UNVERIFIED and should be confirmed by CI or by Emmanuel's own workstation.
+- All evidence is local PHP against an injected Woo runtime. No live WordPress, Woo, WoodMart or B2BKing execution, and no training-plugin install or version bump. The plugin header stays `0.2.7-br02`; whether a deployable version bump is wanted is an integration decision, not taken here.
+- `pricingParityVerified` stays false. Live parity, checkout and production readiness are unchanged.
+- Two pre-existing bridge checks are stricter than the canonical schema and were deliberately preserved rather than removed: `lineId` uniqueness across request lines, and the `SETTLEMENT_CURRENCY`/2-decimal restriction in the money adapter. These are accepted R3 behaviour, not new invented validations.
+- PHP associative arrays cannot distinguish an empty JSON object from an empty JSON array; both are accepted by the `object`/`array` type checks and then rejected by `required`/`minItems`. Documented in `class-schema.php`.
+- String length uses `mb_strlen` when available, otherwise `strlen`.
+
+## Freshness (ADR-012)
+
+- Pass-1 cutoff: `origin/main` `29cea52acbee2729175df61d2ae1a6658c5c04b1` at `2026-09-14T08:28:53Z`
+- Pass-2 cutoff: `origin/main` `29cea52acbee2729175df61d2ae1a6658c5c04b1` at `2026-09-14T08:29:11Z` (independent fetch; delta vs base empty)
+- Arrivals relevant to #48: none; `29cea52…..origin/main` is empty in both passes. Observed peer branches, unchanged across both passes and neither consumed nor imported: `batch/pre-r5-hardening` `3c445c779eaa5e1f7a0360333cf8e5460052db99`, `ws3/pre-r5-catalog-query-index` `7f41a29b4e706aafe93d2047b701f1e260488f86`, `ws3/pre-r5-quote-schema-bff` `4816cfa264d60763207aadae192a6623ff293302`. No remote `ws2/pre-r5-quote-schema-bridge` exists; this handoff does not push one.
+- Reconciliation: none required, so no verification was re-run after the passes.
+- Classification: **FRESH_2**. Pass 3 NOT PERMITTED / NOT RUN.
+
+## Delivery
+
+**READY_FOR_INTEGRATION** for the WS2/bridge portion of the quote-schema gate. Recommended next action: WS3 reviews and imports the exact tested commits from `ws2/pre-r5-quote-schema-bridge` into `batch/pre-r5-hardening` (draft PR #51), runs combined checks including canonical `make` targets, and requests independent human review. Nothing was merged and nothing was pushed to `batch/pre-r5-hardening`. Do not start BR-06; R5 is not started.
+
+## Previous current handoff — R3 CART-DISCOUNT SESSION_COMPLETION (FRESH_2)
+
 # WS2 current handoff — R3 CART-DISCOUNT SESSION_COMPLETION (FRESH_2)
 
 Kind / UTC: SESSION_COMPLETION / 2026-09-13T19:07:50Z (Pass-2 cutoff; no Pass 3)

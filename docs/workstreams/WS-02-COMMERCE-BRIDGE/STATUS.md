@@ -1,5 +1,21 @@
 # WS2 current status
 
+Snapshot 2026-09-14. `origin/main` `29cea52acbee2729175df61d2ae1a6658c5c04b1`. Owner and actual implementer: Developer 2 / @Emmanuel-coder-prog. Current task **HARDEN-03 / issue #48** on `ws2/pre-r5-quote-schema-bridge`, base `29cea52…`. Implementation SHA `c06c9e67108d372e25e815a43e05029ba12e6ab5`. ADR-014 applies: WS3 may import these exact tested commits into `batch/pre-r5-hardening` (draft PR #51) but does not implement this issue.
+
+This is **PRE-R5 hardening**, not R5. BR-06 is not started, CORE-05 is not implemented, and R5 is not activated. Contract changes NONE, ADR changes NONE, dependency changes NONE, pricing-semantics changes NONE. `pricingParityVerified` remains **false**. Issue #4 stays OPEN. PRE-R5 is not complete; HARDEN-03 clears only the WS2/bridge portion of the quote-schema gate, and the WS3 BFF portion is separate.
+
+HARDEN-03 result: the canonical v1 `QuoteRequest`/`Quote` JSON Schema is now enforced at the Woo bridge boundary. Ingress rejects contract-invalid payloads with `VALIDATION_ERROR` before any Woo/WoodMart/B2BKing pricing entry point is invoked; egress validates the candidate Quote and fails closed with `INTEGRATION_UNAVAILABLE` rather than emitting `{ok:true}`. Enforcement reads a deterministic projection of `docs/contracts/pos-domain.schema.json` (`wordpress/cetech-pos-bridge/schema/quote-contract.v1.json`, derived by `tools/derive-quote-contract.php`), and the bridge suite re-derives it so divergence from the canonical contract fails. No second handwritten PHP contract was created.
+
+Verification on `c06c9e6…` with PHP 8.5.10: `python scripts/verify_control_plane.py` **PASS**; bridge lint **30/30 files clean**; bridge suite **445 passed / 0 failed** (baseline on `29cea52…` was 245/0, so +200 assertions and no regressions); `parity` **138 passed / 0 failed / 19 permission-required-skipped**, byte-identical to baseline; `git diff --check` clean. GNU Make is absent on the workstation, so the Makefile's own recipes were executed directly with `php`; see HANDOFF.md.
+
+| Task | State | Branch / evidence |
+| --- | --- | --- |
+| HARDEN-03 | IMPLEMENTED / LOCALLY TESTED; awaiting WS3 import + independent review | Issue #48. `ws2/pre-r5-quote-schema-bridge` `c06c9e6…`. Not PRE-R5 complete; not R5. |
+
+## Previous snapshot (R3 cart-discount — historical; current section above controls)
+
+# WS2 current status
+
 Snapshot 2026-09-13. `origin/main` `ab9aa5ae3dcc79d51efb22c19bd1f17f38d57f77`. Owner: Developer 2 / @Emmanuel-coder-prog. R3 editor: @wbdevworld on `batch/r3-authoritative-pricing-parity` / PR #44. Continuation start: `docs/integration/evidence/R3-CART-DISCOUNT-START-FRESHNESS.md`. Live capture: `docs/integration/evidence/R3-CART-DISCOUNT.md`. Training plugin **`0.2.7-br02`**. ADR-013 CURRENT pending independent review.
 
 Ben `CHANGES_REQUESTED` on `99dc34f…` is addressed by ADR-013 + integer largest-remainder allocation. Multi-line B2B MATCH_EXACT vs Woo (delta 0). Live remainder leftover 0 on configured %. One-cart WoodMart+B2B N/A. `pricingParityVerified` **false**. Issue #4 stays OPEN. Do not start R4. Do not merge until independent review.
