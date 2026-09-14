@@ -29,6 +29,7 @@ require_once CETECH_POS_BRIDGE_DIR . '/includes/class-auth.php';
 require_once CETECH_POS_BRIDGE_DIR . '/includes/class-correlation.php';
 require_once CETECH_POS_BRIDGE_DIR . '/includes/class-detector.php';
 require_once CETECH_POS_BRIDGE_DIR . '/includes/class-response.php';
+require_once CETECH_POS_BRIDGE_DIR . '/includes/class-schema.php';
 require_once CETECH_POS_BRIDGE_DIR . '/includes/class-health-controller.php';
 require_once CETECH_POS_BRIDGE_DIR . '/includes/class-money.php';
 require_once CETECH_POS_BRIDGE_DIR . '/includes/class-cart-discount.php';

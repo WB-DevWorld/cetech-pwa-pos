@@ -1,7 +1,9 @@
 import type { CatalogPort } from "../../../../docs/contracts/ports";
 import type { Uuid } from "../../../../docs/contracts/domain.generated";
 import { CatalogProjectionEngine, emptyProjectionMeta } from "../core/catalog/engine";
+import { catalogSearchGrams } from "../core/catalog/query";
 import type { CatalogSourceRecord } from "../core/catalog/source";
+import { searchLocalCatalog } from "./catalog-indexed-search";
 import { openPosLocalDatabase, type PosLocalDatabase } from "./pos-local-db";
 
 export async function loadCatalogEngine(db: PosLocalDatabase = openPosLocalDatabase()): Promise<CatalogProjectionEngine> {
@@ -21,7 +23,12 @@ export async function persistCatalogEngine(
     await db.catalogItems.clear();
     await db.barcodeIndex.clear();
     if (snapshot.items.length > 0) {
-      await db.catalogItems.bulkPut(snapshot.items);
+      await db.catalogItems.bulkPut(
+        snapshot.items.map((item) => ({
+          ...item,
+          searchGrams: item.tombstoned ? [] : catalogSearchGrams(item.searchNormalized, item.barcodes),
+        })),
+      );
     }
     const barcodeMap = new Map<string, string[]>();
     for (const item of snapshot.items) {
@@ -48,7 +55,7 @@ export async function rebuildCatalogProjection(
   sourceVersion: string,
   db: PosLocalDatabase = openPosLocalDatabase(),
 ): Promise<CatalogProjectionEngine> {
-  const engine = await loadCatalogEngine(db);
+  const engine = new CatalogProjectionEngine();
   engine.rebuild(records, sourceVersion, new Date().toISOString());
   await persistCatalogEngine(engine, db);
   return engine;
@@ -75,12 +82,15 @@ export function createLocalCatalogPort(
   const correlationId = options.correlationId ?? (() => crypto.randomUUID());
   return {
     async search(input) {
-      const engine = await loadCatalogEngine(db);
+      const { page } = await searchLocalCatalog(input, db);
       return {
         ok: true,
-        data: engine.search(input),
+        data: page,
         correlationId: correlationId(),
       };
     },
   };
 }
+
+export type { LocalCatalogQueryResult, LocalCatalogQueryStats } from "./catalog-indexed-search";
+export { searchLocalCatalog } from "./catalog-indexed-search";

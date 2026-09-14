@@ -2,12 +2,12 @@ import type { ApiResult } from "../../../../../docs/contracts/ports";
 import type { Quote, QuoteRequest, Uuid } from "../../../../../docs/contracts/domain.generated";
 import { STAFF_CSRF_COOKIE, STAFF_SESSION_COOKIE } from "../../config/auth";
 import { authFailure } from "../auth/errors";
-import { isUuid } from "../auth/ids";
 import { assertMutationProtection } from "../auth/csrf";
 import { parseCookieHeader } from "../auth/cookies";
 import type { StaffSessionStore } from "../auth/session-store";
 import { resolveCorrelationId } from "../http/correlation";
 import { httpStatusFor } from "../http/status";
+import { isQuote, isQuoteRequest } from "./canonical-schema";
 
 export type QuoteBridge = {
   postQuote(request: QuoteRequest, correlationId: Uuid): Promise<ApiResult<Quote>>;
@@ -89,6 +89,14 @@ export async function handleQuote(input: HandleQuoteInput): Promise<HandleQuoteR
   if (!result.ok) {
     return { status: httpStatusFor(result.error.code), body: result, headers };
   }
+  if (!isQuote(result.data)) {
+    const body = authFailure(
+      "INTEGRATION_UNAVAILABLE",
+      "quote bridge returned an invalid Quote",
+      correlation.correlationId,
+    );
+    return { status: httpStatusFor(body.error.code), body, headers };
+  }
   return { status: 200, body: result, headers };
 }
 
@@ -97,21 +105,5 @@ function readCookie(header: string | undefined, name: string): string | null {
 }
 
 function parseQuoteRequest(body: unknown): QuoteRequest | null {
-  if (!body || typeof body !== "object") {
-    return null;
-  }
-  const value = body as Partial<QuoteRequest>;
-  if (!isUuid(value.cartId) || typeof value.cartRevision !== "number" || value.cartRevision < 0) {
-    return null;
-  }
-  if (!value.locationId || typeof value.locationId !== "string") {
-    return null;
-  }
-  if (!value.customer || typeof value.customer !== "object") {
-    return null;
-  }
-  if (!Array.isArray(value.lines) || value.lines.length === 0) {
-    return null;
-  }
-  return value as QuoteRequest;
+  return isQuoteRequest(body) ? body : null;
 }

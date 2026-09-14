@@ -1,5 +1,13 @@
 import type { CatalogItem, CatalogPage, Id } from "../../../../../docs/contracts/domain.generated";
-import { normalizeSearchText, preserveBarcode, searchHaystackIncludes } from "./normalize";
+import { preserveBarcode } from "./normalize";
+import {
+  catalogItemMatchesTypedQuery,
+  catalogPageFromBarcodeLookup,
+  compareCatalogId,
+  paginateProjectedItems,
+  projectedToCatalogItem,
+  resolveCatalogSearchLimit,
+} from "./query";
 import { searchDocumentFor } from "./transitional-mapper";
 import type {
   BarcodeLookup,
@@ -22,22 +30,11 @@ function cloneItem(item: ProjectedCatalogItem): ProjectedCatalogItem {
 }
 
 function toCatalogItem(item: ProjectedCatalogItem): CatalogItem {
-  return {
-    id: item.id,
-    name: item.name,
-    sku: item.sku,
-    barcodes: [...item.barcodes],
-    kind: item.kind,
-    parentId: item.parentId,
-    variationLabel: item.variationLabel,
-    displayPrice: item.displayPrice ? { ...item.displayPrice } : undefined,
-    stockStatus: item.stockStatus,
-    projectionUpdatedAt: item.projectionUpdatedAt,
-  };
+  return projectedToCatalogItem(item);
 }
 
 function compareId(a: string, b: string): number {
-  return a < b ? -1 : a > b ? 1 : 0;
+  return compareCatalogId(a, b);
 }
 
 export class CatalogProjectionEngine {
@@ -102,16 +99,9 @@ export class CatalogProjectionEngine {
     cursor?: string;
     limit?: number;
   }): CatalogPage {
-    const limit = input.limit && input.limit > 0 ? Math.min(input.limit, 200) : 50;
+    const limit = resolveCatalogSearchLimit(input.limit);
     if (input.barcode !== undefined && input.barcode.length > 0) {
-      const lookup = this.lookupBarcode(input.barcode);
-      if (lookup.status === "missing") {
-        return { items: [] };
-      }
-      if (lookup.status === "unique") {
-        return { items: [lookup.item] };
-      }
-      return { items: [...lookup.items] };
+      return catalogPageFromBarcodeLookup(this.lookupBarcode(input.barcode));
     }
     if (input.productId) {
       const item = this.get(input.productId);
@@ -120,34 +110,10 @@ export class CatalogProjectionEngine {
     let candidates = [...this.items.values()].filter((item) => !item.tombstoned);
     if (input.parentId) {
       candidates = candidates.filter((item) => item.parentId === input.parentId);
-    } else if (input.query !== undefined) {
-      candidates = candidates.filter((item) => item.kind !== "variation");
-      if (input.query.trim()) {
-        const needle = input.query;
-        candidates = candidates.filter(
-          (item) =>
-            searchHaystackIncludes(item.searchNormalized, needle) ||
-            item.barcodes.some((code) => code.includes(preserveBarcode(needle.trim()))),
-        );
-      }
     } else {
-      candidates = candidates.filter((item) => item.kind !== "variation");
+      candidates = candidates.filter((item) => catalogItemMatchesTypedQuery(item, input.query ?? ""));
     }
-    candidates.sort((a, b) => compareId(a.id, b.id));
-    if (input.cursor) {
-      candidates = candidates.filter((item) => item.id > input.cursor!);
-    }
-    const pageCandidates = candidates.slice(0, limit);
-    const hasMore = candidates.length > limit;
-    const lastReturned = pageCandidates[pageCandidates.length - 1];
-    return hasMore && lastReturned
-      ? {
-          items: pageCandidates.map(toCatalogItem),
-          nextCursor: lastReturned.id,
-        }
-      : {
-          items: pageCandidates.map(toCatalogItem),
-        };
+    return paginateProjectedItems(candidates, input.cursor, limit);
   }
 
   rebuild(records: ReadonlyArray<CatalogSourceRecord>, sourceVersion: string, updatedAt: string): CatalogProjectionMeta {
@@ -280,4 +246,4 @@ export function emptyProjectionMeta(updatedAt: string): CatalogProjectionMeta {
   };
 }
 
-export { normalizeSearchText };
+export { normalizeSearchText } from "./normalize";

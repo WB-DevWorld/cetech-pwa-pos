@@ -3,6 +3,8 @@ export {
   POS_LOCAL_SCHEMA_CURRENT,
   POS_LOCAL_SCHEMA_V1,
   POS_LOCAL_SCHEMA_V2,
+  POS_LOCAL_SCHEMA_V3,
+  POS_LOCAL_SCHEMA_V4,
   closePosLocalDatabase,
   deletePosLocalDatabase,
   openPosLocalDatabase,
@@ -14,6 +16,7 @@ export {
   createLocalCatalogPort,
   persistCatalogEngine,
   rebuildCatalogProjection,
+  searchLocalCatalog,
 } from "./catalog-repository";
 export { createLocalCustomerPort, replaceLocalCustomers } from "./customer-store";
 export { rebuildableCatalogClear, recordLocalSchema } from "./pwa-upgrade";

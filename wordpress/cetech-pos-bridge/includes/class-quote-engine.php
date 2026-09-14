@@ -78,11 +78,45 @@ final class Cetech_Pos_Bridge_Quote_Engine {
 					503
 				);
 			}
+			$contract = $this->assert_quote_contract( $quote );
+			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $contract ) ) {
+				return $contract;
+			}
 			$this->store->put( $quote );
 			return $quote;
 		} finally {
 			$this->runtime->restore( $snapshot );
 		}
+	}
+
+	/**
+	 * Last gate before a priced cart leaves the bridge as a success.
+	 *
+	 * The candidate Quote is validated against the canonical v1 `Quote` schema. A
+	 * contract-invalid Quote fails closed and is never stored or returned as
+	 * `{ok:true}`. Nothing is stripped, coerced or repaired here: mutating an invalid
+	 * Quote into a valid-looking one would hide a real pricing/mapping defect.
+	 *
+	 * This is an internal contract breach rather than a caller mistake, so it maps to
+	 * the same `INTEGRATION_UNAVAILABLE` class the surrounding runtime-integrity
+	 * checks already use, not to the caller-facing `VALIDATION_ERROR`.
+	 *
+	 * @param array<string,mixed> $quote
+	 * @return true|WP_Error
+	 */
+	private function assert_quote_contract( array $quote ) {
+		$violation = Cetech_Pos_Bridge_Schema::instance()->validate( $quote, 'Quote' );
+		if ( $violation === null ) {
+			return true;
+		}
+		return Cetech_Pos_Bridge_Response::wp_error(
+			'INTEGRATION_UNAVAILABLE',
+			'Quote did not satisfy the v1 contract schema and was not returned.',
+			true,
+			'resolve',
+			503,
+			array( 'field' => Cetech_Pos_Bridge_Schema::field_of( $violation ) )
+		);
 	}
 
 	/**
