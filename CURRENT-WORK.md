@@ -25,9 +25,9 @@ Updated 2026-09-14. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical sche
 
 | Step | Task | Human / workstream | Contributor branch | Current status |
 | --- | --- | --- | --- | --- |
-| 1 | BR-06 / #18 — HPOS-safe idempotent prepare + resolve | `@Emmanuel-coder-prog` / WS2 | `ws2/br-06-implement-hpos-safe-idempotent-prepare-and-re` | **ACCEPTED / IMPORTED INTO R5 BATCH** |
-| 2 | BR-06 integration | `@wbdevworld` / WS3 integration | `batch/r5-idempotent-prepare-cash` | **COMBINED VERIFICATION IN PROGRESS** |
-| 3 | CORE-05 / #24 — cash + FinalizeSale orchestration | `@wbdevworld` / WS3 | create from exact tested `BR06_INTEGRATION_SHA` only | **BLOCKED UNTIL COMBINED VERIFICATION PASSES** |
+| 1 | BR-06 / #18 — HPOS-safe idempotent prepare + resolve | `@Emmanuel-coder-prog` / WS2 | `ws2/br-06-implement-hpos-safe-idempotent-prepare-and-re` | **ACCEPTED / IMPORTED / COMBINED VERIFIED** |
+| 2 | BR-06 integration handoff | `@wbdevworld` / WS3 integration | `batch/r5-idempotent-prepare-cash` | **COMPLETE — BR06_INTEGRATION_SHA PUBLISHED** |
+| 3 | CORE-05 / #24 — cash + FinalizeSale orchestration | `@wbdevworld` / WS3 | `ws3/core-05-build-cash-and-finalizesale-orchestration` | **AUTHORIZED / READY TO IMPLEMENT** |
 | 4 | Final R5 integration/review | `@wbdevworld` / WS3 integration | `batch/r5-idempotent-prepare-cash` | **BLOCKED ON CORE-05** |
 
 No intermediate merge to `main` is required between BR-06 and CORE-05.
@@ -53,7 +53,7 @@ Declared source chain, preserved exactly in merge ancestry:
 
 Exact BR-06 integration merge commit: `30af336925fd29dc43e7315d81919ae2a7bd5bfc`.
 
-The merge was synthesized from the exact contributor final tree plus the four WS3-owned batch coordination files, preserving the contributor commits as second-parent ancestry rather than rewriting them.
+The merge preserved the exact contributor commits as second-parent ancestry while retaining WS3-owned integration-control files.
 
 Source verification at acceptance:
 - bridge Make test: **1020 passed / 0 failed**;
@@ -61,12 +61,24 @@ Source verification at acceptance:
 - exact source-head CI `34851683401`: SUCCESS both required jobs;
 - source live/staging HPOS and real DB concurrency evidence remain **PENDING** and are not claimed.
 
-Independent WS3 review accepted the current implementation after bounded owner remediations: durable order recovery identity, authoritative Quote economics snapshot, complete unexpired reservation proof, GET read-only recovery inspection, and deterministic initial-save / mid-snapshot POST repair with fail-closed ambiguity handling.
+Combined R5 repository verification:
+- exact tested combined head: `15baab1b47a35902b8a3ddde989df55cc4b25436`;
+- GitHub Actions run `34855313462`: `control-plane` SUCCESS and `control-plane-windows` SUCCESS, including foundation/contracts, tooling, pgTAP, lint, typecheck, app unit tests, production build and E2E smoke;
+- compare against accepted WS2 source shows only the four WS3 integration-control files differ; bridge/test/runtime blobs are identical to source-tested `a0fa00d…`.
 
-## Current gate
+**Published `BR06_INTEGRATION_SHA`: `15baab1b47a35902b8a3ddde989df55cc4b25436`.**
 
-`BR06_INTEGRATION_SHA` is **NOT PUBLISHED YET**. The current branch head is an integration candidate only until exact-head combined verification succeeds.
+## CORE-05 handoff
 
-After combined verification succeeds, WS3 may publish the tested exact `BR06_INTEGRATION_SHA`, then create CORE-05 / #24 from that exact SHA. CORE-05 must not start from `main` or from an unverified integration candidate.
+CORE-05 / issue #24 is now the current executable WS3 feature task.
 
-PR #53 remains draft. Do not request final R5 review, merge R5, or start R6 before CORE-05 is implemented/imported, final combined checks pass, and the final ADR-012 two-pass freshness + independent review gate are complete.
+- Owner / actual implementer: `@wbdevworld` / WS3.
+- Contributor branch: `ws3/core-05-build-cash-and-finalizesale-orchestration`.
+- Required base: exact tested `BR06_INTEGRATION_SHA` `15baab1b47a35902b8a3ddde989df55cc4b25436`.
+- The branch was created directly from that SHA.
+- Allowed/forbidden paths, contracts, acceptance criteria and required tests remain controlled by issue #24.
+- BR-07 / WS2 and R6+ are not authorized by this handoff.
+
+After CORE-05 publishes tested source SHA(s), WS3 integration imports them into PR #53, runs full combined verification, performs exactly two final ADR-012 freshness observations and stops for independent human review.
+
+PR #53 remains draft. Do not request final R5 review, merge R5, or start R6 before CORE-05 is implemented/imported and the complete R5 gate is satisfied.
