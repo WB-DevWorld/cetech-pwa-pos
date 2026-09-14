@@ -33,6 +33,7 @@ require_once __DIR__ . '/test-quote-schema.php';
 require_once __DIR__ . '/test-woo-runtime.php';
 require_once __DIR__ . '/test-pricing-rules.php';
 require_once __DIR__ . '/test-cart-discount.php';
+require_once __DIR__ . '/test-prepare.php';
 
 echo "\n{$passed} passed, {$failed} failed\n";
 exit( $failed === 0 ? 0 : 1 );

@@ -17,6 +17,24 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 	/** @var callable|null */
 	public $during_calculate = null;
 	public $bag_key          = 'cetech_pos_fake_wc';
+	/** @var int */
+	public $hold_stock_minutes = 60;
+	/** @var array<string,int> productId => remaining units */
+	public $stock = array();
+	/** @var array<int,array<string,mixed>> */
+	public $orders = array();
+	/** @var array<string,array<string,int>> orderId => productId => qty */
+	public $reservations = array();
+	/** @var int */
+	public $next_order_id = 1001;
+	/** @var int storefront competing checkouts that took stock */
+	public $storefront_orders = 0;
+	/** @var callable|null */
+	public $during_create = null;
+	/** @var callable|null */
+	public $during_reserve = null;
+	/** @var string|null force an invalid PreparedSale stockCommitment */
+	public $force_commitment = null;
 
 	public function available() {
 		return (bool) $this->environment->wc_available();
@@ -170,6 +188,186 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 			'customer' => $customer,
 			'cart'     => $cart,
 		);
+	}
+
+	public function hold_stock_seconds() {
+		$minutes = (int) $this->hold_stock_minutes;
+		if ( $minutes <= 0 ) {
+			return 0;
+		}
+		return $minutes * 60;
+	}
+
+	public function pos_order_count() {
+		$count = 0;
+		foreach ( $this->orders as $order ) {
+			if ( ! empty( $order['pos'] ) ) {
+				++$count;
+			}
+		}
+		return $count;
+	}
+
+	protected function count_orders() {
+		return count( $this->orders );
+	}
+
+	/**
+	 * Competing storefront checkout against the same catalog unit. Not a POS prepare.
+	 *
+	 * @param string $product_id
+	 * @param int    $qty
+	 * @return bool
+	 */
+	public function competing_checkout( $product_id, $qty = 1 ) {
+		$qty = (int) $qty;
+		if ( ! isset( $this->stock[ $product_id ] ) || $this->stock[ $product_id ] < $qty ) {
+			return false;
+		}
+		$this->stock[ $product_id ] -= $qty;
+		++$this->storefront_orders;
+		++$this->side_effects['orders'];
+		++$this->side_effects['stock'];
+		$this->orders[] = array(
+			'id'             => 'storefront-' . $this->next_order_id,
+			'pos'            => false,
+			'transaction_id' => null,
+			'status'         => 'processing',
+		);
+		++$this->next_order_id;
+		return true;
+	}
+
+	public function create_prepared_order( array $quote, $transaction_id, $request_hash ) {
+		$hold = $this->hold_stock_seconds();
+		if ( $hold <= 0 ) {
+			return Cetech_Pos_Bridge_Response::wp_error(
+				'INTEGRATION_UNAVAILABLE',
+				'Woo hold-stock minutes is not configured; prepare cannot claim a bounded reserved commitment.',
+				true,
+				'resolve',
+				503
+			);
+		}
+		if ( is_callable( $this->during_create ) ) {
+			$cb = $this->during_create;
+			$this->during_create = null;
+			$cb( $this );
+		}
+		$order_id = (string) $this->next_order_id;
+		++$this->next_order_id;
+		$sale_id  = 'sale-' . $order_id;
+		$order    = array(
+			'id'             => $order_id,
+			'pos'            => true,
+			'transaction_id' => (string) $transaction_id,
+			'request_hash'   => (string) $request_hash,
+			'sale_id'        => $sale_id,
+			'status'         => 'pending',
+			'reserved'       => false,
+		);
+		$this->orders[] = $order;
+		if ( is_callable( $this->during_reserve ) ) {
+			$cb = $this->during_reserve;
+			$this->during_reserve = null;
+			$cb( $this );
+		}
+		foreach ( $quote['lines'] as $line ) {
+			$pid = isset( $line['variationId'] ) ? (string) $line['variationId'] : (string) $line['productId'];
+			$qty = (int) $line['quantity'];
+			if ( $qty < 1 ) {
+				$qty = 1;
+			}
+			$available = isset( $this->stock[ $pid ] ) ? (int) $this->stock[ $pid ] : ( isset( $this->stock[ $line['productId'] ] ) ? (int) $this->stock[ $line['productId'] ] : 0 );
+			$key       = isset( $this->stock[ $pid ] ) ? $pid : (string) $line['productId'];
+			if ( $available < $qty ) {
+				$this->trash_pos_order( $order_id );
+				return Cetech_Pos_Bridge_Response::wp_error(
+					'STOCK_CHANGED',
+					'Quoted stock is no longer available.',
+					false,
+					'review_quote',
+					409,
+					array( 'field' => 'lines' )
+				);
+			}
+			$this->stock[ $key ] -= $qty;
+			if ( ! isset( $this->reservations[ $order_id ] ) ) {
+				$this->reservations[ $order_id ] = array();
+			}
+			$this->reservations[ $order_id ][ $key ] = $qty;
+		}
+		$this->mark_reserved( $order_id );
+		++$this->side_effects['orders'];
+		++$this->side_effects['stock'];
+		$commitment = $this->force_commitment !== null ? $this->force_commitment : 'reserved';
+		return array(
+			'orderId'         => $order_id,
+			'saleId'          => $sale_id,
+			'orderReference'  => $order_id,
+			'stockCommitment' => $commitment,
+			'holdSeconds'     => $hold,
+		);
+	}
+
+	public function find_orders_by_transaction( $transaction_id ) {
+		$out  = array();
+		$hold = $this->hold_stock_seconds();
+		foreach ( $this->orders as $order ) {
+			if ( empty( $order['pos'] ) || (string) $order['transaction_id'] !== (string) $transaction_id ) {
+				continue;
+			}
+			$out[] = array(
+				'orderId'         => (string) $order['id'],
+				'saleId'          => (string) $order['sale_id'],
+				'orderReference'  => (string) $order['id'],
+				'stockCommitment' => ! empty( $order['reserved'] ) ? 'reserved' : 'reserved',
+				'holdSeconds'     => $hold,
+			);
+		}
+		return $out;
+	}
+
+	public function inject_duplicate_transaction_order( $transaction_id ) {
+		$order_id = (string) $this->next_order_id;
+		++$this->next_order_id;
+		$this->orders[] = array(
+			'id'             => $order_id,
+			'pos'            => true,
+			'transaction_id' => (string) $transaction_id,
+			'request_hash'   => 'dup',
+			'sale_id'        => 'sale-' . $order_id,
+			'status'         => 'pending',
+			'reserved'       => true,
+		);
+	}
+
+	private function mark_reserved( $order_id ) {
+		foreach ( $this->orders as $index => $order ) {
+			if ( (string) $order['id'] === (string) $order_id ) {
+				$this->orders[ $index ]['reserved'] = true;
+				return;
+			}
+		}
+	}
+
+	private function trash_pos_order( $order_id ) {
+		if ( isset( $this->reservations[ $order_id ] ) ) {
+			foreach ( $this->reservations[ $order_id ] as $pid => $qty ) {
+				if ( ! isset( $this->stock[ $pid ] ) ) {
+					$this->stock[ $pid ] = 0;
+				}
+				$this->stock[ $pid ] += $qty;
+			}
+			unset( $this->reservations[ $order_id ] );
+		}
+		$kept = array();
+		foreach ( $this->orders as $order ) {
+			if ( (string) $order['id'] !== (string) $order_id ) {
+				$kept[] = $order;
+			}
+		}
+		$this->orders = $kept;
 	}
 
 	private function catalog_key( array $line ) {

@@ -5,8 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Runtime enforcement of the frozen v1 QuoteRequest/Quote JSON Schema at the Woo
- * bridge boundary.
+ * Runtime enforcement of the frozen v1 JSON Schema at the Woo bridge boundary
+ * for QuoteRequest, Quote, PrepareSaleRequest, PreparedSale and SaleResolution.
  *
  * Contract source: `docs/contracts/pos-domain.schema.json` (WS3-owned, unchanged).
  * The plugin ships `schema/quote-contract.v1.json`, a mechanical projection of that

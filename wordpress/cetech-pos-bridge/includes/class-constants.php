@@ -8,7 +8,15 @@ final class Cetech_Pos_Bridge_Constants {
 	const NAMESPACE           = 'cetech-pos/v1';
 	const HEALTH_ROUTE        = '/health';
 	const QUOTE_ROUTE         = '/quotes';
+	const PREPARE_ROUTE       = '/sales/prepare';
+	const RESOLVE_ROUTE       = '/sales/(?P<transactionId>[0-9a-fA-F-]+)';
+	const OPERATION_PREPARE   = 'prepare';
 	const CAPABILITY          = 'cetech_pos_bridge_access';
+	const ORDER_META_TX       = '_cetech_pos_transaction_id';
+	const ORDER_META_HASH     = '_cetech_pos_request_hash';
+	const ORDER_META_SALE     = '_cetech_pos_sale_id';
+	const DB_VERSION          = '1';
+	const DB_VERSION_OPTION   = 'cetech_pos_bridge_db_version';
 	const CONTRACT            = '1.0.0';
 	const UUID_PATTERN        = '/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/';
 	const ID_PATTERN          = '/^[A-Za-z0-9][A-Za-z0-9._:-]*$/';

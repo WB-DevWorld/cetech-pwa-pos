@@ -814,4 +814,223 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 			503
 		);
 	}
+
+	/**
+	 * Hold-stock lifetime from Woo configuration. Zero is not a bounded
+	 * reserved commitment and is refused rather than replaced with a guessed TTL.
+	 *
+	 * @return int seconds
+	 */
+	public function hold_stock_seconds() {
+		$minutes = 0;
+		if ( $this->environment->function_exists( 'get_option' ) ) {
+			$minutes = (int) get_option( 'woocommerce_hold_stock_minutes', 0 );
+		}
+		if ( $minutes <= 0 ) {
+			return 0;
+		}
+		return $minutes * 60;
+	}
+
+	/**
+	 * Create exactly one unpaid pending Woo order through HPOS-safe CRUD.
+	 * Does not write legacy post tables as canonical order storage.
+	 *
+	 * @param array<string,mixed> $quote
+	 * @param string              $transaction_id
+	 * @param string              $request_hash
+	 * @return array<string,mixed>|WP_Error
+	 */
+	public function create_prepared_order( array $quote, $transaction_id, $request_hash ) {
+		$hold = $this->hold_stock_seconds();
+		if ( $hold <= 0 ) {
+			return $this->unavailable( 'Woo hold-stock minutes is not configured; prepare cannot claim a bounded reserved commitment.' );
+		}
+		if ( ! $this->environment->function_exists( 'wc_create_order' ) ) {
+			return $this->unavailable( 'wc_create_order is not available; HPOS-safe order create cannot run.' );
+		}
+		$before = $this->count_orders();
+		$disable_mail = function () {
+			return false;
+		};
+		if ( $this->environment->function_exists( 'add_filter' ) ) {
+			add_filter( 'woocommerce_email_enabled_new_order', $disable_mail, 99 );
+			add_filter( 'woocommerce_email_enabled_customer_on_hold_order', $disable_mail, 99 );
+		}
+		try {
+			$order = wc_create_order(
+				array(
+					'status'      => 'pending',
+					'created_via' => 'cetech-pos',
+				)
+			);
+			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $order ) || ! is_object( $order ) ) {
+				return $this->unavailable( 'Woo did not create a pending order.' );
+			}
+			if ( ! method_exists( $order, 'add_product' ) || ! method_exists( $order, 'update_meta_data' ) || ! method_exists( $order, 'save' ) ) {
+				$this->trash_incomplete_order( $order );
+				return $this->unavailable( 'Woo order object does not expose HPOS-safe CRUD methods.' );
+			}
+			foreach ( $quote['lines'] as $line ) {
+				$product = $this->resolve_product( $line );
+				if ( Cetech_Pos_Bridge_Quote_Request::is_error( $product ) ) {
+					$this->trash_incomplete_order( $order );
+					return $product;
+				}
+				$qty   = isset( $line['quantity'] ) ? $line['quantity'] : '1';
+				$added = $order->add_product( $product, $qty );
+				if ( $added === false || Cetech_Pos_Bridge_Quote_Request::is_error( $added ) ) {
+					$this->trash_incomplete_order( $order );
+					return Cetech_Pos_Bridge_Response::wp_error(
+						'STOCK_CHANGED',
+						'Woo refused a quote line during prepare.',
+						false,
+						'review_quote',
+						409,
+						array( 'field' => 'lines' )
+					);
+				}
+			}
+			if ( method_exists( $order, 'set_currency' ) && isset( $quote['currency'] ) ) {
+				$order->set_currency( $quote['currency'] );
+			}
+			if ( method_exists( $order, 'calculate_totals' ) ) {
+				$order->calculate_totals( false );
+			}
+			$order->update_meta_data( Cetech_Pos_Bridge_Constants::ORDER_META_TX, $transaction_id );
+			$order->update_meta_data( Cetech_Pos_Bridge_Constants::ORDER_META_HASH, $request_hash );
+			$sale_id = 'sale-' . ( method_exists( $order, 'get_id' ) ? (string) $order->get_id() : bin2hex( random_bytes( 8 ) ) );
+			$order->update_meta_data( Cetech_Pos_Bridge_Constants::ORDER_META_SALE, $sale_id );
+			$order->save();
+			if ( ! $this->environment->function_exists( 'wc_reserve_stock_for_order' ) ) {
+				$this->trash_incomplete_order( $order );
+				return $this->unavailable( 'wc_reserve_stock_for_order is not available; prepare will not invent stock arithmetic.' );
+			}
+			$reserved = wc_reserve_stock_for_order( $order );
+			if ( $reserved === false || Cetech_Pos_Bridge_Quote_Request::is_error( $reserved ) ) {
+				$this->trash_incomplete_order( $order );
+				return Cetech_Pos_Bridge_Response::wp_error(
+					'STOCK_CHANGED',
+					'Woo could not reserve stock for the prepared order.',
+					false,
+					'review_quote',
+					409,
+					array( 'field' => 'lines' )
+				);
+			}
+			$order_id = method_exists( $order, 'get_id' ) ? (string) $order->get_id() : '';
+			$ref      = method_exists( $order, 'get_order_number' ) ? (string) $order->get_order_number() : $order_id;
+			$this->side_effects['orders']++;
+			$this->side_effects['stock']++;
+			$after = $this->count_orders();
+			if ( $before !== null && $after !== null && ( $after - $before ) !== 1 ) {
+				return $this->unavailable( 'Woo order count did not increase by exactly one during prepare.' );
+			}
+			return array(
+				'orderId'          => $order_id,
+				'saleId'           => $sale_id,
+				'orderReference'   => $ref,
+				'stockCommitment'  => 'reserved',
+				'holdSeconds'      => $hold,
+			);
+		} finally {
+			if ( $this->environment->function_exists( 'remove_filter' ) ) {
+				remove_filter( 'woocommerce_email_enabled_new_order', $disable_mail, 99 );
+				remove_filter( 'woocommerce_email_enabled_customer_on_hold_order', $disable_mail, 99 );
+			}
+		}
+	}
+
+	/**
+	 * Recovery lookup. Not a claim. Uses supported Woo order querying, not post meta SQL.
+	 *
+	 * @param string $transaction_id
+	 * @return array<int,array<string,mixed>>|WP_Error
+	 */
+	public function find_orders_by_transaction( $transaction_id ) {
+		if ( ! $this->environment->function_exists( 'wc_get_orders' ) ) {
+			return array();
+		}
+		$orders = wc_get_orders(
+			array(
+				'limit'      => 5,
+				'return'     => 'objects',
+				'meta_key'   => Cetech_Pos_Bridge_Constants::ORDER_META_TX,
+				'meta_value' => $transaction_id,
+			)
+		);
+		if ( ! is_array( $orders ) ) {
+			return array();
+		}
+		$out  = array();
+		$hold = $this->hold_stock_seconds();
+		foreach ( $orders as $order ) {
+			if ( ! is_object( $order ) ) {
+				continue;
+			}
+			$order_id = method_exists( $order, 'get_id' ) ? (string) $order->get_id() : '';
+			$sale     = method_exists( $order, 'get_meta' ) ? (string) $order->get_meta( Cetech_Pos_Bridge_Constants::ORDER_META_SALE ) : '';
+			$ref      = method_exists( $order, 'get_order_number' ) ? (string) $order->get_order_number() : $order_id;
+			$out[]    = array(
+				'orderId'          => $order_id,
+				'saleId'           => $sale !== '' ? $sale : ( 'sale-' . $order_id ),
+				'orderReference'   => $ref,
+				'stockCommitment'  => 'reserved',
+				'holdSeconds'      => $hold,
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * @param array<string,mixed> $line
+	 * @return object|WP_Error
+	 */
+	protected function resolve_product( array $line ) {
+		if ( ! $this->environment->function_exists( 'wc_get_product' ) ) {
+			return $this->unavailable( 'wc_get_product is not available.' );
+		}
+		$id = isset( $line['variationId'] ) ? $line['variationId'] : $line['productId'];
+		$product = wc_get_product( $id );
+		if ( ! is_object( $product ) ) {
+			$product = wc_get_product( $line['productId'] );
+		}
+		if ( ! is_object( $product ) ) {
+			return Cetech_Pos_Bridge_Response::wp_error(
+				'STOCK_CHANGED',
+				'Quoted product is no longer available in Woo.',
+				false,
+				'review_quote',
+				409,
+				array( 'field' => 'lines' )
+			);
+		}
+		if ( method_exists( $product, 'is_purchasable' ) && ! $product->is_purchasable() ) {
+			return Cetech_Pos_Bridge_Response::wp_error(
+				'STOCK_CHANGED',
+				'Quoted product is no longer purchasable.',
+				false,
+				'review_quote',
+				409,
+				array( 'field' => 'lines' )
+			);
+		}
+		if ( method_exists( $product, 'is_in_stock' ) && ! $product->is_in_stock() ) {
+			return Cetech_Pos_Bridge_Response::wp_error(
+				'STOCK_CHANGED',
+				'Quoted product is out of stock.',
+				false,
+				'review_quote',
+				409,
+				array( 'field' => 'lines' )
+			);
+		}
+		return $product;
+	}
+
+	protected function trash_incomplete_order( $order ) {
+		if ( is_object( $order ) && method_exists( $order, 'delete' ) ) {
+			$order->delete( true );
+		}
+	}
 }

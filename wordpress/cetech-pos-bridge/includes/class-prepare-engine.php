@@ -1,0 +1,450 @@
+<?php
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * HPOS-safe idempotent prepare. Claims atomically before any Woo order create.
+ * Does not copy WoodMart/B2BKing formulas. Does not finalize payment.
+ */
+final class Cetech_Pos_Bridge_Prepare_Engine {
+	/** @var Cetech_Pos_Bridge_Woo_Runtime */
+	private $runtime;
+	/** @var Cetech_Pos_Bridge_Quote_Engine */
+	private $quotes;
+	/** @var Cetech_Pos_Bridge_Quote_Store */
+	private $quote_store;
+	/** @var Cetech_Pos_Bridge_Claim_Store */
+	private $claims;
+
+	/** @var callable|null test seam after claim insert, before lock/create */
+	public $after_claim = null;
+	/** @var callable|null test seam after Woo order create, before outcome persist */
+	public $after_order_create = null;
+
+	public function __construct(
+		Cetech_Pos_Bridge_Woo_Runtime $runtime,
+		Cetech_Pos_Bridge_Quote_Engine $quotes,
+		Cetech_Pos_Bridge_Quote_Store $quote_store,
+		Cetech_Pos_Bridge_Claim_Store $claims
+	) {
+		$this->runtime     = $runtime;
+		$this->quotes      = $quotes;
+		$this->quote_store = $quote_store;
+		$this->claims      = $claims;
+	}
+
+	/**
+	 * @param array<string,mixed> $raw
+	 * @param string              $idempotency_key
+	 * @return array<string,mixed>|WP_Error PreparedSale or error
+	 */
+	public function prepare( array $raw, $idempotency_key ) {
+		$violation = Cetech_Pos_Bridge_Schema::instance()->validate( $raw, 'PrepareSaleRequest' );
+		if ( $violation !== null ) {
+			return $this->invalid_request( Cetech_Pos_Bridge_Schema::field_of( $violation ) );
+		}
+		$hash   = Cetech_Pos_Bridge_Request_Hash::hash( $raw );
+		$op     = Cetech_Pos_Bridge_Constants::OPERATION_PREPARE;
+		$result = $this->claims->insert_preparing(
+			array(
+				'operation_type'  => $op,
+				'idempotency_key' => $idempotency_key,
+				'transaction_id'  => $raw['transactionId'],
+				'request_hash'    => $hash,
+				'quote_id'        => $raw['quoteId'],
+			)
+		);
+		if ( $result === Cetech_Pos_Bridge_Claim_Store::INSERT_DUPLICATE_KEY ) {
+			return $this->replay_or_conflict( $op, $idempotency_key, $hash, $raw );
+		}
+		if ( $result === Cetech_Pos_Bridge_Claim_Store::INSERT_DUPLICATE_TX ) {
+			return $this->transaction_conflict( $raw['transactionId'] );
+		}
+		return $this->create_with_lock( $raw, $idempotency_key, $hash );
+	}
+
+	public function resolve( $transaction_id ) {
+		if ( ! Cetech_Pos_Bridge_Quote_Request::is_uuid( $transaction_id ) ) {
+			return Cetech_Pos_Bridge_Response::wp_error(
+				'VALIDATION_ERROR',
+				'transactionId must be a contract UUID.',
+				false,
+				'none',
+				400,
+				array( 'field' => 'transactionId' )
+			);
+		}
+		$claim = $this->claims->get_by_transaction( $transaction_id );
+		if ( $claim === null ) {
+			return $this->resolution( $transaction_id, 'not_found' );
+		}
+		if ( $claim['internal_status'] === Cetech_Pos_Bridge_Claim_Store::STATUS_PREPARED ) {
+			$prepared = $this->decode_prepared( $claim );
+			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $prepared ) ) {
+				return $this->attention( $transaction_id, $claim, 'Stored PreparedSale could not be decoded.' );
+			}
+			return $this->resolution(
+				$transaction_id,
+				'prepared',
+				isset( $prepared['saleId'] ) ? $prepared['saleId'] : null,
+				isset( $prepared['orderReference'] ) ? $prepared['orderReference'] : null
+			);
+		}
+		if ( $claim['internal_status'] === Cetech_Pos_Bridge_Claim_Store::STATUS_REQUIRES_ATTENTION ) {
+			return $this->resolution( $transaction_id, 'requires_attention', null, null, $claim['error_message'] );
+		}
+		if ( $claim['internal_status'] === Cetech_Pos_Bridge_Claim_Store::STATUS_TERMINAL_FAILURE ) {
+			return $this->resolution( $transaction_id, 'not_found', null, null, $claim['error_message'] );
+		}
+		$repaired = $this->try_recover_order( $claim );
+		if ( is_array( $repaired ) ) {
+			return $this->resolution(
+				$transaction_id,
+				'prepared',
+				$repaired['saleId'],
+				$repaired['orderReference']
+			);
+		}
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $repaired ) ) {
+			$message = method_exists( $repaired, 'get_error_message' ) ? $repaired->get_error_message() : 'Prepared sale requires attention.';
+			return $this->resolution( $transaction_id, 'requires_attention', null, null, $message );
+		}
+		$found = $this->runtime->find_orders_by_transaction( $transaction_id );
+		if ( is_array( $found ) && count( $found ) > 1 ) {
+			$this->mark_attention( $claim, 'Multiple Woo orders carry this transaction identity.' );
+			return $this->resolution( $transaction_id, 'requires_attention', null, null, 'Multiple Woo orders carry this transaction identity.' );
+		}
+		return $this->resolution( $transaction_id, 'preparing' );
+	}
+
+	private function create_with_lock( array $raw, $idempotency_key, $hash ) {
+		$op = Cetech_Pos_Bridge_Constants::OPERATION_PREPARE;
+		if ( ! $this->claims->acquire_lock( $op, $idempotency_key ) ) {
+			return $this->in_progress();
+		}
+		try {
+			if ( is_callable( $this->after_claim ) ) {
+				$cb = $this->after_claim;
+				$this->after_claim = null;
+				$cb( $this );
+			}
+			$claim = $this->claims->get_by_idempotency( $op, $idempotency_key );
+			if ( ! is_array( $claim ) ) {
+				return $this->unavailable( 'Prepare claim vanished after insert.' );
+			}
+			if ( $claim['internal_status'] === Cetech_Pos_Bridge_Claim_Store::STATUS_PREPARED ) {
+				return $this->decode_prepared( $claim );
+			}
+			$recovered = $this->try_recover_order( $claim );
+			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $recovered ) ) {
+				return $recovered;
+			}
+			if ( is_array( $recovered ) ) {
+				return $recovered;
+			}
+			$found = $this->runtime->find_orders_by_transaction( $raw['transactionId'] );
+			if ( is_array( $found ) && count( $found ) > 1 ) {
+				$this->mark_attention( $claim, 'Multiple Woo orders carry this transaction identity.' );
+				return $this->attention_error();
+			}
+			return $this->execute_prepare( $raw, $claim, $hash );
+		} finally {
+			$this->claims->release_lock( $op, $idempotency_key );
+		}
+	}
+
+	private function replay_or_conflict( $op, $idempotency_key, $hash, array $raw ) {
+		$existing = $this->claims->get_by_idempotency( $op, $idempotency_key );
+		if ( ! is_array( $existing ) ) {
+			return $this->unavailable( 'Idempotency claim could not be loaded after a uniqueness collision.' );
+		}
+		if ( (string) $existing['request_hash'] !== (string) $hash ) {
+			return Cetech_Pos_Bridge_Response::wp_error(
+				'IDEMPOTENCY_CONFLICT',
+				'Idempotency-Key was reused with a different PrepareSaleRequest.',
+				false,
+				'contact_manager',
+				409
+			);
+		}
+		if ( $existing['internal_status'] === Cetech_Pos_Bridge_Claim_Store::STATUS_PREPARED ) {
+			return $this->decode_prepared( $existing );
+		}
+		if ( $existing['internal_status'] === Cetech_Pos_Bridge_Claim_Store::STATUS_TERMINAL_FAILURE ) {
+			return $this->replay_terminal( $existing );
+		}
+		if ( $existing['internal_status'] === Cetech_Pos_Bridge_Claim_Store::STATUS_REQUIRES_ATTENTION ) {
+			return $this->attention_error( $existing['error_message'] );
+		}
+		return $this->create_with_lock( $raw, $idempotency_key, $hash );
+	}
+
+	private function transaction_conflict( $transaction_id ) {
+		$existing = $this->claims->get_by_transaction( $transaction_id );
+		if ( is_array( $existing ) && $existing['internal_status'] === Cetech_Pos_Bridge_Claim_Store::STATUS_PREPARING ) {
+			return $this->in_progress();
+		}
+		return Cetech_Pos_Bridge_Response::wp_error(
+			'REQUIRES_ATTENTION',
+			'This transactionId is already claimed by another prepare command.',
+			false,
+			'contact_manager',
+			409
+		);
+	}
+
+	private function execute_prepare( array $raw, array $claim, $hash ) {
+		$quote = $this->quote_store->get( $raw['quoteId'] );
+		if ( ! is_array( $quote ) ) {
+			return $this->fail_terminal( $claim, 'NOT_FOUND', 'Quote snapshot was not found.', 404, array( 'field' => 'quoteId' ) );
+		}
+		if ( (string) $quote['fingerprint'] !== (string) $raw['quoteFingerprint'] ) {
+			return $this->fail_terminal( $claim, 'QUOTE_CHANGED', 'quoteFingerprint does not match the stored quote.', 409, array( 'field' => 'quoteFingerprint' ) );
+		}
+		if ( $this->quote_expired( $quote ) ) {
+			return $this->fail_terminal( $claim, 'QUOTE_EXPIRED', 'Quote has expired.', 409, array( 'field' => 'quoteId' ) );
+		}
+		$request_lines = array();
+		foreach ( $quote['lines'] as $line ) {
+			$entry = array(
+				'lineId'    => $line['lineId'],
+				'productId' => $line['productId'],
+				'quantity'  => $line['quantity'],
+			);
+			if ( isset( $line['variationId'] ) ) {
+				$entry['variationId'] = $line['variationId'];
+			}
+			$request_lines[] = $entry;
+		}
+		$fresh = $this->quotes->quote(
+			array(
+				'cartId'       => $quote['cartId'],
+				'cartRevision' => $quote['cartRevision'],
+				'customer'     => $quote['customer'],
+				'locationId'   => $quote['locationId'],
+				'lines'        => $request_lines,
+			)
+		);
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $fresh ) ) {
+			$code = is_object( $fresh ) && method_exists( $fresh, 'get_error_code' ) ? $fresh->get_error_code() : 'STOCK_CHANGED';
+			if ( $code === 'VALIDATION_ERROR' || $code === 'NOT_FOUND' || $code === 'FORBIDDEN' ) {
+				return $this->fail_terminal( $claim, 'STOCK_CHANGED', 'Authoritative Woo stock or purchasability changed.', 409, array( 'field' => 'lines' ) );
+			}
+			return $fresh;
+		}
+		if ( $this->quotes->commercial_fingerprint( $fresh ) !== $this->quotes->commercial_fingerprint( $quote ) ) {
+			return $this->fail_terminal(
+				$claim,
+				'QUOTE_CHANGED',
+				'Authoritative Woo commercial facts no longer match the quoted fingerprint.',
+				409,
+				array( 'currentQuoteId' => (string) $fresh['id'] )
+			);
+		}
+		if ( empty( $fresh['purchasable'] ) ) {
+			return $this->fail_terminal( $claim, 'STOCK_CHANGED', 'Quoted lines are no longer purchasable.', 409, array( 'field' => 'lines' ) );
+		}
+		foreach ( $fresh['lines'] as $line ) {
+			if ( isset( $line['stockStatus'] ) && $line['stockStatus'] === 'out_of_stock' ) {
+				return $this->fail_terminal( $claim, 'STOCK_CHANGED', 'Quoted stock is no longer available.', 409, array( 'field' => 'lines' ) );
+			}
+		}
+		if ( ! $this->runtime->available() ) {
+			return $this->unavailable( 'WooCommerce runtime is not available for prepare.' );
+		}
+		$order = $this->runtime->create_prepared_order( $fresh, $raw['transactionId'], $hash );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $order ) ) {
+			if ( is_object( $order ) && method_exists( $order, 'get_error_code' ) && $order->get_error_code() === 'STOCK_CHANGED' ) {
+				return $this->fail_terminal_from_error( $claim, $order );
+			}
+			return $order;
+		}
+		if ( is_callable( $this->after_order_create ) ) {
+			$cb = $this->after_order_create;
+			$this->after_order_create = null;
+			$cb( $this, $order );
+		}
+		return $this->persist_prepared( $claim, $raw, $fresh, $order );
+	}
+
+	private function persist_prepared( array $claim, array $raw, array $quote, array $order ) {
+		$now      = gmdate( 'Y-m-d\TH:i:s\Z' );
+		$ttl      = isset( $order['holdSeconds'] ) ? (int) $order['holdSeconds'] : 0;
+		$prepared = array(
+			'transactionId'    => $raw['transactionId'],
+			'saleId'           => (string) $order['saleId'],
+			'orderReference'   => (string) $order['orderReference'],
+			'quoteFingerprint' => (string) $quote['fingerprint'],
+			'total'            => $quote['total'],
+			'status'           => 'prepared',
+			'stockCommitment'  => (string) $order['stockCommitment'],
+			'preparedAt'       => $now,
+			'expiresAt'        => gmdate( 'Y-m-d\TH:i:s\Z', time() + $ttl ),
+		);
+		$violation = Cetech_Pos_Bridge_Schema::instance()->validate( $prepared, 'PreparedSale' );
+		if ( $violation !== null ) {
+			$this->mark_attention( $claim, 'PreparedSale did not satisfy the v1 contract schema.' );
+			return $this->unavailable( 'PreparedSale did not satisfy the v1 contract schema and was not returned.' );
+		}
+		$json = function_exists( 'wp_json_encode' ) ? wp_json_encode( $prepared ) : json_encode( $prepared );
+		$claim['internal_status']    = Cetech_Pos_Bridge_Claim_Store::STATUS_PREPARED;
+		$claim['woo_order_id']       = (string) $order['orderId'];
+		$claim['sale_id']            = (string) $order['saleId'];
+		$claim['outcome_json']       = is_string( $json ) ? $json : null;
+		$claim['error_code']         = null;
+		$claim['error_message']      = null;
+		$claim['error_details_json'] = null;
+		$this->claims->save( $claim );
+		return $prepared;
+	}
+
+	private function try_recover_order( array $claim ) {
+		$found = $this->runtime->find_orders_by_transaction( $claim['transaction_id'] );
+		if ( ! is_array( $found ) ) {
+			return null;
+		}
+		if ( count( $found ) > 1 ) {
+			$this->mark_attention( $claim, 'Multiple Woo orders carry this transaction identity.' );
+			return $this->attention_error();
+		}
+		if ( count( $found ) !== 1 ) {
+			return null;
+		}
+		$order = $found[0];
+		$quote = $this->quote_store->get( isset( $claim['quote_id'] ) ? $claim['quote_id'] : '' );
+		if ( ! is_array( $quote ) ) {
+			$this->mark_attention( $claim, 'Woo order exists but the quote snapshot is missing.' );
+			return $this->attention_error( 'Woo order exists but the quote snapshot is missing.' );
+		}
+		$raw = array(
+			'transactionId'    => $claim['transaction_id'],
+			'quoteId'          => $quote['id'],
+			'quoteFingerprint' => $quote['fingerprint'],
+		);
+		return $this->persist_prepared( $claim, $raw, $quote, $order );
+	}
+
+	private function quote_expired( array $quote ) {
+		if ( empty( $quote['expiresAt'] ) || ! is_string( $quote['expiresAt'] ) ) {
+			return true;
+		}
+		$expiry = strtotime( $quote['expiresAt'] );
+		return $expiry === false || $expiry <= time();
+	}
+
+	private function decode_prepared( array $claim ) {
+		$decoded = json_decode( (string) $claim['outcome_json'], true );
+		if ( ! is_array( $decoded ) ) {
+			return $this->unavailable( 'Stored PreparedSale is not valid JSON.' );
+		}
+		$violation = Cetech_Pos_Bridge_Schema::instance()->validate( $decoded, 'PreparedSale' );
+		if ( $violation !== null ) {
+			return $this->unavailable( 'Stored PreparedSale did not satisfy the v1 contract schema.' );
+		}
+		return $decoded;
+	}
+
+	private function fail_terminal( array $claim, $code, $message, $status, $details = null ) {
+		$policy = Cetech_Pos_Bridge_Response::POLICY[ $code ];
+		$error  = Cetech_Pos_Bridge_Response::wp_error( $code, $message, $policy[1], $policy[2], $status, $details );
+		return $this->fail_terminal_from_error( $claim, $error );
+	}
+
+	private function fail_terminal_from_error( array $claim, $error ) {
+		$data = method_exists( $error, 'get_error_data' ) ? (array) $error->get_error_data() : array();
+		$claim['internal_status']    = Cetech_Pos_Bridge_Claim_Store::STATUS_TERMINAL_FAILURE;
+		$claim['error_code']         = $error->get_error_code();
+		$claim['error_message']      = $error->get_error_message();
+		$details                     = isset( $data['details'] ) && is_array( $data['details'] ) ? $data['details'] : array();
+		$json                        = function_exists( 'wp_json_encode' ) ? wp_json_encode( $details ) : json_encode( $details );
+		$claim['error_details_json'] = is_string( $json ) ? $json : null;
+		$this->claims->save( $claim );
+		return $error;
+	}
+
+	private function replay_terminal( array $claim ) {
+		$code    = (string) $claim['error_code'];
+		$message = (string) $claim['error_message'];
+		$policy  = isset( Cetech_Pos_Bridge_Response::POLICY[ $code ] ) ? Cetech_Pos_Bridge_Response::POLICY[ $code ] : Cetech_Pos_Bridge_Response::POLICY['VALIDATION_ERROR'];
+		$details = json_decode( (string) $claim['error_details_json'], true );
+		return Cetech_Pos_Bridge_Response::wp_error(
+			$code,
+			$message,
+			$policy[1],
+			$policy[2],
+			$policy[0],
+			is_array( $details ) ? $details : null
+		);
+	}
+
+	private function mark_attention( array $claim, $message ) {
+		$claim['internal_status'] = Cetech_Pos_Bridge_Claim_Store::STATUS_REQUIRES_ATTENTION;
+		$claim['error_code']      = 'REQUIRES_ATTENTION';
+		$claim['error_message']   = $message;
+		$this->claims->save( $claim );
+	}
+
+	private function resolution( $transaction_id, $status, $sale_id = null, $order_reference = null, $message = null ) {
+		$payload = array(
+			'transactionId' => $transaction_id,
+			'status'        => $status,
+		);
+		if ( is_string( $sale_id ) && $sale_id !== '' ) {
+			$payload['saleId'] = $sale_id;
+		}
+		if ( is_string( $order_reference ) && $order_reference !== '' ) {
+			$payload['orderReference'] = $order_reference;
+		}
+		if ( is_string( $message ) && $message !== '' ) {
+			$payload['message'] = $message;
+		}
+		$violation = Cetech_Pos_Bridge_Schema::instance()->validate( $payload, 'SaleResolution' );
+		if ( $violation !== null ) {
+			return $this->unavailable( 'SaleResolution did not satisfy the v1 contract schema and was not returned.' );
+		}
+		return $payload;
+	}
+
+	private function invalid_request( $field ) {
+		return Cetech_Pos_Bridge_Response::wp_error(
+			'VALIDATION_ERROR',
+			'PrepareSaleRequest does not satisfy the v1 contract schema.',
+			false,
+			'none',
+			400,
+			array( 'field' => $field )
+		);
+	}
+
+	private function in_progress() {
+		return Cetech_Pos_Bridge_Response::wp_error(
+			'OPERATION_IN_PROGRESS',
+			'Prepare is still in progress for this Idempotency-Key.',
+			true,
+			'resolve',
+			202
+		);
+	}
+
+	private function attention_error( $message = null ) {
+		return Cetech_Pos_Bridge_Response::wp_error(
+			'REQUIRES_ATTENTION',
+			is_string( $message ) && $message !== '' ? $message : 'Prepared sale requires attention.',
+			false,
+			'contact_manager',
+			409
+		);
+	}
+
+	private function unavailable( $message ) {
+		return Cetech_Pos_Bridge_Response::wp_error(
+			'INTEGRATION_UNAVAILABLE',
+			$message,
+			true,
+			'resolve',
+			503
+		);
+	}
+}
