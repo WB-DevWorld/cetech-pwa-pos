@@ -1,26 +1,43 @@
-# WS3 current handoff — R5 activation / waiting BR-06
+# WS3 current handoff — R5 assembled for final review gate
 
-Kind: ACTIVATION_CHECKPOINT. Date: 2026-09-14 UTC.
+Kind: INTEGRATION_CHECKPOINT. Date: 2026-09-14 UTC.
 
-Task / batch / workstream: R5 / issue #52 integration; BR-06 #18 then CORE-05 #24; WS3 integration editor.
+Task / batch / workstream: R5 / issue #52 integration; BR-06 #18 + CORE-05 #24; WS3 integration editor.
 Owner / integration editor: `@wbdevworld` / WS3.
-Branch / PR: `batch/r5-idempotent-prepare-cash` / draft PR #53.
+Branch / PR: `batch/r5-idempotent-prepare-cash` / PR #53.
 Base main: `da86434cc471703b8309cea77cda88b7845c299b`.
 
-PRE-R5 predecessor: PR #51 **APPROVED / MERGED / POST-MERGE VERIFIED**. Reviewed head `49abf8509934fb319a479be59ce9e4192cb21178`; merge `da86434cc471703b8309cea77cda88b7845c299b`; post-merge CI `34830069895` SUCCESS on both required jobs. PRE-R5 issues #46–#49 closed/completed; PRE-R5 integration lease released.
+## BR-06 provenance
 
-R5 ownership queue:
-1. BR-06 / #18 — `@Emmanuel-coder-prog` / WS2. **AUTHORIZED / NOT STARTED** at this checkpoint. Emmanuel publishes exact tested source SHA(s) + WS2 STATUS/HANDOFF and stops.
-2. WS3 independently reviews/imports only declared BR-06 commits into PR #53, runs combined tests and publishes exact tested `BR06_INTEGRATION_SHA`.
-3. CORE-05 / #24 — `@wbdevworld` / WS3. **BLOCKED / NOT STARTED** until `BR06_INTEGRATION_SHA` exists. Create the CORE-05 contributor branch from that exact SHA, not from current `main`.
-4. Import/test CORE-05 into PR #53, final combined checks, exactly two final ADR-012 freshness observations, then independent human review.
+Owner / implementer: `@Emmanuel-coder-prog` / WS2.
+Accepted source head: `a0fa00d452c3a672d97c5a3cb253a5ca6f11cf8f`.
+Integration merge: `30af336925fd29dc43e7315d81919ae2a7bd5bfc`.
+Published tested handoff: `BR06_INTEGRATION_SHA=15baab1b47a35902b8a3ddde989df55cc4b25436`.
+Combined CI: `34855313462` SUCCESS on `control-plane` + `control-plane-windows`.
+Source bridge evidence: 1020 passed / 0 failed; parity 138 / 0 / 19 permission-required-skipped. Live HPOS / real DB concurrency evidence remains PENDING and is not claimed.
 
-No intermediate `main` merge is required between BR-06 and CORE-05. Integration ownership does not transfer BR-06 implementation ownership to WS3. Review fixes affecting BR-06 return to Emmanuel. No implementation reassignment exists.
+## CORE-05 provenance
 
-Contracts: v1.0.0 unchanged. Architecture: ADR-012 + ADR-014 active. Database migrations: none from this activation checkpoint. Product/runtime implementation: none from this activation checkpoint.
+Owner / implementer: `@wbdevworld` / WS3.
+Required base: exact `BR06_INTEGRATION_SHA` above.
+Rejected prior source: `602a47457cc69298cec06dbed2e99c4dc4cf8255` / `def73afd35edb4ea099d59a8c8351a0f2ab7081d`.
+Accepted replacement implementation: `7226b686982b3da8746526aa8f60744a8b53ab25`.
+Accepted final contributor head: `5c5c93f523ac9a5218cc916a8a6b6503cca4df75`.
+Import merge: `53b3982772b35886b3ac0fa0d50e374e9e359752`.
+Combined CI on that import: `34867174407` SUCCESS on both required jobs, including Supabase reset/pgTAP, lint, typecheck, unit tests, build and E2E smoke.
 
-Safety/invariants: Quote is not reservation; PrepareSale revalidates and claims idempotency; order metadata lookup alone is not atomic deduplication or stock locking; same intent must not create multiple commercial orders; repair/retry must not create a second sale. Issue #4 OPEN; `pricingParityVerified=false`; production promotion/payment-provider execution not authorized.
+CORE-05 source-head CI `34865309195` also succeeded on Linux + Windows. Source evidence: control-plane PASS; lint/typecheck PASS; Vitest 46 files / 326 tests PASS; official Supabase CLI 2.117.0 reset PASS; pgTAP Files=2 / Tests=88 PASS. The Windows `npx` reset launcher failure is documented as a host-specific `npx.cmd` restriction and was not mislabeled PASS.
 
-Current delivery: **R5 ACTIVE / WAITING OWNER BR-06 HANDOFF**. WS3 should not implement feature code while waiting. Next exact action is receipt of Emmanuel's tested BR-06 SHA(s), followed by independent WS3 review/import.
+Closed review blockers:
+1. CORE-02 `authorizeStaffMutation` / `authorizeStaffRead` assignment authority is used; mutation permissions are `shift.open`, `payment.cash`, `sale.finalize`; receipt read is assignment-scoped without inventing a new permission.
+2. Cash-ledger→POS persistence and commercial-finalizer→POS persistence failures enter `requires_attention` repair; retry uses the same intent/key and does not create a second cash ledger effect or second commercial sale in the authorized mock boundary.
+3. `pos_cash_one_sale_per_transaction` migration is reset/pgTAP validated.
+4. Contributor reverted the out-of-scope Vitest config change; the harness is discovered under `src/server/sales/**`.
 
-Activation evidence: [R5-ACTIVATION.md](../../integration/evidence/R5-ACTIVATION.md). Canonical scheduler: [CURRENT-WORK.md](../../../CURRENT-WORK.md).
+Contracts: v1.0.0 unchanged. ADRs: unchanged. New migration: `20260914150000_pos_cash_sale_one_per_transaction.sql`.
+
+Runtime limitations: BR-07 is still required for the real commercial finalizer; CORE-05 uses the explicitly permitted mock. Durable production checkout/assignment adapters remain unavailable and staging/production composition fails closed. No production promotion, payment-provider execution, or R6 implementation is claimed.
+
+Issue #4 remains OPEN. `pricingParityVerified=false`.
+
+Next exact action: this integration-control commit becomes the frozen R5 review candidate. Require CI on that exact head, perform exactly two final ADR-012 freshness observations, then request independent human review. No Pass 3. Do not self-approve or merge before approval.
