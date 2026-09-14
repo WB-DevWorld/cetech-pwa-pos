@@ -1,5 +1,21 @@
 # WS2 current status
 
+Snapshot 2026-09-14. `origin/main` `29cea52acbee2729175df61d2ae1a6658c5c04b1`. Owner and actual implementer: Developer 2 / @Emmanuel-coder-prog. Current task **HARDEN-03 / issue #48** on `ws2/pre-r5-quote-schema-bridge`, base `29cea52…`. Implementation SHA `c06c9e67108d372e25e815a43e05029ba12e6ab5`. Initial evidence SHA `2da3dc4f3e15d8d8da12c9f732296f25f4528bea`. ADR-014 applies: WS3 may import these exact tested commits into `batch/pre-r5-hardening` (draft PR #51) but does not implement this issue.
+
+This is **PRE-R5 hardening**, not R5. BR-06 is not started, CORE-05 is not implemented, and R5 is not activated. Contract changes NONE, ADR changes NONE, dependency changes NONE, pricing-semantics changes NONE. `pricingParityVerified` remains **false**. Issue #4 stays OPEN. PRE-R5 is not complete; HARDEN-03 clears only the WS2/bridge portion of the quote-schema gate, and the WS3 BFF portion is separate.
+
+HARDEN-03 result: the canonical v1 `QuoteRequest`/`Quote` JSON Schema is now enforced at the Woo bridge boundary. Ingress rejects contract-invalid payloads with `VALIDATION_ERROR` before any Woo/WoodMart/B2BKing pricing entry point is invoked; egress validates the candidate Quote and fails closed with `INTEGRATION_UNAVAILABLE` rather than emitting `{ok:true}`. Enforcement reads a deterministic projection of `docs/contracts/pos-domain.schema.json` (`wordpress/cetech-pos-bridge/schema/quote-contract.v1.json`, derived by `tools/derive-quote-contract.php`), and the bridge suite re-derives it so divergence from the canonical contract fails. No second handwritten PHP contract was created.
+
+Canonical GNU Make verification closed the earlier workstation gap. The original Windows PATH lacked GNU Make; direct-recipe `php` runs on `c06c9e6…` were supplemental only. Canonical targets were then executed inside an ephemeral official `php:8.5-cli` Docker Linux container (image digest `sha256:9ebdf4c28ab12c02085e171c31e22ac5f7bbb6a9f6927e3bc3dfe7ee23df51e0`; PHP **8.5.10** NTS built 2026-08-31; GNU Make **4.4.1**). No Docker binaries, images, or toolchain files were committed; no repository dependency changed. Exact target results: `make -C wordpress/cetech-pos-bridge check` **PASS** (30 files, no syntax errors); `make -C wordpress/cetech-pos-bridge test` **445 passed / 0 failed**; `make -C wordpress/cetech-pos-bridge parity` **138 passed / 0 failed / 19 permission-required-skipped**. Host re-run: `python scripts/verify_control_plane.py` **PASS**; `php wordpress/cetech-pos-bridge/tools/derive-quote-contract.php --check` **PASS** (`artifact matches the canonical contract`); `git diff --check` clean. See HANDOFF.md.
+
+| Task | State | Branch / evidence |
+| --- | --- | --- |
+| HARDEN-03 | IMPLEMENTED / CANONICAL MAKE VERIFIED; awaiting WS3 import + independent review | Issue #48. `ws2/pre-r5-quote-schema-bridge` implementation `c06c9e6…`, initial evidence `2da3dc4…`. Not PRE-R5 complete; not R5. |
+
+## Previous snapshot (HARDEN-03 supplemental php recipes — historical; current section above controls)
+
+# WS2 current status
+
 Snapshot 2026-09-14. `origin/main` `29cea52acbee2729175df61d2ae1a6658c5c04b1`. Owner and actual implementer: Developer 2 / @Emmanuel-coder-prog. Current task **HARDEN-03 / issue #48** on `ws2/pre-r5-quote-schema-bridge`, base `29cea52…`. Implementation SHA `c06c9e67108d372e25e815a43e05029ba12e6ab5`. ADR-014 applies: WS3 may import these exact tested commits into `batch/pre-r5-hardening` (draft PR #51) but does not implement this issue.
 
 This is **PRE-R5 hardening**, not R5. BR-06 is not started, CORE-05 is not implemented, and R5 is not activated. Contract changes NONE, ADR changes NONE, dependency changes NONE, pricing-semantics changes NONE. `pricingParityVerified` remains **false**. Issue #4 stays OPEN. PRE-R5 is not complete; HARDEN-03 clears only the WS2/bridge portion of the quote-schema gate, and the WS3 BFF portion is separate.
