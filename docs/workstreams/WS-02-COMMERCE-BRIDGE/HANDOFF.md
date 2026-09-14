@@ -1,4 +1,57 @@
-# WS2 current handoff — BR-06 / #18 WS3 review remediation (TASK_COMPLETION)
+# WS2 current handoff — BR-06 / #18 WS3 re-review remediation (TASK_COMPLETION)
+
+Kind / UTC: TASK_COMPLETION / 2026-09-14 (new bounded ADR-012 two-pass after this evidence commit; not Pass 3 of a previous cycle)
+Task / batch / workstream: BR-06 / issue #18 WS3 RE-REVIEW REMEDIATION — remediates WS3 review comment 5664357878; R5; WS2
+Owner / actual implementer: @Emmanuel-coder-prog / @Emmanuel-coder-prog
+Integration destination: WS3 import into `batch/r5-idempotent-prepare-cash` (draft PR #53). Do not edit that branch from WS2.
+Branch: `ws2/br-06-implement-hpos-safe-idempotent-prepare-and-re`
+Prior published head: `312dcc3cebd644d5b6ea206210be437e3f001869`
+Implementation remediation SHA: `fc89e5f03e822224bb8c9c4f2c4e2f663eccce9b`
+Allowed paths: `wordpress/cetech-pos-bridge/**`; `tests/bridge/**`; `tests/fixtures/commerce/**`; WS2 STATUS/HANDOFF/evidence
+Forbidden untouched: `apps/**`; `supabase/**`; `docs/contracts/**`; `.github/**`; root lockfiles; `reference/**`; CORE-05; BR-07; R5 batch branch; PR #53 code
+Contracts changed: **NONE**. Bridge DB schema/version: **NO** (remains v3). ADRs: **NONE**. Supabase: **NONE**. Pricing formulas copied: **NONE**.
+`pricingParityVerified`: **false**. Issue #4 OPEN. CORE-05 NOT STARTED. BR-07 NOT STARTED. Live HPOS write rehearsal PENDING. Real DB concurrency PENDING.
+
+## BLOCKER 3 — GET inspection architecture
+
+GET resolve calls `inspect_recoverable_order` / `inspect_recovered_order` only. It does not call `repair_recovered_order`, does not acquire the creator lock, and does not persist PreparedSale. Fake mutation counters (creates, item add/remove/update, repair saves, recovery-meta writes, quote-snapshot writes, stock reservations) plus a deep Woo order snapshot are unchanged across GET. Repeated and in-memory interleaved GET stay `preparing` with no order #2. POST retry under the existing creator lock repairs once and returns PreparedSale; subsequent GET is `prepared` with no mutation.
+
+## BLOCKER 4 — initial-save and mid-snapshot
+
+True seam A is `after_initial_order_save` (token persisted on claim and Woo; zero Quote lines). Mid-snapshot seam B is `after_quote_line`. Line identity is `_cetech_pos_quote_line_id` from frozen Quote `lineId`, present on first durable item save via `WC_Order_Item_Product` (not `add_product()`). POST reconcilation adds missing expected lines, keeps exact matches, completes recoverable partials, and fail-closes duplicate / unexpected / unidentifiable / wrong-product states. After POST repair the Woo product-line set equals the Quote line set; subtotal/discount/tax/total equality still holds; then reservation/PreparedSale.
+
+## Preserved
+
+Quote economics, reservation proof, last-unit, idempotency/replay, crash-after-create token recovery, no second order, requestHash/duplicate-token protection.
+
+## Verification
+
+Docker `php:8.5-cli`; PHP **8.5.10** NTS; GNU Make **4.4.1**.
+
+- `make -C wordpress/cetech-pos-bridge check` PASS, 37 files
+- `make -C wordpress/cetech-pos-bridge test` **1020 passed, 0 failed**
+- `make -C wordpress/cetech-pos-bridge parity` **138 passed, 0 failed, 19 skipped**
+- derive `--check` PASS; `python scripts/verify_control_plane.py` PASS; `git diff --check` clean
+
+In-memory fake is not a live Woo/HPOS database PASS.
+
+## Delivery
+
+**READY_FOR_INTEGRATION** pending exact-head CI on the pushed contributor head. Recommended receiver: @wbdevworld / WS3.
+
+## Freshness (new bounded ADR-012 two-pass; not Pass 3)
+
+START: 2026-09-14T13:46:13Z; HEAD `fc89e5f03e822224bb8c9c4f2c4e2f663eccce9b`; `origin/main` `da86434cc471703b8309cea77cda88b7845c299b`; `origin/batch/r5-idempotent-prepare-cash` `9b617bc9076fa0dc20913265396fc70aa0a8d6d6`.
+
+PASS 1: 2026-09-14T13:46:58Z. main `da86434…`. batch `9b617bc…`. No new arrivals. Classification of observed remotes: unchanged.
+
+PASS 2: 2026-09-14T13:47:23Z. main `da86434…`. batch `9b617bc…`. No new arrivals. Nothing reconciled.
+
+Freshness classification: **FRESH_2**
+
+## Previous current handoff — BR-06 / #18 WS3 review remediation (TASK_COMPLETION)
+
+
 
 Kind / UTC: TASK_COMPLETION / 2026-09-14 (new bounded ADR-012 two-pass after this evidence commit; not Pass 3)
 Task / batch / workstream: BR-06 / issue #18 FINAL WS3 REVIEW REMEDIATION — remediates WS3 review comment 5663339003; R5; WS2

@@ -2,148 +2,103 @@
 
 Kind: TASK_COMPLETION evidence (WS2). Not live Woo/HPOS write evidence.
 
-- Task: BR-06 / issue #18 (WS3 review remediation of comment 5663339003)
+Earlier superseded evidence remains available in the published Git history; this file describes the current accepted candidate only.
+
+- Task: BR-06 / issue #18 (WS3 re-review remediation of comment 5664357878)
 - Owner / actual implementer: @Emmanuel-coder-prog / WS2
 - Source branch: `ws2/br-06-implement-hpos-safe-idempotent-prepare-and-re`
-- Prior published head: `63b6d068a1400c9bea14c03c8728c59b08103deb`
-- Original implementation SHA: `ec5dc534b3c3f5ab2373e1e1783c48ce55cae4cb`
-- Original evidence SHA: `230daad09af684dba92a481abce3ec8aad83cdc3`
-- Crash-recovery remediation SHA: `4417ed867adb6962025d62184385d394083d1737`
-- Crash-recovery evidence SHA: `d4b0d2fd7a94dcd18a3a2b89529befdbaa4fba74`
-- Stock-reservation remediation SHA: `7f3ca2df3fd0548fed7734c7b87d46ef9d68a168`
-- Stock-reservation evidence SHA: `63b6d068a1400c9bea14c03c8728c59b08103deb`
+- Prior published head: `312dcc3cebd644d5b6ea206210be437e3f001869`
+- Implementation remediation SHA: `fc89e5f03e822224bb8c9c4f2c4e2f663eccce9b`
 - Plugin version: `0.3.0-br06`
 
-## BLOCKER 1 — recovery identity
+Preserved published history (do not rewrite): `ec5dc53` → `230daad` → `4417ed8` → `d4b0d2f` → `7f3ca2d` → `63b6d06` → `a48cca6` → `312dcc3`.
 
-1. Generate 64-hex `random_bytes(32)` token (non-PII).
-2. Persist `woo_recovery_token` + `woo_create_entered=1` on the bridge claim **before** Woo create.
-3. Bind the same token into the initial `wc_create_order` save via `woocommerce_before_order_object_save`: `set_order_key($token)` and meta `_cetech_pos_woo_recovery_token`. Fail closed if the token is not present on the returned order.
-4. After crash, query with `wc_get_order_id_by_order_key` / `wc_get_orders` (`order_key` and recovery meta). Duplicate matches → `requires_attention`.
-5. Verify transaction/request hash when those ordinary fields exist; token-only match is enough at seam A.
-6. Repair ordinary tx/hash/sale/quote meta; apply Quote economics if needed; complete/re-prove reservation.
-7. Never create order #2.
+## BLOCKER 3 — GET resolve is observational
 
-Bridge DB: `cetech_pos_bridge_db_version=3`; column `woo_recovery_token char(64) NULL`; UNIQUE `(site_scope, woo_recovery_token)`; `maybe_upgrade()` remains version-gated dbDelta.
+Architecture: `GET /sales/{transactionId}` → `inspect_recoverable_order()` → `inspect_recovered_order()`. That path loads the durable claim, locates the token-owned or tx+hash Woo order, and classifies `not_found` / `preparing` / `prepared` / `requires_attention`. It does not acquire the creator lock.
 
-Seam A: resolve `preparing`; retry `prepared`/`reserved`; order count 1; create count 1. Wrong token / duplicate token / wrong request hash → `requires_attention`.
+GET must not add/remove/update Woo items, rewrite economics, save totals, save transaction/hash/sale/quote metadata, create orders, complete reservation, alter stock, or trigger repair-oriented Woo saves.
 
-## BLOCKER 2 — quote snapshot economics
+Repair belongs only to `POST /sales/prepare` retry: `create_with_lock()` → `try_repair_order()` → `repair_recovered_order()` while the existing creator/idempotency lock is held. There is no second repair lock.
 
-Accepted Quote is commercial truth. Production writes QuoteLine subtotal / (subtotal−discount) / tax onto `WC_Order_Item_Product` and Quote subtotal/discount/tax/total onto the order. Does not call `calculate_totals(false)` to reprice. Tax-rate allocation is copied only from the isolated cart `line_tax_data` captured during authoritative revalidation. Saved Woo totals are compared to Quote at minor-unit precision; mismatch → `INTEGRATION_UNAVAILABLE`, no PreparedSale, no second create.
+If the claim is already `STATUS_PREPARED`, GET returns the stored SaleResolution. If the claim is still preparing but Woo is already complete and reservation-proven, GET may report `prepared` observationally without persisting PreparedSale onto the claim and without Woo writes. Token-owned incomplete → `preparing`. Ambiguous → `requires_attention`. GET never mutates Woo to turn preparing into prepared.
 
-Walk-in: 10.00/0/0/10.00, customer_id 0. Retail: 9.00 under `cust_retail_1`. B2B: 8.00 under `cust_b2b_1`. Discount: discount 2.00 total 8.00. ADR-013: line discounts 1.50+0.50, summed lines 18.00. Tax: tax 1.50 with provider rate `1` = 1.50. Forced divergence: no PreparedSale, create_calls=1, still resolvable.
+Zero-write proof (deterministic fake, not live HPOS): deep-snapshot Woo orders, reservation rows, catalog stock, and mutation counters (`order_creates`, `item_adds`/`removes`/`updates`, `repair_saves`, `recovery_meta_writes`, `quote_snapshot_writes`, `stock_reservations`) before GET; after GET they are unchanged. Final totals equality is not used as the sole proof.
 
-Reservation complete-set proof, actual `expiresAt`, `ReserveStockException` normalization, seams B/C, last-unit, replay/idempotency remain green.
+Required regressions:
+
+- Token-only earliest crash (`after_initial_order_save`): GET `preparing`; counters/state unchanged; GET again same; no Woo mutation.
+- Repeated/interleaved GET (in-memory, not a DB concurrency PASS): no creator lock, no write-repair, no order #2, no stock effect, deterministic `preparing`.
+- GET then POST: GET read-only `preparing`; POST under creator lock repairs once, completes/re-proves reservation, persists PreparedSale; subsequent GET `prepared` with no mutation; Woo order count 1; provider create count 1.
+
+## BLOCKER 4 — true initial-save and mid-snapshot recovery
+
+Production effect sequence and honest seams:
+
+1. Persist recovery token on the bridge claim.
+2. `persist_initial_order_with_recovery_token()` — recovery token bound into the initial Woo save.
+3. Seam **A** `after_initial_order_save` (before first Quote item write).
+4. Quote snapshot line-by-line with bridge-private `_cetech_pos_quote_line_id` = frozen `QuoteLine.lineId` attached on `WC_Order_Item_Product` before the item's first durable save. Seam **B** `after_quote_line` fires after each durable line.
+5. Seam **C** `after_quote_snapshot` (complete snapshot, before ordinary recovery metadata).
+6. Ordinary tx/hash/sale/quote meta. Seam **D** `after_meta_save`.
+7. `wc_reserve_stock_for_order`. Seam **E** `after_product_reserve` after each managed stock row.
+8. Seam **F** `after_order_create` on the engine (after reservation, before claim PreparedSale persist).
+
+The previous `after_wc_create` name is removed; it implied a boundary after `wc_create_order` that was actually after Quote snapshot.
+
+Seam A proof: durable claim has recovery token; initial Woo order has the same token; zero Quote line items; GET `preparing` with zero Woo writes; POST locates the same order, applies the complete Quote snapshot, completes reservation, returns PreparedSale; `create_calls=1`; Woo order count=1.
+
+Seam B proof (two-line Quote): line A saved, line B not, totals not final, ordinary meta absent, reservation not completed. GET `preparing` / zero writes. POST recognizes line A, does not duplicate it, adds line B once, proves exact Quote line set and economics, completes reservation, returns PreparedSale. Final: create_calls=1, order count=1, exactly two product lines, quantities/economics exact.
+
+## Quote-snapshot reconciliation (POST lock only)
+
+Before mutating lines, prove the order is CETECH-owned: recovery token matches the claim when present, `created_via=cetech-pos` where set, pending/unpaid/prepared-compatible status, not paid/finalized, no contradictory transaction/request identity. Existing reservation rows make incomplete-line repair unsafe → `REQUIRES_ATTENTION` (no destructive line rewrite).
+
+Deterministic line identity is bridge-private item meta `_cetech_pos_quote_line_id` derived from authoritative Quote `lineId`. Not a wire field. Not a pricing formula. Fake/production attach it on first persist.
+
+For each expected QuoteLine:
+
+- A. absent → POST may add that exact line once
+- B. exists once and matches → keep; do not duplicate
+- C. exists once with recoverable CETECH identity but partial economics → POST may complete it to the Quote snapshot
+- D. duplicate bridge line identities → `REQUIRES_ATTENTION`
+- E. unexpected non-CETECH product line → `REQUIRES_ATTENTION`
+- F. no safe deterministic identity → `REQUIRES_ATTENTION`
+- G. identity matches but product/variation contradicts Quote → `REQUIRES_ATTENTION`
+
+Never silently delete or overwrite an unrelated/ambiguous line. After successful POST repair the Woo product-line set equals the Quote line set exactly, then:
+
+- saved Woo subtotal == Quote.subtotal
+- saved Woo discount == Quote.discount
+- saved Woo tax == Quote.tax
+- saved Woo total == Quote.total
+
+Line-by-line equality still holds. Only then may reservation / PreparedSale continue.
+
+Ambiguous regressions: unexpected third product line, duplicate line identity, wrong product/variation, unidentifiable item → `REQUIRES_ATTENTION`, no order #2, no blind deletion, no silent overwrite, no false PreparedSale, no reservation completion. Partial recoverable identity → POST repairs under the creator lock.
+
+## Preserved closed guarantees
+
+High-entropy 64-hex recovery token persisted on the claim before Woo create; UNIQUE `(site_scope, woo_recovery_token)`; token bound into the initial Woo save; supported Woo recovery lookup; Quote economics written explicitly; no `calculate_totals(false)` repricing; provider tax detail only from authoritative Woo pricing snapshot; walk-in/retail/B2B context; ADR-013 allocated discount semantics; forced divergence fail-closed; complete unexpired stock-reservation proof; actual reservation expiry; `ReserveStockException` normalization; last-unit race safety; requestHash mismatch protection; duplicate recovery-token protection; same-key replay/conflict semantics; frozen schemas/contracts; `pricingParityVerified=false`.
+
+Walk-in 1000/0/0/1000; retail 900 under `cust_retail_1`; B2B 800 under `cust_b2b_1`; discount 200/800; ADR-013 150+50 → 1800; tax 150 with provider rate `1`.
 
 ## Verification (canonical GNU Make in `php:8.5-cli`)
 
 - PHP **8.5.10** NTS (built 2026-08-31)
 - GNU Make **4.4.1**
 - `make -C wordpress/cetech-pos-bridge check` PASS (37 files)
-- `make -C wordpress/cetech-pos-bridge test` **820 passed / 0 failed**
-- `make -C wordpress/cetech-pos-bridge parity` **138 passed / 0 failed / 19 permission-required-skipped**
-- `php wordpress/cetech-pos-bridge/tools/derive-quote-contract.php --check` PASS
-- `python scripts/verify_control_plane.py` PASS
-- `git diff --check` clean
-
-Live/staging HPOS write rehearsal: **PENDING**. In-memory fake is not a live Woo database PASS.
-
-## Unchanged
-
-Contracts: NO. ADRs: NO. Supabase: NO. Dependencies/lockfiles: NO. Pricing formulas copied: NO.
-`pricingParityVerified=false`. Issue #4 OPEN. BR-07 NOT STARTED. CORE-05 NOT STARTED BY WS2. R5 not complete. PR #53 code not modified by this contributor.
-
-
-Kind: TASK_COMPLETION evidence (WS2). Not live Woo/HPOS write evidence.
-
-- Task: BR-06 / issue #18 (including independent-review crash-recovery remediation)
-- Owner / actual implementer: @Emmanuel-coder-prog / WS2
-- Source branch: `ws2/br-06-implement-hpos-safe-idempotent-prepare-and-re`
-- Original implementation SHA: `ec5dc534b3c3f5ab2373e1e1783c48ce55cae4cb`
-- Original evidence SHA: `230daad09af684dba92a481abce3ec8aad83cdc3`
-- Remediation SHA: `4417ed867adb6962025d62184385d394083d1737`
-- Stock-reservation remediation SHA: `7f3ca2df3fd0548fed7734c7b87d46ef9d68a168`
-- Plugin version: `0.3.0-br06`
-
-## Routes
-
-- POST `/wp-json/cetech-pos/v1/sales/prepare` (`bridgePrepare`)
-- GET `/wp-json/cetech-pos/v1/sales/{transactionId}` (`bridgeResolve`)
-
-Required prepare headers: `X-Correlation-ID`, `Idempotency-Key` (distinct UUIDs).
-Resolve requires `X-Correlation-ID` only. Resolve never creates a Woo order and never completes stock reservation.
-
-## Claim design
-
-Installation scope is WordPress `get_current_blog_id()`, else `"1"` in the unit harness. That is the real blog/install identity, not a fabricated organization UUID. The bridge is one Woo store per installation.
-
-Bridge-owned table `{$wpdb->prefix}cetech_pos_prepare_claims` (not HPOS):
-
-- UNIQUE `(site_scope, operation_type, idempotency_key)`
-- UNIQUE `(site_scope, transaction_id)`
-- Version option `cetech_pos_bridge_db_version` = `2`; `maybe_upgrade()` skips DDL when the version matches
-- Durable `woo_create_entered` is persisted **before** `wc_create_order`
-
-The INSERT is the atomic claim and is taken **before** `wc_create_order`. Woo order meta (`_cetech_pos_transaction_id`, `_cetech_pos_request_hash`, `_cetech_pos_sale_id`) is recovery evidence only. Recovery accepts an order only when **transactionId and stored request hash** both match the claim. A hash mismatch is `requires_attention` and is never adopted as PreparedSale.
-
-Internal statuses used by BR-06: `preparing`, `prepared`, `terminal_failure`, `requires_attention`. Payment/finalize/cancel transitions are not implemented.
-
-## Request hash
-
-SHA-256 of the semantic `PrepareSaleRequest` with sorted object keys. Correlation ID and transport headers are excluded.
-
-- same key + same hash → original PreparedSale / terminal failure
-- same key + different hash → `IDEMPOTENCY_CONFLICT` 409 / retryable=false / contact_manager
-- lock held / creator in progress → `OPERATION_IN_PROGRESS` 202 / retryable=true / resolve
-- different key + same `transactionId` → `REQUIRES_ATTENTION` (no second order)
-
-## Stock / HPOS
-
-Prepared unpaid orders use Woo `wc_reserve_stock_for_order` when hold-stock minutes > 0.
-
-Complete reservation proof (COUNT>0 is **not** sufficient):
-
-1. Build the expected hold set from order items using Woo ReserveStock rules: skip non-line/qty<=0; skip `!managing_stock()` or `backorders_allowed()`; aggregate by `get_stock_managed_by_id()`.
-2. Read current rows from `$wpdb->wc_reserved_stock` with prepared SQL `expires > NOW()`. Canonical table property required; fail closed if missing/unreadable. **No writes** to that table.
-3. Every expected product must have a current row whose `stock_quantity` covers the required quantity. Partial set, wrong quantity, or expired hold → not proven.
-4. `PreparedSale.expiresAt` is the minimum actual row expiry, not `now + woocommerce_hold_stock_minutes`.
-5. `ReserveStockException` (`woocommerce_product_not_enough_stock` / `woocommerce_product_out_of_stock`) maps to STOCK_CHANGED on create. Recovery maps unclassifiable/insufficient completion to REQUIRES_ATTENTION. No new error codes. No uncaught fatal at this boundary.
-
-Hold minutes `0` fails closed. In-memory fake sequential reserve is **not** a live Woo database PASS.
-
-## Crash seams actually tested (supersedes "crash-after-order-create PASS")
-
-Deterministic injected seams at the production runtime boundaries, not only after `create_prepared_order()` returns:
-
-| Seam | Boundary | Proven outcome |
-| --- | --- | --- |
-| A | immediately after `wc_create_order` returns, before recovery metadata save | retry and resolve: `requires_attention`; `create_calls=1`; POS order count 1; never `stockCommitment=reserved` |
-| B | after recovery metadata/order save, before `wc_reserve_stock_for_order` | resolve: `preparing` (no false reserved, no stock mutation); retry completes reservation → `prepared` / `reserved`; order count 1 |
-| C | after reservation succeeds, before bridge claim PreparedSale persistence | retry and resolve recover `prepared` with proven `reserved`; order count 1 |
-| Partial A/B | A reserved, process dies before B | not initially proven; resolve does not complete stock; retry completes B via official reserve and re-proves A+B; one Woo order; PreparedSale `reserved` only after both current |
-
-Also proven: wrong request hash is not accepted as prepared; exactly one correctly identified order with proven reservation is recovered; ambiguous recovery (seam A) does not call `wc_create_order` again; only-one-row / wrong-qty / expired → not proven; complete current rows → proven; expiresAt matches proven expiry.
-
-## Verification (canonical GNU Make in `php:8.5-cli`)
-
-- PHP **8.5.10** NTS (built 2026-08-31)
-- GNU Make **4.4.1**
-- `make -C wordpress/cetech-pos-bridge check` PASS (37 files, no syntax errors)
-- `make -C wordpress/cetech-pos-bridge test` **674 passed / 0 failed**
+- `make -C wordpress/cetech-pos-bridge test` **1020 passed / 0 failed**
 - `make -C wordpress/cetech-pos-bridge parity` **138 passed / 0 failed / 19 permission-required-skipped**
 - `php wordpress/cetech-pos-bridge/tools/derive-quote-contract.php --check` PASS (`artifact matches the canonical contract`)
 - `python scripts/verify_control_plane.py` PASS
 - `git diff --check` clean
 
-Last-unit race (injected competing checkout / second prepare): exactly one successful commitment.
-In-memory lock interleaving is **not** a database concurrency PASS. UNIQUE indexes are the durable uniqueness evidence.
+Live/staging HPOS write rehearsal: **PENDING**. Real DB concurrency: **PENDING**. The fake/injected harness is not live HPOS proof. Issue #4 OPEN. `pricingParityVerified=false`.
 
-## Live / staging
-
-No isolated effectful BR-06 rehearsal authority was present. Live HPOS/write rehearsal is **PENDING**. Do not treat local tests as production promotion.
+Freshness: START 2026-09-14T13:46:13Z, Pass 1 2026-09-14T13:46:58Z, Pass 2 2026-09-14T13:47:23Z. `origin/main` `da86434cc471703b8309cea77cda88b7845c299b`. `origin/batch/r5-idempotent-prepare-cash` `9b617bc9076fa0dc20913265396fc70aa0a8d6d6`. No arrivals. Classification: **FRESH_2**.
 
 ## Unchanged
 
-Contracts: NO. ADRs: NO. Supabase: NO. Dependencies/lockfiles: NO. Pricing semantics: NO.
-`pricingParityVerified=false`. Issue #4 OPEN. BR-07 NOT STARTED. CORE-05 NOT STARTED BY WS2. R5 not complete. PR #53 code not modified by this contributor.
+Contracts: NO. Bridge DB schema/version: NO (remains v3). ADRs: NO. Supabase: NO. Dependencies/lockfiles: NO. Pricing formulas copied: NO.
+BR-07 NOT STARTED. CORE-05 NOT STARTED BY WS2. R5 not complete. PR #53 code not modified by this contributor. `batch/r5-idempotent-prepare-cash` not edited.
