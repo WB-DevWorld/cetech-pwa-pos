@@ -13,3 +13,7 @@ Dependency arrows are directional; CORE-05 must not wait for BR-07 while BR-07 w
 ## Milestone review cadence
 
 [ADR-012](../decisions/ADR/012.md) groups the above dependencies into [R1–R10](../plans/MILESTONE-REVIEWS.md). Small task commits integrate frequently; a PR is required at the milestone boundary rather than every subtask. No dependency or runtime gate is waived. Current queues, leases and declared integration SHAs live in CURRENT-WORK. Complete the two final freshness passes before handoff; later drift is evaluated by the integration editor.
+
+## Owner-preserving assembly (ADR-014)
+
+These rows describe assembly/dependencies, not one agent's implementation queue. CORE-04 (WS3) hands a tested provisional integration SHA to Ben for FE-03/FE-04; no intermediate main merge is required. R5: BR-06 Emmanuel → import/test/publish exact combined SHA → CORE-05 WS3 → import/combined gate on neutral `batch/r5-idempotent-prepare-cash`. CORE-05 mock preparation remains as explicitly authorized; no BR-07 cycle. R6: BR-07 Emmanuel, FE-05 Ben, CORE-06 WS3. Cross-owner review fixes return to the same owners. See [policy](../plans/LONG-RUNNING-WORK.md#ownership-preserving-milestone-execution).

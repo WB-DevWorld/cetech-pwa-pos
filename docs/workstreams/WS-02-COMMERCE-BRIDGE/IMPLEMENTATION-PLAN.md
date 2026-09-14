@@ -67,3 +67,7 @@ Use HANDOFF.md and report exact task/branch/commit(s), files, contracts, migrati
 ## Batch continuation
 
 Use TASKS.md ordered queue and CURRENT-WORK activation/leases. Continue automatically through ready authorized tasks; block only affected work. Checkpoint every 30–60 minutes or coherent subtask. Use the canonical handoff and [bounded freshness policy](../../plans/LONG-RUNNING-WORK.md); after Pass 2 stop. Historical single-task prompts are superseded only within this approved batch scope.
+
+## Human ownership through a milestone (ADR-014)
+
+The task's human/workstream owner survives batching. Auto-continuation covers only that owner's authorized ready tasks. At a cross-owner edge hand off exact source/import/tested combined SHAs; the receiver can branch from the declared provisional integration SHA without an intermediate main merge. The editor imports/tests contributions rather than implementing another owner's feature. Review fixes return to the task owner; unavailability requires waiting or explicit recorded senior reassignment. R5+ milestone PRs use neutral WS3-owned batch/rN-* branches. Read [the canonical rule](../../plans/LONG-RUNNING-WORK.md#ownership-preserving-milestone-execution); CURRENT-WORK controls activation and scope.
