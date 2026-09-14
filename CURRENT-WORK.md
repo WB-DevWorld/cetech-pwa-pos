@@ -13,25 +13,28 @@ Updated 2026-09-14. Canonical repo `WB-DevWorld/cetech-pwa-pos`. This file is th
 
 ## Active assignment — PRE-R5 hardening
 
-Activation authority: explicit senior/user instruction to proceed after R4 and ADR-014 adoption, recorded 2026-09-14. This assignment clears the two review-raised PRE-R5 hardening gates only. It does **not** activate R5 feature work.
+Activation authority: explicit senior/user instruction to proceed after R4 and ADR-014 adoption, recorded 2026-09-14. This assignment clears the review-raised PRE-R5 hardening gates only. It does **not** activate R5 feature work.
 
 - Integration issue: **#49 HARDEN-00** — neutral combined hardening review surface.
+- Draft integration PR: **#51** — `[PRE-R5] Catalog performance and quote schema hardening`.
 - Neutral integration branch: `batch/pre-r5-hardening`.
 - Integration editor: WS3 / `@wbdevworld`.
 - Integration baseline: `main` `29cea52acbee2729175df61d2ae1a6658c5c04b1`.
+- Current accepted WS3 combined code/evidence head before this scheduler-only reconciliation: `93de9dc78abb146696c7d74d96bc159ef3d051bf`.
+- Combined #46 + #47 CI: run `34796373145` **SUCCESS** on `control-plane` and `control-plane-windows`.
 - R5 status: **BLOCKED / NOT STARTED**.
-- R5 may be activated only after #46, #47 and #48 are accepted in the combined hardening batch, final two-pass freshness is complete, independent human review is recorded, this hardening lease is released, and a separate explicit R5 activation/lease is recorded.
+- R5 may be activated only after #48 is accepted/imported, final combined app/bridge/parity verification passes, final two-pass freshness is complete, independent human review is recorded, this hardening lease is released, and a separate explicit R5 activation/lease is recorded.
 
 ### Owner-scoped hardening tasks
 
-| Task | Human / workstream | Contributor branch | Status | Scope / gate cleared |
+| Task | Human / workstream | Contributor branch | Status | Scope / gate |
 | --- | --- | --- | --- | --- |
-| #46 HARDEN-01 | `@wbdevworld` / WS3 | `ws3/pre-r5-catalog-query-index` | AUTHORIZED / NOT STARTED | Local catalog query/index performance; real >=5,000-item local-adapter evidence |
-| #47 HARDEN-02 | `@wbdevworld` / WS3 | `ws3/pre-r5-quote-schema-bff` | AUTHORIZED / NOT STARTED | BFF/server `QuoteRequest` + `Quote` runtime JSON Schema enforcement |
-| #48 HARDEN-03 | `@Emmanuel-coder-prog` / WS2 | `ws2/pre-r5-quote-schema-bridge` | AUTHORIZED / OWNER HANDOFF | Woo bridge `QuoteRequest` + `Quote` runtime JSON Schema enforcement |
-| #49 HARDEN-00 | `@wbdevworld` / WS3 integration | `batch/pre-r5-hardening` | ACTIVE INTEGRATION LEASE | Exact-SHA imports, combined verification, freshness, independent review |
+| #46 HARDEN-01 | `@wbdevworld` / WS3 | `ws3/pre-r5-catalog-query-index` | **IMPLEMENTED / REVIEWED / IMPORTED / COMBINED CI GREEN** | Local catalog query/index performance; real >=5,000-item local-adapter evidence |
+| #47 HARDEN-02 | `@wbdevworld` / WS3 | `ws3/pre-r5-quote-schema-bff` | **IMPLEMENTED / REVIEWED / IMPORTED / COMBINED CI GREEN** | BFF/server `QuoteRequest` + `Quote` runtime JSON Schema enforcement |
+| #48 HARDEN-03 | `@Emmanuel-coder-prog` / WS2 | `ws2/pre-r5-quote-schema-bridge` | **AUTHORIZED / OWNER IMPLEMENTATION PENDING** | Woo bridge `QuoteRequest` + `Quote` runtime JSON Schema enforcement |
+| #49 HARDEN-00 | `@wbdevworld` / WS3 integration | `batch/pre-r5-hardening` | **ACTIVE INTEGRATION LEASE / WAITING #48** | Exact-SHA imports, combined verification, freshness, independent review |
 
-Task issue bodies are authoritative for allowed/forbidden paths and acceptance criteria. A combined milestone path list does not transfer implementation ownership.
+Task issue bodies remain authoritative for allowed/forbidden paths and acceptance criteria. A combined milestone path list does not transfer implementation ownership.
 
 ### PRE-R5 integration lease
 
@@ -40,7 +43,7 @@ Task issue bodies are authoritative for allowed/forbidden paths and acceptance c
 **Allowed integration-editor work:**
 - `CURRENT-WORK.md`;
 - `docs/integration/evidence/**` for this hardening batch;
-- bounded WS3 status/handoff updates;
+- bounded shared WS3 status/handoff reconciliation;
 - exact declared contributor commit imports into `batch/pre-r5-hardening`;
 - combined tests, PR metadata, reviewer requests, provenance/evidence;
 - conflict resolution only within WS3-owned integration surfaces.
@@ -60,25 +63,25 @@ Review fixes return to the human owner of the affected contribution. Any impleme
 
 | Contribution | Declared owner | Actual implementer | Source branch | Tested source SHA(s) | Imported SHA(s) | Tested combined SHA | Receiving owner / next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| #46 catalog performance | WS3 / `@wbdevworld` | UNVERIFIED | `ws3/pre-r5-catalog-query-index` | UNVERIFIED | UNVERIFIED | UNVERIFIED | WS3 integration |
-| #47 BFF schema validation | WS3 / `@wbdevworld` | UNVERIFIED | `ws3/pre-r5-quote-schema-bff` | UNVERIFIED | UNVERIFIED | UNVERIFIED | WS3 integration |
-| #48 bridge schema validation | WS2 / `@Emmanuel-coder-prog` | UNVERIFIED | `ws2/pre-r5-quote-schema-bridge` | UNVERIFIED | UNVERIFIED | UNVERIFIED | WS3 integration |
+| #46 catalog performance | WS3 / `@wbdevworld` | `@wbdevworld` / WS3 | `ws3/pre-r5-catalog-query-index` | impl `1199a344a3d2bf4d24b0322ca29f04ad6711cb63`; head `7f41a29b4e706aafe93d2047b701f1e260488f86` | impl `c689c108bfd4dbe325c08aa137d47cfe66966b2e`; evidence `d927faa18fff3babc236af54e2c696a09c9946c1` | `93de9dc78abb146696c7d74d96bc159ef3d051bf`; CI `34796373145` green | Accepted in WS3 integration; retain for final batch review |
+| #47 BFF schema validation | WS3 / `@wbdevworld` | `@wbdevworld` / WS3 | `ws3/pre-r5-quote-schema-bff` | impl `0034f3dacdc00bb365324df2a3882cb857fbf5f6`; head `4816cfa264d60763207aadae192a6623ff293302` | impl `914a5458a7b6ef5aea11c7e99e5d8b891ec98932`; evidence `93de9dc78abb146696c7d74d96bc159ef3d051bf` | `93de9dc78abb146696c7d74d96bc159ef3d051bf`; CI `34796373145` green | Accepted in WS3 integration; retain for final batch review |
+| #48 bridge schema validation | WS2 / `@Emmanuel-coder-prog` | UNVERIFIED | `ws2/pre-r5-quote-schema-bridge` | UNVERIFIED | UNVERIFIED | UNVERIFIED | Emmanuel / WS2 implements and publishes tested source SHA; WS3 then reviews/imports |
 
-Unknown provenance is **UNVERIFIED** and blocks hardening acceptance.
+Unknown #48 provenance remains **UNVERIFIED** and blocks hardening acceptance.
 
 ### Hardening acceptance gate
 
-The PRE-R5 gate is satisfied only when all of the following are evidenced on the combined tree:
+The PRE-R5 gate is satisfied only when all of the following are evidenced on the final combined tree:
 
-1. Catalog search/scan no longer reloads every IndexedDB catalog row and reconstructs the full projection engine for each query; real local-adapter before/after evidence exists on a >=5,000-item synthetic catalog and R4 barcode/variation/tombstone/cursor correctness remains green.
-2. The trusted Next.js BFF validates the canonical existing v1 `QuoteRequest` before bridge execution and validates the canonical existing v1 `Quote` before trusting/returning a bridge result.
-3. The Woo bridge validates canonical existing v1 `QuoteRequest` ingress before pricing execution and validates canonical existing v1 `Quote` egress before a successful response leaves the plugin.
-4. Generated TypeScript/PHP shapes do not substitute for runtime JSON Schema enforcement; no divergent handwritten second contract is introduced.
-5. Existing R4 retail/B2B/WoodMart/B2BKing quote behavior remains semantically unchanged and parity regressions remain green.
-6. Required component and combined checks pass; `git diff --check` is clean.
-7. Contributor source SHA → imported SHA → combined SHA provenance is recorded.
-8. Final ADR-012 freshness runs exactly Pass 1 and Pass 2, then stops. No autonomous Pass 3.
-9. A different competent human independently reviews the final combined hardening head.
+1. Catalog search/scan no longer reloads every IndexedDB catalog row and reconstructs the full projection engine for each query; real local-adapter before/after evidence exists on a >=5,000-item synthetic catalog and R4 barcode/variation/tombstone/cursor correctness remains green. **SATISFIED on #46 source and combined #46+#47 tree.**
+2. The trusted Next.js BFF validates the canonical existing v1 `QuoteRequest` before bridge execution and validates the canonical existing v1 `Quote` before trusting/returning a bridge result. **SATISFIED on #47 source and combined #46+#47 tree.**
+3. The Woo bridge validates canonical existing v1 `QuoteRequest` ingress before pricing execution and validates canonical existing v1 `Quote` egress before a successful response leaves the plugin. **PENDING #48.**
+4. Generated TypeScript/PHP shapes do not substitute for runtime JSON Schema enforcement; no divergent handwritten second contract is introduced. **BFF side satisfied; bridge side pending #48.**
+5. Existing R4 retail/B2B/WoodMart/B2BKing quote behavior remains semantically unchanged and parity regressions remain green. **Final bridge/parity confirmation pending #48.**
+6. Required component and combined checks pass; `git diff --check` is clean. **#46/#47 contributor checks and combined PR CI green; final post-#48 combined checks pending.**
+7. Contributor source SHA → imported SHA → combined SHA provenance is recorded. **#46/#47 recorded; #48 pending.**
+8. Final ADR-012 freshness runs exactly Pass 1 and Pass 2 after #48 final combined tree, then stops. **NOT RUN YET.**
+9. A different competent human independently reviews the exact final combined hardening head. **NOT REQUESTED YET.**
 
 ## Next milestone — R5 remains gated
 
