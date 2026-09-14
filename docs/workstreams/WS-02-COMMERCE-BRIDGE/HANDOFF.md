@@ -1,4 +1,56 @@
-# WS2 current handoff — BR-06 / #18 WS3 re-review remediation (TASK_COMPLETION)
+# WS2 current handoff — BR-07 / #19 verified commercial finalize and cancel (TASK_COMPLETION)
+
+Kind / UTC: TASK_COMPLETION / 2026-09-14 (new bounded ADR-012 two-pass after this evidence tree; not Pass 3 of R5)
+Task / batch / workstream: BR-07 / issue #19 IMPLEMENT VERIFIED COMMERCIAL FINALIZATION AND CANCEL — R6; WS2
+Owner / actual implementer: @Emmanuel-coder-prog / @Emmanuel-coder-prog
+Integration destination: WS3 import into `batch/r6-first-real-cash-sale` (draft PR #55). Do not edit that branch from WS2.
+Branch: `ws2/br-07-implement-verified-commercial-finalization-an`
+Starting R5 main SHA: `bc606a690f0c167b7057e3ae9143337404275882`
+Observed R6 neutral SHA: `8dabbde2af91b3aa31f00ae159b5f8cd7a3280a9` (FE-05 import only)
+Implementation SHA: `78c8403697ac2f925cdf189b5d2f705c5da6b3a5`
+Allowed paths: `wordpress/cetech-pos-bridge/**`; `tests/bridge/**`; `tests/fixtures/commerce/**`; WS2 STATUS/HANDOFF/evidence
+Forbidden untouched: `apps/**`; `supabase/**`; `docs/contracts/**`; `.github/**`; root lockfiles; `reference/**`; FE-05; CORE-06; R6 batch branch; PR #55 code; shared `CURRENT-WORK.md`
+Contracts changed: **NONE**. Bridge DB schema/version: **YES** v3 → v4 (`cetech_pos_command_claims`). ADRs: **NONE**. Supabase: **NONE**. Pricing formulas copied: **NONE**.
+`pricingParityVerified`: **false**. Issue #4 OPEN. CORE-06 NOT STARTED. FE-05 NOT TOUCHED. Live HPOS finalize/cancel rehearsal PENDING. Real DB concurrency PENDING.
+
+## Finalize
+
+Evidence binding: transaction/sale/payment amount+currency vs PreparedSale; CETECH Woo identity. Official API: `WC_Order::payment_complete($paymentId)`. Same-key replay returns completed SaleResolution. Same-key different request: `IDEMPOTENCY_CONFLICT`. Different paymentId same sale: `requires_attention`. Reused paymentId/evidenceId: `PAYMENT_NOT_VERIFIED`. Expired reservation + verified money: `requires_attention`. Late success after cancel: `requires_attention`, no second order. Crash F1/F2/F3 recover the same order; commercial/stock effect ≤ 1. No `receiptId`.
+
+## Cancel
+
+Frozen `CancelSaleRequest` has no PaymentState. Not a contract blocker: bridge fail-closes on locally visible money (Woo paid, bound payment meta, completed finalize, contradictory state). Official APIs: `wc_release_stock_for_order` then `update_status('cancelled')`. Same-key replay / different reason conflict. C1/C2/C3 recover without a second order. Finalize-wins: cancel `PAYMENT_PENDING`. Cancel-wins + late payment: `requires_attention`.
+
+## Resolve
+
+GET remains read-only. Overlay may report `completed` / `cancelled` / `finalizing` / `requires_attention` without writes. No invented `cancelling` status.
+
+## Verification
+
+Docker `php:8.5-cli`; PHP **8.5.10** NTS; GNU Make **4.4.1**.
+
+- `make -C wordpress/cetech-pos-bridge check` PASS, 42 files
+- `make -C wordpress/cetech-pos-bridge test` **1230 passed, 0 failed**
+- `make -C wordpress/cetech-pos-bridge parity` **138 passed, 0 failed, 19 skipped**
+- derive `--check` PASS; `python scripts/verify_control_plane.py` PASS; `git diff --check` clean
+
+In-memory fake is not a live Woo/HPOS database PASS. Race tests are in-memory lock interleaving, not real DB concurrency.
+
+## Delivery
+
+**READY_FOR_INTEGRATION** pending exact-head CI on the pushed contributor head. Recommended receiver: @wbdevworld / WS3.
+
+## Freshness (new bounded ADR-012 two-pass; not Pass 3 of R5)
+
+START: 2026-09-14T22:28:16Z; HEAD `78c8403697ac2f925cdf189b5d2f705c5da6b3a5`; `origin/main` `bc606a690f0c167b7057e3ae9143337404275882`; `origin/batch/r6-first-real-cash-sale` `8dabbde2af91b3aa31f00ae159b5f8cd7a3280a9`; `origin/ws2/br-07-implement-verified-commercial-finalization-an` still `bc606a690f0c167b7057e3ae9143337404275882` (unpublished implementation). Issue #19 still ACTIVE for @Emmanuel-coder-prog / WS2. Frozen contracts unchanged. FE-05 already imported on the R6 batch; WS1-only; does not invalidate BR-07.
+
+PASS 1: 2026-09-14T22:29:57Z. main `bc606a690f0c167b7057e3ae9143337404275882`. batch `8dabbde2af91b3aa31f00ae159b5f8cd7a3280a9`. No new arrivals. Classification of observed remotes: unchanged.
+
+PASS 2: 2026-09-14T22:30:38Z. main `bc606a690f0c167b7057e3ae9143337404275882`. batch `8dabbde2af91b3aa31f00ae159b5f8cd7a3280a9`. No new arrivals. Nothing reconciled.
+
+Freshness classification: **FRESH_2**
+
+## Previous current handoff — BR-06 / #18 WS3 re-review remediation (TASK_COMPLETION)
 
 Kind / UTC: TASK_COMPLETION / 2026-09-14 (new bounded ADR-012 two-pass after this evidence commit; not Pass 3 of a previous cycle)
 Task / batch / workstream: BR-06 / issue #18 WS3 RE-REVIEW REMEDIATION — remediates WS3 review comment 5664357878; R5; WS2
