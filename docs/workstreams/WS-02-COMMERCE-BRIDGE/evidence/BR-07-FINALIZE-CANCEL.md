@@ -2,6 +2,36 @@
 
 Kind: TASK_COMPLETION evidence (WS2). Not live Woo/HPOS write evidence. Not a real DB concurrency PASS.
 
+## Uncertain-money cancel safety remediation (2026-09-14)
+
+Prior published head: `e15fbe09af261ecf6647ac8c6e778b42c08d96f3`  
+Implementation parent: `78c8403697ac2f925cdf189b5d2f705c5da6b3a5`  
+Remediation SHA: `af9fab2f19e496481d3dd627a64419f880282cd6`
+
+Gap: `GET_LOCK` serialized live finalize/cancel, but process/connection death released the lock while a durable finalize claim could remain `PENDING` or `IN_PROGRESS` with Woo still unpaid. Cancel ignored those states and could `wc_release_stock_for_order` + cancel the order while verified money was unresolved.
+
+Fix: while holding the shared transaction mutation lock, cancel inspects the durable finalize claim **before** reservation release or Woo cancellation. `STATUS_PENDING` and `STATUS_IN_PROGRESS` return canonical `PAYMENT_PENDING` (409, nextAction=resolve). `OPERATION_IN_PROGRESS` remains lock-acquisition failure only.
+
+Cancel-command persistence: this `PAYMENT_PENDING` is **not** stored as `TERMINAL_FAILURE`. The cancel claim stays nonterminal (`PENDING` from insert) so the same Idempotency-Key can reevaluate if the finalize command later reaches a definitive no-effect or completed state. The claim is not deleted. Financial dedupe indexes are unchanged. DB version remains **4**. No schema/index/wire/error-code changes.
+
+| Case | Result |
+| --- | --- |
+| F1 crash → cancel | `PAYMENT_PENDING`; release=0; cancel=0; payment_complete=0; order=1; original finalize retry `completed` once |
+| IN_PROGRESS crash → cancel | same safety; `after_finalize_in_progress` seam after IN_PROGRESS persist, before bind/`payment_complete` |
+| CASE A finalize-wins | nested cancel `OPERATION_IN_PROGRESS`; later cancel `PAYMENT_PENDING`; payment_complete=1; stock=1; release=0; cancel=0 |
+| CASE B cancel owns lock + nested verified finalize claim | nested finalize `OPERATION_IN_PROGRESS`; durable PENDING claim exists; outer cancel `PAYMENT_PENDING`; then original finalize retry `completed`; payment_complete=1; stock=1; release=0; cancel=0 |
+| CASE C true cancel-before-finalize | cancel `cancelled`; release/cancel ≤1; late first finalize `requires_attention`; payment_complete=0; no second order |
+
+GET after PENDING finalize remains observational `finalizing` with zero Woo writes.
+
+Contracts changed = NO. DB version = 4 unchanged. ADRs = NO. Supabase = NO. Pricing formulas copied = NO. `pricingParityVerified=false`. Live HPOS rehearsal=PENDING. Real DB concurrency=PENDING. Issue #4 OPEN. CORE-06 NOT STARTED. FE-05 NOT TOUCHED.
+
+Verification of this remediation: `make test` **1297 passed / 0 failed**; parity **138 / 0 / 19**; check PASS (42 files); control-plane PASS; derive `--check` PASS; `git diff --check` clean.
+
+Freshness (new owner-remediation cycle, not Pass 3 of the previous BR-07 cycle): START 2026-09-14T22:59:22Z; PASS 1 2026-09-14T22:59:35Z; PASS 2 2026-09-14T23:00:02Z. main `bc606a6…`. batch `8dabbde…`. No newer WS3 authority. Classification: **FRESH_2**.
+
+## Original BR-07 delivery (historical; superseded for cancel-safety by the section above)
+
 - Task: BR-07 / issue #19
 - R6 integration issue: #54
 - R6 milestone PR: #55 (draft; WS2 does not alter PR code)

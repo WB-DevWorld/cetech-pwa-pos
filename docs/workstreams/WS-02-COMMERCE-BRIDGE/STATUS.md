@@ -1,6 +1,8 @@
 # WS2 current status
 
-Snapshot 2026-09-14. Issue #19 R6 owner implementation. Owner and actual implementer: Developer 2 / @Emmanuel-coder-prog / WS2. Current task **BR-07 / issue #19 IMPLEMENT VERIFIED COMMERCIAL FINALIZATION AND CANCEL** on `ws2/br-07-implement-verified-commercial-finalization-an`. Starting R5 main `bc606a690f0c167b7057e3ae9143337404275882`. Implementation SHA `78c8403697ac2f925cdf189b5d2f705c5da6b3a5`. Evidence: `docs/workstreams/WS-02-COMMERCE-BRIDGE/evidence/BR-07-FINALIZE-CANCEL.md`. Activation: issue #19 comment 5668031169. This does **not** start CORE-06, does **not** modify FE-05, and does **not** modify `batch/r6-first-real-cash-sale` or shared `CURRENT-WORK.md`. Contract changes NONE. Bridge DB **v3 → v4** (`cetech_pos_command_claims`). ADR changes NONE. Supabase changes NONE. Pricing formulas copied NONE. `pricingParityVerified` remains **false**. Issue #4 stays OPEN. Live HPOS finalize/cancel rehearsal PENDING. Real DB concurrency PENDING.
+Snapshot 2026-09-14. Issue #19 uncertain-money cancel safety remediation. Owner and actual implementer: Developer 2 / @Emmanuel-coder-prog / WS2. Current task **BR-07 / issue #19** on `ws2/br-07-implement-verified-commercial-finalization-an`. Prior published head `e15fbe09af261ecf6647ac8c6e778b42c08d96f3`. Remediation SHA `af9fab2f19e496481d3dd627a64419f880282cd6`. Durable `PENDING`/`IN_PROGRESS` finalize claims now block cancel with `PAYMENT_PENDING` before reservation release. DB version remains **4**. Contracts NONE. ADRs NONE. Supabase NONE. FE-05 NOT TOUCHED. CORE-06 NOT STARTED. Neutral R6 branch not modified. `pricingParityVerified` remains **false**. Issue #4 OPEN. Live HPOS PENDING. Real DB concurrency PENDING.
+
+Canonical GNU Make: ephemeral `php:8.5-cli` (PHP **8.5.10**, GNU Make **4.4.1**). `check` PASS (42 files); `test` **1297 passed / 0 failed**; `parity` **138 passed / 0 failed / 19 skipped**. Host: `python scripts/verify_control_plane.py` PASS; derive `--check` PASS; `git diff --check` clean.
 
 Routes: `POST /sales/finalize`, `POST /sales/cancel`. Durable command claims are separate from BR-06 prepare uniqueness. Shared transaction mutation lock `GET_LOCK('cetech_pos_tx_' . md5(site_scope|transactionId), 0)`. Official Woo: `WC_Order::payment_complete($paymentId)` and `wc_release_stock_for_order` + `update_status('cancelled')`. GET resolve remains observational. Frozen `CancelSaleRequest` has no PaymentState; bridge fail-closes on locally visible money uncertainty.
 
@@ -10,7 +12,7 @@ BR-06 GET-readonly / snapshot-safe guarantees remain in force on this branch. Hi
 
 | Task | State | Branch / evidence |
 | --- | --- | --- |
-| BR-07 | SOURCE COMPLETE / awaiting WS3 independent review/import | Issue #19. Evidence `BR-07-FINALIZE-CANCEL.md`. CORE-06 not started. FE-05 not touched. |
+| BR-07 | UNCERTAIN-MONEY REMEDIATED / awaiting WS3 independent review/import | Issue #19. Prior head `e15fbe0`. Remediation `af9fab2`. |
 | BR-06 | INTEGRATED on main via R5 PR #53 | Historical. `bc606a690f0c167b7057e3ae9143337404275882`. |
 | HARDEN-03 | INTEGRATED on main via PRE-R5 PR #51 | Historical. |
 

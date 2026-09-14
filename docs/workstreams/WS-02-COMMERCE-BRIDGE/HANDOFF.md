@@ -1,4 +1,57 @@
-# WS2 current handoff — BR-07 / #19 verified commercial finalize and cancel (TASK_COMPLETION)
+# WS2 current handoff — BR-07 / #19 uncertain-money cancel safety (TASK_COMPLETION)
+
+Kind / UTC: TASK_COMPLETION / 2026-09-14 (new bounded ADR-012 two-pass for this owner remediation; not Pass 3 of the prior BR-07 cycle)
+Task / batch / workstream: BR-07 / issue #19 UNCERTAIN-MONEY CANCEL SAFETY REMEDIATION — R6; WS2
+Owner / actual implementer: @Emmanuel-coder-prog / @Emmanuel-coder-prog
+Integration destination: WS3 import into `batch/r6-first-real-cash-sale` (draft PR #55). Do not edit that branch from WS2.
+Branch: `ws2/br-07-implement-verified-commercial-finalization-an`
+Prior published head: `e15fbe09af261ecf6647ac8c6e778b42c08d96f3`
+Implementation remediation SHA: `af9fab2f19e496481d3dd627a64419f880282cd6`
+Allowed paths: `wordpress/cetech-pos-bridge/**`; `tests/bridge/**`; `tests/fixtures/commerce/**`; WS2 STATUS/HANDOFF/evidence
+Forbidden untouched: `apps/**`; `supabase/**`; `docs/contracts/**`; `.github/**`; FE-05; CORE-06; R6 batch; shared `CURRENT-WORK.md`
+Contracts changed: **NONE**. Bridge DB version: **4 unchanged**. ADRs: **NONE**. Supabase: **NONE**. Pricing formulas copied: **NONE**.
+`pricingParityVerified`: **false**. Issue #4 OPEN. CORE-06 NOT STARTED. FE-05 NOT TOUCHED. Live HPOS PENDING. Real DB concurrency PENDING.
+
+## Safety defect
+
+Transaction `GET_LOCK` serialized live execution. A crash could release the lock while a durable finalize claim remained `PENDING`/`IN_PROGRESS` and Woo was still unpaid. Cancel ignored those states and could release stock.
+
+## Fix
+
+Cancel inspects the durable finalize claim before reservation release or Woo cancellation. `PENDING`/`IN_PROGRESS` → `PAYMENT_PENDING` (409, resolve). Cancel claim stays nonterminal so the same key can reevaluate. `OPERATION_IN_PROGRESS` remains lock-miss only.
+
+## Proof
+
+- F1 crash → cancel `PAYMENT_PENDING`; release=0; cancel=0; original finalize retry `completed` once
+- IN_PROGRESS crash (`after_finalize_in_progress`) → same
+- CASE A finalize-wins preserved
+- CASE B cancel-lock-first + nested verified finalize claim → outer cancel blocked; original finalize retry completes once
+- CASE C true cancel-before-any-finalize-claim → cancelled; late finalize `requires_attention`
+
+## Verification
+
+Docker `php:8.5-cli`; PHP **8.5.10** NTS; GNU Make **4.4.1**.
+
+- `make -C wordpress/cetech-pos-bridge check` PASS, 42 files
+- `make -C wordpress/cetech-pos-bridge test` **1297 passed, 0 failed**
+- `make -C wordpress/cetech-pos-bridge parity` **138 passed, 0 failed, 19 skipped**
+- derive `--check` PASS; `python scripts/verify_control_plane.py` PASS; `git diff --check` clean
+
+## Delivery
+
+**READY_FOR_INTEGRATION** pending exact-head CI. Receiver: @wbdevworld / WS3.
+
+## Freshness (new owner-remediation two-pass; not Pass 3 of the previous BR-07 cycle)
+
+START: 2026-09-14T22:59:22Z; HEAD `af9fab2f19e496481d3dd627a64419f880282cd6`; `origin/main` `bc606a690f0c167b7057e3ae9143337404275882`; `origin/batch/r6-first-real-cash-sale` `8dabbde2af91b3aa31f00ae159b5f8cd7a3280a9`; `origin/ws2/...` still `e15fbe09af261ecf6647ac8c6e778b42c08d96f3` (remediation unpublished). Issue #19 last comment is the prior WS2 handoff 2026-09-14T22:38:06Z. No newer WS3 review authority. PR #55 still draft. Frozen contracts unchanged.
+
+PASS 1: 2026-09-14T22:59:35Z. main `bc606a6…`. batch `8dabbde…`. No new arrivals.
+
+PASS 2: 2026-09-14T23:00:02Z. main `bc606a6…`. batch `8dabbde…`. No new arrivals. Nothing reconciled.
+
+Freshness classification: **FRESH_2**
+
+## Previous current handoff — BR-07 / #19 verified commercial finalize and cancel (TASK_COMPLETION)
 
 Kind / UTC: TASK_COMPLETION / 2026-09-14 (new bounded ADR-012 two-pass after this evidence tree; not Pass 3 of R5)
 Task / batch / workstream: BR-07 / issue #19 IMPLEMENT VERIFIED COMMERCIAL FINALIZATION AND CANCEL — R6; WS2
