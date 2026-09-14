@@ -18,6 +18,7 @@ final class Cetech_Pos_Bridge_Constants {
 	const ORDER_META_RECOVERY = '_cetech_pos_woo_recovery_token';
 	const ORDER_META_QUOTE    = '_cetech_pos_quote_id';
 	const ORDER_META_QUOTE_FP = '_cetech_pos_quote_fingerprint';
+	const ORDER_ITEM_META_LINE = '_cetech_pos_quote_line_id';
 	const DB_VERSION          = '3';
 	const DB_VERSION_OPTION   = 'cetech_pos_bridge_db_version';
 	const CONTRACT            = '1.0.0';

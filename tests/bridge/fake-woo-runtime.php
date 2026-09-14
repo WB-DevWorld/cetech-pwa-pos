@@ -294,8 +294,10 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 			'request_hash'    => null,
 			'sale_id'         => $sale_id,
 			'status'          => 'pending',
+			'created_via'     => 'cetech-pos',
 			'reserved'        => false,
-			'quote_lines'     => $quote['lines'],
+			'items'           => array(),
+			'quote_lines'     => array(),
 			'recovery_token'  => $recovery_token,
 			'order_key'       => $recovery_token,
 			'customer_kind'   => isset( $customer['kind'] ) ? $customer['kind'] : 'walkin',
@@ -305,11 +307,13 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 			'quote_id'        => isset( $quote['id'] ) ? $quote['id'] : null,
 			'quote_fp'        => isset( $quote['fingerprint'] ) ? $quote['fingerprint'] : null,
 		);
+		$this->record_woo_mutation( 'order_creates' );
+		$this->fire_seam( $this->after_initial_order_save );
 		$applied = $this->apply_quote_snapshot_to_order_id( $order_id, $quote );
 		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $applied ) ) {
 			return $applied;
 		}
-		$this->fire_seam( $this->after_wc_create );
+		$this->fire_seam( $this->after_quote_snapshot );
 		$this->attach_recovery_meta( $order_id, $transaction_id, $request_hash );
 		$this->fire_seam( $this->after_meta_save );
 		$reserved = $this->reserve_order_stock( $order_id );
@@ -386,9 +390,64 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 		return $out;
 	}
 
-	public function finish_recovered_order( array $found, array $quote, $transaction_id, $request_hash, $may_complete_reservation ) {
+	public function inspect_recovered_order( array $found, array $quote, $transaction_id, $request_hash ) {
 		$order_id = isset( $found['orderId'] ) ? (string) $found['orderId'] : '';
-		$applied  = $this->apply_quote_snapshot_to_order_id( $order_id, $quote );
+		$order    = $this->order_array_by_id( $order_id );
+		if ( ! is_array( $order ) ) {
+			return $this->unavailable( 'Woo order could not be loaded to inspect recovered prepare.' );
+		}
+		$owned = $this->assert_fake_order_is_cetech_owned( $order, $found, $transaction_id, $request_hash );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $owned ) ) {
+			return $owned;
+		}
+		$records = $this->fake_line_records( $order );
+		$state   = $this->classify_quote_snapshot_state( $records, $quote );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $state ) ) {
+			return $state;
+		}
+		if ( $state !== 'complete' ) {
+			return null;
+		}
+		$matched = $this->assert_saved_order_matches_quote( $order_id, $quote );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $matched ) ) {
+			return null;
+		}
+		$hold      = $this->hold_stock_seconds();
+		$described = $this->describe_order( $this->order_as_proof_object( $order ), $hold );
+		if ( $described === null ) {
+			return $this->unavailable( 'Recovered Woo order could not be described.' );
+		}
+		if ( ! empty( $described['reservationProven'] ) && isset( $described['stockCommitment'] ) ) {
+			return $described;
+		}
+		return null;
+	}
+
+	public function repair_recovered_order( array $found, array $quote, $transaction_id, $request_hash ) {
+		$order_id = isset( $found['orderId'] ) ? (string) $found['orderId'] : '';
+		$order    = $this->order_array_by_id( $order_id );
+		if ( ! is_array( $order ) ) {
+			return $this->unavailable( 'Woo order could not be loaded to repair recovered prepare.' );
+		}
+		$owned = $this->assert_fake_order_is_cetech_owned( $order, $found, $transaction_id, $request_hash );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $owned ) ) {
+			return $owned;
+		}
+		$records = $this->fake_line_records( $order );
+		$state   = $this->classify_quote_snapshot_state( $records, $quote );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $state ) ) {
+			return $state;
+		}
+		if ( $state === 'incomplete' && $this->fake_order_has_reservation_rows( $order_id ) ) {
+			return Cetech_Pos_Bridge_Response::wp_error(
+				'REQUIRES_ATTENTION',
+				'Existing reservation makes Quote line repair unsafe.',
+				false,
+				'contact_manager',
+				409
+			);
+		}
+		$applied = $this->apply_quote_snapshot_to_order_id( $order_id, $quote, true );
 		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $applied ) ) {
 			return $applied;
 		}
@@ -396,8 +455,8 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 			? $found['saleId']
 			: ( 'sale-' . $order_id );
 		$this->attach_recovery_meta( $order_id, $transaction_id, $request_hash );
-		foreach ( $this->orders as $index => $order ) {
-			if ( (string) $order['id'] === $order_id ) {
+		foreach ( $this->orders as $index => $row ) {
+			if ( (string) $row['id'] === $order_id ) {
 				$this->orders[ $index ]['sale_id'] = $sale_id;
 				if ( isset( $quote['id'] ) ) {
 					$this->orders[ $index ]['quote_id'] = $quote['id'];
@@ -415,9 +474,6 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 		if ( ! empty( $described['reservationProven'] ) && isset( $described['stockCommitment'] ) ) {
 			$matched = $this->assert_saved_order_matches_quote( $order_id, $quote );
 			return Cetech_Pos_Bridge_Quote_Request::is_error( $matched ) ? $matched : $described;
-		}
-		if ( ! $may_complete_reservation ) {
-			return null;
 		}
 		$completed = $this->complete_stock_reservation( $described );
 		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $completed ) ) {
@@ -469,12 +525,28 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 		return true;
 	}
 
-	public function apply_quote_snapshot_to_order_id( $order_id, array $quote ) {
+	public function apply_quote_snapshot_to_order_id( $order_id, array $quote, $repair_save = false ) {
 		$q = $this->quote_order_economics( $quote );
 		if ( $q === null ) {
 			return $this->unavailable( 'Authoritative Quote order economics could not be read as minor units.' );
 		}
+		$order = $this->order_array_by_id( $order_id );
+		if ( ! is_array( $order ) ) {
+			return $this->unavailable( 'Prepared Woo order could not be loaded to prove economics.' );
+		}
+		$records = $this->fake_line_records( $order );
+		$state   = $this->classify_quote_snapshot_state( $records, $quote );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $state ) ) {
+			return $state;
+		}
+		if ( $state === 'incomplete' ) {
+			$written = $this->write_fake_missing_and_partial_lines( $order_id, $quote, $records );
+			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $written ) ) {
+				return $written;
+			}
+		}
 		$line_econs = array();
+		$quote_lines = array();
 		foreach ( $quote['lines'] as $line ) {
 			$mapped = $this->quote_line_economics( $line );
 			if ( $mapped === null ) {
@@ -488,34 +560,219 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 				'discount'    => $mapped['discount'],
 				'tax'         => $mapped['tax'],
 				'total'       => $mapped['total'],
+				'lineId'      => isset( $line['lineId'] ) ? (string) $line['lineId'] : '',
 			);
 			if ( $mapped['tax'] > 0 ) {
 				$entry['taxRates'] = $this->provider_tax_for_line( $line );
 			}
-			$line_econs[] = $entry;
+			$line_econs[]  = $entry;
+			$quote_lines[] = $line;
 		}
 		$total = $q['total'];
 		if ( $this->force_saved_total_minor !== null ) {
 			$total = (int) $this->force_saved_total_minor;
 		}
-		foreach ( $this->orders as $index => $order ) {
-			if ( (string) $order['id'] === (string) $order_id ) {
+		foreach ( $this->orders as $index => $row ) {
+			if ( (string) $row['id'] === (string) $order_id ) {
 				$this->orders[ $index ]['currency']       = $q['currency'];
 				$this->orders[ $index ]['subtotal_minor'] = $q['subtotal'];
 				$this->orders[ $index ]['discount_minor'] = $q['discount'];
 				$this->orders[ $index ]['tax_minor']      = $q['tax'];
 				$this->orders[ $index ]['total_minor']    = $total;
 				$this->orders[ $index ]['line_economics'] = $line_econs;
-				$this->orders[ $index ]['quote_lines']    = $quote['lines'];
+				$this->orders[ $index ]['quote_lines']    = $quote_lines;
 				$customer = isset( $quote['customer'] ) && is_array( $quote['customer'] ) ? $quote['customer'] : array( 'kind' => 'walkin' );
 				$this->orders[ $index ]['customer_kind'] = isset( $customer['kind'] ) ? $customer['kind'] : 'walkin';
 				$this->orders[ $index ]['customer_id']   = ( isset( $customer['kind'] ) && $customer['kind'] !== 'walkin' && isset( $customer['customerId'] ) )
 					? $customer['customerId']
 					: 0;
-				return true;
+				$this->record_woo_mutation( 'quote_snapshot_writes' );
+				if ( $repair_save ) {
+					$this->record_woo_mutation( 'repair_saves' );
+				}
+				return $this->assert_saved_order_matches_quote( $order_id, $quote );
 			}
 		}
 		return $this->unavailable( 'Prepared Woo order could not be loaded to prove economics.' );
+	}
+
+	/**
+	 * @param string                         $order_id
+	 * @param array<string,mixed>            $quote
+	 * @param array<int,array<string,mixed>> $records
+	 * @return true|WP_Error
+	 */
+	private function write_fake_missing_and_partial_lines( $order_id, array $quote, array $records ) {
+		$by_id = array();
+		foreach ( $records as $index => $record ) {
+			$lid = isset( $record['lineId'] ) ? (string) $record['lineId'] : '';
+			if ( $lid !== '' ) {
+				$by_id[ $lid ][] = $index;
+			}
+		}
+		foreach ( $quote['lines'] as $line ) {
+			$lid = isset( $line['lineId'] ) ? (string) $line['lineId'] : '';
+			if ( $lid === '' ) {
+				return $this->unavailable( 'Authoritative Quote line identity is required to persist Woo order items.' );
+			}
+			$mapped = $this->quote_line_economics( $line );
+			if ( $mapped === null ) {
+				return $this->unavailable( 'Authoritative Quote line economics could not be read as minor units.' );
+			}
+			$item = $this->fake_item_from_quote_line( $line, $mapped );
+			$matches = isset( $by_id[ $lid ] ) ? $by_id[ $lid ] : array();
+			if ( count( $matches ) === 0 ) {
+				foreach ( $this->orders as $oindex => $row ) {
+					if ( (string) $row['id'] === (string) $order_id ) {
+						if ( ! isset( $this->orders[ $oindex ]['items'] ) || ! is_array( $this->orders[ $oindex ]['items'] ) ) {
+							$this->orders[ $oindex ]['items'] = array();
+						}
+						$this->orders[ $oindex ]['items'][] = $item;
+						if ( ! isset( $this->orders[ $oindex ]['quote_lines'] ) || ! is_array( $this->orders[ $oindex ]['quote_lines'] ) ) {
+							$this->orders[ $oindex ]['quote_lines'] = array();
+						}
+						$this->orders[ $oindex ]['quote_lines'][] = $line;
+						$this->record_woo_mutation( 'item_adds' );
+						$this->record_woo_mutation( 'quote_snapshot_writes' );
+						$this->fire_seam( $this->after_quote_line );
+						break;
+					}
+				}
+				continue;
+			}
+			$record_index = $matches[0];
+			$record       = $records[ $record_index ];
+			if ( $this->line_record_matches_quote( $record, $line, $mapped ) ) {
+				continue;
+			}
+			foreach ( $this->orders as $oindex => $row ) {
+				if ( (string) $row['id'] !== (string) $order_id ) {
+					continue;
+				}
+				foreach ( $this->orders[ $oindex ]['items'] as $iindex => $existing ) {
+					if ( isset( $existing['line_id'] ) && (string) $existing['line_id'] === $lid ) {
+						$this->orders[ $oindex ]['items'][ $iindex ] = $item;
+						$this->record_woo_mutation( 'item_updates' );
+						$this->record_woo_mutation( 'quote_snapshot_writes' );
+						break;
+					}
+				}
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * @param array<string,mixed> $line
+	 * @param array<string,mixed> $mapped
+	 * @return array<string,mixed>
+	 */
+	private function fake_item_from_quote_line( array $line, array $mapped ) {
+		return array(
+			'line_id'     => isset( $line['lineId'] ) ? (string) $line['lineId'] : '',
+			'productId'   => isset( $line['productId'] ) ? (string) $line['productId'] : '',
+			'variationId' => isset( $line['variationId'] ) ? (string) $line['variationId'] : '',
+			'quantity'    => (string) $line['quantity'],
+			'subtotal'    => $mapped['subtotal'],
+			'discount'    => $mapped['discount'],
+			'tax'         => $mapped['tax'],
+			'total'       => $mapped['total'],
+		);
+	}
+
+	/**
+	 * @param array<string,mixed> $order
+	 * @return array<int,array<string,mixed>>
+	 */
+	private function fake_line_records( array $order ) {
+		$items = array();
+		if ( isset( $order['items'] ) && is_array( $order['items'] ) && count( $order['items'] ) > 0 ) {
+			$items = $order['items'];
+		} elseif ( isset( $order['quote_lines'] ) && is_array( $order['quote_lines'] ) ) {
+			foreach ( $order['quote_lines'] as $line ) {
+				$items[] = array(
+					'line_id'     => isset( $line['lineId'] ) ? (string) $line['lineId'] : '',
+					'productId'   => isset( $line['productId'] ) ? (string) $line['productId'] : '',
+					'variationId' => isset( $line['variationId'] ) ? (string) $line['variationId'] : '',
+					'quantity'    => isset( $line['quantity'] ) ? (string) $line['quantity'] : '',
+					'subtotal'    => null,
+					'discount'    => null,
+					'tax'         => null,
+					'total'       => null,
+				);
+			}
+		}
+		$out = array();
+		foreach ( $items as $item ) {
+			$out[] = array(
+				'item'        => $item,
+				'lineId'      => isset( $item['line_id'] ) ? (string) $item['line_id'] : '',
+				'productId'   => isset( $item['productId'] ) ? (string) $item['productId'] : '',
+				'variationId' => isset( $item['variationId'] ) ? (string) $item['variationId'] : '',
+				'quantity'    => isset( $item['quantity'] ) ? (string) $item['quantity'] : '',
+				'subtotal'    => isset( $item['subtotal'] ) ? $item['subtotal'] : null,
+				'discount'    => isset( $item['discount'] ) ? $item['discount'] : null,
+				'tax'         => isset( $item['tax'] ) ? $item['tax'] : null,
+				'total'       => isset( $item['total'] ) ? $item['total'] : null,
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * @param array<string,mixed> $order
+	 * @param array<string,mixed> $found
+	 * @param string              $transaction_id
+	 * @param string              $request_hash
+	 * @return true|WP_Error
+	 */
+	private function assert_fake_order_is_cetech_owned( array $order, array $found, $transaction_id, $request_hash ) {
+		$status = isset( $order['status'] ) ? (string) $order['status'] : '';
+		if ( in_array( $status, array( 'processing', 'completed', 'cancelled', 'refunded', 'failed' ), true ) ) {
+			return $this->attention_recovery( 'Recovered Woo order status is not prepared-compatible.' );
+		}
+		$via = isset( $order['created_via'] ) ? (string) $order['created_via'] : '';
+		if ( $via !== '' && $via !== 'cetech-pos' ) {
+			return $this->attention_recovery( 'Recovered Woo order was not created via cetech-pos.' );
+		}
+		$token = isset( $found['recoveryToken'] ) ? (string) $found['recoveryToken'] : '';
+		if ( $token !== '' ) {
+			$have = isset( $order['recovery_token'] ) ? (string) $order['recovery_token'] : '';
+			$key  = isset( $order['order_key'] ) ? (string) $order['order_key'] : '';
+			if ( $have !== $token && $key !== $token ) {
+				return $this->attention_recovery( 'Recovered Woo order does not carry the claimed recovery token.' );
+			}
+		}
+		$tx = isset( $order['transaction_id'] ) && $order['transaction_id'] !== null ? (string) $order['transaction_id'] : '';
+		if ( $tx !== '' && $tx !== (string) $transaction_id ) {
+			return $this->attention_recovery( 'Recovered Woo order transaction identity contradicts the claim.' );
+		}
+		$hash = isset( $order['request_hash'] ) && $order['request_hash'] !== null ? (string) $order['request_hash'] : '';
+		if ( $hash !== '' && $hash !== (string) $request_hash ) {
+			return $this->attention_recovery( 'Woo order recovery identity did not match the claimed request hash.' );
+		}
+		return true;
+	}
+
+	private function fake_order_has_reservation_rows( $order_id ) {
+		return isset( $this->reservation_rows[ (string) $order_id ] ) && is_array( $this->reservation_rows[ (string) $order_id ] ) && count( $this->reservation_rows[ (string) $order_id ] ) > 0;
+	}
+
+	/**
+	 * Deep snapshot for GET zero-write proof. Not live HPOS.
+	 *
+	 * @return array<string,mixed>
+	 */
+	public function snapshot_woo_state() {
+		return array(
+			'orders'           => unserialize( serialize( $this->orders ) ),
+			'reservations'     => unserialize( serialize( $this->reservations ) ),
+			'reservation_rows' => unserialize( serialize( $this->reservation_rows ) ),
+			'stock'            => $this->stock,
+			'mutations'        => $this->woo_mutation_counts(),
+			'create_calls'     => $this->create_calls,
+			'side_effects'     => $this->side_effect_counts(),
+		);
 	}
 
 	public function inject_duplicate_recovery_token( $recovery_token ) {
@@ -530,6 +787,7 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 			'request_hash'   => null,
 			'sale_id'        => 'sale-' . $order_id,
 			'status'         => 'pending',
+			'created_via'    => 'cetech-pos',
 			'reserved'       => false,
 		);
 	}
@@ -580,27 +838,162 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 		);
 	}
 
-	public function inject_pos_order( $transaction_id, $request_hash, $reserved = true ) {
+	public function inject_pos_order( $transaction_id, $request_hash, $reserved = true, $quote = null ) {
 		$order_id = (string) $this->next_order_id;
 		++$this->next_order_id;
-		$this->orders[] = array(
+		$items       = array();
+		$quote_lines = array(
+			array(
+				'productId' => '101',
+				'quantity'  => '1',
+			),
+		);
+		$line_econs = array();
+		if ( is_array( $quote ) && isset( $quote['lines'] ) && is_array( $quote['lines'] ) ) {
+			$quote_lines = $quote['lines'];
+			foreach ( $quote['lines'] as $line ) {
+				$mapped = $this->quote_line_economics( $line );
+				$items[] = array(
+					'line_id'     => isset( $line['lineId'] ) ? (string) $line['lineId'] : '',
+					'productId'   => isset( $line['productId'] ) ? (string) $line['productId'] : '',
+					'variationId' => isset( $line['variationId'] ) ? (string) $line['variationId'] : '',
+					'quantity'    => isset( $line['quantity'] ) ? (string) $line['quantity'] : '1',
+					'subtotal'    => $mapped !== null ? $mapped['subtotal'] : null,
+					'discount'    => $mapped !== null ? $mapped['discount'] : null,
+					'tax'         => $mapped !== null ? $mapped['tax'] : null,
+					'total'       => $mapped !== null ? $mapped['total'] : null,
+				);
+				if ( $mapped !== null ) {
+					$line_econs[] = array(
+						'productId'   => isset( $line['productId'] ) ? (string) $line['productId'] : '',
+						'variationId' => isset( $line['variationId'] ) ? (string) $line['variationId'] : '',
+						'quantity'    => (string) $line['quantity'],
+						'subtotal'    => $mapped['subtotal'],
+						'discount'    => $mapped['discount'],
+						'tax'         => $mapped['tax'],
+						'total'       => $mapped['total'],
+						'lineId'      => isset( $line['lineId'] ) ? (string) $line['lineId'] : '',
+					);
+				}
+			}
+		}
+		$row = array(
 			'id'             => $order_id,
 			'pos'            => true,
 			'transaction_id' => (string) $transaction_id,
 			'request_hash'   => (string) $request_hash,
 			'sale_id'        => 'sale-' . $order_id,
 			'status'         => 'pending',
+			'created_via'    => 'cetech-pos',
 			'reserved'       => false,
-			'quote_lines'    => array(
-				array(
-					'productId' => '101',
-					'quantity'  => '1',
-				),
-			),
+			'items'          => $items,
+			'quote_lines'    => $quote_lines,
 		);
+		if ( is_array( $quote ) ) {
+			$q = $this->quote_order_economics( $quote );
+			if ( $q !== null ) {
+				$row['currency']       = $q['currency'];
+				$row['subtotal_minor'] = $q['subtotal'];
+				$row['discount_minor'] = $q['discount'];
+				$row['tax_minor']      = $q['tax'];
+				$row['total_minor']    = $q['total'];
+				$row['line_economics'] = $line_econs;
+			}
+		}
+		$this->orders[] = $row;
 		if ( $reserved ) {
-			$this->write_reservation_row( $order_id, '101', 1, $this->current_reservation_expiry() );
+			$obj = $this->order_as_proof_object_by_id( $order_id );
+			$required = $obj !== null ? $this->expected_managed_reservation_quantities( $obj ) : array( '101' => 1 );
+			if ( is_array( $required ) ) {
+				foreach ( $required as $pid => $qty ) {
+					$this->write_reservation_row( $order_id, (string) $pid, $qty, $this->current_reservation_expiry() );
+				}
+			}
 			$this->mark_reserved( $order_id );
+		}
+	}
+
+	public function inject_unexpected_product_line( $order_id, $product_id = '999' ) {
+		$this->append_fake_item(
+			$order_id,
+			array(
+				'line_id'     => 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+				'productId'   => (string) $product_id,
+				'variationId' => '',
+				'quantity'    => '1',
+				'subtotal'    => 100,
+				'discount'    => 0,
+				'tax'         => 0,
+				'total'       => 100,
+			)
+		);
+	}
+
+	public function inject_duplicate_line_identity( $order_id, $line_id ) {
+		$order = $this->order_array_by_id( $order_id );
+		if ( ! is_array( $order ) || empty( $order['items'] ) ) {
+			return;
+		}
+		$copy = $order['items'][0];
+		$copy['line_id'] = (string) $line_id;
+		$this->append_fake_item( $order_id, $copy );
+	}
+
+	public function inject_wrong_product_for_line( $order_id, $line_id, $product_id ) {
+		foreach ( $this->orders as $index => $order ) {
+			if ( (string) $order['id'] !== (string) $order_id || empty( $order['items'] ) ) {
+				continue;
+			}
+			foreach ( $this->orders[ $index ]['items'] as $iindex => $item ) {
+				if ( isset( $item['line_id'] ) && (string) $item['line_id'] === (string) $line_id ) {
+					$this->orders[ $index ]['items'][ $iindex ]['productId'] = (string) $product_id;
+					return;
+				}
+			}
+		}
+	}
+
+	public function inject_unidentifiable_item( $order_id ) {
+		$this->append_fake_item(
+			$order_id,
+			array(
+				'line_id'     => '',
+				'productId'   => '101',
+				'variationId' => '',
+				'quantity'    => '1',
+				'subtotal'    => 1000,
+				'discount'    => 0,
+				'tax'         => 0,
+				'total'       => 1000,
+			)
+		);
+	}
+
+	public function make_partial_identifiable_line( $order_id, $line_id ) {
+		foreach ( $this->orders as $index => $order ) {
+			if ( (string) $order['id'] !== (string) $order_id || empty( $order['items'] ) ) {
+				continue;
+			}
+			foreach ( $this->orders[ $index ]['items'] as $iindex => $item ) {
+				if ( isset( $item['line_id'] ) && (string) $item['line_id'] === (string) $line_id ) {
+					$this->orders[ $index ]['items'][ $iindex ]['subtotal'] = 0;
+					$this->orders[ $index ]['items'][ $iindex ]['total']    = 0;
+					unset( $this->orders[ $index ]['subtotal_minor'], $this->orders[ $index ]['total_minor'], $this->orders[ $index ]['line_economics'] );
+					return;
+				}
+			}
+		}
+	}
+
+	private function append_fake_item( $order_id, array $item ) {
+		foreach ( $this->orders as $index => $order ) {
+			if ( (string) $order['id'] === (string) $order_id ) {
+				if ( ! isset( $this->orders[ $index ]['items'] ) || ! is_array( $this->orders[ $index ]['items'] ) ) {
+					$this->orders[ $index ]['items'] = array();
+				}
+				$this->orders[ $index ]['items'][] = $item;
+				return;
+			}
 		}
 	}
 
@@ -618,6 +1011,7 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 			if ( (string) $order['id'] === (string) $order_id ) {
 				$this->orders[ $index ]['transaction_id'] = (string) $transaction_id;
 				$this->orders[ $index ]['request_hash']   = (string) $request_hash;
+				$this->record_woo_mutation( 'recovery_meta_writes' );
 				return;
 			}
 		}
@@ -684,6 +1078,7 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 				$this->reservations[ $order_id ][ $pid ] = (int) $qty;
 			}
 			$this->write_reservation_row( $order_id, $pid, $qty, $this->current_reservation_expiry() );
+			$this->record_woo_mutation( 'stock_reservations' );
 			if ( is_callable( $this->after_product_reserve ) ) {
 				$cb = $this->after_product_reserve;
 				$this->after_product_reserve = null;
@@ -740,10 +1135,26 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 		$obj->meta[ Cetech_Pos_Bridge_Constants::ORDER_META_HASH ]     = isset( $order['request_hash'] ) ? (string) $order['request_hash'] : '';
 		$obj->meta[ Cetech_Pos_Bridge_Constants::ORDER_META_SALE ]     = isset( $order['sale_id'] ) ? (string) $order['sale_id'] : '';
 		$obj->meta[ Cetech_Pos_Bridge_Constants::ORDER_META_RECOVERY ] = isset( $order['recovery_token'] ) ? (string) $order['recovery_token'] : '';
-		$obj->order_key = isset( $order['order_key'] ) ? (string) $order['order_key'] : ( isset( $order['recovery_token'] ) ? (string) $order['recovery_token'] : '' );
-		$lines   = isset( $order['quote_lines'] ) && is_array( $order['quote_lines'] ) ? $order['quote_lines'] : array();
+		$obj->order_key   = isset( $order['order_key'] ) ? (string) $order['order_key'] : ( isset( $order['recovery_token'] ) ? (string) $order['recovery_token'] : '' );
+		$obj->created_via = isset( $order['created_via'] ) ? (string) $order['created_via'] : '';
+		$obj->status      = isset( $order['status'] ) ? (string) $order['status'] : 'pending';
+		$lines            = array();
+		if ( isset( $order['items'] ) && is_array( $order['items'] ) && count( $order['items'] ) > 0 ) {
+			foreach ( $order['items'] as $item_row ) {
+				$lines[] = array(
+					'productId'   => isset( $item_row['productId'] ) ? (string) $item_row['productId'] : '',
+					'variationId' => isset( $item_row['variationId'] ) ? (string) $item_row['variationId'] : '',
+					'quantity'    => isset( $item_row['quantity'] ) ? $item_row['quantity'] : 1,
+					'lineId'      => isset( $item_row['line_id'] ) ? (string) $item_row['line_id'] : '',
+				);
+			}
+		} elseif ( isset( $order['quote_lines'] ) && is_array( $order['quote_lines'] ) ) {
+			$lines = $order['quote_lines'];
+		}
 		foreach ( $lines as $line ) {
-			$pid   = isset( $line['variationId'] ) ? (string) $line['variationId'] : (string) $line['productId'];
+			$pid = ( isset( $line['variationId'] ) && (string) $line['variationId'] !== '' )
+				? (string) $line['variationId']
+				: (string) $line['productId'];
 			$rules = $this->product_reserve_rules( $pid, isset( $line['productId'] ) ? (string) $line['productId'] : $pid );
 			$item  = new Cetech_Pos_Bridge_Fake_Order_Item(
 				new Cetech_Pos_Bridge_Fake_Stock_Product( $rules['managing_stock'], $rules['backorders_allowed'], $rules['stock_managed_by'] ),
@@ -844,6 +1255,8 @@ class Cetech_Pos_Bridge_Fake_Order {
 	public $items = array();
 	public $meta  = array();
 	public $order_key = '';
+	public $created_via = '';
+	public $status = 'pending';
 
 	public function __construct( $id ) {
 		$this->id = $id;
@@ -867,6 +1280,18 @@ class Cetech_Pos_Bridge_Fake_Order {
 
 	public function get_order_number() {
 		return (string) $this->id;
+	}
+
+	public function get_created_via() {
+		return (string) $this->created_via;
+	}
+
+	public function get_status() {
+		return (string) $this->status;
+	}
+
+	public function is_paid() {
+		return in_array( $this->status, array( 'processing', 'completed' ), true );
 	}
 }
 

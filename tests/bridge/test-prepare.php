@@ -167,6 +167,17 @@ function br06_last_pos_order( Cetech_Pos_Bridge_Fake_Woo_Runtime $runtime ) {
 	return $last;
 }
 
+function br06_assert_woo_frozen( Cetech_Pos_Bridge_Fake_Woo_Runtime $runtime, array $before, $label ) {
+	$after = $runtime->snapshot_woo_state();
+	br01_assert_eq( serialize( $before['orders'] ), serialize( $after['orders'] ), $label . ' Woo order state unchanged' );
+	br01_assert_eq( serialize( $before['reservations'] ), serialize( $after['reservations'] ), $label . ' reservation map unchanged' );
+	br01_assert_eq( serialize( $before['reservation_rows'] ), serialize( $after['reservation_rows'] ), $label . ' reservation rows unchanged' );
+	br01_assert_eq( $before['stock'], $after['stock'], $label . ' catalog stock unchanged' );
+	br01_assert_eq( $before['mutations'], $after['mutations'], $label . ' Woo mutation counters unchanged' );
+	br01_assert_eq( $before['create_calls'], $after['create_calls'], $label . ' create_calls unchanged' );
+	br01_assert_eq( $before['side_effects'], $after['side_effects'], $label . ' side-effect counters unchanged' );
+}
+
 function br06_assert_saved_matches_quote( Cetech_Pos_Bridge_Fake_Woo_Runtime $runtime, array $quote, array $prepared, $label ) {
 	$order = br06_last_pos_order( $runtime );
 	br01_assert( is_array( $order ), $label . ' saved a POS Woo order' );
@@ -223,7 +234,16 @@ br01_assert( strpos( $woo_src, 'wc_get_order_id_by_order_key' ) !== false, 'prod
 br01_assert( strpos( $woo_src, 'update_meta_data' ) !== false, 'production recovery meta uses Woo CRUD' );
 br01_assert( strpos( $woo_src, 'wc_reserve_stock_for_order' ) !== false, 'production stock uses wc_reserve_stock_for_order' );
 br01_assert( strpos( $woo_src, 'wc_get_orders' ) !== false, 'production recovery lookup uses wc_get_orders' );
-br01_assert( strpos( $woo_src, 'after_wc_create' ) !== false, 'production exposes crash seam A after wc_create_order' );
+br01_assert( strpos( $woo_src, 'after_initial_order_save' ) !== false, 'production exposes crash seam after initial Woo save before Quote items' );
+br01_assert( strpos( $woo_src, 'after_quote_line' ) !== false, 'production exposes crash seam after each durable Quote line' );
+br01_assert( strpos( $woo_src, 'after_quote_snapshot' ) !== false, 'production exposes crash seam after complete Quote snapshot' );
+br01_assert( strpos( $woo_src, 'after_wc_create' ) === false, 'production does not keep a misnamed after_wc_create seam' );
+br01_assert( strpos( $woo_src, 'inspect_recovered_order' ) !== false, 'production separates GET inspect from repair' );
+br01_assert( strpos( $woo_src, 'repair_recovered_order' ) !== false, 'production POST repair is a distinct method' );
+br01_assert( strpos( $woo_src, 'finish_recovered_order' ) === false, 'production does not mix writes with a may_complete boolean' );
+br01_assert( strpos( $woo_src, 'ORDER_ITEM_META_LINE' ) !== false, 'production persists bridge-private Quote line identity' );
+br01_assert( strpos( $woo_src, 'WC_Order_Item_Product' ) !== false, 'production constructs order items so line identity exists on first save' );
+br01_assert( strpos( $woo_src, 'add_product' ) === false || strpos( $woo_src, 'Does not use add_product()' ) !== false, 'production does not rely on add_product for Quote snapshot identity' );
 br01_assert( strpos( $woo_src, 'after_meta_save' ) !== false, 'production exposes crash seam B after recovery metadata save' );
 br01_assert( strpos( $woo_src, 'calculate_totals( false )' ) === false, 'production does not reprice prepared orders via calculate_totals' );
 br01_assert( strpos( $woo_src, 'set_subtotal' ) !== false, 'production writes authoritative line subtotals' );
@@ -241,6 +261,9 @@ br01_assert( strpos( $prep_src, 'wp_insert_post' ) === false, 'prepare engine do
 br01_assert( strpos( $prep_src, 'wc_update_product_stock' ) === false, 'prepare engine does not decrement _stock itself' );
 br01_assert( strpos( $prep_src, 'woo_create_entered' ) !== false, 'prepare persists create-entered before wc_create_order' );
 br01_assert( strpos( $prep_src, 'woo_recovery_token' ) !== false, 'prepare persists recovery token before wc_create_order' );
+br01_assert( strpos( $prep_src, 'inspect_recoverable_order' ) !== false, 'GET resolve inspects without repair' );
+br01_assert( strpos( $prep_src, 'try_repair_order' ) !== false, 'POST retry repairs under the creator lock' );
+br01_assert( strpos( $prep_src, 'function resolve' ) !== false && strpos( substr( $prep_src, strpos( $prep_src, 'function resolve' ), 1800 ), 'acquire_lock' ) === false, 'GET resolve does not acquire the creator lock' );
 
 br01_assert_eq( null, $br06_schema->validate(
 	array(
@@ -510,10 +533,13 @@ br01_assert( is_array( $br06_nested ) || br06_error_code( $br06_nested ) === 'OP
 br01_assert_eq( 1, $br06_insert_runtime->pos_order_count(), 'during_insert interleaving still creates exactly one order' );
 
 /* ---------------------------------------------------------------------------
- * Crash seams at actual runtime boundaries (A/B/C)
- * A: after wc_create_order, before recovery metadata
- * B: after recovery metadata save, before wc_reserve_stock_for_order
- * C: after reservation succeeds, before claim PreparedSale persistence
+ * Crash seams at actual runtime boundaries
+ * A: after initial Woo save with recovery token, before first Quote item write
+ * B: mid-Quote-snapshot after at least one durable line (covered below)
+ * C: after complete Quote snapshot, before ordinary recovery metadata
+ * D: after recovery metadata save, before wc_reserve_stock_for_order
+ * E: partial reservation / after one managed stock row
+ * F: after reservation succeeds, before claim PreparedSale persistence
  * ------------------------------------------------------------------------ */
 
 $br06_a_runtime = br06_runtime();
@@ -521,8 +547,8 @@ $br06_a_stack   = br06_stack( $br06_a_runtime );
 $br06_a_quote   = $br06_a_stack['quotes']->quote( br06_quote_request() );
 $br06_a_body    = br06_prepare_body( $br06_a_quote );
 $br06_a_key     = br06_next_uuid();
-$br06_a_runtime->after_wc_create = br06_thrower( 'crash seam A after wc_create_order' );
-br06_prepare_crashed( $br06_a_stack['prep'], $br06_a_body, $br06_a_key, 'crash seam A after wc_create_order' );
+$br06_a_runtime->after_initial_order_save = br06_thrower( 'crash seam A after initial Woo save' );
+br06_prepare_crashed( $br06_a_stack['prep'], $br06_a_body, $br06_a_key, 'crash seam A after initial Woo save' );
 br01_assert_eq( 1, $br06_a_runtime->pos_order_count(), 'seam A leaves at most one Woo order' );
 br01_assert_eq( 1, $br06_a_runtime->create_calls, 'seam A called wc_create_order once' );
 br01_assert( ! br06_order_reserved( $br06_a_runtime ), 'seam A does not invent a reservation' );
@@ -532,9 +558,16 @@ br01_assert( is_string( $br06_a_claim['woo_recovery_token'] ) && strlen( $br06_a
 br01_assert_eq( $br06_a_claim['woo_recovery_token'], $br06_a_runtime->orders[0]['recovery_token'], 'seam A bound the claim token into the created Woo order' );
 br01_assert_eq( $br06_a_claim['woo_recovery_token'], $br06_a_runtime->orders[0]['order_key'], 'seam A persisted recovery identity as Woo order_key' );
 br01_assert_eq( null, $br06_a_runtime->orders[0]['transaction_id'], 'seam A has not yet saved ordinary transaction metadata' );
+br01_assert_eq( 0, count( isset( $br06_a_runtime->orders[0]['items'] ) ? $br06_a_runtime->orders[0]['items'] : array() ), 'seam A has zero Quote line items' );
+br01_assert( ! isset( $br06_a_runtime->orders[0]['line_economics'] ), 'seam A has no Quote snapshot economics' );
+$br06_a_before = $br06_a_runtime->snapshot_woo_state();
 $br06_a_resolved = $br06_a_stack['prep']->resolve( $br06_a_body['transactionId'] );
 br01_assert_eq( 'preparing', $br06_a_resolved['status'], 'seam A resolve is truthful preparing, not requires_attention' );
 br01_assert( ! isset( $br06_a_resolved['stockCommitment'] ), 'seam A resolve does not report stockCommitment' );
+br06_assert_woo_frozen( $br06_a_runtime, $br06_a_before, 'seam A GET' );
+$br06_a_resolved_again = $br06_a_stack['prep']->resolve( $br06_a_body['transactionId'] );
+br01_assert_eq( 'preparing', $br06_a_resolved_again['status'], 'repeated seam A GET stays preparing' );
+br06_assert_woo_frozen( $br06_a_runtime, $br06_a_before, 'repeated seam A GET' );
 br01_assert_eq( 1, $br06_a_runtime->pos_order_count(), 'seam A resolve creates no second Woo order' );
 br01_assert_eq( 1, $br06_a_runtime->create_calls, 'seam A resolve does not call wc_create_order' );
 $br06_a_retry = $br06_a_stack['prep']->prepare( $br06_a_body, $br06_a_key );
@@ -542,18 +575,21 @@ br01_assert( is_array( $br06_a_retry ), 'seam A retry recovers the original orde
 br01_assert_eq( 'prepared', $br06_a_retry['status'], 'seam A retry is prepared' );
 br01_assert_eq( 'reserved', $br06_a_retry['stockCommitment'], 'seam A retry reports reserved only after proven reservation' );
 br06_assert_honest_commitment( $br06_a_retry, $br06_a_runtime, 'seam A retry' );
+br06_assert_saved_matches_quote( $br06_a_runtime, $br06_a_quote, $br06_a_retry, 'seam A retry' );
 br01_assert_eq( (string) $br06_a_runtime->orders[0]['id'], $br06_a_retry['orderReference'], 'seam A recovery maps the original Woo order' );
 br01_assert_eq( 1, $br06_a_runtime->pos_order_count(), 'seam A retry creates no second Woo order' );
 br01_assert_eq( 1, $br06_a_runtime->create_calls, 'seam A recovery does not call wc_create_order again' );
+$br06_a_after_repair = $br06_a_runtime->snapshot_woo_state();
 $br06_a_resolved_ok = $br06_a_stack['prep']->resolve( $br06_a_body['transactionId'] );
 br01_assert_eq( 'prepared', $br06_a_resolved_ok['status'], 'seam A resolve after repair is prepared' );
+br06_assert_woo_frozen( $br06_a_runtime, $br06_a_after_repair, 'seam A GET after prepared' );
 
 $br06_tok_runtime = br06_runtime();
 $br06_tok_stack   = br06_stack( $br06_tok_runtime );
 $br06_tok_quote   = $br06_tok_stack['quotes']->quote( br06_quote_request() );
 $br06_tok_body    = br06_prepare_body( $br06_tok_quote );
 $br06_tok_key     = br06_next_uuid();
-$br06_tok_runtime->after_wc_create = br06_thrower( 'crash seam A wrong token' );
+$br06_tok_runtime->after_initial_order_save = br06_thrower( 'crash seam A wrong token' );
 br06_prepare_crashed( $br06_tok_stack['prep'], $br06_tok_body, $br06_tok_key, 'crash seam A wrong token' );
 $br06_tok_claim = $br06_tok_stack['claims']->get_by_idempotency( Cetech_Pos_Bridge_Constants::OPERATION_PREPARE, $br06_tok_key );
 $br06_tok_claim['woo_recovery_token'] = str_repeat( 'ab', 32 );
@@ -571,7 +607,7 @@ $br06_dup_stack   = br06_stack( $br06_dup_runtime );
 $br06_dup_quote   = $br06_dup_stack['quotes']->quote( br06_quote_request() );
 $br06_dup_body    = br06_prepare_body( $br06_dup_quote );
 $br06_dup_key     = br06_next_uuid();
-$br06_dup_runtime->after_wc_create = br06_thrower( 'crash seam A duplicate token' );
+$br06_dup_runtime->after_initial_order_save = br06_thrower( 'crash seam A duplicate token' );
 br06_prepare_crashed( $br06_dup_stack['prep'], $br06_dup_body, $br06_dup_key, 'crash seam A duplicate token' );
 $br06_dup_claim = $br06_dup_stack['claims']->get_by_idempotency( Cetech_Pos_Bridge_Constants::OPERATION_PREPARE, $br06_dup_key );
 $br06_dup_runtime->inject_duplicate_recovery_token( $br06_dup_claim['woo_recovery_token'] );
@@ -586,27 +622,29 @@ $br06_b_stack   = br06_stack( $br06_b_runtime );
 $br06_b_quote   = $br06_b_stack['quotes']->quote( br06_quote_request() );
 $br06_b_body    = br06_prepare_body( $br06_b_quote );
 $br06_b_key     = br06_next_uuid();
-$br06_b_runtime->after_meta_save = br06_thrower( 'crash seam B after recovery metadata save' );
-br06_prepare_crashed( $br06_b_stack['prep'], $br06_b_body, $br06_b_key, 'crash seam B after recovery metadata save' );
-br01_assert_eq( 1, $br06_b_runtime->pos_order_count(), 'seam B leaves at most one Woo order' );
-br01_assert_eq( 1, $br06_b_runtime->create_calls, 'seam B called wc_create_order once' );
-br01_assert( ! br06_order_reserved( $br06_b_runtime ), 'seam B reservation is incomplete' );
+$br06_b_runtime->after_meta_save = br06_thrower( 'crash seam D after recovery metadata save' );
+br06_prepare_crashed( $br06_b_stack['prep'], $br06_b_body, $br06_b_key, 'crash seam D after recovery metadata save' );
+br01_assert_eq( 1, $br06_b_runtime->pos_order_count(), 'seam D leaves at most one Woo order' );
+br01_assert_eq( 1, $br06_b_runtime->create_calls, 'seam D called wc_create_order once' );
+br01_assert( ! br06_order_reserved( $br06_b_runtime ), 'seam D reservation is incomplete' );
+$br06_b_before = $br06_b_runtime->snapshot_woo_state();
 $br06_b_resolved = $br06_b_stack['prep']->resolve( $br06_b_body['transactionId'] );
-br01_assert_eq( 'preparing', $br06_b_resolved['status'], 'seam B resolve does not report prepared without reservation' );
-br01_assert( ! isset( $br06_b_resolved['stockCommitment'] ), 'seam B resolve does not report stockCommitment' );
-br01_assert( ! br06_order_reserved( $br06_b_runtime ), 'seam B resolve does not complete or invent reservation' );
-br01_assert_eq( 1, $br06_b_runtime->pos_order_count(), 'seam B resolve creates no second Woo order' );
-br01_assert_eq( 1, $br06_b_runtime->create_calls, 'seam B resolve does not call wc_create_order' );
+br01_assert_eq( 'preparing', $br06_b_resolved['status'], 'seam D resolve does not report prepared without reservation' );
+br01_assert( ! isset( $br06_b_resolved['stockCommitment'] ), 'seam D resolve does not report stockCommitment' );
+br01_assert( ! br06_order_reserved( $br06_b_runtime ), 'seam D resolve does not complete or invent reservation' );
+br06_assert_woo_frozen( $br06_b_runtime, $br06_b_before, 'seam D GET' );
+br01_assert_eq( 1, $br06_b_runtime->pos_order_count(), 'seam D resolve creates no second Woo order' );
+br01_assert_eq( 1, $br06_b_runtime->create_calls, 'seam D resolve does not call wc_create_order' );
 $br06_b_retry = $br06_b_stack['prep']->prepare( $br06_b_body, $br06_b_key );
-br01_assert( is_array( $br06_b_retry ), 'seam B retry recovers PreparedSale after completing reservation' );
-br01_assert_eq( 'prepared', $br06_b_retry['status'], 'seam B retry is prepared' );
-br01_assert_eq( 'reserved', $br06_b_retry['stockCommitment'], 'seam B retry reports reserved only after proven reservation' );
-br06_assert_honest_commitment( $br06_b_retry, $br06_b_runtime, 'seam B retry' );
-br01_assert_eq( 1, $br06_b_runtime->pos_order_count(), 'seam B retry creates no second Woo order' );
-br01_assert_eq( 1, $br06_b_runtime->create_calls, 'seam B retry does not call wc_create_order again' );
+br01_assert( is_array( $br06_b_retry ), 'seam D retry recovers PreparedSale after completing reservation' );
+br01_assert_eq( 'prepared', $br06_b_retry['status'], 'seam D retry is prepared' );
+br01_assert_eq( 'reserved', $br06_b_retry['stockCommitment'], 'seam D retry reports reserved only after proven reservation' );
+br06_assert_honest_commitment( $br06_b_retry, $br06_b_runtime, 'seam D retry' );
+br01_assert_eq( 1, $br06_b_runtime->pos_order_count(), 'seam D retry creates no second Woo order' );
+br01_assert_eq( 1, $br06_b_runtime->create_calls, 'seam D retry does not call wc_create_order again' );
 $br06_b_resolved_ok = $br06_b_stack['prep']->resolve( $br06_b_body['transactionId'] );
-br01_assert_eq( 'prepared', $br06_b_resolved_ok['status'], 'seam B resolve after repair is prepared' );
-br01_assert_eq( 1, $br06_b_runtime->pos_order_count(), 'seam B post-repair resolve creates no second Woo order' );
+br01_assert_eq( 'prepared', $br06_b_resolved_ok['status'], 'seam D resolve after repair is prepared' );
+br01_assert_eq( 1, $br06_b_runtime->pos_order_count(), 'seam D post-repair resolve creates no second Woo order' );
 
 $br06_c_runtime = br06_runtime();
 $br06_c_stack   = br06_stack( $br06_c_runtime );
@@ -619,9 +657,12 @@ br01_assert_eq( 1, $br06_c_runtime->pos_order_count(), 'seam C leaves at most on
 br01_assert_eq( 1, $br06_c_runtime->create_calls, 'seam C called wc_create_order once' );
 br01_assert( br06_order_reserved( $br06_c_runtime ), 'seam C reservation is proven before claim persist' );
 $br06_c_claim = $br06_c_stack['claims']->get_by_idempotency( Cetech_Pos_Bridge_Constants::OPERATION_PREPARE, $br06_c_key );
-br01_assert_eq( Cetech_Pos_Bridge_Claim_Store::STATUS_PREPARING, $br06_c_claim['internal_status'], 'seam C claim remains preparing before repair' );
+br01_assert_eq( Cetech_Pos_Bridge_Claim_Store::STATUS_PREPARING, $br06_c_claim['internal_status'], 'seam F claim remains preparing before repair' );
+$br06_c_before = $br06_c_runtime->snapshot_woo_state();
 $br06_c_resolved = $br06_c_stack['prep']->resolve( $br06_c_body['transactionId'] );
-br01_assert_eq( 'prepared', $br06_c_resolved['status'], 'seam C resolve recovers prepared from proven reservation' );
+br01_assert_eq( 'prepared', $br06_c_resolved['status'], 'seam F resolve reports prepared from proven Woo without writing' );
+br06_assert_woo_frozen( $br06_c_runtime, $br06_c_before, 'seam F GET' );
+br01_assert_eq( Cetech_Pos_Bridge_Claim_Store::STATUS_PREPARING, $br06_c_stack['claims']->get_by_idempotency( Cetech_Pos_Bridge_Constants::OPERATION_PREPARE, $br06_c_key )['internal_status'], 'seam F GET does not persist PreparedSale onto the claim' );
 br01_assert_eq( 1, $br06_c_runtime->pos_order_count(), 'seam C resolve creates no second Woo order' );
 br01_assert_eq( 1, $br06_c_runtime->create_calls, 'seam C resolve does not call wc_create_order' );
 $br06_c_retry = $br06_c_stack['prep']->prepare( $br06_c_body, $br06_c_key );
@@ -673,7 +714,7 @@ $br06_id_stack['claims']->insert_preparing(
 		'quote_id'        => $br06_id_quote['id'],
 	)
 );
-$br06_id_runtime->inject_pos_order( $br06_id_body['transactionId'], $br06_id_hash, true );
+$br06_id_runtime->inject_pos_order( $br06_id_body['transactionId'], $br06_id_hash, true, $br06_id_quote );
 $br06_id_recovered = $br06_id_stack['prep']->prepare( $br06_id_body, $br06_id_key );
 br01_assert( is_array( $br06_id_recovered ), 'exactly one tx+hash match with proven reservation recovers PreparedSale' );
 br01_assert_eq( 'prepared', $br06_id_recovered['status'], 'identified proven order is prepared' );
@@ -684,6 +725,178 @@ br01_assert_eq( 0, $br06_id_runtime->create_calls, 'identified recovery does not
 $br06_id_resolved = $br06_id_stack['prep']->resolve( $br06_id_body['transactionId'] );
 br01_assert_eq( 'prepared', $br06_id_resolved['status'], 'identified recovery resolve stays prepared' );
 br01_assert_eq( 0, $br06_id_runtime->create_calls, 'identified recovery resolve does not call wc_create_order' );
+
+/* ---------------------------------------------------------------------------
+ * GET read-only interleaving, mid-snapshot crash, exact line reconciliation
+ * ------------------------------------------------------------------------ */
+
+$br06_get_runtime = br06_runtime();
+$br06_get_stack   = br06_stack( $br06_get_runtime );
+$br06_get_quote   = $br06_get_stack['quotes']->quote( br06_quote_request() );
+$br06_get_body    = br06_prepare_body( $br06_get_quote );
+$br06_get_key     = br06_next_uuid();
+$br06_get_runtime->after_initial_order_save = br06_thrower( 'GET interleaving after initial save' );
+br06_prepare_crashed( $br06_get_stack['prep'], $br06_get_body, $br06_get_key, 'GET interleaving after initial save' );
+$br06_get_before = $br06_get_runtime->snapshot_woo_state();
+$br06_get_r1 = $br06_get_stack['prep']->resolve( $br06_get_body['transactionId'] );
+$br06_get_r2 = $br06_get_stack['prep']->resolve( $br06_get_body['transactionId'] );
+$br06_get_r3 = $br06_get_stack['prep']->resolve( $br06_get_body['transactionId'] );
+br01_assert_eq( 'preparing', $br06_get_r1['status'], 'interleaved GET 1 is preparing' );
+br01_assert_eq( 'preparing', $br06_get_r2['status'], 'interleaved GET 2 is preparing' );
+br01_assert_eq( 'preparing', $br06_get_r3['status'], 'interleaved GET 3 is preparing' );
+br06_assert_woo_frozen( $br06_get_runtime, $br06_get_before, 'in-memory interleaved GET (not a DB concurrency PASS)' );
+br01_assert_eq( 1, $br06_get_runtime->pos_order_count(), 'interleaved GET creates no order #2' );
+$br06_get_post = $br06_get_stack['prep']->prepare( $br06_get_body, $br06_get_key );
+br01_assert( is_array( $br06_get_post ), 'POST retry after interleaved GET repairs once under creator lock' );
+br01_assert_eq( 'prepared', $br06_get_post['status'], 'POST retry after GET inspect is prepared' );
+br01_assert_eq( 1, $br06_get_runtime->create_calls, 'GET then POST keeps provider create count 1' );
+br01_assert_eq( 1, $br06_get_runtime->pos_order_count(), 'GET then POST keeps Woo order count 1' );
+$br06_get_after = $br06_get_runtime->snapshot_woo_state();
+$br06_get_final = $br06_get_stack['prep']->resolve( $br06_get_body['transactionId'] );
+br01_assert_eq( 'prepared', $br06_get_final['status'], 'GET after POST repair is prepared' );
+br06_assert_woo_frozen( $br06_get_runtime, $br06_get_after, 'GET after POST repair' );
+
+$br06_snap_runtime = br06_runtime();
+$br06_snap_stack   = br06_stack( $br06_snap_runtime );
+$br06_snap_quote   = $br06_snap_stack['quotes']->quote( br06_quote_request() );
+$br06_snap_body    = br06_prepare_body( $br06_snap_quote );
+$br06_snap_key     = br06_next_uuid();
+$br06_snap_runtime->after_quote_snapshot = br06_thrower( 'crash after complete Quote snapshot' );
+br06_prepare_crashed( $br06_snap_stack['prep'], $br06_snap_body, $br06_snap_key, 'crash after complete Quote snapshot' );
+br01_assert_eq( 1, count( $br06_snap_runtime->orders[0]['items'] ), 'after_quote_snapshot persisted the Quote line set' );
+br01_assert_eq( $br06_snap_quote['lines'][0]['lineId'], $br06_snap_runtime->orders[0]['items'][0]['line_id'], 'Quote line identity is bound on the first durable item save' );
+br01_assert_eq( null, $br06_snap_runtime->orders[0]['transaction_id'], 'after_quote_snapshot has not written ordinary recovery metadata' );
+$br06_snap_before = $br06_snap_runtime->snapshot_woo_state();
+$br06_snap_get = $br06_snap_stack['prep']->resolve( $br06_snap_body['transactionId'] );
+br01_assert_eq( 'preparing', $br06_snap_get['status'], 'complete snapshot without reservation is preparing' );
+br06_assert_woo_frozen( $br06_snap_runtime, $br06_snap_before, 'GET after_quote_snapshot' );
+$br06_snap_retry = $br06_snap_stack['prep']->prepare( $br06_snap_body, $br06_snap_key );
+br01_assert( is_array( $br06_snap_retry ), 'POST after complete snapshot repairs PreparedSale' );
+br01_assert_eq( 1, $br06_snap_runtime->create_calls, 'after_quote_snapshot retry does not create again' );
+
+$br06_mid_runtime = br06_runtime();
+$br06_mid_priced  = $br06_mid_runtime->catalog['walkin']['101']['1'];
+$br06_mid_runtime->catalog['walkin']['102']['1']               = $br06_mid_priced;
+$br06_mid_runtime->catalog['retail:cust_retail_1']['102']['1'] = $br06_mid_priced;
+$br06_mid_runtime->stock['102']                                = 10;
+$br06_mid_stack = br06_stack( $br06_mid_runtime );
+$br06_mid_req   = br06_quote_request();
+$br06_mid_req['lines'][] = array(
+	'lineId'    => br06_next_uuid(),
+	'productId' => '102',
+	'quantity'  => '1',
+);
+$br06_mid_quote = $br06_mid_stack['quotes']->quote( $br06_mid_req );
+br01_assert( is_array( $br06_mid_quote ), 'mid-snapshot two-line quote succeeds' );
+$br06_mid_body = br06_prepare_body( $br06_mid_quote );
+$br06_mid_key  = br06_next_uuid();
+$br06_mid_runtime->after_quote_line = br06_thrower( 'crash mid Quote snapshot after line A' );
+br06_prepare_crashed( $br06_mid_stack['prep'], $br06_mid_body, $br06_mid_key, 'crash mid Quote snapshot after line A' );
+br01_assert_eq( 1, $br06_mid_runtime->pos_order_count(), 'mid-snapshot crash leaves one Woo order' );
+br01_assert_eq( 1, $br06_mid_runtime->create_calls, 'mid-snapshot crash create_calls=1' );
+br01_assert_eq( 1, count( $br06_mid_runtime->orders[0]['items'] ), 'mid-snapshot persisted only line A' );
+br01_assert_eq( $br06_mid_quote['lines'][0]['lineId'], $br06_mid_runtime->orders[0]['items'][0]['line_id'], 'mid-snapshot line A keeps Quote line identity' );
+br01_assert_eq( '101', $br06_mid_runtime->orders[0]['items'][0]['productId'], 'mid-snapshot line A product matches Quote' );
+br01_assert( ! isset( $br06_mid_runtime->orders[0]['total_minor'] ), 'mid-snapshot order totals are not final' );
+br01_assert_eq( null, $br06_mid_runtime->orders[0]['transaction_id'], 'mid-snapshot has no ordinary recovery metadata' );
+br01_assert( ! br06_order_reserved( $br06_mid_runtime ), 'mid-snapshot has no reservation' );
+$br06_mid_before = $br06_mid_runtime->snapshot_woo_state();
+$br06_mid_get = $br06_mid_stack['prep']->resolve( $br06_mid_body['transactionId'] );
+br01_assert_eq( 'preparing', $br06_mid_get['status'], 'mid-snapshot GET is read-only preparing' );
+br06_assert_woo_frozen( $br06_mid_runtime, $br06_mid_before, 'mid-snapshot GET' );
+$br06_mid_retry = $br06_mid_stack['prep']->prepare( $br06_mid_body, $br06_mid_key );
+br01_assert( is_array( $br06_mid_retry ), 'mid-snapshot POST repair returns PreparedSale' );
+br01_assert_eq( 'prepared', $br06_mid_retry['status'], 'mid-snapshot POST is prepared' );
+br01_assert_eq( 2, count( $br06_mid_runtime->orders[0]['items'] ), 'mid-snapshot repair has exactly two product lines' );
+$br06_mid_ids = array();
+foreach ( $br06_mid_runtime->orders[0]['items'] as $item ) {
+	$br06_mid_ids[] = $item['line_id'];
+}
+br01_assert_eq( 2, count( array_unique( $br06_mid_ids ) ), 'mid-snapshot repair does not duplicate line A' );
+br01_assert( in_array( $br06_mid_quote['lines'][0]['lineId'], $br06_mid_ids, true ), 'mid-snapshot keeps line A identity' );
+br01_assert( in_array( $br06_mid_quote['lines'][1]['lineId'], $br06_mid_ids, true ), 'mid-snapshot adds line B exactly once' );
+br06_assert_saved_matches_quote( $br06_mid_runtime, $br06_mid_quote, $br06_mid_retry, 'mid-snapshot repair' );
+br01_assert_eq( 1, $br06_mid_runtime->create_calls, 'mid-snapshot repair create_calls stays 1' );
+br01_assert_eq( 1, $br06_mid_runtime->pos_order_count(), 'mid-snapshot repair Woo order count stays 1' );
+br01_assert( br06_order_reserved( $br06_mid_runtime ), 'mid-snapshot repair completes reservation' );
+
+$br06_amb_runtime = br06_runtime();
+$br06_amb_stack   = br06_stack( $br06_amb_runtime );
+$br06_amb_quote   = $br06_amb_stack['quotes']->quote( br06_quote_request() );
+$br06_amb_body    = br06_prepare_body( $br06_amb_quote );
+$br06_amb_key     = br06_next_uuid();
+$br06_amb_runtime->after_initial_order_save = br06_thrower( 'ambiguous unexpected line' );
+br06_prepare_crashed( $br06_amb_stack['prep'], $br06_amb_body, $br06_amb_key, 'ambiguous unexpected line' );
+$br06_amb_runtime->inject_unexpected_product_line( $br06_amb_runtime->orders[0]['id'] );
+$br06_amb_before = $br06_amb_runtime->snapshot_woo_state();
+$br06_amb_get = $br06_amb_stack['prep']->resolve( $br06_amb_body['transactionId'] );
+br01_assert_eq( 'requires_attention', $br06_amb_get['status'], 'unexpected third product line is requires_attention' );
+br06_assert_woo_frozen( $br06_amb_runtime, $br06_amb_before, 'unexpected-line GET' );
+$br06_amb_retry = $br06_amb_stack['prep']->prepare( $br06_amb_body, $br06_amb_key );
+br01_assert_eq( 'REQUIRES_ATTENTION', br06_error_code( $br06_amb_retry ), 'unexpected line POST does not invent PreparedSale' );
+br01_assert_eq( 1, $br06_amb_runtime->pos_order_count(), 'unexpected line creates no order #2' );
+br01_assert_eq( 1, $br06_amb_runtime->create_calls, 'unexpected line does not create again' );
+br01_assert_eq( 1, count( $br06_amb_runtime->orders[0]['items'] ), 'unexpected line is not blindly deleted' );
+br01_assert( ! br06_order_reserved( $br06_amb_runtime ), 'unproven snapshot does not complete reservation' );
+
+$br06_dupl_runtime = br06_runtime();
+$br06_dupl_stack   = br06_stack( $br06_dupl_runtime );
+$br06_dupl_quote   = $br06_dupl_stack['quotes']->quote( br06_quote_request() );
+$br06_dupl_body    = br06_prepare_body( $br06_dupl_quote );
+$br06_dupl_key     = br06_next_uuid();
+$br06_dupl_runtime->after_quote_line = br06_thrower( 'duplicate line identity crash' );
+br06_prepare_crashed( $br06_dupl_stack['prep'], $br06_dupl_body, $br06_dupl_key, 'duplicate line identity crash' );
+$br06_dupl_runtime->inject_duplicate_line_identity( $br06_dupl_runtime->orders[0]['id'], $br06_dupl_quote['lines'][0]['lineId'] );
+$br06_dupl_retry = $br06_dupl_stack['prep']->prepare( $br06_dupl_body, $br06_dupl_key );
+br01_assert_eq( 'REQUIRES_ATTENTION', br06_error_code( $br06_dupl_retry ), 'duplicate bridge line identity is requires_attention' );
+br01_assert_eq( 1, $br06_dupl_runtime->pos_order_count(), 'duplicate line identity creates no order #2' );
+br01_assert_eq( 2, count( $br06_dupl_runtime->orders[0]['items'] ), 'duplicate line identity is not silently collapsed' );
+br01_assert( ! br06_order_reserved( $br06_dupl_runtime ), 'duplicate line identity does not reserve' );
+
+$br06_wrong_runtime = br06_runtime();
+$br06_wrong_stack   = br06_stack( $br06_wrong_runtime );
+$br06_wrong_quote   = $br06_wrong_stack['quotes']->quote( br06_quote_request() );
+$br06_wrong_body    = br06_prepare_body( $br06_wrong_quote );
+$br06_wrong_key     = br06_next_uuid();
+$br06_wrong_runtime->after_quote_line = br06_thrower( 'wrong product identity crash' );
+br06_prepare_crashed( $br06_wrong_stack['prep'], $br06_wrong_body, $br06_wrong_key, 'wrong product identity crash' );
+$br06_wrong_runtime->inject_wrong_product_for_line( $br06_wrong_runtime->orders[0]['id'], $br06_wrong_quote['lines'][0]['lineId'], '999' );
+$br06_wrong_retry = $br06_wrong_stack['prep']->prepare( $br06_wrong_body, $br06_wrong_key );
+br01_assert_eq( 'REQUIRES_ATTENTION', br06_error_code( $br06_wrong_retry ), 'wrong product/variation for line identity is requires_attention' );
+br01_assert_eq( '999', $br06_wrong_runtime->orders[0]['items'][0]['productId'], 'wrong product is not silently overwritten' );
+br01_assert_eq( 1, $br06_wrong_runtime->pos_order_count(), 'wrong product creates no order #2' );
+
+$br06_noid_runtime = br06_runtime();
+$br06_noid_stack   = br06_stack( $br06_noid_runtime );
+$br06_noid_quote   = $br06_noid_stack['quotes']->quote( br06_quote_request() );
+$br06_noid_body    = br06_prepare_body( $br06_noid_quote );
+$br06_noid_key     = br06_next_uuid();
+$br06_noid_runtime->after_initial_order_save = br06_thrower( 'unidentifiable item crash' );
+br06_prepare_crashed( $br06_noid_stack['prep'], $br06_noid_body, $br06_noid_key, 'unidentifiable item crash' );
+$br06_noid_runtime->inject_unidentifiable_item( $br06_noid_runtime->orders[0]['id'] );
+$br06_noid_retry = $br06_noid_stack['prep']->prepare( $br06_noid_body, $br06_noid_key );
+br01_assert_eq( 'REQUIRES_ATTENTION', br06_error_code( $br06_noid_retry ), 'unidentifiable existing item is requires_attention' );
+br01_assert_eq( 1, $br06_noid_runtime->pos_order_count(), 'unidentifiable item creates no order #2' );
+br01_assert_eq( '', $br06_noid_runtime->orders[0]['items'][0]['line_id'], 'unidentifiable item is not silently labeled' );
+
+$br06_part_runtime = br06_runtime();
+$br06_part_stack   = br06_stack( $br06_part_runtime );
+$br06_part_quote   = $br06_part_stack['quotes']->quote( br06_quote_request() );
+$br06_part_body    = br06_prepare_body( $br06_part_quote );
+$br06_part_key     = br06_next_uuid();
+$br06_part_runtime->after_quote_line = br06_thrower( 'partial identifiable line crash' );
+br06_prepare_crashed( $br06_part_stack['prep'], $br06_part_body, $br06_part_key, 'partial identifiable line crash' );
+$br06_part_runtime->make_partial_identifiable_line( $br06_part_runtime->orders[0]['id'], $br06_part_quote['lines'][0]['lineId'] );
+$br06_part_before = $br06_part_runtime->snapshot_woo_state();
+$br06_part_get = $br06_part_stack['prep']->resolve( $br06_part_body['transactionId'] );
+br01_assert_eq( 'preparing', $br06_part_get['status'], 'partial identifiable GET is preparing' );
+br06_assert_woo_frozen( $br06_part_runtime, $br06_part_before, 'partial identifiable GET' );
+$br06_part_retry = $br06_part_stack['prep']->prepare( $br06_part_body, $br06_part_key );
+br01_assert( is_array( $br06_part_retry ), 'partial identifiable POST repairs the Quote snapshot' );
+br01_assert_eq( 'prepared', $br06_part_retry['status'], 'partial identifiable POST is prepared' );
+br01_assert_eq( 1, count( $br06_part_runtime->orders[0]['items'] ), 'partial identifiable repair does not duplicate the line' );
+br06_assert_saved_matches_quote( $br06_part_runtime, $br06_part_quote, $br06_part_retry, 'partial identifiable repair' );
+br01_assert_eq( 1, $br06_part_runtime->create_calls, 'partial identifiable repair create_calls stays 1' );
 
 /* ---------------------------------------------------------------------------
  * Quote revalidation and stock
