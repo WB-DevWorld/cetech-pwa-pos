@@ -39,6 +39,9 @@ export function createInMemoryCheckoutStore(): CheckoutStore {
 
   const store: CheckoutStore = {
     failNextReceiptWrite: false,
+    failNextPaymentWrite: false,
+    failNextSaleWrite: false,
+    failNextCommercialConfirmedWrite: false,
     receiptWriteAttempts: 0,
 
     async withLock(key, fn) {
@@ -139,11 +142,20 @@ export function createInMemoryCheckoutStore(): CheckoutStore {
     },
 
     async getSale(transactionId) {
-      return sales.get(transactionId);
+      const row = sales.get(transactionId);
+      return row ? { ...row } : undefined;
     },
 
     async saveSale(sale) {
-      sales.set(sale.prepared.transactionId, sale);
+      if (store.failNextSaleWrite) {
+        store.failNextSaleWrite = false;
+        throw new Error("injected POS sale persistence failure");
+      }
+      if (sale.commercialConfirmed && store.failNextCommercialConfirmedWrite) {
+        store.failNextCommercialConfirmedWrite = false;
+        throw new Error("injected POS commercial-confirmed persistence failure");
+      }
+      sales.set(sale.prepared.transactionId, { ...sale });
     },
 
     async getPayment(paymentId) {
@@ -156,6 +168,10 @@ export function createInMemoryCheckoutStore(): CheckoutStore {
     },
 
     async savePayment(payment) {
+      if (store.failNextPaymentWrite) {
+        store.failNextPaymentWrite = false;
+        throw new Error("injected POS payment persistence failure");
+      }
       payments.set(payment.paymentId, payment);
       paymentsByTx.set(payment.transactionId, payment.paymentId);
     },
@@ -242,6 +258,10 @@ export function createInMemoryCheckoutStore(): CheckoutStore {
       if (row && row.status === "sent") {
         row.status = "pending";
       }
+    },
+
+    async peekIdempotency(organizationId, operation, idempotencyKey) {
+      return idempotency.get(idempKey(organizationId, operation, idempotencyKey))?.status;
     },
   };
 

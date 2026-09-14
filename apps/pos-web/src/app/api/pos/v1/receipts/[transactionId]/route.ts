@@ -6,6 +6,7 @@ import { createServerRestFetch } from "../../../../../../server/http/server-fetc
 import { resolveCorrelationId } from "../../../../../../server/http/correlation";
 import { httpStatusFor } from "../../../../../../server/http/status";
 import { composeCheckoutRuntime } from "../../../../../../server/sales/compose-checkout-runtime";
+import { composeStaffAssignmentDirectory } from "../../../../../../server/sales/compose-assignment-directory";
 import { handleGetReceipt } from "../../../../../../server/sales/handle-get-receipt";
 
 export async function GET(
@@ -28,6 +29,7 @@ export async function GET(
     sessionStore: composed.sessionStore,
     allowedOrigins: staffAllowedOrigins(),
     checkoutStore: composed.runtime.store,
+    assignments: composed.assignments,
   });
   return NextResponse.json(result.body, { status: result.status, headers: result.headers });
 }
@@ -36,7 +38,8 @@ function composeHandlers(request: NextRequest) {
   try {
     const sessionStore = composeStaffSessionStore(process.env, createServerRestFetch());
     const runtime = composeCheckoutRuntime(process.env);
-    return { ok: true as const, sessionStore, runtime };
+    const assignments = composeStaffAssignmentDirectory(process.env);
+    return { ok: true as const, sessionStore, runtime, assignments };
   } catch {
     const correlation = resolveCorrelationId(request.headers.get("x-correlation-id") ?? undefined);
     const body = authFailure(

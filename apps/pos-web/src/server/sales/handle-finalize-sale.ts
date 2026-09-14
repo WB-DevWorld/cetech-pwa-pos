@@ -1,9 +1,12 @@
 import type { ApiResult, SalesPort } from "../../../../../docs/contracts/ports";
 import type { SaleResolution } from "../../../../../docs/contracts/domain.generated";
+import type { StaffAssignmentDirectory } from "../auth/assignments";
 import { authFailure } from "../auth/errors";
+import { apiFailure } from "../http/api-failure";
 import type { StaffSessionStore } from "../auth/session-store";
 import { httpStatusFor } from "../http/status";
 import type { CheckoutStore } from "../../core/checkout/types";
+import { authorizeCheckoutMutation, mutationProtectionFrom } from "./authorize-checkout";
 import { finalizeSale } from "./finalize-sale";
 import { guardStaffCommand, type CommandHttpHeaders } from "./guard-staff-command";
 import { isFinalizeSaleRequest } from "./schema";
@@ -21,6 +24,7 @@ export type HandleFinalizeSaleInput = {
   readonly allowedOrigins: readonly string[];
   readonly checkoutStore: CheckoutStore;
   readonly salesPort: Pick<SalesPort, "confirmPayment">;
+  readonly assignments: StaffAssignmentDirectory;
 };
 
 export type HandleFinalizeSaleResponse = {
@@ -53,6 +57,24 @@ export async function handleFinalizeSale(input: HandleFinalizeSaleInput): Promis
   if (!guard.idempotencyKey) {
     const body = authFailure("VALIDATION_ERROR", "Idempotency-Key must be a UUID", guard.correlationId);
     return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
+  }
+  const sale = await input.checkoutStore.getSale(input.body.transactionId);
+  if (!sale) {
+    const body = apiFailure("NOT_FOUND", "prepared sale was not found", guard.correlationId);
+    return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
+  }
+  const authorized = await authorizeCheckoutMutation({
+    session: guard.session,
+    assignments: input.assignments,
+    correlationId: guard.correlationId,
+    organizationId: sale.organizationId,
+    locationId: sale.locationId,
+    registerId: sale.registerId,
+    permission: "sale.finalize",
+    protection: mutationProtectionFrom(input),
+  });
+  if (!authorized.ok) {
+    return { status: httpStatusFor(authorized.error.code), body: authorized, headers: guard.headers };
   }
   const result = await finalizeSale({
     store: input.checkoutStore,

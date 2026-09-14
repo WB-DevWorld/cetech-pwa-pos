@@ -154,7 +154,15 @@ export interface CheckoutStore {
   ): Promise<void>;
   releaseIdempotency(organizationId: Id, operation: PendingOperation["operation"], idempotencyKey: Uuid): Promise<void>;
   withLock<T>(key: string, fn: () => Promise<T>): Promise<T>;
+  peekIdempotency(
+    organizationId: Id,
+    operation: PendingOperation["operation"],
+    idempotencyKey: Uuid,
+  ): Promise<PendingOperation["status"] | undefined>;
   failNextReceiptWrite: boolean;
+  failNextPaymentWrite: boolean;
+  failNextSaleWrite: boolean;
+  failNextCommercialConfirmedWrite: boolean;
   receiptWriteAttempts: number;
 }
 

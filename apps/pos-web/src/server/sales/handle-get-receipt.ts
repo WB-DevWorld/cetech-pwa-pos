@@ -1,10 +1,13 @@
 import type { ApiResult } from "../../../../../docs/contracts/ports";
 import type { ReceiptSnapshot } from "../../../../../docs/contracts/domain.generated";
+import type { StaffAssignmentDirectory } from "../auth/assignments";
 import { authFailure } from "../auth/errors";
+import { apiFailure } from "../http/api-failure";
 import { isUuid } from "../auth/ids";
 import type { StaffSessionStore } from "../auth/session-store";
 import { httpStatusFor } from "../http/status";
 import type { CheckoutStore } from "../../core/checkout/types";
+import { authorizeCheckoutRead } from "./authorize-checkout";
 import { getReceiptByTransaction } from "./get-receipt";
 import { guardStaffCommand, type CommandHttpHeaders } from "./guard-staff-command";
 
@@ -19,6 +22,7 @@ export type HandleGetReceiptInput = {
   readonly sessionStore: StaffSessionStore;
   readonly allowedOrigins: readonly string[];
   readonly checkoutStore: CheckoutStore;
+  readonly assignments: StaffAssignmentDirectory;
 };
 
 export type HandleGetReceiptResponse = {
@@ -46,6 +50,22 @@ export async function handleGetReceipt(input: HandleGetReceiptInput): Promise<Ha
   if (!isUuid(input.transactionId)) {
     const body = authFailure("VALIDATION_ERROR", "transactionId must be a UUID", guard.correlationId);
     return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
+  }
+  const sale = await input.checkoutStore.getSale(input.transactionId);
+  if (!sale) {
+    const body = apiFailure("NOT_FOUND", "receipt was not found", guard.correlationId);
+    return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
+  }
+  const authorized = await authorizeCheckoutRead({
+    session: guard.session,
+    assignments: input.assignments,
+    correlationId: guard.correlationId,
+    organizationId: sale.organizationId,
+    locationId: sale.locationId,
+    registerId: sale.registerId,
+  });
+  if (!authorized.ok) {
+    return { status: httpStatusFor(authorized.error.code), body: authorized, headers: guard.headers };
   }
   const result = await getReceiptByTransaction({
     store: input.checkoutStore,

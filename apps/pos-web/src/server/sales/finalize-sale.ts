@@ -46,22 +46,47 @@ export async function finalizeSale(input: {
     }
 
     await store.markIdempotencySent(actor.organizationId, "sale.finalize", context.idempotencyKey);
-    const result = await completeFinalize({ store, salesPort, actor, request, context, now });
-    if (!result.ok) {
-      await store.releaseIdempotency(actor.organizationId, "sale.finalize", context.idempotencyKey);
+    try {
+      const result = await completeFinalize({ store, salesPort, actor, request, context, now });
+      if (!result.ok) {
+        await store.releaseIdempotency(actor.organizationId, "sale.finalize", context.idempotencyKey);
+        return result;
+      }
+      if (result.data.status === "completed") {
+        await store.acknowledgeIdempotency(actor.organizationId, "sale.finalize", context.idempotencyKey, result.data);
+      } else {
+        await store.markIdempotencyRequiresAttention(
+          actor.organizationId,
+          "sale.finalize",
+          context.idempotencyKey,
+          result.data,
+        );
+      }
       return result;
-    }
-    if (result.data.status === "completed") {
-      await store.acknowledgeIdempotency(actor.organizationId, "sale.finalize", context.idempotencyKey, result.data);
-    } else {
+    } catch {
+      const attention = {
+        transactionId: request.transactionId,
+        status: "requires_attention" as const,
+        paymentId: request.paymentId,
+        message: "POS persistence failed after commercial finalization; retry without creating a second sale",
+      };
+      await store.enqueueOutbox({
+        id: crypto.randomUUID(),
+        organizationId: actor.organizationId,
+        aggregateType: "sale",
+        aggregateId: request.transactionId,
+        eventType: "sale.commercial_persist_repair",
+        payload: { transactionId: request.transactionId, paymentId: request.paymentId },
+        createdAt: toIsoTimestamp(now),
+      });
       await store.markIdempotencyRequiresAttention(
         actor.organizationId,
         "sale.finalize",
         context.idempotencyKey,
-        result.data,
+        attention,
       );
+      return { ok: true, data: attention, correlationId: context.correlationId };
     }
-    return result;
   });
 }
 
@@ -74,7 +99,7 @@ async function completeFinalize(input: {
   readonly now: Date;
 }): Promise<ApiResult<SaleResolution>> {
   const { store, salesPort, actor, request, context, now } = input;
-  const sale = await store.getSale(request.transactionId);
+  let sale = await store.getSale(request.transactionId);
   if (!sale) {
     return apiFailure("NOT_FOUND", "prepared sale was not found", context.correlationId);
   }
@@ -108,8 +133,11 @@ async function completeFinalize(input: {
     return successResolution(sale, request.paymentId, context.correlationId, sale.receipt.id);
   }
 
-  sale.status = "finalizing";
-  sale.assignedPaymentId = request.paymentId;
+  sale = {
+    ...sale,
+    status: "finalizing",
+    assignedPaymentId: request.paymentId,
+  };
   await store.saveSale(sale);
 
   const evidence = evidenceFromPayment(payment);
@@ -118,7 +146,7 @@ async function completeFinalize(input: {
     context,
   );
   if (!commercial.ok && !sale.commercialConfirmed) {
-    sale.status = "requires_attention";
+    sale = { ...sale, status: "requires_attention" };
     await store.saveSale(sale);
     await store.enqueueOutbox({
       id: crypto.randomUUID(),
@@ -137,8 +165,27 @@ async function completeFinalize(input: {
     );
   }
   if (commercial.ok || sale.commercialConfirmed) {
-    sale.commercialConfirmed = true;
-    await store.saveSale(sale);
+    const confirmed = { ...sale, commercialConfirmed: true, status: "finalizing" as const };
+    try {
+      await store.saveSale(confirmed);
+      sale = confirmed;
+    } catch {
+      await store.enqueueOutbox({
+        id: crypto.randomUUID(),
+        organizationId: sale.organizationId,
+        aggregateType: "sale",
+        aggregateId: request.transactionId,
+        eventType: "sale.commercial_persist_repair",
+        payload: { transactionId: request.transactionId, paymentId: request.paymentId },
+        createdAt: toIsoTimestamp(now),
+      });
+      return attentionResolution(
+        sale,
+        request.paymentId,
+        context.correlationId,
+        "POS sale persistence failed after commercial finalization; retry without creating a second sale",
+      );
+    }
   }
   return persistReceiptOrAttention({ store, sale, payment, request, context, now });
 }
@@ -151,18 +198,18 @@ async function persistReceiptOrAttention(input: {
   readonly context: CommandContext;
   readonly now: Date;
 }): Promise<ApiResult<SaleResolution>> {
-  const { store, sale, payment, request, context, now } = input;
+  const { store, payment, request, context, now } = input;
+  let { sale } = input;
   const existing = await store.getReceipt(request.transactionId);
   if (existing) {
-    sale.receipt = existing;
-    sale.status = "completed";
+    sale = { ...sale, receipt: existing, status: "completed" };
     await store.saveSale(sale);
     return successResolution(sale, request.paymentId, context.correlationId, existing.id);
   }
 
   const receipt = buildReceipt(sale, payment.cashReceived, now);
   if (!validateCanonicalDef("ReceiptSnapshot", receipt)) {
-    sale.status = "requires_attention";
+    sale = { ...sale, status: "requires_attention" };
     await store.saveSale(sale);
     return attentionResolution(sale, request.paymentId, context.correlationId, "receipt snapshot failed schema validation");
   }
@@ -171,14 +218,13 @@ async function persistReceiptOrAttention(input: {
     if (saved === "duplicate") {
       const raced = await store.getReceipt(request.transactionId);
       if (raced) {
-        sale.receipt = raced;
-        sale.status = "completed";
+        sale = { ...sale, receipt: raced, status: "completed" };
         await store.saveSale(sale);
         return successResolution(sale, request.paymentId, context.correlationId, raced.id);
       }
     }
   } catch {
-    sale.status = "requires_attention";
+    sale = { ...sale, status: "requires_attention" };
     await store.saveSale(sale);
     await store.enqueueOutbox({
       id: crypto.randomUUID(),
@@ -197,8 +243,7 @@ async function persistReceiptOrAttention(input: {
     );
   }
 
-  sale.receipt = receipt;
-  sale.status = "completed";
+  sale = { ...sale, receipt, status: "completed" };
   await store.saveSale(sale);
   return successResolution(sale, request.paymentId, context.correlationId, receipt.id);
 }

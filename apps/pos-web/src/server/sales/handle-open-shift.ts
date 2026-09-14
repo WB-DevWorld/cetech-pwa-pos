@@ -1,9 +1,12 @@
 import type { ApiResult } from "../../../../../docs/contracts/ports";
 import type { Shift } from "../../../../../docs/contracts/domain.generated";
+import type { StaffAssignmentDirectory } from "../auth/assignments";
 import { authFailure } from "../auth/errors";
+import { apiFailure } from "../http/api-failure";
 import type { StaffSessionStore } from "../auth/session-store";
 import { httpStatusFor } from "../http/status";
 import type { CheckoutStore } from "../../core/checkout/types";
+import { authorizeCheckoutMutation, mutationProtectionFrom } from "./authorize-checkout";
 import { guardStaffCommand, type CommandHttpHeaders } from "./guard-staff-command";
 import { openShift } from "./open-shift";
 import { isOpenShiftRequest } from "./schema";
@@ -20,6 +23,7 @@ export type HandleOpenShiftInput = {
   readonly sessionStore: StaffSessionStore;
   readonly allowedOrigins: readonly string[];
   readonly checkoutStore: CheckoutStore;
+  readonly assignments: StaffAssignmentDirectory;
 };
 
 export type HandleOpenShiftResponse = {
@@ -52,6 +56,24 @@ export async function handleOpenShift(input: HandleOpenShiftInput): Promise<Hand
   if (!guard.idempotencyKey) {
     const body = authFailure("VALIDATION_ERROR", "Idempotency-Key must be a UUID", guard.correlationId);
     return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
+  }
+  const register = await input.checkoutStore.getRegister(input.body.registerId);
+  if (!register) {
+    const body = apiFailure("NOT_FOUND", "register is not available", guard.correlationId);
+    return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
+  }
+  const authorized = await authorizeCheckoutMutation({
+    session: guard.session,
+    assignments: input.assignments,
+    correlationId: guard.correlationId,
+    organizationId: register.organizationId,
+    locationId: register.locationId,
+    registerId: register.id,
+    permission: "shift.open",
+    protection: mutationProtectionFrom(input),
+  });
+  if (!authorized.ok) {
+    return { status: httpStatusFor(authorized.error.code), body: authorized, headers: guard.headers };
   }
   const result = await openShift({
     store: input.checkoutStore,
