@@ -18,6 +18,8 @@ final class Cetech_Pos_Bridge_Command_Engine {
 
 	/** @var callable|null F1: after durable finalize claim + mutation lock, before Woo writes */
 	public $after_finalize_claim = null;
+	/** @var callable|null after claim.internal_status=IN_PROGRESS persist, before payment bind/complete */
+	public $after_finalize_in_progress = null;
 	/** @var callable|null C1: after durable cancel claim + mutation lock, before Woo writes */
 	public $after_cancel_claim = null;
 
@@ -74,6 +76,10 @@ final class Cetech_Pos_Bridge_Command_Engine {
 			return $this->reused_identity( 'evidenceId', $payment['evidenceId'], $raw['transactionId'] );
 		}
 		return $this->run_finalize_locked( $raw, $idempotency_key, $binding );
+	}
+
+	public function get_command_store() {
+		return $this->commands;
 	}
 
 	/**
@@ -180,6 +186,11 @@ final class Cetech_Pos_Bridge_Command_Engine {
 	private function execute_finalize( array $claim, array $raw, array $binding ) {
 		$claim['internal_status'] = Cetech_Pos_Bridge_Command_Store::STATUS_IN_PROGRESS;
 		$this->commands->save( $claim );
+		if ( is_callable( $this->after_finalize_in_progress ) ) {
+			$cb = $this->after_finalize_in_progress;
+			$this->after_finalize_in_progress = null;
+			$cb( $this );
+		}
 		$payment  = $raw['payment'];
 		$prepared = $binding['prepared'];
 		$order_id = $binding['orderId'];
@@ -246,13 +257,15 @@ final class Cetech_Pos_Bridge_Command_Engine {
 	 * @return array<string,mixed>|WP_Error
 	 */
 	private function execute_cancel( array $claim, array $raw, array $prepare ) {
-		$claim['internal_status'] = Cetech_Pos_Bridge_Command_Store::STATUS_IN_PROGRESS;
-		$this->commands->save( $claim );
 		$prepared = $this->decode_prepared( $prepare );
 		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $prepared ) ) {
 			return $this->persist_error( $claim, $prepared );
 		}
 		$finalize = $this->commands->get_by_transaction_operation( $raw['transactionId'], Cetech_Pos_Bridge_Constants::OPERATION_FINALIZE );
+		$unresolved = $this->cancel_blocked_by_unresolved_finalize( $finalize );
+		if ( $unresolved !== null ) {
+			return $unresolved;
+		}
 		if ( is_array( $finalize ) ) {
 			if ( $finalize['internal_status'] === Cetech_Pos_Bridge_Command_Store::STATUS_COMPLETED ) {
 				$outcome = $this->decoded_outcome( $finalize );
@@ -264,6 +277,8 @@ final class Cetech_Pos_Bridge_Command_Engine {
 				return $this->persist_error( $claim, $this->payment_pending( 'Finalize evidence for this transaction is unresolved.' ) );
 			}
 		}
+		$claim['internal_status'] = Cetech_Pos_Bridge_Command_Store::STATUS_IN_PROGRESS;
+		$this->commands->save( $claim );
 		$order_id = isset( $prepare['woo_order_id'] ) ? (string) $prepare['woo_order_id'] : '';
 		if ( $order_id === '' && isset( $prepared['orderReference'] ) ) {
 			$order_id = (string) $prepared['orderReference'];
@@ -673,6 +688,30 @@ final class Cetech_Pos_Bridge_Command_Engine {
 			'resolve',
 			409
 		);
+	}
+
+	/**
+	 * Durable PENDING/IN_PROGRESS finalize is unresolved money. Do not persist a
+	 * terminal cancel failure so the same Idempotency-Key can reevaluate later.
+	 *
+	 * @param array<string,mixed>|null $finalize
+	 * @return WP_Error|null
+	 */
+	private function cancel_blocked_by_unresolved_finalize( $finalize ) {
+		if ( ! is_array( $finalize ) ) {
+			return null;
+		}
+		if ( ! in_array(
+			$finalize['internal_status'],
+			array(
+				Cetech_Pos_Bridge_Command_Store::STATUS_PENDING,
+				Cetech_Pos_Bridge_Command_Store::STATUS_IN_PROGRESS,
+			),
+			true
+		) ) {
+			return null;
+		}
+		return $this->payment_pending( 'A verified payment finalization attempt is still unresolved for this transaction.' );
 	}
 
 	private function payment_pending( $message ) {

@@ -123,6 +123,19 @@ function br07_thrower( $message ) {
 	};
 }
 
+function br07_command_status( Cetech_Pos_Bridge_Plugin $plugin, $transaction_id, $operation ) {
+	$row = $plugin->get_command_engine()->get_command_store()->get_by_transaction_operation( $transaction_id, $operation );
+	return is_array( $row ) ? $row['internal_status'] : null;
+}
+
+function br07_assert_unpaid_reserved( Cetech_Pos_Bridge_Fake_Woo_Runtime $runtime, $label ) {
+	$order = br06_last_pos_order( $runtime );
+	$snap  = $runtime->inspect_commercial_snapshot( $order['id'] );
+	br01_assert( is_array( $snap ) && empty( $snap['paid'] ), $label . ' Woo unpaid' );
+	br01_assert( ! empty( $snap['reservationProven'] ), $label . ' reservation still present' );
+	br01_assert( empty( $snap['cancelled'] ), $label . ' Woo not cancelled' );
+}
+
 $woo_src = file_get_contents( dirname( __DIR__, 2 ) . '/wordpress/cetech-pos-bridge/includes/class-woo-runtime.php' );
 br01_assert( strpos( $woo_src, 'payment_complete' ) !== false, 'production finalize uses WC_Order::payment_complete' );
 br01_assert( strpos( $woo_src, 'wc_release_stock_for_order' ) !== false, 'production cancel uses wc_release_stock_for_order' );
@@ -406,6 +419,88 @@ br01_assert_eq( 'completed', br07_engine_code( $br07_f4_res ), 'ambiguous except
 br01_assert_eq( 1, $br07_f4_runtime->payment_complete_calls, 'ambiguous recovery does not complete twice' );
 
 /* ---------------------------------------------------------------------------
+ * Uncertain-money cancel: PENDING/IN_PROGRESS finalize after lock loss
+ * ------------------------------------------------------------------------ */
+
+$br07_f1c_runtime = br06_runtime();
+$br07_f1c_plugin  = br07_plugin( $br07_f1c_runtime );
+$br07_f1c         = br07_quote_and_prepare( $br07_f1c_plugin );
+$br07_f1c_body    = br07_finalize_body( $br07_f1c['prepared'], $br07_f1c['body'] );
+$br07_f1c_key     = br06_next_uuid();
+$br07_f1c_plugin->get_command_engine()->after_finalize_claim = br07_thrower( 'F1-cancel' );
+$br07_f1c_hit = false;
+try {
+	$br07_f1c_plugin->get_command_engine()->finalize( $br07_f1c_body, $br07_f1c_key );
+} catch ( RuntimeException $e ) {
+	$br07_f1c_hit = ( $e->getMessage() === 'F1-cancel' );
+}
+br01_assert( $br07_f1c_hit, 'F1-cancel seam crashed after durable finalize claim' );
+br01_assert_eq( Cetech_Pos_Bridge_Command_Store::STATUS_PENDING, br07_command_status( $br07_f1c_plugin, $br07_f1c['body']['transactionId'], Cetech_Pos_Bridge_Constants::OPERATION_FINALIZE ), 'F1-cancel finalize claim remains PENDING' );
+br01_assert( ! $br07_f1c_plugin->get_command_engine()->get_command_store()->mutation_lock_held( $br07_f1c['body']['transactionId'] ), 'F1-cancel process loss released the mutation lock' );
+br07_assert_unpaid_reserved( $br07_f1c_runtime, 'F1-cancel' );
+br01_assert_eq( 0, $br07_f1c_runtime->payment_complete_calls, 'F1-cancel has no payment_complete before cancel' );
+$br07_f1c_stock = $br07_f1c_runtime->stock_reduce_calls;
+$br07_f1c_can_key = br06_next_uuid();
+$br07_f1c_can_body = array( 'transactionId' => $br07_f1c['body']['transactionId'], 'reason' => 'abort-after-f1' );
+$br07_f1c_cancel = $br07_f1c_plugin->get_command_engine()->cancel( $br07_f1c_can_body, $br07_f1c_can_key );
+br01_assert_eq( 'PAYMENT_PENDING', br07_engine_code( $br07_f1c_cancel ), 'F1 crashed finalize blocks cancel' );
+br01_assert_eq( 0, $br07_f1c_runtime->reservation_release_calls, 'F1-cancel release count 0' );
+br01_assert_eq( 0, $br07_f1c_runtime->order_cancel_calls, 'F1-cancel Woo cancel count 0' );
+br01_assert_eq( 0, $br07_f1c_runtime->payment_complete_calls, 'F1-cancel payment_complete still 0' );
+br01_assert_eq( $br07_f1c_stock, $br07_f1c_runtime->stock_reduce_calls, 'F1-cancel stock reduction unchanged' );
+br01_assert_eq( 1, $br07_f1c_runtime->pos_order_count(), 'F1-cancel Woo order count 1' );
+br07_assert_unpaid_reserved( $br07_f1c_runtime, 'F1-cancel after blocked cancel' );
+br01_assert_eq( Cetech_Pos_Bridge_Command_Store::STATUS_PENDING, br07_command_status( $br07_f1c_plugin, $br07_f1c['body']['transactionId'], Cetech_Pos_Bridge_Constants::OPERATION_CANCEL ), 'blocked cancel claim stays nonterminal PENDING for reevaluation' );
+$br07_f1c_replay = $br07_f1c_plugin->get_command_engine()->cancel( $br07_f1c_can_body, $br07_f1c_can_key );
+br01_assert_eq( 'PAYMENT_PENDING', br07_engine_code( $br07_f1c_replay ), 'same-key cancel reevaluates unresolved money as PAYMENT_PENDING' );
+br01_assert_eq( 0, $br07_f1c_runtime->reservation_release_calls, 'same-key blocked cancel still does not release' );
+$br07_f1c_before_get = $br07_f1c_runtime->snapshot_woo_state();
+$br07_f1c_resolve = br06_dispatch_resolve( $br07_f1c_plugin, $br07_f1c['body']['transactionId'], array( 'X-Correlation-ID' => $br07_corr ) );
+br01_assert_eq( 'finalizing', br07_code( $br07_f1c_resolve ), 'GET after pending finalize is observational finalizing' );
+br07_assert_woo_frozen( $br07_f1c_runtime, $br07_f1c_before_get, 'GET after F1-cancel block' );
+$br07_f1c_retry = $br07_f1c_plugin->get_command_engine()->finalize( $br07_f1c_body, $br07_f1c_key );
+br01_assert_eq( 'completed', br07_engine_code( $br07_f1c_retry ), 'F1 original finalize retry completes once' );
+br01_assert_eq( 1, $br07_f1c_runtime->payment_complete_calls, 'F1 original finalize retry payment_complete once' );
+br01_assert_eq( 1, $br07_f1c_runtime->stock_reduce_calls, 'F1 original finalize retry stock commit once' );
+br01_assert_eq( 1, $br07_f1c_runtime->pos_order_count(), 'F1 original finalize retry Woo order count 1' );
+br01_assert_eq( 0, $br07_f1c_runtime->reservation_release_calls, 'F1 finalize recovery does not release' );
+br01_assert_eq( 0, $br07_f1c_runtime->order_cancel_calls, 'F1 finalize recovery does not cancel Woo' );
+
+$br07_ipc_runtime = br06_runtime();
+$br07_ipc_plugin  = br07_plugin( $br07_ipc_runtime );
+$br07_ipc         = br07_quote_and_prepare( $br07_ipc_plugin );
+$br07_ipc_body    = br07_finalize_body( $br07_ipc['prepared'], $br07_ipc['body'] );
+$br07_ipc_key     = br06_next_uuid();
+$br07_ipc_plugin->get_command_engine()->after_finalize_in_progress = br07_thrower( 'IN_PROGRESS-cancel' );
+$br07_ipc_hit = false;
+try {
+	$br07_ipc_plugin->get_command_engine()->finalize( $br07_ipc_body, $br07_ipc_key );
+} catch ( RuntimeException $e ) {
+	$br07_ipc_hit = ( $e->getMessage() === 'IN_PROGRESS-cancel' );
+}
+br01_assert( $br07_ipc_hit, 'IN_PROGRESS seam crashed after durable in-progress persist' );
+br01_assert_eq( Cetech_Pos_Bridge_Command_Store::STATUS_IN_PROGRESS, br07_command_status( $br07_ipc_plugin, $br07_ipc['body']['transactionId'], Cetech_Pos_Bridge_Constants::OPERATION_FINALIZE ), 'IN_PROGRESS-cancel finalize claim is IN_PROGRESS' );
+br01_assert( ! $br07_ipc_plugin->get_command_engine()->get_command_store()->mutation_lock_held( $br07_ipc['body']['transactionId'] ), 'IN_PROGRESS-cancel process loss released the mutation lock' );
+br07_assert_unpaid_reserved( $br07_ipc_runtime, 'IN_PROGRESS-cancel' );
+$br07_ipc_stock = $br07_ipc_runtime->stock_reduce_calls;
+$br07_ipc_cancel = $br07_ipc_plugin->get_command_engine()->cancel(
+	array( 'transactionId' => $br07_ipc['body']['transactionId'], 'reason' => 'abort-after-in-progress' ),
+	br06_next_uuid()
+);
+br01_assert_eq( 'PAYMENT_PENDING', br07_engine_code( $br07_ipc_cancel ), 'IN_PROGRESS crashed finalize blocks cancel' );
+br01_assert_eq( 0, $br07_ipc_runtime->reservation_release_calls, 'IN_PROGRESS-cancel release count 0' );
+br01_assert_eq( 0, $br07_ipc_runtime->order_cancel_calls, 'IN_PROGRESS-cancel Woo cancel count 0' );
+br01_assert_eq( 0, $br07_ipc_runtime->payment_complete_calls, 'IN_PROGRESS-cancel payment_complete 0' );
+br01_assert_eq( $br07_ipc_stock, $br07_ipc_runtime->stock_reduce_calls, 'IN_PROGRESS-cancel stock unchanged' );
+br01_assert_eq( 1, $br07_ipc_runtime->pos_order_count(), 'IN_PROGRESS-cancel Woo order count 1' );
+br07_assert_unpaid_reserved( $br07_ipc_runtime, 'IN_PROGRESS-cancel after blocked cancel' );
+$br07_ipc_retry = $br07_ipc_plugin->get_command_engine()->finalize( $br07_ipc_body, $br07_ipc_key );
+br01_assert_eq( 'completed', br07_engine_code( $br07_ipc_retry ), 'IN_PROGRESS original finalize retry completes once' );
+br01_assert_eq( 1, $br07_ipc_runtime->payment_complete_calls, 'IN_PROGRESS original finalize retry payment_complete once' );
+br01_assert_eq( 1, $br07_ipc_runtime->stock_reduce_calls, 'IN_PROGRESS original finalize retry stock commit once' );
+br01_assert_eq( 1, $br07_ipc_runtime->pos_order_count(), 'IN_PROGRESS original finalize retry Woo order count 1' );
+
+/* ---------------------------------------------------------------------------
  * Expired reservation + verified money; cancelled + late payment
  * ------------------------------------------------------------------------ */
 
@@ -425,11 +520,13 @@ $br07_late_cancel  = br07_dispatch_cancel(
 	array( 'transactionId' => $br07_late['body']['transactionId'], 'reason' => 'customer abandoned' ),
 	br07_headers( br06_next_uuid() )
 );
-br01_assert_eq( 'cancelled', br07_code( $br07_late_cancel ), 'unpaid prepared sale cancels' );
+br01_assert_eq( 'cancelled', br07_code( $br07_late_cancel ), 'CASE C true cancel-before-finalize cancels unpaid sale' );
 $br07_late_fin = br07_dispatch_finalize( $br07_late_plugin, br07_finalize_body( $br07_late['prepared'], $br07_late['body'] ), br07_headers( br06_next_uuid() ) );
-br01_assert_eq( 'requires_attention', br07_code( $br07_late_fin ), 'cancelled order + late verified payment is requires_attention' );
-br01_assert_eq( 1, $br07_late_runtime->pos_order_count(), 'late success does not create a second order' );
-br01_assert_eq( 0, $br07_late_runtime->payment_complete_calls, 'late success does not silently reopen money' );
+br01_assert_eq( 'requires_attention', br07_code( $br07_late_fin ), 'CASE C late first finalize is requires_attention' );
+br01_assert_eq( 1, $br07_late_runtime->pos_order_count(), 'CASE C late success does not create a second order' );
+br01_assert_eq( 0, $br07_late_runtime->payment_complete_calls, 'CASE C late success does not silently reopen money' );
+br01_assert_eq( 1, $br07_late_runtime->reservation_release_calls, 'CASE C reservation released at most once' );
+br01_assert_eq( 1, $br07_late_runtime->order_cancel_calls, 'CASE C Woo cancel at most once' );
 
 /* ---------------------------------------------------------------------------
  * Concurrent same-finalize (in-memory interleaving, not DB concurrency)
@@ -620,14 +717,16 @@ $br07_fw_nested  = null;
 $br07_fw_plugin->get_command_engine()->after_finalize_claim = function ( $engine ) use ( $br07_fw_can, $br07_fw_can_key, &$br07_fw_nested ) {
 	$br07_fw_nested = $engine->cancel( $br07_fw_can, $br07_fw_can_key );
 };
-$br07_fw_done = $br07_fw_plugin->get_command_engine()->finalize( $br07_fw_fin, br06_next_uuid() );
-br01_assert_eq( 'completed', br07_engine_code( $br07_fw_done ), 'finalize-wins race completes payment' );
-br01_assert_eq( 'OPERATION_IN_PROGRESS', br07_engine_code( $br07_fw_nested ), 'finalize-wins nested cancel is in progress while lock held' );
+$br07_fw_fin_key = br06_next_uuid();
+$br07_fw_done = $br07_fw_plugin->get_command_engine()->finalize( $br07_fw_fin, $br07_fw_fin_key );
+br01_assert_eq( 'completed', br07_engine_code( $br07_fw_done ), 'CASE A finalize-wins race completes payment' );
+br01_assert_eq( 'OPERATION_IN_PROGRESS', br07_engine_code( $br07_fw_nested ), 'CASE A nested cancel cannot acquire lock' );
 $br07_fw_after = $br07_fw_plugin->get_command_engine()->cancel( $br07_fw_can, $br07_fw_can_key );
-br01_assert_eq( 'PAYMENT_PENDING', br07_engine_code( $br07_fw_after ), 'finalize-wins later cancel is blocked' );
-br01_assert_eq( 1, $br07_fw_runtime->payment_complete_calls, 'finalize-wins payment once' );
-br01_assert_eq( 1, $br07_fw_runtime->stock_reduce_calls, 'finalize-wins stock once' );
-br01_assert_eq( 0, $br07_fw_runtime->reservation_release_calls, 'finalize-wins cancel does not release' );
+br01_assert_eq( 'PAYMENT_PENDING', br07_engine_code( $br07_fw_after ), 'CASE A later cancel is blocked' );
+br01_assert_eq( 1, $br07_fw_runtime->payment_complete_calls, 'CASE A payment_complete once' );
+br01_assert_eq( 1, $br07_fw_runtime->stock_reduce_calls, 'CASE A stock commit once' );
+br01_assert_eq( 0, $br07_fw_runtime->reservation_release_calls, 'CASE A release 0' );
+br01_assert_eq( 0, $br07_fw_runtime->order_cancel_calls, 'CASE A Woo cancel 0' );
 
 $br07_cw_runtime = br06_runtime();
 $br07_cw_plugin  = br07_plugin( $br07_cw_runtime );
@@ -640,12 +739,20 @@ $br07_cw_plugin->get_command_engine()->after_cancel_claim = function ( $engine )
 	$br07_cw_nested = $engine->finalize( $br07_cw_fin, $br07_cw_fin_key );
 };
 $br07_cw_done = $br07_cw_plugin->get_command_engine()->cancel( $br07_cw_can, br06_next_uuid() );
-br01_assert_eq( 'cancelled', br07_engine_code( $br07_cw_done ), 'cancel-wins race cancels unpaid sale' );
-br01_assert_eq( 'OPERATION_IN_PROGRESS', br07_engine_code( $br07_cw_nested ), 'cancel-wins nested finalize is in progress while lock held' );
-$br07_cw_late = $br07_cw_plugin->get_command_engine()->finalize( $br07_cw_fin, $br07_cw_fin_key );
-br01_assert_eq( 'requires_attention', br07_engine_code( $br07_cw_late ), 'cancel-wins late payment is requires_attention' );
-br01_assert_eq( 1, $br07_cw_runtime->pos_order_count(), 'cancel-wins no second order' );
-br01_assert_eq( 0, $br07_cw_runtime->payment_complete_calls, 'cancel-wins late finalize does not payment_complete' );
+br01_assert_eq( 'OPERATION_IN_PROGRESS', br07_engine_code( $br07_cw_nested ), 'CASE B nested finalize cannot acquire lock' );
+br01_assert( br07_command_status( $br07_cw_plugin, $br07_cw['body']['transactionId'], Cetech_Pos_Bridge_Constants::OPERATION_FINALIZE ) !== null, 'CASE B durable finalize claim exists' );
+br01_assert_eq( Cetech_Pos_Bridge_Command_Store::STATUS_PENDING, br07_command_status( $br07_cw_plugin, $br07_cw['body']['transactionId'], Cetech_Pos_Bridge_Constants::OPERATION_FINALIZE ), 'CASE B nested finalize claim is PENDING' );
+br01_assert_eq( 'PAYMENT_PENDING', br07_engine_code( $br07_cw_done ), 'CASE B outer cancel blocks after verified finalize claim' );
+br01_assert_eq( 0, $br07_cw_runtime->reservation_release_calls, 'CASE B release 0' );
+br01_assert_eq( 0, $br07_cw_runtime->order_cancel_calls, 'CASE B Woo cancel 0' );
+br01_assert_eq( 0, $br07_cw_runtime->payment_complete_calls, 'CASE B payment_complete 0 before finalize retry' );
+$br07_cw_retry = $br07_cw_plugin->get_command_engine()->finalize( $br07_cw_fin, $br07_cw_fin_key );
+br01_assert_eq( 'completed', br07_engine_code( $br07_cw_retry ), 'CASE B original finalize retry completes' );
+br01_assert_eq( 1, $br07_cw_runtime->payment_complete_calls, 'CASE B payment_complete once' );
+br01_assert_eq( 1, $br07_cw_runtime->stock_reduce_calls, 'CASE B stock commit once' );
+br01_assert_eq( 0, $br07_cw_runtime->reservation_release_calls, 'CASE B still no release' );
+br01_assert_eq( 0, $br07_cw_runtime->order_cancel_calls, 'CASE B still no Woo cancel' );
+br01_assert_eq( 1, $br07_cw_runtime->pos_order_count(), 'CASE B Woo order count 1' );
 
 $br07_closed = array(
 	'transactionId' => $br07_cw['body']['transactionId'],
