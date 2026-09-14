@@ -80,13 +80,16 @@ class Cetech_Pos_Bridge_Test_Request {
 	public $headers = array();
 	public $route   = '/cetech-pos/v1/health';
 	public $json    = array();
+	/** @var array<string,mixed> */
+	public $params = array();
 
-	public function __construct( array $headers = array(), $route = '/cetech-pos/v1/health', array $json = array() ) {
+	public function __construct( array $headers = array(), $route = '/cetech-pos/v1/health', array $json = array(), array $params = array() ) {
 		foreach ( $headers as $name => $value ) {
 			$this->headers[ strtolower( $name ) ] = $value;
 		}
-		$this->route = (string) $route;
-		$this->json  = $json;
+		$this->route  = (string) $route;
+		$this->json   = $json;
+		$this->params = $params;
 	}
 
 	public function get_header( $name ) {
@@ -100,6 +103,10 @@ class Cetech_Pos_Bridge_Test_Request {
 
 	public function get_json_params() {
 		return $this->json;
+	}
+
+	public function get_param( $name ) {
+		return isset( $this->params[ $name ] ) ? $this->params[ $name ] : null;
 	}
 }
 
@@ -188,6 +195,12 @@ require_once $plugin_dir . '/includes/class-quote-request.php';
 require_once $plugin_dir . '/includes/class-quote-store.php';
 require_once $plugin_dir . '/includes/class-quote-engine.php';
 require_once $plugin_dir . '/includes/class-quote-controller.php';
+require_once $plugin_dir . '/includes/class-request-hash.php';
+require_once $plugin_dir . '/includes/class-schema-install.php';
+require_once $plugin_dir . '/includes/class-claim-store.php';
+require_once $plugin_dir . '/includes/class-prepare-engine.php';
+require_once $plugin_dir . '/includes/class-prepare-controller.php';
+require_once $plugin_dir . '/includes/class-resolve-controller.php';
 require_once $plugin_dir . '/includes/class-pricing-rules.php';
 require_once $plugin_dir . '/includes/class-plugin.php';
 

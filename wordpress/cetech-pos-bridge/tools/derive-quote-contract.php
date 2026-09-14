@@ -5,7 +5,8 @@
  *
  * The canonical contract `docs/contracts/pos-domain.schema.json` is owned by WS3 and
  * is NOT shipped inside the WordPress plugin. This tool extracts the transitive
- * `$defs` closure reachable from `QuoteRequest` and `Quote` into
+ * `$defs` closure reachable from the enforced roots (QuoteRequest, Quote,
+ * PrepareSaleRequest, PreparedSale, SaleResolution) into
  * `schema/quote-contract.v1.json`, which the plugin loads at runtime.
  *
  * There is exactly one source of contract truth. The artifact is a mechanical
@@ -28,7 +29,13 @@ final class Cetech_Pos_Bridge_Contract_Derivation {
 	 *
 	 * @var array<int,string>
 	 */
-	const ROOTS = array( 'Quote', 'QuoteRequest' );
+	const ROOTS = array(
+		'PrepareSaleRequest',
+		'PreparedSale',
+		'Quote',
+		'QuoteRequest',
+		'SaleResolution',
+	);
 
 	/**
 	 * Keyword vocabulary the shipped PHP validator implements. A canonical schema that

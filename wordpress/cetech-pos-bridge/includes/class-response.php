@@ -10,6 +10,12 @@ final class Cetech_Pos_Bridge_Response {
 		'AUTH_REQUIRED'           => array( 401, false, 'reauthenticate' ),
 		'FORBIDDEN'               => array( 403, false, 'none' ),
 		'NOT_FOUND'               => array( 404, false, 'none' ),
+		'OPERATION_IN_PROGRESS'   => array( 202, true, 'resolve' ),
+		'QUOTE_CHANGED'           => array( 409, false, 'review_quote' ),
+		'QUOTE_EXPIRED'           => array( 409, false, 'review_quote' ),
+		'STOCK_CHANGED'           => array( 409, false, 'review_quote' ),
+		'IDEMPOTENCY_CONFLICT'    => array( 409, false, 'contact_manager' ),
+		'REQUIRES_ATTENTION'      => array( 409, false, 'contact_manager' ),
 		'INTEGRATION_UNAVAILABLE' => array( 503, true, 'resolve' ),
 	);
 

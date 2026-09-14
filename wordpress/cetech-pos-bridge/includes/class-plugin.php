@@ -11,6 +11,12 @@ final class Cetech_Pos_Bridge_Plugin {
 	private $controller;
 	/** @var Cetech_Pos_Bridge_Quote_Controller */
 	private $quote_controller;
+	/** @var Cetech_Pos_Bridge_Prepare_Controller */
+	private $prepare_controller;
+	/** @var Cetech_Pos_Bridge_Resolve_Controller */
+	private $resolve_controller;
+	/** @var Cetech_Pos_Bridge_Prepare_Engine */
+	private $prepare_engine;
 	/** @var array<int,array<string,mixed>> */
 	private $registered_routes = array();
 
@@ -29,12 +35,17 @@ final class Cetech_Pos_Bridge_Plugin {
 		if ( ! $runtime instanceof Cetech_Pos_Bridge_Woo_Runtime ) {
 			$runtime = new Cetech_Pos_Bridge_Woo_Runtime( $environment );
 		}
-		$store                  = new Cetech_Pos_Bridge_Quote_Store();
-		$engine                 = new Cetech_Pos_Bridge_Quote_Engine( $runtime, $store );
-		$this->quote_controller = new Cetech_Pos_Bridge_Quote_Controller( $auth, $correlation, $engine );
+		$store                    = new Cetech_Pos_Bridge_Quote_Store();
+		$quotes                   = new Cetech_Pos_Bridge_Quote_Engine( $runtime, $store );
+		$this->quote_controller   = new Cetech_Pos_Bridge_Quote_Controller( $auth, $correlation, $quotes );
+		$claims                   = new Cetech_Pos_Bridge_Claim_Store();
+		$this->prepare_engine     = new Cetech_Pos_Bridge_Prepare_Engine( $runtime, $quotes, $store, $claims );
+		$this->prepare_controller = new Cetech_Pos_Bridge_Prepare_Controller( $auth, $correlation, $this->prepare_engine );
+		$this->resolve_controller = new Cetech_Pos_Bridge_Resolve_Controller( $auth, $correlation, $this->prepare_engine );
 	}
 
 	public function boot() {
+		Cetech_Pos_Bridge_Schema_Install::maybe_upgrade();
 		if ( function_exists( 'add_action' ) ) {
 			add_action( 'rest_api_init', array( $this, 'register_routes' ) );
 		}
@@ -55,6 +66,16 @@ final class Cetech_Pos_Bridge_Plugin {
 			'callback'            => array( $this->quote_controller, 'handle' ),
 			'permission_callback' => array( $this->quote_controller, 'permission_callback' ),
 		);
+		$prepare_args = array(
+			'methods'             => 'POST',
+			'callback'            => array( $this->prepare_controller, 'handle' ),
+			'permission_callback' => array( $this->prepare_controller, 'permission_callback' ),
+		);
+		$resolve_args = array(
+			'methods'             => 'GET',
+			'callback'            => array( $this->resolve_controller, 'handle' ),
+			'permission_callback' => array( $this->resolve_controller, 'permission_callback' ),
+		);
 		$this->registered_routes[] = array(
 			'namespace' => Cetech_Pos_Bridge_Constants::NAMESPACE,
 			'route'     => Cetech_Pos_Bridge_Constants::HEALTH_ROUTE,
@@ -64,6 +85,16 @@ final class Cetech_Pos_Bridge_Plugin {
 			'namespace' => Cetech_Pos_Bridge_Constants::NAMESPACE,
 			'route'     => Cetech_Pos_Bridge_Constants::QUOTE_ROUTE,
 			'args'      => $quote_args,
+		);
+		$this->registered_routes[] = array(
+			'namespace' => Cetech_Pos_Bridge_Constants::NAMESPACE,
+			'route'     => Cetech_Pos_Bridge_Constants::PREPARE_ROUTE,
+			'args'      => $prepare_args,
+		);
+		$this->registered_routes[] = array(
+			'namespace' => Cetech_Pos_Bridge_Constants::NAMESPACE,
+			'route'     => Cetech_Pos_Bridge_Constants::RESOLVE_ROUTE,
+			'args'      => $resolve_args,
 		);
 		if ( function_exists( 'register_rest_route' ) ) {
 			register_rest_route(
@@ -75,6 +106,16 @@ final class Cetech_Pos_Bridge_Plugin {
 				Cetech_Pos_Bridge_Constants::NAMESPACE,
 				Cetech_Pos_Bridge_Constants::QUOTE_ROUTE,
 				$quote_args
+			);
+			register_rest_route(
+				Cetech_Pos_Bridge_Constants::NAMESPACE,
+				Cetech_Pos_Bridge_Constants::PREPARE_ROUTE,
+				$prepare_args
+			);
+			register_rest_route(
+				Cetech_Pos_Bridge_Constants::NAMESPACE,
+				Cetech_Pos_Bridge_Constants::RESOLVE_ROUTE,
+				$resolve_args
 			);
 		}
 	}
@@ -89,6 +130,18 @@ final class Cetech_Pos_Bridge_Plugin {
 
 	public function get_quote_controller() {
 		return $this->quote_controller;
+	}
+
+	public function get_prepare_controller() {
+		return $this->prepare_controller;
+	}
+
+	public function get_resolve_controller() {
+		return $this->resolve_controller;
+	}
+
+	public function get_prepare_engine() {
+		return $this->prepare_engine;
 	}
 
 	/**

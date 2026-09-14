@@ -22,6 +22,12 @@ PHP_SOURCES := \
 	includes/class-quote-store.php \
 	includes/class-quote-engine.php \
 	includes/class-quote-controller.php \
+	includes/class-request-hash.php \
+	includes/class-schema-install.php \
+	includes/class-claim-store.php \
+	includes/class-prepare-engine.php \
+	includes/class-prepare-controller.php \
+	includes/class-resolve-controller.php \
 	includes/class-pricing-rules.php \
 	includes/class-plugin.php \
 	tools/derive-quote-contract.php
@@ -36,6 +42,7 @@ TEST_SOURCES := \
 	$(TEST_DIR)/test-woo-runtime.php \
 	$(TEST_DIR)/test-pricing-rules.php \
 	$(TEST_DIR)/test-cart-discount.php \
+	$(TEST_DIR)/test-prepare.php \
 	$(TEST_DIR)/parity.php
 
 .PHONY: check test parity

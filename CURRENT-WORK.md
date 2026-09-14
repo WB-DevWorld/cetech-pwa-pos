@@ -1,48 +1,46 @@
 # Current work ledger
 
-Updated 2026-09-14. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail from before PRE-R5 is preserved at `docs/integration/evidence/CURRENT-WORK-HISTORY-2026-09-14-PRE-R5.txt`; the exact scheduler immediately before PRE-R5 finalization is preserved at `docs/integration/evidence/CURRENT-WORK-HISTORY-2026-09-14-PRE-R5-FINALIZATION.txt`.
+Updated 2026-09-14. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
 
 ## Current authority
 
-- `main`: `29cea52acbee2729175df61d2ae1a6658c5c04b1` — PR #45 / ADR-014 merge; protected.
-- R4 / PR #41: APPROVED / MERGED / POST-MERGE VERIFIED; R4 lease released.
-- ADR-012 active; ADR-014 preserves human/workstream ownership across milestone handoffs.
-- Active integration issue: #49 HARDEN-00.
-- Active draft PR: #51 `[PRE-R5] Catalog performance and quote schema hardening`.
-- Integration branch: `batch/pre-r5-hardening`; editor `@wbdevworld` / WS3.
-- R5 / BR-06 / CORE-05: **BLOCKED / NOT STARTED**. A separate explicit R5 activation is required after PRE-R5 acceptance.
-- Issue #4 remains **OPEN**. `pricingParityVerified=false`. Production is untouched.
+- `main`: `da86434cc471703b8309cea77cda88b7845c299b` — PRE-R5 PR #51 merge; protected.
+- ADR-012 and ADR-014 are active; ownership-preserving milestone execution remains required.
+- Issue #4 remains **OPEN**. `pricingParityVerified=false`. Production promotion is not authorized.
+- Explicit implementation reassignments: **NONE**.
 
-## PRE-R5 contributions and provenance
+## Active assignment — R5 idempotent prepare + cash
 
-| Task | Owner | Source SHA(s) | Imported SHA(s) | Status |
+- Integration issue: **#52 R5-00**.
+- Milestone PR: **#53** — `[R5] Idempotent prepare and cash orchestration`.
+- Neutral branch: `batch/r5-idempotent-prepare-cash`.
+- Integration editor: `@wbdevworld` / WS3.
+- Activation baseline: `main` `da86434cc471703b8309cea77cda88b7845c299b`.
+- Milestone state: **REMEDIATED / AWAITING FINAL EXACT-HEAD CI + FRESH_2 + BEN RE-REVIEW**.
+
+### R5 provenance
+
+| Step | Task | Owner | Source / integration | State |
 | --- | --- | --- | --- | --- |
-| #46 HARDEN-01 catalog query/index | `@wbdevworld` / WS3 | impl `1199a344a3d2bf4d24b0322ca29f04ad6711cb63`; head `7f41a29b4e706aafe93d2047b701f1e260488f86` | impl `c689c108bfd4dbe325c08aa137d47cfe66966b2e`; evidence `d927faa18fff3babc236af54e2c696a09c9946c1` | IMPLEMENTED / REVIEWED / IMPORTED |
-| #47 HARDEN-02 BFF quote schema | `@wbdevworld` / WS3 | impl `0034f3dacdc00bb365324df2a3882cb857fbf5f6`; head `4816cfa264d60763207aadae192a6623ff293302` | impl `914a5458a7b6ef5aea11c7e99e5d8b891ec98932`; evidence `93de9dc78abb146696c7d74d96bc159ef3d051bf` | IMPLEMENTED / REVIEWED / IMPORTED |
-| #48 HARDEN-03 bridge quote schema | `@Emmanuel-coder-prog` / WS2 | impl `c06c9e67108d372e25e815a43e05029ba12e6ab5`; evidence `2da3dc4f3e15d8d8da12c9f732296f25f4528bea`; head `b7fd95e6430748a261cb6e4da45f06c3411c91c2` | impl `1628f40a7bdb8bc8df5f40dc07267c68a5ed06bd`; evidence `d589d05f655a7f1e53101a86a764f4b52a5565f8`; final evidence `8647c2d63e0b9f73324292362250b7aa908645fb` | IMPLEMENTED / REVIEWED / IMPORTED |
+| 1 | BR-06 / #18 | `@Emmanuel-coder-prog` / WS2 | accepted source `a0fa00d452c3a672d97c5a3cb253a5ca6f11cf8f`; import merge `30af336925fd29dc43e7315d81919ae2a7bd5bfc` | **ACCEPTED / IMPORTED** |
+| 2 | BR-06 combined handoff | WS3 integration | `BR06_INTEGRATION_SHA=15baab1b47a35902b8a3ddde989df55cc4b25436`; CI `34855313462` SUCCESS | **VERIFIED** |
+| 3 | CORE-05 / #24 initial accepted source | `@wbdevworld` / WS3 | replacement implementation `7226b686982b3da8746526aa8f60744a8b53ab25`; source head `5c5c93f523ac9a5218cc916a8a6b6503cca4df75`; import merge `53b3982772b35886b3ac0fa0d50e374e9e359752` | **SUPERSEDED BY REVIEW REMEDIATION** |
+| 4 | Ben review blocker | `@Ben-001-sys` | `CHANGES_REQUESTED` on R5 head `f0ddc31f1ee1d9cd69768049ec33da839ab8185a`: fresh-key existing-payment path bypassed cash mismatch validation | **REMEDIATED** |
+| 5 | CORE-05 Ben-review fix | `@wbdevworld` / WS3 | source `80414c6396832b9f9ec209cdec6e73ab19cd160a`; source CI `34870285209` SUCCESS; owner handoff FRESH_2 | **ACCEPTED / IMPORTED** |
+| 6 | CORE-05 remediation import | WS3 integration | merge `bc14b1e860a992ba432ff752f3ab15e4ad5c1001`; combined CI `34870882712` SUCCESS | **VERIFIED** |
+| 7 | Final R5 review gate | independent competent human | exact final integration-control head after this ledger commit | **PENDING BEN RE-REVIEW** |
 
-Combined contribution head before ledger finalization: `8647c2d63e0b9f73324292362250b7aa908645fb`.
+The Ben-review remediation validates sale/org/location/economic invariants before the existing-payment shortcut. A fresh idempotency key may reuse prior cash evidence only when the recorded `saleId`, amount and exact `cashReceived` match. Wrong currency, underpayment, and materially different cash received fail closed without a second `cash_sale` ledger effect. Same-key replay/repair remains intact.
 
-## Verification
+Frozen v1.0.0 contracts and ADRs remain unchanged. BR-06 is not reopened.
 
-- #46/#47 combined CI `34796373145`: SUCCESS both required jobs.
-- #46/#47/#48 combined CI `34827412680`: SUCCESS both required jobs, including foundation/contracts, tooling, pgTAP, app lint/typecheck/unit/build and E2E smoke.
-- HARDEN-03 source canonical Make: check PASS; bridge test **445 passed / 0 failed**; parity **138 passed / 0 failed / 19 permission-required-skipped**; derived contract drift check PASS.
-- GitHub CI does not run the bridge Make targets. #48 was imported from the exact tested source blobs, and #46/#47 do not edit the bridge subtree; no separate combined-head Make rerun is claimed.
-- Contracts v1.0.0 unchanged; no PRE-R5 Supabase migration; no pricing formula change; no dependency/lockfile change from #48.
+## Final R5 gate
 
-## Acceptance gate
+Before review/merge:
+1. required CI must pass on the exact final integration-control head;
+2. perform exactly two final ADR-012 freshness observations after that head is frozen;
+3. no Pass 3;
+4. re-request `@Ben-001-sys` on that exact replacement head;
+5. no self-approval or automatic merge.
 
-1. Indexed local catalog query path and >=5,000-item adapter evidence — **SATISFIED**.
-2. Trusted BFF canonical `QuoteRequest` ingress and `Quote` egress runtime validation — **SATISFIED**.
-3. Woo bridge canonical `QuoteRequest` ingress before pricing and `Quote` egress before successful return — **SATISFIED**.
-4. No divergent handwritten second quote contract — **SATISFIED**; bridge artifact is mechanically derived and drift-checked.
-5. Existing pricing semantics / parity regressions unchanged — **SATISFIED for source/component gate**; parity 138/0/19 permission-required-skipped, not a new live R3 parity claim.
-6. Combined required app/control-plane checks — **SATISFIED** on `8647c2d…`; exact-head CI must rerun after this ledger-only finalization.
-7. Source -> imported -> combined provenance — **SATISFIED** and recorded above.
-8. Final ADR-012 Pass 1 + Pass 2 after the exact final tree — **NOT RUN YET**. No Pass 3 permitted.
-9. Independent human review of exact final head — **NOT REQUESTED YET**. Intended reviewer: `@Ben-001-sys`; `@wbdevworld` must not self-approve.
-
-## Safety / next action
-
-This ledger finalization is the last intended branch mutation before final freshness. Wait for exact-head CI to pass. Then perform exactly two independent final freshness observations, record `FRESH_2`/drift classification without changing the branch, mark PR #51 ready, and request `@Ben-001-sys` on that exact head. Do not merge. Do not start R5. Do not close issue #4. No production promotion or destructive live action is authorized.
+R6 / BR-07 / FE-05 / CORE-06 are **NOT STARTED / NOT AUTHORIZED BY THIS R5 SESSION**. BR-07 remains the real commercial finalizer; CORE-05 uses the explicitly permitted mock boundary. Live HPOS/real DB concurrency and production promotion remain later runtime/release evidence and are not claimed here.
