@@ -1,109 +1,48 @@
 # Current work ledger
 
-Updated 2026-09-14. Canonical repo `WB-DevWorld/cetech-pwa-pos`. This file is the current cross-workstream scheduler. Historical scheduler detail from before PRE-R5 hardening is preserved verbatim at [CURRENT-WORK-HISTORY-2026-09-14-PRE-R5](docs/integration/evidence/CURRENT-WORK-HISTORY-2026-09-14-PRE-R5.txt) and in reviewed PR history; historical records do not grant current implementation authority.
+Updated 2026-09-14. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail from before PRE-R5 is preserved at `docs/integration/evidence/CURRENT-WORK-HISTORY-2026-09-14-PRE-R5.txt`; the exact scheduler immediately before PRE-R5 finalization is preserved at `docs/integration/evidence/CURRENT-WORK-HISTORY-2026-09-14-PRE-R5-FINALIZATION.txt`.
 
-## Current authority and completed gates
+## Current authority
 
-- `main`: `29cea52acbee2729175df61d2ae1a6658c5c04b1` — PR #45 / WF-OWN-01 merge.
-- PR #41 / R4: **APPROVED / MERGED / POST-MERGE VERIFIED**. R4 lease **RELEASED**.
-- PR #45 / ADR-014: **APPROVED / MERGED / POST-MERGE VERIFIED**. Ben approved exact head `4a6bb2bdf1ba30aa3353ed4493b9516cefe8ee1b`; merge `29cea52acbee2729175df61d2ae1a6658c5c04b1`; post-merge main CI run `34792504659` succeeded. WF-OWN-01 governance lease **RELEASED**.
-- [ADR-012](docs/decisions/ADR/012.md) remains active and is narrowed by [ADR-014](docs/decisions/ADR/014.md): automatic implementation continues only for the same human/workstream owner. Cross-owner work requires an exact tested-SHA handoff. An unavailable owner is not takeover permission.
-- Explicit implementation reassignments: **NONE**.
-- Issue #4 / CP-04 remains **OPEN**. `pricingParityVerified=false`. Production is untouched. Training safeguards remain in force.
+- `main`: `29cea52acbee2729175df61d2ae1a6658c5c04b1` — PR #45 / ADR-014 merge; protected.
+- R4 / PR #41: APPROVED / MERGED / POST-MERGE VERIFIED; R4 lease released.
+- ADR-012 active; ADR-014 preserves human/workstream ownership across milestone handoffs.
+- Active integration issue: #49 HARDEN-00.
+- Active draft PR: #51 `[PRE-R5] Catalog performance and quote schema hardening`.
+- Integration branch: `batch/pre-r5-hardening`; editor `@wbdevworld` / WS3.
+- R5 / BR-06 / CORE-05: **BLOCKED / NOT STARTED**. A separate explicit R5 activation is required after PRE-R5 acceptance.
+- Issue #4 remains **OPEN**. `pricingParityVerified=false`. Production is untouched.
 
-## Active assignment — PRE-R5 hardening
+## PRE-R5 contributions and provenance
 
-Activation authority: explicit senior/user instruction to proceed after R4 and ADR-014 adoption, recorded 2026-09-14. This assignment clears the review-raised PRE-R5 hardening gates only. It does **not** activate R5 feature work.
-
-- Integration issue: **#49 HARDEN-00** — neutral combined hardening review surface.
-- Draft integration PR: **#51** — `[PRE-R5] Catalog performance and quote schema hardening`.
-- Neutral integration branch: `batch/pre-r5-hardening`.
-- Integration editor: WS3 / `@wbdevworld`.
-- Integration baseline: `main` `29cea52acbee2729175df61d2ae1a6658c5c04b1`.
-- Current accepted WS3 combined code/evidence head before this scheduler-only reconciliation: `93de9dc78abb146696c7d74d96bc159ef3d051bf`.
-- Combined #46 + #47 CI: run `34796373145` **SUCCESS** on `control-plane` and `control-plane-windows`.
-- R5 status: **BLOCKED / NOT STARTED**.
-- R5 may be activated only after #48 is accepted/imported, final combined app/bridge/parity verification passes, final two-pass freshness is complete, independent human review is recorded, this hardening lease is released, and a separate explicit R5 activation/lease is recorded.
-
-### Owner-scoped hardening tasks
-
-| Task | Human / workstream | Contributor branch | Status | Scope / gate |
+| Task | Owner | Source SHA(s) | Imported SHA(s) | Status |
 | --- | --- | --- | --- | --- |
-| #46 HARDEN-01 | `@wbdevworld` / WS3 | `ws3/pre-r5-catalog-query-index` | **IMPLEMENTED / REVIEWED / IMPORTED / COMBINED CI GREEN** | Local catalog query/index performance; real >=5,000-item local-adapter evidence |
-| #47 HARDEN-02 | `@wbdevworld` / WS3 | `ws3/pre-r5-quote-schema-bff` | **IMPLEMENTED / REVIEWED / IMPORTED / COMBINED CI GREEN** | BFF/server `QuoteRequest` + `Quote` runtime JSON Schema enforcement |
-| #48 HARDEN-03 | `@Emmanuel-coder-prog` / WS2 | `ws2/pre-r5-quote-schema-bridge` | **AUTHORIZED / OWNER IMPLEMENTATION PENDING** | Woo bridge `QuoteRequest` + `Quote` runtime JSON Schema enforcement |
-| #49 HARDEN-00 | `@wbdevworld` / WS3 integration | `batch/pre-r5-hardening` | **ACTIVE INTEGRATION LEASE / WAITING #48** | Exact-SHA imports, combined verification, freshness, independent review |
+| #46 HARDEN-01 catalog query/index | `@wbdevworld` / WS3 | impl `1199a344a3d2bf4d24b0322ca29f04ad6711cb63`; head `7f41a29b4e706aafe93d2047b701f1e260488f86` | impl `c689c108bfd4dbe325c08aa137d47cfe66966b2e`; evidence `d927faa18fff3babc236af54e2c696a09c9946c1` | IMPLEMENTED / REVIEWED / IMPORTED |
+| #47 HARDEN-02 BFF quote schema | `@wbdevworld` / WS3 | impl `0034f3dacdc00bb365324df2a3882cb857fbf5f6`; head `4816cfa264d60763207aadae192a6623ff293302` | impl `914a5458a7b6ef5aea11c7e99e5d8b891ec98932`; evidence `93de9dc78abb146696c7d74d96bc159ef3d051bf` | IMPLEMENTED / REVIEWED / IMPORTED |
+| #48 HARDEN-03 bridge quote schema | `@Emmanuel-coder-prog` / WS2 | impl `c06c9e67108d372e25e815a43e05029ba12e6ab5`; evidence `2da3dc4f3e15d8d8da12c9f732296f25f4528bea`; head `b7fd95e6430748a261cb6e4da45f06c3411c91c2` | impl `1628f40a7bdb8bc8df5f40dc07267c68a5ed06bd`; evidence `d589d05f655a7f1e53101a86a764f4b52a5565f8`; final evidence `8647c2d63e0b9f73324292362250b7aa908645fb` | IMPLEMENTED / REVIEWED / IMPORTED |
 
-Task issue bodies remain authoritative for allowed/forbidden paths and acceptance criteria. A combined milestone path list does not transfer implementation ownership.
+Combined contribution head before ledger finalization: `8647c2d63e0b9f73324292362250b7aa908645fb`.
 
-### PRE-R5 integration lease
+## Verification
 
-**Editor:** WS3 / `@wbdevworld`.
+- #46/#47 combined CI `34796373145`: SUCCESS both required jobs.
+- #46/#47/#48 combined CI `34827412680`: SUCCESS both required jobs, including foundation/contracts, tooling, pgTAP, app lint/typecheck/unit/build and E2E smoke.
+- HARDEN-03 source canonical Make: check PASS; bridge test **445 passed / 0 failed**; parity **138 passed / 0 failed / 19 permission-required-skipped**; derived contract drift check PASS.
+- GitHub CI does not run the bridge Make targets. #48 was imported from the exact tested source blobs, and #46/#47 do not edit the bridge subtree; no separate combined-head Make rerun is claimed.
+- Contracts v1.0.0 unchanged; no PRE-R5 Supabase migration; no pricing formula change; no dependency/lockfile change from #48.
 
-**Allowed integration-editor work:**
-- `CURRENT-WORK.md`;
-- `docs/integration/evidence/**` for this hardening batch;
-- bounded shared WS3 status/handoff reconciliation;
-- exact declared contributor commit imports into `batch/pre-r5-hardening`;
-- combined tests, PR metadata, reviewer requests, provenance/evidence;
-- conflict resolution only within WS3-owned integration surfaces.
+## Acceptance gate
 
-**Not authorized by the integration lease:**
-- implementing #48 / WS2 bridge code;
-- editing WS1 feature/UI implementation;
-- BR-06, CORE-05, sale preparation/finalization, payment, stock/order effects or any other R5 feature work;
-- changing frozen v1 contract versions/shapes without separate contract-change authority;
-- asserting `pricingParityVerified=true`;
-- closing issue #4 or claiming CP-04 globally complete;
-- production promotion or destructive live actions.
+1. Indexed local catalog query path and >=5,000-item adapter evidence — **SATISFIED**.
+2. Trusted BFF canonical `QuoteRequest` ingress and `Quote` egress runtime validation — **SATISFIED**.
+3. Woo bridge canonical `QuoteRequest` ingress before pricing and `Quote` egress before successful return — **SATISFIED**.
+4. No divergent handwritten second quote contract — **SATISFIED**; bridge artifact is mechanically derived and drift-checked.
+5. Existing pricing semantics / parity regressions unchanged — **SATISFIED for source/component gate**; parity 138/0/19 permission-required-skipped, not a new live R3 parity claim.
+6. Combined required app/control-plane checks — **SATISFIED** on `8647c2d…`; exact-head CI must rerun after this ledger-only finalization.
+7. Source -> imported -> combined provenance — **SATISFIED** and recorded above.
+8. Final ADR-012 Pass 1 + Pass 2 after the exact final tree — **NOT RUN YET**. No Pass 3 permitted.
+9. Independent human review of exact final head — **NOT REQUESTED YET**. Intended reviewer: `@Ben-001-sys`; `@wbdevworld` must not self-approve.
 
-Review fixes return to the human owner of the affected contribution. Any implementation reassignment must be explicitly authorized by the senior and recorded here before work begins.
+## Safety / next action
 
-### Contributor provenance / handoff table
-
-| Contribution | Declared owner | Actual implementer | Source branch | Tested source SHA(s) | Imported SHA(s) | Tested combined SHA | Receiving owner / next action |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| #46 catalog performance | WS3 / `@wbdevworld` | `@wbdevworld` / WS3 | `ws3/pre-r5-catalog-query-index` | impl `1199a344a3d2bf4d24b0322ca29f04ad6711cb63`; head `7f41a29b4e706aafe93d2047b701f1e260488f86` | impl `c689c108bfd4dbe325c08aa137d47cfe66966b2e`; evidence `d927faa18fff3babc236af54e2c696a09c9946c1` | `93de9dc78abb146696c7d74d96bc159ef3d051bf`; CI `34796373145` green | Accepted in WS3 integration; retain for final batch review |
-| #47 BFF schema validation | WS3 / `@wbdevworld` | `@wbdevworld` / WS3 | `ws3/pre-r5-quote-schema-bff` | impl `0034f3dacdc00bb365324df2a3882cb857fbf5f6`; head `4816cfa264d60763207aadae192a6623ff293302` | impl `914a5458a7b6ef5aea11c7e99e5d8b891ec98932`; evidence `93de9dc78abb146696c7d74d96bc159ef3d051bf` | `93de9dc78abb146696c7d74d96bc159ef3d051bf`; CI `34796373145` green | Accepted in WS3 integration; retain for final batch review |
-| #48 bridge schema validation | WS2 / `@Emmanuel-coder-prog` | UNVERIFIED | `ws2/pre-r5-quote-schema-bridge` | UNVERIFIED | UNVERIFIED | UNVERIFIED | Emmanuel / WS2 implements and publishes tested source SHA; WS3 then reviews/imports |
-
-Unknown #48 provenance remains **UNVERIFIED** and blocks hardening acceptance.
-
-### Hardening acceptance gate
-
-The PRE-R5 gate is satisfied only when all of the following are evidenced on the final combined tree:
-
-1. Catalog search/scan no longer reloads every IndexedDB catalog row and reconstructs the full projection engine for each query; real local-adapter before/after evidence exists on a >=5,000-item synthetic catalog and R4 barcode/variation/tombstone/cursor correctness remains green. **SATISFIED on #46 source and combined #46+#47 tree.**
-2. The trusted Next.js BFF validates the canonical existing v1 `QuoteRequest` before bridge execution and validates the canonical existing v1 `Quote` before trusting/returning a bridge result. **SATISFIED on #47 source and combined #46+#47 tree.**
-3. The Woo bridge validates canonical existing v1 `QuoteRequest` ingress before pricing execution and validates canonical existing v1 `Quote` egress before a successful response leaves the plugin. **PENDING #48.**
-4. Generated TypeScript/PHP shapes do not substitute for runtime JSON Schema enforcement; no divergent handwritten second contract is introduced. **BFF side satisfied; bridge side pending #48.**
-5. Existing R4 retail/B2B/WoodMart/B2BKing quote behavior remains semantically unchanged and parity regressions remain green. **Final bridge/parity confirmation pending #48.**
-6. Required component and combined checks pass; `git diff --check` is clean. **#46/#47 contributor checks and combined PR CI green; final post-#48 combined checks pending.**
-7. Contributor source SHA → imported SHA → combined SHA provenance is recorded. **#46/#47 recorded; #48 pending.**
-8. Final ADR-012 freshness runs exactly Pass 1 and Pass 2 after #48 final combined tree, then stops. **NOT RUN YET.**
-9. A different competent human independently reviews the exact final combined hardening head. **NOT REQUESTED YET.**
-
-## Next milestone — R5 remains gated
-
-Planned neutral R5 branch after hardening acceptance and a separate activation record: `batch/r5-idempotent-prepare-cash`.
-
-Planned ownership after activation:
-
-1. **BR-06 / issue #18 — Emmanuel / WS2.** Implement on the WS2 contributor branch, publish tested source SHA(s), then hand off.
-2. **WS3 integration.** Import only Emmanuel's declared tested BR-06 commit(s), run combined verification, and publish `BR06_INTEGRATION_SHA`.
-3. **CORE-05 / issue #24 — `@wbdevworld` / WS3.** Implement on a WS3 contributor branch against that exact provisional integration SHA.
-4. Import/test CORE-05 into the same neutral R5 milestone branch, complete two-pass freshness, then independent human review.
-
-No intermediate merge to `main` is required between BR-06 and CORE-05. WS3 must not implement BR-06 merely because it owns the R5 integration PR.
-
-## Required review and safety rules
-
-- Main remains protected; required checks remain `control-plane` and `control-plane-windows`.
-- Senior-authored changes require another competent human reviewer. No self-approval.
-- No production promotion, payment execution, real sale/order/stock mutation, or destructive environment action is authorized by this scheduler.
-- Training Woo remains the development/integration reference under [ADR-011](docs/decisions/ADR/011.md); unavailable production facts remain cutover/release deltas unless a task specifically requires them.
-- PWA/local-data recovery protections remain mandatory; do not clear critical IndexedDB stores to solve hardening problems.
-
-## Historical scheduler
-
-The full scheduler state immediately before this PRE-R5 activation is preserved verbatim at [CURRENT-WORK-HISTORY-2026-09-14-PRE-R5](docs/integration/evidence/CURRENT-WORK-HISTORY-2026-09-14-PRE-R5.txt). R1–R4 milestone details, prior leases, metrics and freshness chronology remain authoritative as historical evidence there and in their reviewed PR/evidence records, but they do not grant current implementation scope.
+This ledger finalization is the last intended branch mutation before final freshness. Wait for exact-head CI to pass. Then perform exactly two independent final freshness observations, record `FRESH_2`/drift classification without changing the branch, mark PR #51 ready, and request `@Ben-001-sys` on that exact head. Do not merge. Do not start R5. Do not close issue #4. No production promotion or destructive live action is authorized.
