@@ -305,9 +305,67 @@
   box-shadow: var(--shadow-md);
 }
 
-.sell-dialog h2 {
-  margin: 0 0 8px;
-  font-size: var(--font-lg);
+.sell-dialog.large,
+.sell-dialog:has(.receipt-paper) {
+  max-width: 560px;
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+}
+
+.checkout-dialog {
+  display: grid;
+  gap: 12px;
+}
+
+.checkout-dialog .big-money {
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.payment-stage {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.payment-stage.finalizing {
+  border-color: var(--color-warning);
+}
+
+.receipt-paper {
+  font-size: var(--font-sm);
+  padding: 14px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 6px;
+}
+
+.receipt-paper h3,
+.receipt-paper .center {
+  text-align: center;
+  margin: 0;
+}
+
+.receipt-paper .r-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.receipt-paper .r-total {
+  font-weight: 700;
+  font-size: var(--font-md);
+}
+
+.row.wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .sell-dialog::backdrop {

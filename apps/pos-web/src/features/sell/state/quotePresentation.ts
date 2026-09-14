@@ -62,15 +62,21 @@ export type QuoteStatusView = {
 };
 
 export type PayButtonView = {
-  readonly disabled: true;
+  readonly disabled: boolean;
   readonly reason: string;
   readonly eligibilityAllowed: boolean;
   readonly eligibilityReason?: CheckoutEligibilityReasonView;
 };
 
+export type PayButtonOptions = {
+  readonly checkoutReady?: boolean;
+  readonly inFlight?: boolean;
+};
+
 export const INTEGRATION_UNAVAILABLE: FailedQuoteCodeView = "INTEGRATION_UNAVAILABLE";
 
 const LIVE_PAYMENT_BLOCKED_REASON = "Review confirmed prices. Payment is not available on this screen.";
+const CHECKOUT_IN_PROGRESS_REASON = "Checkout is in progress.";
 
 export function isCheckoutEligibilityReason(value: string): value is CheckoutEligibilityReasonView {
   return (CHECKOUT_ELIGIBILITY_REASONS as readonly string[]).includes(value);
@@ -141,10 +147,13 @@ export function describeQuoteDisplay(quote: QuoteDisplayState): QuoteStatusView 
 }
 
 /**
- * Eligibility is rendered, not decided here. Live Sell never starts payment.
- * `allowed: true` is display evidence only and still keeps Pay disabled.
+ * Eligibility is rendered, not decided here. Pay stays disabled unless an
+ * authoritative eligible quote and injected checkout runtime are both present.
  */
-export function describePayButton(eligibility: CheckoutEligibilityView | undefined): PayButtonView {
+export function describePayButton(
+  eligibility: CheckoutEligibilityView | undefined,
+  options?: PayButtonOptions,
+): PayButtonView {
   if (!eligibility) {
     return {
       disabled: true,
@@ -160,9 +169,23 @@ export function describePayButton(eligibility: CheckoutEligibilityView | undefin
       eligibilityReason: eligibility.reason,
     };
   }
+  if (!options?.checkoutReady) {
+    return {
+      disabled: true,
+      reason: LIVE_PAYMENT_BLOCKED_REASON,
+      eligibilityAllowed: true,
+    };
+  }
+  if (options.inFlight) {
+    return {
+      disabled: true,
+      reason: CHECKOUT_IN_PROGRESS_REASON,
+      eligibilityAllowed: true,
+    };
+  }
   return {
-    disabled: true,
-    reason: LIVE_PAYMENT_BLOCKED_REASON,
+    disabled: false,
+    reason: "",
     eligibilityAllowed: true,
   };
 }
