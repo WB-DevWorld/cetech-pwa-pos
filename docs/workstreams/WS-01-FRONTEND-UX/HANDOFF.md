@@ -1,3 +1,61 @@
+# WS1 current handoff — FE-05 cash checkout and receipt UX (TASK_COMPLETION FRESH_2)
+
+Kind / UTC: TASK_COMPLETION / 2026-09-14T19:10:20Z
+Task / batch / workstream: FE-05 / issue #10 / R6 / WS1
+Owner / integration editor / requested human reviewer: Ben / @Ben-001-sys owns WS1; WS3 independently reviews/imports into PR #55. Do not self-approve. Do not merge.
+Branch: `ws1/fe-05-integrate-cash-checkout-and-receipt-ux`
+Starting/base SHA: `bc606a690f0c167b7057e3ae9143337404275882`
+Pre-handoff implementation SHA: `f6607cda70176b51be0dc8b8a6e40ae0f64d9e24`
+Commit(s) / contributor source SHAs: `f6607cda70176b51be0dc8b8a6e40ae0f64d9e24`
+Allowed / forbidden paths and central leases: `apps/pos-web/src/features/**`; `apps/pos-web/src/ui/**`; `tests/frontend/**`; this workstream STATUS/HANDOFF. No `src/app`, core/server/local/config, contracts, CURRENT-WORK, R6 batch branch, BR-07, or CORE-06.
+Files changed: Sell checkout controller/dialog/receipt presentation, Pay eligibility, FE-05 tests, regenerated Sell visual evidence CSS, WS1 STATUS/HANDOFF.
+Contracts changed: none. Frozen v1.0.0 consumed (`CheckoutUseCases`, `PaymentPort.confirmCash`/`resolve`, `SalesPort.resolve`, `ReceiptPort`, `PrintPort`).
+Database migrations: none
+Architecture decisions: none authored
+Completed/current/remaining tasks: FE-05 owner contribution complete. CORE-06 remains blocked until FE-05 and BR-07 are accepted/imported/combined-tested. Do not start FE-06/R7/R8.
+Dependencies (accepted / provisional SHA / prep-only / blocked): FE-04 + CORE-05 + BR-06 accepted on main `bc606a6`. BR-07 not consumed. CORE-06 not started.
+Tests executed:
+- `python scripts/verify_control_plane.py` → PASS (exit 0)
+- `pnpm --dir apps/pos-web lint` → exit 0
+- `pnpm --dir apps/pos-web typecheck` → exit 0
+- `pnpm --dir apps/pos-web test` → 50 files, 354 passed, exit 0
+- `pnpm --dir apps/pos-web test:e2e` → 5 passed, exit 0 (`next build` included)
+- `git diff --check` → clean
+Runtime verification and tested combined SHA/environment: frontend spies/fakes only. Live `/sell` still has no checkout ports mounted (`src/app` is WS3). E2E still asserts Pay disabled without CORE-06. Not runtime acceptance.
+Remote effects performed: none (no production; contributor branch push only after this handoff).
+Assumptions / limitations / unresolved risks: privileged `registerId`/`shiftId`/`deviceId` and command identity must be injected by CORE-06; browser does not fabricate them as authority. No `/sales/prepare` BFF in this contribution. `PrintPort` `dialog_opened` is not physical printer success. Change due is shown only from `ReceiptSnapshot.changeDue`.
+Next exact action: WS3 independently reviews/imports the declared FE-05 commits into PR #55. Reassignment: NONE.
+
+Freshness protocol:
+START_FRESHNESS_SNAPSHOT UTC: 2026-09-14T18:35:24Z
+Start main SHA: `bc606a690f0c167b7057e3ae9143337404275882`
+Start batch ref/SHA: `origin/batch/r6-first-real-cash-sale` `5e6d9ebb4900cd6873a95b2f528432f699c0fa76`
+Applicable contracts / ADRs: v1.0.0; ADR-012; ADR-014; issue #10 ACTIVE for Ben/WS1
+
+Pass 1 fetch UTC / success evidence: 2026-09-14T19:09:50Z `git fetch origin --prune` succeeded
+Pass 1 main SHA: `bc606a690f0c167b7057e3ae9143337404275882`
+Pass 1 batch SHA: `5e6d9ebb4900cd6873a95b2f528432f699c0fa76`
+Relevant upstream paths and dependency/authority effects: none
+Classification per change: no arrivals since start snapshot — IRRELEVANT
+Actions taken / reconciliation commits: none
+Tests rerun / tested combined SHA: existing suite on `f6607cda70176b51be0dc8b8a6e40ae0f64d9e24`
+
+Pass 2 fetch UTC / success evidence: 2026-09-14T19:10:20Z `git fetch origin --prune` succeeded
+Pass 2 main SHA: `bc606a690f0c167b7057e3ae9143337404275882`
+Pass 2 batch SHA: `5e6d9ebb4900cd6873a95b2f528432f699c0fa76`
+Relevant upstream paths and dependency/authority effects: none since Pass 1
+Classification per change: no arrivals — IRRELEVANT
+Actions taken / reconciliation commits: none
+Tests rerun / tested combined SHA: `f6607cda70176b51be0dc8b8a6e40ae0f64d9e24`
+
+Final freshness status: FRESH_2
+Delivery status: READY_FOR_INTEGRATION
+Pass 3: NOT PERMITTED for this assignment.
+Review/merge/release status and limitations: not merged; R6 not complete; no production promotion.
+Metrics delta for CURRENT-WORK: not edited (forbidden this assignment).
+
+## Previous current handoff — R4 cross-cart quote isolation (SESSION_COMPLETION FRESH_2)
+
 # WS1 current handoff — R4 cross-cart quote isolation (SESSION_COMPLETION FRESH_2)
 
 Kind / UTC: SESSION_COMPLETION / 2026-09-13T23:17:21Z

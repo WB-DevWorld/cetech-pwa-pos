@@ -1,6 +1,13 @@
 # WS1 current status
 
+Snapshot 2026-09-14. FE-05 / issue #10 cash checkout and receipt UX is implemented on `ws1/fe-05-integrate-cash-checkout-and-receipt-ux`. Pre-handoff implementation SHA `f6607cda70176b51be0dc8b8a6e40ae0f64d9e24`. Pay is actionable only with FE-04 `allowed: true` **and** injected `CheckoutUseCases` / `PaymentPort` / `SalesPort.resolve` / `ReceiptPort` / `PrintPort` / checkout scope. Ambiguous results use resolve; failed print never repeats prepare/cash/finalize. Contracts v1.0.0 consumed, not changed. CORE-06 still owns real BFF/runtime mounting. Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION**. Reassignment NONE. Do not merge; PR #55 is the R6 review surface.
+
+## Previous snapshot (historical; current section above controls)
+
+# WS1 current status
+
 Snapshot 2026-09-13. FE-03 RUNTIME COMPLETE / INTEGRATED_AND_TESTED on PR #41 (isolated SHA `99b61023984f22a8a3c0444e083cce3d0a1fdc5b`). FE-04 QUOTE-STATE INTEGRATION COMPLETE (isolated SHA `910c31cd5037d674caf23d1fcc576b8d8b0462c6`). Quote authority scoped by `(cartId, cartRevision)` across New Sale. Prior Sell init / live `changed` / cursor remediations preserved. Freshness **FRESH_2**. Pay stays disabled. Issues #8 and #9 remain OPEN until #41 review. `pricingParityVerified` false. R4 **AWAITING INDEPENDENT RE-REVIEW** / not merged.
+
 
 ## Previous snapshot (historical; current section above controls)
 
