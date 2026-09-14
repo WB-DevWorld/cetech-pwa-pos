@@ -15,7 +15,7 @@ final class Cetech_Pos_Bridge_Constants {
 	const ORDER_META_TX       = '_cetech_pos_transaction_id';
 	const ORDER_META_HASH     = '_cetech_pos_request_hash';
 	const ORDER_META_SALE     = '_cetech_pos_sale_id';
-	const DB_VERSION          = '1';
+	const DB_VERSION          = '2';
 	const DB_VERSION_OPTION   = 'cetech_pos_bridge_db_version';
 	const CONTRACT            = '1.0.0';
 	const UUID_PATTERN        = '/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/';

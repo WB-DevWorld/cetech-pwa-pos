@@ -81,6 +81,7 @@ class Cetech_Pos_Bridge_Claim_Store {
 				'error_code'      => null,
 				'error_message'   => null,
 				'error_details_json' => null,
+				'woo_create_entered' => isset( $row['woo_create_entered'] ) ? (int) $row['woo_create_entered'] : 0,
 				'created_at'      => $now,
 				'updated_at'      => $now,
 			)
@@ -130,6 +131,7 @@ class Cetech_Pos_Bridge_Claim_Store {
 					'error_message'      => $row['error_message'],
 					'error_details_json' => $row['error_details_json'],
 					'quote_id'           => isset( $row['quote_id'] ) ? $row['quote_id'] : null,
+					'woo_create_entered' => isset( $row['woo_create_entered'] ) ? (int) $row['woo_create_entered'] : 0,
 					'updated_at'         => $row['updated_at'],
 				),
 				array(
@@ -189,6 +191,7 @@ class Cetech_Pos_Bridge_Claim_Store {
 				'request_hash'       => $row['request_hash'],
 				'quote_id'           => isset( $row['quote_id'] ) ? $row['quote_id'] : null,
 				'internal_status'    => self::STATUS_PREPARING,
+				'woo_create_entered' => 0,
 				'created_at'         => $now,
 				'updated_at'         => $now,
 			)

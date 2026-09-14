@@ -83,7 +83,8 @@ final class Cetech_Pos_Bridge_Prepare_Engine {
 		if ( $claim['internal_status'] === Cetech_Pos_Bridge_Claim_Store::STATUS_PREPARED ) {
 			$prepared = $this->decode_prepared( $claim );
 			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $prepared ) ) {
-				return $this->attention( $transaction_id, $claim, 'Stored PreparedSale could not be decoded.' );
+				$this->mark_attention( $claim, 'Stored PreparedSale could not be decoded.' );
+				return $this->resolution( $transaction_id, 'requires_attention', null, null, 'Stored PreparedSale could not be decoded.' );
 			}
 			return $this->resolution(
 				$transaction_id,
@@ -98,7 +99,7 @@ final class Cetech_Pos_Bridge_Prepare_Engine {
 		if ( $claim['internal_status'] === Cetech_Pos_Bridge_Claim_Store::STATUS_TERMINAL_FAILURE ) {
 			return $this->resolution( $transaction_id, 'not_found', null, null, $claim['error_message'] );
 		}
-		$repaired = $this->try_recover_order( $claim );
+		$repaired = $this->try_recover_order( $claim, false );
 		if ( is_array( $repaired ) ) {
 			return $this->resolution(
 				$transaction_id,
@@ -111,10 +112,12 @@ final class Cetech_Pos_Bridge_Prepare_Engine {
 			$message = method_exists( $repaired, 'get_error_message' ) ? $repaired->get_error_message() : 'Prepared sale requires attention.';
 			return $this->resolution( $transaction_id, 'requires_attention', null, null, $message );
 		}
-		$found = $this->runtime->find_orders_by_transaction( $transaction_id );
-		if ( is_array( $found ) && count( $found ) > 1 ) {
-			$this->mark_attention( $claim, 'Multiple Woo orders carry this transaction identity.' );
-			return $this->resolution( $transaction_id, 'requires_attention', null, null, 'Multiple Woo orders carry this transaction identity.' );
+		if ( ! empty( $claim['woo_create_entered'] ) ) {
+			$found = $this->runtime->find_orders_by_transaction( $transaction_id );
+			if ( ! is_array( $found ) || count( $found ) === 0 ) {
+				$this->mark_attention( $claim, 'Woo order create was entered and no matching order could be reconciled.' );
+				return $this->resolution( $transaction_id, 'requires_attention', null, null, 'Woo order create was entered and no matching order could be reconciled.' );
+			}
 		}
 		return $this->resolution( $transaction_id, 'preparing' );
 	}
@@ -137,17 +140,16 @@ final class Cetech_Pos_Bridge_Prepare_Engine {
 			if ( $claim['internal_status'] === Cetech_Pos_Bridge_Claim_Store::STATUS_PREPARED ) {
 				return $this->decode_prepared( $claim );
 			}
-			$recovered = $this->try_recover_order( $claim );
+			$recovered = $this->try_recover_order( $claim, true );
 			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $recovered ) ) {
 				return $recovered;
 			}
 			if ( is_array( $recovered ) ) {
 				return $recovered;
 			}
-			$found = $this->runtime->find_orders_by_transaction( $raw['transactionId'] );
-			if ( is_array( $found ) && count( $found ) > 1 ) {
-				$this->mark_attention( $claim, 'Multiple Woo orders carry this transaction identity.' );
-				return $this->attention_error();
+			if ( ! empty( $claim['woo_create_entered'] ) ) {
+				$this->mark_attention( $claim, 'Woo order create was entered and the order could not be reconciled by transaction and request hash.' );
+				return $this->attention_error( 'Woo order create was entered and the order could not be reconciled by transaction and request hash.' );
 			}
 			return $this->execute_prepare( $raw, $claim, $hash );
 		} finally {
@@ -254,6 +256,8 @@ final class Cetech_Pos_Bridge_Prepare_Engine {
 		if ( ! $this->runtime->available() ) {
 			return $this->unavailable( 'WooCommerce runtime is not available for prepare.' );
 		}
+		$claim['woo_create_entered'] = 1;
+		$this->claims->save( $claim );
 		$order = $this->runtime->create_prepared_order( $fresh, $raw['transactionId'], $hash );
 		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $order ) ) {
 			if ( is_object( $order ) && method_exists( $order, 'get_error_code' ) && $order->get_error_code() === 'STOCK_CHANGED' ) {
@@ -270,6 +274,10 @@ final class Cetech_Pos_Bridge_Prepare_Engine {
 	}
 
 	private function persist_prepared( array $claim, array $raw, array $quote, array $order ) {
+		if ( empty( $order['reservationProven'] ) || ! isset( $order['stockCommitment'] ) || ( $order['stockCommitment'] !== 'reserved' && $order['stockCommitment'] !== 'reduced' ) ) {
+			$this->mark_attention( $claim, 'Woo order outcome did not prove a stock commitment.' );
+			return $this->unavailable( 'PreparedSale was not returned because stock commitment was not proven.' );
+		}
 		$now      = gmdate( 'Y-m-d\TH:i:s\Z' );
 		$ttl      = isset( $order['holdSeconds'] ) ? (int) $order['holdSeconds'] : 0;
 		$prepared = array(
@@ -300,19 +308,45 @@ final class Cetech_Pos_Bridge_Prepare_Engine {
 		return $prepared;
 	}
 
-	private function try_recover_order( array $claim ) {
+	private function try_recover_order( array $claim, $may_complete_reservation = false ) {
 		$found = $this->runtime->find_orders_by_transaction( $claim['transaction_id'] );
 		if ( ! is_array( $found ) ) {
 			return null;
 		}
-		if ( count( $found ) > 1 ) {
-			$this->mark_attention( $claim, 'Multiple Woo orders carry this transaction identity.' );
-			return $this->attention_error();
+		$matched = array();
+		foreach ( $found as $candidate ) {
+			$hash = isset( $candidate['requestHash'] ) ? (string) $candidate['requestHash'] : '';
+			if ( $hash !== '' && $hash === (string) $claim['request_hash'] ) {
+				$matched[] = $candidate;
+			}
 		}
-		if ( count( $found ) !== 1 ) {
+		if ( count( $found ) > 0 && count( $matched ) === 0 ) {
+			$this->mark_attention( $claim, 'Woo order recovery identity did not match the claimed request hash.' );
+			return $this->attention_error( 'Woo order recovery identity did not match the claimed request hash.' );
+		}
+		if ( count( $matched ) > 1 ) {
+			$this->mark_attention( $claim, 'Multiple Woo orders carry this transaction identity.' );
+			return $this->attention_error( 'Multiple Woo orders carry this transaction identity.' );
+		}
+		if ( count( $matched ) !== 1 ) {
 			return null;
 		}
-		$order = $found[0];
+		$order = $matched[0];
+		if ( empty( $order['reservationProven'] ) || ! isset( $order['stockCommitment'] ) ) {
+			if ( ! $may_complete_reservation ) {
+				return null;
+			}
+			$completed = $this->runtime->complete_stock_reservation( $order );
+			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $completed ) ) {
+				$this->mark_attention( $claim, 'Existing Woo order reservation could not be completed.' );
+				return $this->attention_error( 'Existing Woo order reservation could not be completed.' );
+			}
+			$order = $completed;
+		}
+		if ( empty( $order['reservationProven'] ) || ! isset( $order['stockCommitment'] ) || ( $order['stockCommitment'] !== 'reserved' && $order['stockCommitment'] !== 'reduced' ) ) {
+			$this->mark_attention( $claim, 'Recovered Woo order did not prove a stock commitment.' );
+			return $this->attention_error( 'Recovered Woo order did not prove a stock commitment.' );
+		}
 		$quote = $this->quote_store->get( isset( $claim['quote_id'] ) ? $claim['quote_id'] : '' );
 		if ( ! is_array( $quote ) ) {
 			$this->mark_attention( $claim, 'Woo order exists but the quote snapshot is missing.' );

@@ -35,6 +35,8 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 	public $during_reserve = null;
 	/** @var string|null force an invalid PreparedSale stockCommitment */
 	public $force_commitment = null;
+	/** @var int */
+	public $create_calls = 0;
 
 	public function available() {
 		return (bool) $this->environment->wc_available();
@@ -254,25 +256,165 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 			$this->during_create = null;
 			$cb( $this );
 		}
+		++$this->create_calls;
 		$order_id = (string) $this->next_order_id;
 		++$this->next_order_id;
 		$sale_id  = 'sale-' . $order_id;
-		$order    = array(
+		$this->orders[] = array(
+			'id'             => $order_id,
+			'pos'            => true,
+			'transaction_id' => null,
+			'request_hash'   => null,
+			'sale_id'        => $sale_id,
+			'status'         => 'pending',
+			'reserved'       => false,
+			'quote_lines'    => $quote['lines'],
+		);
+		$this->fire_seam( $this->after_wc_create );
+		$this->attach_recovery_meta( $order_id, $transaction_id, $request_hash );
+		$this->fire_seam( $this->after_meta_save );
+		$reserved = $this->reserve_order_stock( $order_id );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $reserved ) ) {
+			return $reserved;
+		}
+		++$this->side_effects['orders'];
+		++$this->side_effects['stock'];
+		$commitment = $this->force_commitment !== null ? $this->force_commitment : 'reserved';
+		$proven     = ( $commitment === 'reserved' || $commitment === 'reduced' );
+		return array(
+			'orderId'           => $order_id,
+			'saleId'            => $sale_id,
+			'orderReference'    => $order_id,
+			'requestHash'       => (string) $request_hash,
+			'reservationProven' => $proven,
+			'stockCommitment'   => $commitment,
+			'holdSeconds'       => $hold,
+		);
+	}
+
+	public function find_orders_by_transaction( $transaction_id ) {
+		$out  = array();
+		$hold = $this->hold_stock_seconds();
+		foreach ( $this->orders as $order ) {
+			if ( empty( $order['pos'] ) || $order['transaction_id'] === null || (string) $order['transaction_id'] !== (string) $transaction_id ) {
+				continue;
+			}
+			$proven = ! empty( $order['reserved'] );
+			$row    = array(
+				'orderId'           => (string) $order['id'],
+				'saleId'            => (string) $order['sale_id'],
+				'orderReference'    => (string) $order['id'],
+				'requestHash'       => isset( $order['request_hash'] ) ? (string) $order['request_hash'] : '',
+				'reservationProven' => $proven,
+				'holdSeconds'       => $hold,
+			);
+			if ( $proven ) {
+				$row['stockCommitment'] = 'reserved';
+			}
+			$out[] = $row;
+		}
+		return $out;
+	}
+
+	public function complete_stock_reservation( array $found ) {
+		if ( ! empty( $found['reservationProven'] ) && isset( $found['stockCommitment'] ) ) {
+			return $found;
+		}
+		$reserved = $this->reserve_order_stock( $found['orderId'] );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $reserved ) ) {
+			return Cetech_Pos_Bridge_Response::wp_error(
+				'REQUIRES_ATTENTION',
+				'Existing Woo order reservation could not be completed.',
+				false,
+				'contact_manager',
+				409
+			);
+		}
+		++$this->side_effects['stock'];
+		$hold = $this->hold_stock_seconds();
+		return array(
+			'orderId'           => (string) $found['orderId'],
+			'saleId'            => (string) $found['saleId'],
+			'orderReference'    => (string) $found['orderReference'],
+			'requestHash'       => isset( $found['requestHash'] ) ? (string) $found['requestHash'] : '',
+			'reservationProven' => true,
+			'stockCommitment'   => 'reserved',
+			'holdSeconds'       => $hold,
+		);
+	}
+
+	public function inject_duplicate_transaction_order( $transaction_id ) {
+		$order_id = (string) $this->next_order_id;
+		++$this->next_order_id;
+		$this->orders[] = array(
+			'id'             => $order_id,
+			'pos'            => true,
+			'transaction_id' => (string) $transaction_id,
+			'request_hash'   => 'dup',
+			'sale_id'        => 'sale-' . $order_id,
+			'status'         => 'pending',
+			'reserved'       => true,
+		);
+	}
+
+	public function inject_pos_order( $transaction_id, $request_hash, $reserved = true ) {
+		$order_id = (string) $this->next_order_id;
+		++$this->next_order_id;
+		$this->orders[] = array(
 			'id'             => $order_id,
 			'pos'            => true,
 			'transaction_id' => (string) $transaction_id,
 			'request_hash'   => (string) $request_hash,
-			'sale_id'        => $sale_id,
+			'sale_id'        => 'sale-' . $order_id,
 			'status'         => 'pending',
-			'reserved'       => false,
+			'reserved'       => (bool) $reserved,
+			'quote_lines'    => array(
+				array(
+					'productId' => '101',
+					'quantity'  => '1',
+				),
+			),
 		);
-		$this->orders[] = $order;
+	}
+
+	private function attach_recovery_meta( $order_id, $transaction_id, $request_hash ) {
+		foreach ( $this->orders as $index => $order ) {
+			if ( (string) $order['id'] === (string) $order_id ) {
+				$this->orders[ $index ]['transaction_id'] = (string) $transaction_id;
+				$this->orders[ $index ]['request_hash']   = (string) $request_hash;
+				return;
+			}
+		}
+	}
+
+	private function reserve_order_stock( $order_id ) {
+		$target = null;
+		foreach ( $this->orders as $order ) {
+			if ( (string) $order['id'] === (string) $order_id ) {
+				$target = $order;
+				break;
+			}
+		}
+		if ( $target === null ) {
+			return Cetech_Pos_Bridge_Response::wp_error(
+				'STOCK_CHANGED',
+				'Quoted stock is no longer available.',
+				false,
+				'review_quote',
+				409,
+				array( 'field' => 'lines' )
+			);
+		}
+		if ( ! empty( $target['reserved'] ) ) {
+			return true;
+		}
 		if ( is_callable( $this->during_reserve ) ) {
 			$cb = $this->during_reserve;
 			$this->during_reserve = null;
 			$cb( $this );
 		}
-		foreach ( $quote['lines'] as $line ) {
+		$lines = isset( $target['quote_lines'] ) && is_array( $target['quote_lines'] ) ? $target['quote_lines'] : array();
+		foreach ( $lines as $line ) {
 			$pid = isset( $line['variationId'] ) ? (string) $line['variationId'] : (string) $line['productId'];
 			$qty = (int) $line['quantity'];
 			if ( $qty < 1 ) {
@@ -298,48 +440,7 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 			$this->reservations[ $order_id ][ $key ] = $qty;
 		}
 		$this->mark_reserved( $order_id );
-		++$this->side_effects['orders'];
-		++$this->side_effects['stock'];
-		$commitment = $this->force_commitment !== null ? $this->force_commitment : 'reserved';
-		return array(
-			'orderId'         => $order_id,
-			'saleId'          => $sale_id,
-			'orderReference'  => $order_id,
-			'stockCommitment' => $commitment,
-			'holdSeconds'     => $hold,
-		);
-	}
-
-	public function find_orders_by_transaction( $transaction_id ) {
-		$out  = array();
-		$hold = $this->hold_stock_seconds();
-		foreach ( $this->orders as $order ) {
-			if ( empty( $order['pos'] ) || (string) $order['transaction_id'] !== (string) $transaction_id ) {
-				continue;
-			}
-			$out[] = array(
-				'orderId'         => (string) $order['id'],
-				'saleId'          => (string) $order['sale_id'],
-				'orderReference'  => (string) $order['id'],
-				'stockCommitment' => ! empty( $order['reserved'] ) ? 'reserved' : 'reserved',
-				'holdSeconds'     => $hold,
-			);
-		}
-		return $out;
-	}
-
-	public function inject_duplicate_transaction_order( $transaction_id ) {
-		$order_id = (string) $this->next_order_id;
-		++$this->next_order_id;
-		$this->orders[] = array(
-			'id'             => $order_id,
-			'pos'            => true,
-			'transaction_id' => (string) $transaction_id,
-			'request_hash'   => 'dup',
-			'sale_id'        => 'sale-' . $order_id,
-			'status'         => 'pending',
-			'reserved'       => true,
-		);
+		return true;
 	}
 
 	private function mark_reserved( $order_id ) {
