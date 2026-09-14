@@ -1,5 +1,11 @@
 # WS1 current status
 
+Snapshot 2026-09-14. FE-05 / issue #10 HIGH prepared-sale abandonment blocker remediated. Replacement implementation SHA `57574fe5e8b4aceaf94773aea9bc04ee801d0980` supersedes `f6607cda70176b51be0dc8b8a6e40ae0f64d9e24` / prior FRESH_2 `cd2c9c1`. Prepared `cash` / `cash_failed` cannot dismiss to an editable cart; New Sale stays blocked while a prepared transaction is outstanding; cash retry reuses the same idempotency identity; `payment_pending` resolves the existing tender instead of a second `confirmCash`. Contracts v1.0.0 unchanged. CORE-06 not started. Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION**. Reassignment NONE. Do not merge; PR #55 is the R6 review surface.
+
+## Previous snapshot (historical; current section above controls)
+
+# WS1 current status
+
 Snapshot 2026-09-14. FE-05 / issue #10 cash checkout and receipt UX is implemented on `ws1/fe-05-integrate-cash-checkout-and-receipt-ux`. Pre-handoff implementation SHA `f6607cda70176b51be0dc8b8a6e40ae0f64d9e24`. Pay is actionable only with FE-04 `allowed: true` **and** injected `CheckoutUseCases` / `PaymentPort` / `SalesPort.resolve` / `ReceiptPort` / `PrintPort` / checkout scope. Ambiguous results use resolve; failed print never repeats prepare/cash/finalize. Contracts v1.0.0 consumed, not changed. CORE-06 still owns real BFF/runtime mounting. Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION**. Reassignment NONE. Do not merge; PR #55 is the R6 review surface.
 
 ## Previous snapshot (historical; current section above controls)

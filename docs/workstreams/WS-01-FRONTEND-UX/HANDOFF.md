@@ -1,3 +1,57 @@
+# WS1 current handoff — FE-05 prepared-sale lock remediation (TASK_COMPLETION FRESH_2)
+
+Kind / UTC: TASK_COMPLETION / 2026-09-14T19:30:17Z
+Task / batch / workstream: FE-05 / issue #10 / R6 / WS1 HIGH safety remediation
+Owner / integration editor / requested human reviewer: Ben / @Ben-001-sys owns WS1; WS3 independently reviews/imports into PR #55. Do not self-approve. Do not merge.
+Branch: `ws1/fe-05-integrate-cash-checkout-and-receipt-ux`
+Starting/base SHA: `bc606a690f0c167b7057e3ae9143337404275882`
+Prior published head (superseded): `cd2c9c166a2d41324eac2a2c54fffafa2c8c984f`
+Prior implementation under review (superseded): `f6607cda70176b51be0dc8b8a6e40ae0f64d9e24`
+Remediation source SHA: `57574fe5e8b4aceaf94773aea9bc04ee801d0980`
+Commit(s) / contributor source SHAs: `f6607cda70176b51be0dc8b8a6e40ae0f64d9e24`, `57574fe5e8b4aceaf94773aea9bc04ee801d0980`
+Allowed / forbidden paths: `apps/pos-web/src/features/**`; `tests/frontend/**`; WS1 STATUS/HANDOFF. No `src/app`, contracts, CURRENT-WORK, R6 batch branch, BR-07, or CORE-06.
+Files changed this remediation: `checkoutSession.ts`, `cashCheckoutController.ts`, `CheckoutDialog.tsx`, and FE-05 tests.
+Contracts changed: none. v1.0.0 consumed.
+Database migrations: none
+Architecture decisions: none authored
+Completed/current/remaining: FE-05 HIGH blocker remediated. CORE-06 still required for real mount. Do not start FE-06.
+Dependencies: FE-04 + CORE-05 + BR-06 on main `bc606a6`. BR-07 not consumed.
+Tests executed:
+- `python3 scripts/verify_control_plane.py` → PASS, exit 0
+- `pnpm --dir apps/pos-web lint` → exit 0
+- `pnpm --dir apps/pos-web typecheck` → exit 0
+- `pnpm --dir apps/pos-web test` → 50 files, 363 passed, exit 0
+- `pnpm --dir apps/pos-web test:e2e` → 5 passed, exit 0
+- `git diff --check` → clean
+Runtime: frontend spies/fakes only. Live Pay remains disabled until CORE-06 mounts ports. Not runtime acceptance.
+Remote effects: contributor branch push only after this handoff. No production.
+Assumptions / `payment_pending`: frozen `SALE-STATE-MACHINE.json` treats `payment_pending` as tender already initiated. FE-05 now routes that status to `PaymentPort.resolve` and will not call `confirmCash` again while the payment is pending/wait/resolve/present_payment. Definitive `failed`/`cancelled` PaymentState still allows cash retry on the **same** cash idempotency key. `present_payment` is treated conservatively as “do not confirm cash again” (electronic presentment is out of FE-05 cash scope). Browser-side cancellation is not implemented.
+Next exact action: WS3 independently reviews/imports the replacement FE-05 commits into PR #55. Reassignment: NONE.
+
+Freshness protocol:
+START_FRESHNESS_SNAPSHOT UTC: 2026-09-14T19:23:00Z (remediation session; worktree `cd2c9c1` matching origin)
+Start main SHA: `bc606a690f0c167b7057e3ae9143337404275882`
+Start batch SHA: `5e6d9ebb4900cd6873a95b2f528432f699c0fa76`
+
+Pass 1 fetch UTC: 2026-09-14T19:30:04Z `git fetch origin --prune` succeeded
+Pass 1 main SHA: `bc606a690f0c167b7057e3ae9143337404275882`
+Pass 1 batch SHA: `5e6d9ebb4900cd6873a95b2f528432f699c0fa76`
+Classification: no arrivals — IRRELEVANT
+Actions / tests: none; suite already green on `57574fe5e8b4aceaf94773aea9bc04ee801d0980`
+
+Pass 2 fetch UTC: 2026-09-14T19:30:17Z `git fetch origin --prune` succeeded
+Pass 2 main SHA: `bc606a690f0c167b7057e3ae9143337404275882`
+Pass 2 batch SHA: `5e6d9ebb4900cd6873a95b2f528432f699c0fa76`
+Classification: no arrivals since Pass 1 — IRRELEVANT
+Actions / tests: none
+
+Final freshness status: FRESH_2
+Delivery status: READY_FOR_INTEGRATION
+Pass 3: NOT PERMITTED
+Review/merge/release: not merged; R6 not complete; no production promotion.
+
+## Previous current handoff — FE-05 cash checkout and receipt UX (TASK_COMPLETION FRESH_2)
+
 # WS1 current handoff — FE-05 cash checkout and receipt UX (TASK_COMPLETION FRESH_2)
 
 Kind / UTC: TASK_COMPLETION / 2026-09-14T19:10:20Z
