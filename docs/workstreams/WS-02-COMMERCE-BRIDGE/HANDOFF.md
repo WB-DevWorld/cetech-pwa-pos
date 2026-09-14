@@ -1,3 +1,66 @@
+# WS2 current handoff — HARDEN-03 / #48 canonical GNU Make verification (TASK_COMPLETION)
+
+Kind / UTC: TASK_COMPLETION / 2026-09-14T08:48:00Z (canonical Make closed; this continuation's two-pass freshness is executed after this evidence commit and is not Pass 3 of the prior FRESH_2)
+Task / batch / workstream: HARDEN-03 / issue #48 — finish canonical verification, publish contributor SHAs; PRE-R5 hardening; WS2
+Owner / actual implementer: @Emmanuel-coder-prog / @Emmanuel-coder-prog
+Integration destination / requested human reviewer: WS3 import into `batch/pre-r5-hardening` (draft PR #51) / independent reviewer requested by WS3, not from this contributor handoff
+Branch: `ws2/pre-r5-quote-schema-bridge`
+Starting/base SHA: `origin/main` `29cea52acbee2729175df61d2ae1a6658c5c04b1`
+Implementation SHA: `c06c9e67108d372e25e815a43e05029ba12e6ab5` (unchanged; not amended)
+Initial evidence SHA: `2da3dc4f3e15d8d8da12c9f732296f25f4528bea` (unchanged; not amended)
+Final source/evidence SHA: this canonical-Make evidence commit on the same branch (not self-referential)
+Contracts changed: **NONE**
+ADR changes: **NONE**
+Dependency changes: **NONE** — no composer/npm/lockfile change; no Docker binary, image, or toolchain file committed
+Pricing semantics changed: **NONE**
+`pricingParityVerified`: **false**
+Issue #4: OPEN. BR-06: not started. CORE-05: not implemented. R5: not activated. PRE-R5: not complete.
+
+## Canonical GNU Make verification (this continuation)
+
+The original Windows workstation lacked GNU Make. Direct-recipe `php` verification recorded on `2da3dc4…` remains true supplemental evidence and is not erased. Canonical certification is this Docker run of the **actual repository Make targets**, not a re-implementation of those recipes.
+
+- Docker image: `php:8.5-cli` (pulled `library/php:8.5-cli`, digest `sha256:9ebdf4c28ab12c02085e171c31e22ac5f7bbb6a9f6927e3bc3dfe7ee23df51e0`)
+- Container: ephemeral `--rm` Linux; GNU Make installed in-container via `apt-get`; nothing from that filesystem was copied into the repository
+- PHP: **8.5.10** (cli) (built: Aug 31 2026 19:13:21) (NTS) Zend Engine v4.5.10
+- GNU Make: **4.4.1** (`make is already the newest version (4.4.1-2)` on the image)
+- Command executed from the repository root:
+
+```text
+docker run --rm -v <repo>:/workspace -w /workspace php:8.5-cli bash -lc
+  apt-get update && apt-get install -y --no-install-recommends make
+  make -C wordpress/cetech-pos-bridge check
+  make -C wordpress/cetech-pos-bridge test
+  make -C wordpress/cetech-pos-bridge parity
+```
+
+- `make -C wordpress/cetech-pos-bridge check` → **PASS**, exit 0. 30 files, no syntax errors (plugin sources including `class-schema.php` and `tools/derive-quote-contract.php`, plus the HARDEN-03 test file).
+- `make -C wordpress/cetech-pos-bridge test` → **PASS**, **445 passed, 0 failed**, exit 0. Matches the supplemental direct-recipe count. No implementation change was required.
+- `make -C wordpress/cetech-pos-bridge parity` → **PASS**, **138 passed, 0 failed, 19 permission-required/skipped**, exit 0. Harness still refuses a live WoodMart/B2BKing PASS. Not the R3 pricing gate.
+
+Host re-run after that container exited (working tree still clean of product files):
+
+- `python scripts/verify_control_plane.py` → **PASS**, exit 0
+- `php wordpress/cetech-pos-bridge/tools/derive-quote-contract.php --check` → **PASS**, `artifact matches the canonical contract`, exit 0
+- `git diff --check` → clean, exit 0
+- `git status --short` → empty before this docs-only edit
+
+HARDEN-03 semantics on `c06c9e6…` are unchanged: schema-invalid `QuoteRequest` is rejected before Woo `available` / snapshot / customer install / cart reset / line add / `calculate_totals` / `get_priced_cart`; contract-invalid produced Quote cannot leave as `{ok:true}`; valid guest and registered-retail round-trips remain successful.
+
+## Files changed by this continuation
+
+WS2 STATUS/HANDOFF only. No plugin, test, contract, CI, or dependency file changed.
+
+## Freshness (ADR-012) — new bounded continuation
+
+The FRESH_2 recorded on `2da3dc4…` (both cutoffs `29cea52…` at `2026-09-14T08:28:53Z` / `2026-09-14T08:29:11Z`) remains historical. This verification/publish step is a **new bounded continuation**, not Pass 3. Its two independent fetches are performed after this evidence commit; exact Pass-1 / Pass-2 SHA/UTC and classification are published on issue #48 with the owner handoff. Do not treat a later main movement as automatically in-scope.
+
+## Delivery
+
+**READY_FOR_INTEGRATION** for the WS2/bridge portion of the quote-schema gate, now with canonical GNU Make evidence. Recommended next action: WS3 independently reviews and imports only the declared tested commits into `batch/pre-r5-hardening` / PR #51. This contributor does not push, cherry-pick, or edit that integration branch. Do not start BR-06; R5 is not started.
+
+## Previous current handoff — HARDEN-03 / #48 bridge quote-schema enforcement (TASK_COMPLETION)
+
 # WS2 current handoff — HARDEN-03 / #48 bridge quote-schema enforcement (TASK_COMPLETION)
 
 Kind / UTC: TASK_COMPLETION / 2026-09-14T08:29:11Z (Pass-2 cutoff; no Pass 3)
