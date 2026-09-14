@@ -1,4 +1,48 @@
-# WS2 current handoff — BR-06 / #18 complete unexpired reservation proof (TASK_COMPLETION)
+# WS2 current handoff — BR-06 / #18 WS3 review remediation (TASK_COMPLETION)
+
+Kind / UTC: TASK_COMPLETION / 2026-09-14 (new bounded ADR-012 two-pass after this evidence commit; not Pass 3)
+Task / batch / workstream: BR-06 / issue #18 FINAL WS3 REVIEW REMEDIATION — remediates WS3 review comment 5663339003; R5; WS2
+Owner / actual implementer: @Emmanuel-coder-prog / @Emmanuel-coder-prog
+Integration destination: WS3 import into `batch/r5-idempotent-prepare-cash` (draft PR #53). Do not edit that branch from WS2.
+Branch: `ws2/br-06-implement-hpos-safe-idempotent-prepare-and-re`
+Prior published head: `63b6d068a1400c9bea14c03c8728c59b08103deb`
+Allowed paths: `wordpress/cetech-pos-bridge/**`; `tests/bridge/**`; `tests/fixtures/commerce/**`; WS2 STATUS/HANDOFF/evidence
+Forbidden untouched: `apps/**`; `supabase/**`; `docs/contracts/**`; `.github/**`; root lockfiles; `reference/**`; CORE-05; BR-07; R5 batch branch; PR #53 code
+Contracts changed: **NONE**. ADRs: **NONE**. Supabase: **NONE**. Pricing formulas copied: **NONE**.
+Database migrations: **YES** — bridge-owned `cetech_pos_bridge_db_version=3` adds `woo_recovery_token char(64)` and UNIQUE `(site_scope, woo_recovery_token)` via existing `maybe_upgrade()` / dbDelta. Not Supabase. Not Woo DDL.
+`pricingParityVerified`: **false**. Issue #4 OPEN. CORE-05 NOT STARTED. BR-07 NOT STARTED. Live HPOS write rehearsal PENDING.
+
+## BLOCKER 1 — crash after Woo create recovers
+
+Recovery identity design: generate `bin2hex(random_bytes(32))` (non-PII, 256-bit) **before** crossing Woo create. Persist it on the bridge claim (`woo_recovery_token`) together with `woo_create_entered=1`. Bind the same token into the **initial** `wc_create_order()` save through `woocommerce_before_order_object_save`: `WC_Order::set_order_key($token)` plus `update_meta_data('_cetech_pos_woo_recovery_token', $token)`. Customer id / currency / `created_via=cetech-pos` are also set on that first save. Ordinary CETECH tx/hash/sale/quote meta is written only **after** that initial persist (seam A sits between them).
+
+After crash, Woo is queried with supported CRUD: `wc_get_order_id_by_order_key`, `wc_get_orders(['order_key'=>...])`, and meta_key recovery token. Transaction/request identity is verified when those ordinary fields exist; a token-only match (seam A) is sufficient to adopt the one original order, repair ordinary meta, complete/re-prove reservation, and return PreparedSale. Never `wc_create_order` again.
+
+Seam A exact result (deterministic fake, not live HPOS): resolve=`preparing`; retry=`prepared`/`reserved`; Woo order count=1; provider create count=1. Wrong recovery token → `requires_attention`, no adopt. Duplicate token/provider matches → `requires_attention`. requestHash mismatch → `requires_attention`. No false `reserved`.
+
+## BLOCKER 2 — Woo order economics equal authoritative Quote
+
+After revalidation, each QuoteLine is written with Woo item setters (`add_product` args + `set_subtotal` / `set_total` / tax). Discount is the Quote line/order discount (item total = subtotal − discount excl tax; order `set_discount_total`). Taxes: aggregate from Quote; rate breakdown only from the authoritative cart `line_tax_data` snapshot (`last_provider_tax`), never a homemade split. Order `set_cart_tax` / `set_total` from Quote. `calculate_totals(false)` is not used to reprice. Saved Woo subtotal/discount/tax/grand total are compared to Quote at minor-unit precision; mismatch fails closed (`INTEGRATION_UNAVAILABLE`), no PreparedSale, no second order on retry.
+
+Proven: walk-in 10.00/0/0/10.00; registered retail 9.00 under buyer context; B2B 8.00 under buyer context; discount-bearing discount=2.00 total=8.00; ADR-013 allocated lines 1.50+0.50 summing to 18.00; tax-capable tax=1.50 with provider rate id `1`; forced divergence no PreparedSale, create_calls=1. Reservation-proof / seams B/C / last-unit / replay tests remain green.
+
+## Verification
+
+Docker `php:8.5-cli`; PHP **8.5.10** NTS; GNU Make **4.4.1**.
+
+- `make -C wordpress/cetech-pos-bridge check` PASS, 37 files
+- `make -C wordpress/cetech-pos-bridge test` **820 passed, 0 failed**
+- `make -C wordpress/cetech-pos-bridge parity` **138 passed, 0 failed, 19 skipped**
+- derive `--check` PASS; `python scripts/verify_control_plane.py` PASS; `git diff --check` clean
+
+In-memory fake is not a live Woo/HPOS database PASS.
+
+## Delivery
+
+**READY_FOR_INTEGRATION** pending exact-head CI and the new two-pass freshness on issue #18. Recommended receiver: @wbdevworld / WS3.
+
+## Previous current handoff — BR-06 / #18 complete unexpired reservation proof (TASK_COMPLETION)
+
 
 Kind / UTC: TASK_COMPLETION / 2026-09-14 (new bounded ADR-012 two-pass after this evidence commit; not Pass 3)
 Task / batch / workstream: BR-06 / issue #18 FINAL STOCK-RESERVATION REMEDIATION ONLY; R5; WS2

@@ -1,6 +1,20 @@
 # WS2 current status
 
-Snapshot 2026-09-14. Issue #18 final stock-reservation remediation. Owner and actual implementer: Developer 2 / @Emmanuel-coder-prog. Current task **BR-06 / issue #18 STOCK-RESERVATION REMEDIATION ONLY** on `ws2/br-06-implement-hpos-safe-idempotent-prepare-and-re`. Stock-reservation remediation SHA `7f3ca2df3fd0548fed7734c7b87d46ef9d68a168`. Prior crash-window remediation SHA `4417ed867adb6962025d62184385d394083d1737`. Prior evidence SHA `d4b0d2fd7a94dcd18a3a2b89529befdbaa4fba74`. This continuation does **not** start CORE-05 or BR-07 and does **not** modify `batch/r5-idempotent-prepare-cash`. Contract changes NONE. `pricingParityVerified` remains **false**. Issue #4 stays OPEN.
+Snapshot 2026-09-14. Issue #18 WS3 review remediation (comment 5663339003). Owner and actual implementer: Developer 2 / @Emmanuel-coder-prog. Current task **BR-06 / issue #18 FINAL WS3 REVIEW REMEDIATION** on `ws2/br-06-implement-hpos-safe-idempotent-prepare-and-re`. Prior published head `63b6d068a1400c9bea14c03c8728c59b08103deb`. This continuation does **not** start CORE-05 or BR-07 and does **not** modify `batch/r5-idempotent-prepare-cash`. Contract changes NONE. ADR changes NONE. Supabase changes NONE. Pricing formulas copied NONE. `pricingParityVerified` remains **false**. Issue #4 stays OPEN. Live HPOS write rehearsal PENDING.
+
+Blocker 1: crash after `wc_create_order` recovers. A 64-hex recovery token is persisted on the bridge claim before Woo create and bound into the initial HPOS save (`set_order_key` + `_cetech_pos_woo_recovery_token` via `woocommerce_before_order_object_save`). Retry/resolve locate that one order through `wc_get_order_id_by_order_key` / `wc_get_orders`. Seam A resolve is `preparing`; retry returns `prepared` with proven reservation. Wrong token / duplicate token / requestHash mismatch stay `requires_attention`. Schema version **3** adds `woo_recovery_token` via idempotent dbDelta.
+
+Blocker 2: prepared Woo order is a snapshot of the accepted Quote. Line subtotal/discount/tax/total and order grand total are written through Woo item/order setters, not `calculate_totals(false)`. Tax-rate splits come only from the authoritative cart `line_tax_data`. Divergence from Quote.total fails closed (`INTEGRATION_UNAVAILABLE`) with no second order.
+
+Canonical GNU Make: ephemeral `php:8.5-cli` (PHP **8.5.10**, GNU Make **4.4.1**). `check` PASS (37 files); `test` **820 passed / 0 failed**; `parity` **138 passed / 0 failed / 19 skipped**. Host: `python scripts/verify_control_plane.py` PASS; derive `--check` PASS; `git diff --check` clean.
+
+| Task | State | Branch / evidence |
+| --- | --- | --- |
+| BR-06 | WS3 BLOCKERS 1+2 REMEDIATED / CANONICAL MAKE VERIFIED; awaiting WS3 import | Issue #18. Not R5 complete. CORE-05 not started by WS2. BR-07 not started. |
+| HARDEN-03 | INTEGRATED on main via PRE-R5 PR #51 | Historical. |
+
+## Previous snapshot (BR-06 complete unexpired reservation proof — historical; current section above controls)
+
 
 Reservation proof no longer treats COUNT(reserved-stock rows)>0 as complete. Production proves the **entire** Woo-managed reservation set (stock-managed, aggregated by `get_stock_managed_by_id()`, skipping unmanaged/backorder items), with current unexpired quantity-correct rows. `PreparedSale.expiresAt` is the minimum actual reservation expiry, not `now + woocommerce_hold_stock_minutes`. `ReserveStockException` is normalized (STOCK_CHANGED on create; REQUIRES_ATTENTION on recovery). Partial A-then-crash-before-B is not proven; retry completes through the official reserve path and re-proves both, without a second Woo order. GET resolve does not complete stock. In-memory fake is **not** a live Woo database PASS.
 

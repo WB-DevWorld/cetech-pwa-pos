@@ -2,6 +2,61 @@
 
 Kind: TASK_COMPLETION evidence (WS2). Not live Woo/HPOS write evidence.
 
+- Task: BR-06 / issue #18 (WS3 review remediation of comment 5663339003)
+- Owner / actual implementer: @Emmanuel-coder-prog / WS2
+- Source branch: `ws2/br-06-implement-hpos-safe-idempotent-prepare-and-re`
+- Prior published head: `63b6d068a1400c9bea14c03c8728c59b08103deb`
+- Original implementation SHA: `ec5dc534b3c3f5ab2373e1e1783c48ce55cae4cb`
+- Original evidence SHA: `230daad09af684dba92a481abce3ec8aad83cdc3`
+- Crash-recovery remediation SHA: `4417ed867adb6962025d62184385d394083d1737`
+- Crash-recovery evidence SHA: `d4b0d2fd7a94dcd18a3a2b89529befdbaa4fba74`
+- Stock-reservation remediation SHA: `7f3ca2df3fd0548fed7734c7b87d46ef9d68a168`
+- Stock-reservation evidence SHA: `63b6d068a1400c9bea14c03c8728c59b08103deb`
+- Plugin version: `0.3.0-br06`
+
+## BLOCKER 1 — recovery identity
+
+1. Generate 64-hex `random_bytes(32)` token (non-PII).
+2. Persist `woo_recovery_token` + `woo_create_entered=1` on the bridge claim **before** Woo create.
+3. Bind the same token into the initial `wc_create_order` save via `woocommerce_before_order_object_save`: `set_order_key($token)` and meta `_cetech_pos_woo_recovery_token`. Fail closed if the token is not present on the returned order.
+4. After crash, query with `wc_get_order_id_by_order_key` / `wc_get_orders` (`order_key` and recovery meta). Duplicate matches → `requires_attention`.
+5. Verify transaction/request hash when those ordinary fields exist; token-only match is enough at seam A.
+6. Repair ordinary tx/hash/sale/quote meta; apply Quote economics if needed; complete/re-prove reservation.
+7. Never create order #2.
+
+Bridge DB: `cetech_pos_bridge_db_version=3`; column `woo_recovery_token char(64) NULL`; UNIQUE `(site_scope, woo_recovery_token)`; `maybe_upgrade()` remains version-gated dbDelta.
+
+Seam A: resolve `preparing`; retry `prepared`/`reserved`; order count 1; create count 1. Wrong token / duplicate token / wrong request hash → `requires_attention`.
+
+## BLOCKER 2 — quote snapshot economics
+
+Accepted Quote is commercial truth. Production writes QuoteLine subtotal / (subtotal−discount) / tax onto `WC_Order_Item_Product` and Quote subtotal/discount/tax/total onto the order. Does not call `calculate_totals(false)` to reprice. Tax-rate allocation is copied only from the isolated cart `line_tax_data` captured during authoritative revalidation. Saved Woo totals are compared to Quote at minor-unit precision; mismatch → `INTEGRATION_UNAVAILABLE`, no PreparedSale, no second create.
+
+Walk-in: 10.00/0/0/10.00, customer_id 0. Retail: 9.00 under `cust_retail_1`. B2B: 8.00 under `cust_b2b_1`. Discount: discount 2.00 total 8.00. ADR-013: line discounts 1.50+0.50, summed lines 18.00. Tax: tax 1.50 with provider rate `1` = 1.50. Forced divergence: no PreparedSale, create_calls=1, still resolvable.
+
+Reservation complete-set proof, actual `expiresAt`, `ReserveStockException` normalization, seams B/C, last-unit, replay/idempotency remain green.
+
+## Verification (canonical GNU Make in `php:8.5-cli`)
+
+- PHP **8.5.10** NTS (built 2026-08-31)
+- GNU Make **4.4.1**
+- `make -C wordpress/cetech-pos-bridge check` PASS (37 files)
+- `make -C wordpress/cetech-pos-bridge test` **820 passed / 0 failed**
+- `make -C wordpress/cetech-pos-bridge parity` **138 passed / 0 failed / 19 permission-required-skipped**
+- `php wordpress/cetech-pos-bridge/tools/derive-quote-contract.php --check` PASS
+- `python scripts/verify_control_plane.py` PASS
+- `git diff --check` clean
+
+Live/staging HPOS write rehearsal: **PENDING**. In-memory fake is not a live Woo database PASS.
+
+## Unchanged
+
+Contracts: NO. ADRs: NO. Supabase: NO. Dependencies/lockfiles: NO. Pricing formulas copied: NO.
+`pricingParityVerified=false`. Issue #4 OPEN. BR-07 NOT STARTED. CORE-05 NOT STARTED BY WS2. R5 not complete. PR #53 code not modified by this contributor.
+
+
+Kind: TASK_COMPLETION evidence (WS2). Not live Woo/HPOS write evidence.
+
 - Task: BR-06 / issue #18 (including independent-review crash-recovery remediation)
 - Owner / actual implementer: @Emmanuel-coder-prog / WS2
 - Source branch: `ws2/br-06-implement-hpos-safe-idempotent-prepare-and-re`
