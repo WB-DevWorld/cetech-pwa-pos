@@ -17,19 +17,21 @@ Updated 2026-09-14. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical sche
 - Neutral branch: `batch/r6-first-real-cash-sale`.
 - Integration editor: `@wbdevworld` / WS3.
 - Activation baseline: `main` `bc606a690f0c167b7057e3ae9143337404275882`.
-- Milestone state: **ACTIVE / PARALLEL OWNER EXECUTION**.
+- Milestone state: **ACTIVE / FE-05 ACCEPTED+IMPORTED / BR-07 OWNER IMPLEMENTATION**.
 
-### Parallel owner contributions
+### Owner contributions
 
-| Task | Owner | Contributor branch | State |
+| Task | Owner | Contributor branch / provenance | State |
 | --- | --- | --- | --- |
-| BR-07 / #19 | `@Emmanuel-coder-prog` / WS2 | `ws2/br-07-implement-verified-commercial-finalization-an` | **ACTIVE — OWNER IMPLEMENTATION** |
-| FE-05 / #10 | `@Ben-001-sys` / WS1 | `ws1/fe-05-integrate-cash-checkout-and-receipt-ux` | **ACTIVE — OWNER IMPLEMENTATION** |
+| BR-07 / #19 | `@Emmanuel-coder-prog` / WS2 | `ws2/br-07-implement-verified-commercial-finalization-an` | **ACTIVE — OWNER IMPLEMENTATION; no accepted source yet** |
+| FE-05 / #10 | `@Ben-001-sys` / WS1 | source head `79708d67b655eb46f8aba77712a83508e095f758`; implementation `f6607cda70176b51be0dc8b8a6e40ae0f64d9e24`; remediation `57574fe5e8b4aceaf94773aea9bc04ee801d0980`; integration merge `a0469039cd379c58b2967b9c622926a20f7618c1` | **ACCEPTED / IMPORTED — combined CI pending** |
 | CORE-06 / #25 | `@wbdevworld` / WS3 | not created yet | **BLOCKED — WAITING FOR TESTED COMBINED BR-07 + FE-05 INTEGRATION SHA** |
 
-BR-07 and FE-05 start from exact R5 merge `bc606a690f0c167b7057e3ae9143337404275882` and may proceed in parallel because their dependencies are satisfied. Each owner must publish exact tested source SHA(s) and task evidence, then stop. WS3 integration imports accepted owner contributions into the neutral branch and verifies the combined tree.
+FE-05 owner evidence reports verifier/lint/typecheck PASS, Vitest 50 files / 363 tests PASS, E2E 5 PASS, `git diff --check` clean, and contributor FRESH_2. WS3 independently reviewed the source and accepted it. FE-05 remains frontend-only; real app/BFF mounting belongs to CORE-06.
 
-CORE-06 must not start from `main`. Its contributor branch is created only after both BR-07 and FE-05 are accepted, imported, and combined-tested, and WS3 publishes the exact tested R6 integration handoff SHA.
+BR-07 remains wholly owned by WS2. WS3 must not implement it absent explicit reassignment. Emmanuel's contributor branch is still expected to publish exact tested source SHA(s) and evidence before import.
+
+CORE-06 must not start from `main`. Its contributor branch is created only after BR-07 is also accepted/imported, the combined FE-05 + BR-07 neutral-branch tree is green, and WS3 publishes the exact tested R6 integration handoff SHA.
 
 ## R6 ownership and safety rules
 
@@ -44,9 +46,9 @@ CORE-06 must not start from `main`. Its contributor branch is created only after
 
 ## Completion sequence
 
-1. Accept BR-07 exact source SHA(s).
-2. Accept FE-05 exact source SHA(s).
-3. Import both into `batch/r6-first-real-cash-sale` and run combined verification.
+1. FE-05 accepted/imported — DONE; verify combined CI on its integration head.
+2. Accept BR-07 exact source SHA(s).
+3. Import BR-07 into `batch/r6-first-real-cash-sale` and run combined verification with FE-05.
 4. Publish the exact tested combined R6 integration SHA.
 5. Create CORE-06 contributor branch from that exact SHA and implement #25.
 6. Import CORE-06, run full combined verification, freeze final head, perform exactly two ADR-012 freshness observations, and request independent human review.
