@@ -1,5 +1,22 @@
 # WS2 current status
 
+Snapshot 2026-09-14. `origin/main` `da86434cc471703b8309cea77cda88b7845c299b`. R5 activation observed on `origin/batch/r5-idempotent-prepare-cash` `54a9a13e95758d9318260f90dc2ae81b93f7f840` (WS3-owned; not imported into this contributor branch). Owner and actual implementer: Developer 2 / @Emmanuel-coder-prog. Current task **BR-06 / issue #18** on `ws2/br-06-implement-hpos-safe-idempotent-prepare-and-re`. Implementation SHA `ec5dc534b3c3f5ab2373e1e1783c48ce55cae4cb`. ADR-014 applies: WS3 may import these exact tested commits into `batch/r5-idempotent-prepare-cash` (draft PR #53) but does not implement this issue.
+
+R5 is ACTIVE. BR-06 is implemented on the WS2 contributor branch. CORE-05 remains BLOCKED until WS3 publishes `BR06_INTEGRATION_SHA`. BR-07 is NOT STARTED. Contract changes NONE, ADR changes NONE, dependency changes NONE, pricing-semantics changes NONE. `pricingParityVerified` remains **false**. Issue #4 stays OPEN. Live/staging effectful prepare rehearsal is PENDING.
+
+BR-06 result: POST `/wp-json/cetech-pos/v1/sales/prepare` and GET `/wp-json/cetech-pos/v1/sales/{transactionId}` are implemented with a durable atomic claim (`wp_cetech_pos_prepare_claims` UNIQUE idempotency and UNIQUE transaction indexes) before HPOS-safe `wc_create_order`. Same intent creates at most one unpaid Woo order. Crash-after-create recovers the original order. Quote/stock are revalidated authoritatively; stock commitment is truthful `reserved` via `wc_reserve_stock_for_order` when hold-stock minutes are configured. Canonical contract files were not edited; the plugin projection now includes PrepareSaleRequest/PreparedSale/SaleResolution.
+
+Canonical GNU Make: ephemeral `php:8.5-cli` (PHP **8.5.10**, GNU Make **4.4.1**). `check` PASS (37 files); `test` **575 passed / 0 failed**; `parity` **138 passed / 0 failed / 19 skipped**. Host: `python scripts/verify_control_plane.py` PASS; derive `--check` PASS; `git diff --check` clean. See HANDOFF.md and `evidence/BR-06-PREPARE.md`.
+
+| Task | State | Branch / evidence |
+| --- | --- | --- |
+| BR-06 | IMPLEMENTED / CANONICAL MAKE VERIFIED; awaiting WS3 import + independent review | Issue #18. `ws2/br-06-implement-hpos-safe-idempotent-prepare-and-re` implementation `ec5dc53…`. Not R5 complete. CORE-05 not started by WS2. |
+| HARDEN-03 | INTEGRATED on main via PRE-R5 PR #51 | Historical. Quote-schema gate on main `da86434…`. |
+
+## Previous snapshot (HARDEN-03 canonical Make — historical; current section above controls)
+
+# WS2 current status
+
 Snapshot 2026-09-14. `origin/main` `29cea52acbee2729175df61d2ae1a6658c5c04b1`. Owner and actual implementer: Developer 2 / @Emmanuel-coder-prog. Current task **HARDEN-03 / issue #48** on `ws2/pre-r5-quote-schema-bridge`, base `29cea52…`. Implementation SHA `c06c9e67108d372e25e815a43e05029ba12e6ab5`. Initial evidence SHA `2da3dc4f3e15d8d8da12c9f732296f25f4528bea`. ADR-014 applies: WS3 may import these exact tested commits into `batch/pre-r5-hardening` (draft PR #51) but does not implement this issue.
 
 This is **PRE-R5 hardening**, not R5. BR-06 is not started, CORE-05 is not implemented, and R5 is not activated. Contract changes NONE, ADR changes NONE, dependency changes NONE, pricing-semantics changes NONE. `pricingParityVerified` remains **false**. Issue #4 stays OPEN. PRE-R5 is not complete; HARDEN-03 clears only the WS2/bridge portion of the quote-schema gate, and the WS3 BFF portion is separate.

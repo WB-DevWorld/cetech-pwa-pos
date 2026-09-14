@@ -1,3 +1,63 @@
+# WS2 current handoff — BR-06 / #18 HPOS-safe idempotent prepare and resolve (TASK_COMPLETION)
+
+Kind / UTC: TASK_COMPLETION / 2026-09-14 (Pass-2 cutoff recorded after this evidence commit; not Pass 3)
+Task / batch / workstream: BR-06 / issue #18 — Implement HPOS-safe idempotent prepare and resolve; R5; WS2
+Owner / actual implementer: @Emmanuel-coder-prog / @Emmanuel-coder-prog
+Integration destination / requested human reviewer: WS3 import into `batch/r5-idempotent-prepare-cash` (draft PR #53) / @wbdevworld / WS3
+Branch: `ws2/br-06-implement-hpos-safe-idempotent-prepare-and-re`
+Starting/base SHA: `origin/main` `da86434cc471703b8309cea77cda88b7845c299b`
+R5 activation SHA observed (not merged into this branch): `54a9a13e95758d9318260f90dc2ae81b93f7f840`
+Implementation SHA: `ec5dc534b3c3f5ab2373e1e1783c48ce55cae4cb`
+Final source/evidence SHA: this evidence commit on the same branch (not self-referential)
+Allowed paths: `wordpress/cetech-pos-bridge/**`; `tests/bridge/**`; `tests/fixtures/commerce/**`; WS2 STATUS/HANDOFF/evidence
+Forbidden untouched: `apps/**`; `supabase/**`; `docs/contracts/**`; `.github/**`; root lockfiles; `reference/**`; CORE-05; BR-07; FE-05; R5 batch branch
+Contracts changed: **NONE**
+ADR changes: **NONE**
+Database migrations: **YES** — bridge-owned `{$prefix}cetech_pos_prepare_claims` via `Cetech_Pos_Bridge_Schema_Install` / option `cetech_pos_bridge_db_version=1`. UNIQUE `(site_scope, operation_type, idempotency_key)` and UNIQUE `(site_scope, transaction_id)`. Not Supabase. Not Woo HPOS DDL.
+Schema projection: ROOTS extended to PrepareSaleRequest, PreparedSale, Quote, QuoteRequest, SaleResolution. Canonical `docs/contracts/pos-domain.schema.json` untouched.
+Pricing semantics changed: **NONE**
+`pricingParityVerified`: **false**
+Issue #4: OPEN. BR-07: NOT STARTED. CORE-05: NOT STARTED BY WS2. R5: not complete.
+
+## Routes and behaviour
+
+- POST `/wp-json/cetech-pos/v1/sales/prepare` (`bridgePrepare`). Headers: `X-Correlation-ID`, `Idempotency-Key`.
+- GET `/wp-json/cetech-pos/v1/sales/{transactionId}` (`bridgeResolve`). Header: `X-Correlation-ID`. No new Idempotency-Key. GET never creates orders or changes stock.
+
+Site scope: WordPress blog ID (`get_current_blog_id()`, else `"1"` in the harness). Not a fabricated org UUID.
+
+Semantic hash: SHA-256 of sorted-key PrepareSaleRequest JSON. Correlation/transport excluded.
+Same key + same request → original PreparedSale (or replayed terminal quote/stock failure).
+Same key + different request → 409 `IDEMPOTENCY_CONFLICT` / retryable=false / contact_manager.
+In progress → 202 `OPERATION_IN_PROGRESS` / retryable=true / resolve.
+Same transactionId + different key → 409 `REQUIRES_ATTENTION`; no second Woo order.
+
+Crash seam `after_order_create`: order exists, claim still `preparing`; retry/resolve repairs mapping; Woo POS order count remains 1.
+Stock: `wc_reserve_stock_for_order`; `stockCommitment=reserved` when reservation ran; hold minutes 0 fails closed. Last-unit injected race: one winner.
+Quote is revalidated (fingerprint, expiry, authoritative Woo re-quote). No copied WoodMart/B2BKing formulas.
+Prepared Woo status: unpaid `pending`. No payment, receipt, finalize, refund, or BR-07 transitions.
+
+Resolve BR-06 states: `not_found`, `preparing`, `prepared`, `requires_attention`.
+
+## Verification
+
+Docker `php:8.5-cli`; PHP **8.5.10** NTS; GNU Make **4.4.1**.
+
+- `make -C wordpress/cetech-pos-bridge check` PASS, 37 files
+- `make -C wordpress/cetech-pos-bridge test` PASS, **575 passed, 0 failed**
+- `make -C wordpress/cetech-pos-bridge parity` PASS, **138 passed, 0 failed, 19 permission-required/skipped**
+- `php wordpress/cetech-pos-bridge/tools/derive-quote-contract.php --check` PASS
+- `python scripts/verify_control_plane.py` PASS
+- `git diff --check` clean
+
+Live/staging effectful HPOS rehearsal: **PENDING** (no isolated write authority). In-memory lock tests are not a DB concurrency PASS; UNIQUE SQL indexes are the durable uniqueness evidence.
+
+## Delivery
+
+**READY_FOR_INTEGRATION** pending exact-head CI after push. Recommended receiver: @wbdevworld / WS3. Import only declared tested source commits into `batch/r5-idempotent-prepare-cash`, run combined verification, publish `BR06_INTEGRATION_SHA`. Do not start CORE-05 from this contributor.
+
+## Previous current handoff — HARDEN-03 / #48 canonical GNU Make verification (TASK_COMPLETION)
+
 # WS2 current handoff — HARDEN-03 / #48 canonical GNU Make verification (TASK_COMPLETION)
 
 Kind / UTC: TASK_COMPLETION / 2026-09-14T08:48:00Z (canonical Make closed; this continuation's two-pass freshness is executed after this evidence commit and is not Pass 3 of the prior FRESH_2)
