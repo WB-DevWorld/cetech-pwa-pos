@@ -1,4 +1,52 @@
-# WS2 current handoff — BR-06 / #18 crash-recovery review remediation (TASK_COMPLETION)
+# WS2 current handoff — BR-06 / #18 complete unexpired reservation proof (TASK_COMPLETION)
+
+Kind / UTC: TASK_COMPLETION / 2026-09-14 (new bounded ADR-012 two-pass after this evidence commit; not Pass 3)
+Task / batch / workstream: BR-06 / issue #18 FINAL STOCK-RESERVATION REMEDIATION ONLY; R5; WS2
+Owner / actual implementer: @Emmanuel-coder-prog / @Emmanuel-coder-prog
+Integration destination: WS3 import into `batch/r5-idempotent-prepare-cash` (draft PR #53). Do not edit that branch from WS2.
+Branch: `ws2/br-06-implement-hpos-safe-idempotent-prepare-and-re`
+Prior published head: `d4b0d2fd7a94dcd18a3a2b89529befdbaa4fba74`
+Stock-reservation remediation SHA: `7f3ca2df3fd0548fed7734c7b87d46ef9d68a168`
+Final source/evidence SHA: this evidence commit (not self-referential)
+Contracts changed: **NONE**. ADRs: **NONE**. Pricing semantics: **NONE**.
+`pricingParityVerified`: **false**. Issue #4 OPEN. CORE-05 NOT STARTED. BR-07 NOT STARTED.
+
+## Reservation proof algorithm
+
+Expected set from the Woo order items (same rules as Woo ReserveStock):
+
+- line items with quantity > 0
+- skip when `!managing_stock()` or `backorders_allowed()`
+- aggregate quantity by `get_stock_managed_by_id()` (variation/parent identity)
+- empty expected set is **not** a reserved commitment
+
+Current rows: read-only `SELECT product_id, stock_quantity, expires FROM $wpdb->wc_reserved_stock WHERE order_id = %d AND expires > NOW()` (canonical table ref required; prepared SQL; no writes). Fail closed if the table ref or row shape cannot be proven.
+
+Proven only when every expected product has a current row with `stock_quantity` covering the required quantity. Partial / wrong qty / expired / unreadable → not proven.
+
+`PreparedSale.expiresAt` is the minimum actual row expiry (UTC), never `now + woocommerce_hold_stock_minutes`. Missing/past expiry → not prepared.
+
+`ReserveStockException` / insufficient-stock codes → STOCK_CHANGED on create (order trashed). Recovery completion → REQUIRES_ATTENTION. Other throwables at this boundary → canonical fail-closed, not fatal, not PreparedSale.
+
+Partial A/B crash: A reserved, B missing → not proven; resolve stays `preparing` and does not mutate stock; retry calls official reservation, re-proves A+B, one Woo order.
+
+In-memory fake is not a live Woo database PASS. Live HPOS rehearsal PENDING.
+
+## Verification
+
+- `make -C wordpress/cetech-pos-bridge check` PASS, 37 files
+- `make -C wordpress/cetech-pos-bridge test` **674 passed, 0 failed**
+- `make -C wordpress/cetech-pos-bridge parity` **138 passed, 0 failed, 19 skipped**
+- derive `--check` PASS; `python scripts/verify_control_plane.py` PASS; `git diff --check` clean
+
+Seams A/B/C, wrong request hash, last-unit, replay/idempotency remain green.
+
+## Delivery
+
+**READY_FOR_INTEGRATION** pending exact-head CI and the new two-pass freshness on issue #18.
+
+## Previous current handoff — BR-06 / #18 crash-recovery review remediation (TASK_COMPLETION)
+
 
 Kind / UTC: TASK_COMPLETION / 2026-09-14 (new bounded ADR-012 two-pass after this evidence commit; not Pass 3 of the prior FRESH_2)
 Task / batch / workstream: BR-06 / issue #18 REVIEW REMEDIATION ONLY — HPOS-safe crash-recovery windows; R5; WS2

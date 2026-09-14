@@ -8,6 +8,7 @@ Kind: TASK_COMPLETION evidence (WS2). Not live Woo/HPOS write evidence.
 - Original implementation SHA: `ec5dc534b3c3f5ab2373e1e1783c48ce55cae4cb`
 - Original evidence SHA: `230daad09af684dba92a481abce3ec8aad83cdc3`
 - Remediation SHA: `4417ed867adb6962025d62184385d394083d1737`
+- Stock-reservation remediation SHA: `7f3ca2df3fd0548fed7734c7b87d46ef9d68a168`
 - Plugin version: `0.3.0-br06`
 
 ## Routes
@@ -44,7 +45,17 @@ SHA-256 of the semantic `PrepareSaleRequest` with sorted object keys. Correlatio
 
 ## Stock / HPOS
 
-Prepared unpaid orders use Woo `wc_reserve_stock_for_order` when hold-stock minutes > 0. `stockCommitment=reserved` only when Woo reserved-stock state is **proven** (`wc_reserved_stock` count for the order, or the fake equivalent). Order existence alone is not treated as reserved. Hold minutes `0` fails closed with `INTEGRATION_UNAVAILABLE` rather than inventing a TTL. Production create uses `wc_create_order` / `WC_Order` CRUD / `wc_get_orders`; it does not write legacy post tables as order storage. If reservation cannot be proven or completed idempotently, recovery returns `requires_attention` rather than false success.
+Prepared unpaid orders use Woo `wc_reserve_stock_for_order` when hold-stock minutes > 0.
+
+Complete reservation proof (COUNT>0 is **not** sufficient):
+
+1. Build the expected hold set from order items using Woo ReserveStock rules: skip non-line/qty<=0; skip `!managing_stock()` or `backorders_allowed()`; aggregate by `get_stock_managed_by_id()`.
+2. Read current rows from `$wpdb->wc_reserved_stock` with prepared SQL `expires > NOW()`. Canonical table property required; fail closed if missing/unreadable. **No writes** to that table.
+3. Every expected product must have a current row whose `stock_quantity` covers the required quantity. Partial set, wrong quantity, or expired hold → not proven.
+4. `PreparedSale.expiresAt` is the minimum actual row expiry, not `now + woocommerce_hold_stock_minutes`.
+5. `ReserveStockException` (`woocommerce_product_not_enough_stock` / `woocommerce_product_out_of_stock`) maps to STOCK_CHANGED on create. Recovery maps unclassifiable/insufficient completion to REQUIRES_ATTENTION. No new error codes. No uncaught fatal at this boundary.
+
+Hold minutes `0` fails closed. In-memory fake sequential reserve is **not** a live Woo database PASS.
 
 ## Crash seams actually tested (supersedes "crash-after-order-create PASS")
 
@@ -55,15 +66,16 @@ Deterministic injected seams at the production runtime boundaries, not only afte
 | A | immediately after `wc_create_order` returns, before recovery metadata save | retry and resolve: `requires_attention`; `create_calls=1`; POS order count 1; never `stockCommitment=reserved` |
 | B | after recovery metadata/order save, before `wc_reserve_stock_for_order` | resolve: `preparing` (no false reserved, no stock mutation); retry completes reservation → `prepared` / `reserved`; order count 1 |
 | C | after reservation succeeds, before bridge claim PreparedSale persistence | retry and resolve recover `prepared` with proven `reserved`; order count 1 |
+| Partial A/B | A reserved, process dies before B | not initially proven; resolve does not complete stock; retry completes B via official reserve and re-proves A+B; one Woo order; PreparedSale `reserved` only after both current |
 
-Also proven: wrong request hash is not accepted as prepared; exactly one correctly identified order with proven reservation is recovered; ambiguous recovery (seam A) does not call `wc_create_order` again.
+Also proven: wrong request hash is not accepted as prepared; exactly one correctly identified order with proven reservation is recovered; ambiguous recovery (seam A) does not call `wc_create_order` again; only-one-row / wrong-qty / expired → not proven; complete current rows → proven; expiresAt matches proven expiry.
 
 ## Verification (canonical GNU Make in `php:8.5-cli`)
 
 - PHP **8.5.10** NTS (built 2026-08-31)
 - GNU Make **4.4.1**
 - `make -C wordpress/cetech-pos-bridge check` PASS (37 files, no syntax errors)
-- `make -C wordpress/cetech-pos-bridge test` **633 passed / 0 failed**
+- `make -C wordpress/cetech-pos-bridge test` **674 passed / 0 failed**
 - `make -C wordpress/cetech-pos-bridge parity` **138 passed / 0 failed / 19 permission-required-skipped**
 - `php wordpress/cetech-pos-bridge/tools/derive-quote-contract.php --check` PASS (`artifact matches the canonical contract`)
 - `python scripts/verify_control_plane.py` PASS
