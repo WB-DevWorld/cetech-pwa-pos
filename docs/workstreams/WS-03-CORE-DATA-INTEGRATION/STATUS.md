@@ -4,14 +4,14 @@ Snapshot 2026-09-14. R5 is **APPROVED / MERGED / POST-MERGE VERIFIED** through P
 
 ## R6
 
-R6 is **ACTIVE / PARALLEL OWNER EXECUTION** on integration issue #54 and neutral branch `batch/r6-first-real-cash-sale`.
+R6 is **ACTIVE** on integration issue #54 and draft PR #55 / `batch/r6-first-real-cash-sale`.
 
-- BR-07 / #19 — owner `@Emmanuel-coder-prog` / WS2; branch `ws2/br-07-implement-verified-commercial-finalization-an`; base `bc606a690f0c167b7057e3ae9143337404275882`; ACTIVE owner implementation.
-- FE-05 / #10 — owner `@Ben-001-sys` / WS1; branch `ws1/fe-05-integrate-cash-checkout-and-receipt-ux`; base `bc606a690f0c167b7057e3ae9143337404275882`; ACTIVE owner implementation.
-- CORE-06 / #25 — owner `@wbdevworld` / WS3; BLOCKED. Do not create its contributor branch until accepted BR-07 and FE-05 are imported into the neutral R6 branch, combined verification is green, and an exact tested R6 integration handoff SHA is published.
+- FE-05 / #10 — owner `@Ben-001-sys` / WS1: source head `79708d67b655eb46f8aba77712a83508e095f758`; implementation `f6607cda70176b51be0dc8b8a6e40ae0f64d9e24`; safety remediation `57574fe5e8b4aceaf94773aea9bc04ee801d0980`; owner evidence FRESH_2; independently reviewed by WS3; accepted for R6 integration.
+- BR-07 / #19 — owner `@Emmanuel-coder-prog` / WS2: branch `ws2/br-07-implement-verified-commercial-finalization-an`; still ACTIVE owner implementation; no accepted source handoff yet.
+- CORE-06 / #25 — owner `@wbdevworld` / WS3; BLOCKED. Do not create its contributor branch until BR-07 is accepted/imported and the combined FE-05 + BR-07 neutral-branch tree is green with a published exact tested R6 integration SHA.
 
-WS3 integration does not transfer implementation ownership. Review fixes return to the owner/workstream of the affected task unless an explicit reassignment is recorded in `CURRENT-WORK.md`.
+FE-05 accepted behavior includes stable prepare/cash/finalize attempt identities, ambiguous sale/payment resolution instead of duplicate commands, ReceiptPort-only receipt truth, print/reprint isolation from sale execution, and lockout of New Sale/dismiss while an outstanding prepared transaction exists. `payment_pending` resolves the existing tender instead of calling `confirmCash` again.
 
-Frozen v1.0.0 contracts remain authoritative unless separately changed by explicit decision. Issue #4 remains OPEN. `pricingParityVerified=false`. No production promotion is authorized.
+Frozen v1.0.0 contracts remain authoritative. Issue #4 remains OPEN. `pricingParityVerified=false`. No production promotion is authorized.
 
-Next exact action: wait for BR-07 and FE-05 owner handoffs, independently review each exact source SHA, import accepted contributions into the neutral R6 branch, and run combined verification. Do not start CORE-06 before the tested combined R6 SHA exists.
+Next exact action: verify combined CI after FE-05 import, then continue waiting for BR-07 owner handoff. CORE-06 remains blocked.
