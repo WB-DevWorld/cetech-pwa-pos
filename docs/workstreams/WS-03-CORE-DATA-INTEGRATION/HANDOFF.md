@@ -1,39 +1,44 @@
-# WS3 current handoff — R5 Ben-review remediation integrated
+# WS3 current handoff — R6 activated
 
 Kind: INTEGRATION_CHECKPOINT. Date: 2026-09-14 UTC.
 
-Task / batch / workstream: R5 / issue #52; BR-06 #18 + CORE-05 #24; WS3 integration editor.
+Task / batch / workstream: R6 / issue #54; BR-07 #19 + FE-05 #10, then CORE-06 #25; WS3 integration editor.
 Owner / integration editor: `@wbdevworld` / WS3.
-Branch / PR: `batch/r5-idempotent-prepare-cash` / PR #53.
-Base main: `da86434cc471703b8309cea77cda88b7845c299b`.
+Neutral branch: `batch/r6-first-real-cash-sale`.
+Base main: `bc606a690f0c167b7057e3ae9143337404275882`.
+R5 post-merge CI: `34873987182` SUCCESS on both required jobs.
 
-## BR-06
+## R5 closure
 
+PR #53 was independently approved by `@Ben-001-sys` on exact head `73f16621b32de0fc04aceffb3af63d9227fec31d` and merged as `bc606a690f0c167b7057e3ae9143337404275882`. CORE-05 #24 and R5 integration #52 are closed completed. R5 is APPROVED / MERGED / POST-MERGE VERIFIED.
+
+## R6 owner handoffs
+
+### BR-07 / #19
 Owner / implementer: `@Emmanuel-coder-prog` / WS2.
-Accepted source: `a0fa00d452c3a672d97c5a3cb253a5ca6f11cf8f`.
-Import merge: `30af336925fd29dc43e7315d81919ae2a7bd5bfc`.
-Tested handoff: `BR06_INTEGRATION_SHA=15baab1b47a35902b8a3ddde989df55cc4b25436`.
-Combined CI `34855313462`: SUCCESS both required jobs.
-BR-06 is not reopened by the CORE-05 review remediation.
+Contributor branch: `ws2/br-07-implement-verified-commercial-finalization-an`.
+Starting SHA: `bc606a690f0c167b7057e3ae9143337404275882`.
+State: ACTIVE — OWNER IMPLEMENTATION.
 
-## CORE-05
+WS2 owns the Woo bridge implementation. WS3 must not implement this task absent explicit reassignment. Owner publishes exact tested source SHA(s), changed files, contract/ADR changes, exact required test results, runtime limitations and contributor freshness, then stops for integration review.
 
-Owner / implementer: `@wbdevworld` / WS3.
-Required base: `BR06_INTEGRATION_SHA` above.
-Accepted pre-review-remediation source: `5c5c93f523ac9a5218cc916a8a6b6503cca4df75`; import merge `53b3982772b35886b3ac0fa0d50e374e9e359752`.
+### FE-05 / #10
+Owner / implementer: `@Ben-001-sys` / WS1.
+Contributor branch: `ws1/fe-05-integrate-cash-checkout-and-receipt-ux`.
+Starting SHA: `bc606a690f0c167b7057e3ae9143337404275882`.
+State: ACTIVE — OWNER IMPLEMENTATION.
 
-Ben's independent review on exact R5 head `f0ddc31f1ee1d9cd69768049ec33da839ab8185a` requested one change: an existing verified payment could be reused under a fresh Idempotency-Key before validating the new cash command's currency/amount/evidence.
+WS1 owns cashier UX implementation. WS3 must not implement this task absent explicit reassignment. Owner publishes exact tested source SHA(s), changed files, contract/ADR changes, exact required test results, runtime limitations and contributor freshness, then stops for integration review.
 
-Narrow owner fix:
-- source commit/head `80414c6396832b9f9ec209cdec6e73ab19cd160a`;
-- changed only `confirm-cash.ts` and a focused existing-payment regression test;
-- source CI `34870285209`: SUCCESS Linux + Windows, including reset/pgTAP, app tests, build and E2E;
-- source handoff: FRESH_2;
-- integration merge `bc14b1e860a992ba432ff752f3ab15e4ad5c1001`;
-- combined CI `34870882712`: SUCCESS both required jobs.
+## CORE-06 gate
 
-Accepted behavior after remediation: validate sale/org/location/economic invariants before existing-payment reuse; fresh-key reuse requires matching recorded `saleId`, amount and exact `cashReceived`; wrong currency, underpayment and materially different cash received are rejected; exact matching evidence reuses the same payment without a second `cash_sale` ledger effect. Existing same-key replay and persistence repair remain intact.
+CORE-06 / #25 owner: `@wbdevworld` / WS3.
+State: BLOCKED / NOT STARTED.
 
-Contracts v1.0.0 unchanged. ADRs unchanged. Issue #4 OPEN. `pricingParityVerified=false`. No production promotion. BR-07 remains R6 real commercial finalizer; R6 is NOT STARTED.
+Do not create `ws3/core-06-integrate-real-cash-sale-and-contract-e2e-har` yet. First accept/import BR-07 and FE-05 into the neutral branch, run combined verification, and publish the exact tested R6 integration handoff SHA. CORE-06 must branch from that exact SHA rather than from `main`.
 
-Next exact action: this integration-control commit becomes the replacement frozen R5 review candidate. Require CI on that exact head, perform exactly two final freshness observations, then re-request `@Ben-001-sys`. No Pass 3 and no self-approval.
+## Safety / limitations
+
+Frozen contracts v1.0.0 remain unchanged unless an explicit contract decision is recorded. Issue #4 remains OPEN. `pricingParityVerified=false`. BR-07 must fail closed around uncertain money; FE-05 must not invent payment/receipt truth; CORE-06 must not call mock-only behavior a real integration pass. No production promotion or R7+ work is authorized here.
+
+Next exact action: receive and independently review the two owner handoffs. Import only accepted exact commits into `batch/r6-first-real-cash-sale`, preserving source -> import -> tested-combined provenance.
