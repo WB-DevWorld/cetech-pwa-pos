@@ -1,5 +1,68 @@
 # WS2 current status
 
+Snapshot 2026-09-14. Issue #18 WS3 re-review remediation (comment 5664357878). Owner and actual implementer: Developer 2 / @Emmanuel-coder-prog. Current task **BR-06 / issue #18 GET-READONLY AND SNAPSHOT-SAFE REMEDIATION** on `ws2/br-06-implement-hpos-safe-idempotent-prepare-and-re`. Prior published head `312dcc3cebd644d5b6ea206210be437e3f001869`. Implementation SHA `fc89e5f03e822224bb8c9c4f2c4e2f663eccce9b`. This continuation does **not** start CORE-05 or BR-07 and does **not** modify `batch/r5-idempotent-prepare-cash`. Contract changes NONE. Bridge DB schema/version unchanged (v3). ADR changes NONE. Supabase changes NONE. Pricing formulas copied NONE. `pricingParityVerified` remains **false**. Issue #4 stays OPEN. Live HPOS write rehearsal PENDING. Real DB concurrency PENDING.
+
+Blocker 3: GET `/sales/{transactionId}` is Woo-read-only. Inspection (`inspect_recovered_order`) is separated from POST lock-held repair (`repair_recovered_order`). Mutation counters and a deep Woo snapshot stay unchanged across repeated/interleaved GET. POST retry under the existing creator lock owns snapshot repair, reservation, and PreparedSale persist.
+
+Blocker 4: seam A is `after_initial_order_save` (token-only, zero Quote lines). Seam B is `after_quote_line` (mid-snapshot). Quote lines carry bridge-private `_cetech_pos_quote_line_id` from frozen `QuoteLine.lineId` on first durable item save. POST reconciles expected lines exactly; duplicate/unexpected/unidentifiable/wrong-product states are `REQUIRES_ATTENTION` without a second order or blind deletion.
+
+Canonical GNU Make: ephemeral `php:8.5-cli` (PHP **8.5.10**, GNU Make **4.4.1**). `check` PASS (37 files); `test` **1020 passed / 0 failed**; `parity` **138 passed / 0 failed / 19 skipped**. Host: `python scripts/verify_control_plane.py` PASS; derive `--check` PASS; `git diff --check` clean.
+
+| Task | State | Branch / evidence |
+| --- | --- | --- |
+| BR-06 | WS3 BLOCKERS 3+4 REMEDIATED / CANONICAL MAKE VERIFIED; awaiting WS3 import | Issue #18. Not R5 complete. CORE-05 not started by WS2. BR-07 not started. |
+| HARDEN-03 | INTEGRATED on main via PRE-R5 PR #51 | Historical. |
+
+## Previous snapshot (BR-06 WS3 blockers 1+2 — historical; current section above controls)
+
+
+
+Blocker 1: crash after `wc_create_order` recovers. A 64-hex recovery token is persisted on the bridge claim before Woo create and bound into the initial HPOS save (`set_order_key` + `_cetech_pos_woo_recovery_token` via `woocommerce_before_order_object_save`). Retry/resolve locate that one order through `wc_get_order_id_by_order_key` / `wc_get_orders`. Seam A resolve is `preparing`; retry returns `prepared` with proven reservation. Wrong token / duplicate token / requestHash mismatch stay `requires_attention`. Schema version **3** adds `woo_recovery_token` via idempotent dbDelta.
+
+Blocker 2: prepared Woo order is a snapshot of the accepted Quote. Line subtotal/discount/tax/total and order grand total are written through Woo item/order setters, not `calculate_totals(false)`. Tax-rate splits come only from the authoritative cart `line_tax_data`. Divergence from Quote.total fails closed (`INTEGRATION_UNAVAILABLE`) with no second order.
+
+Canonical GNU Make: ephemeral `php:8.5-cli` (PHP **8.5.10**, GNU Make **4.4.1**). `check` PASS (37 files); `test` **820 passed / 0 failed**; `parity` **138 passed / 0 failed / 19 skipped**. Host: `python scripts/verify_control_plane.py` PASS; derive `--check` PASS; `git diff --check` clean.
+
+| Task | State | Branch / evidence |
+| --- | --- | --- |
+| BR-06 | WS3 BLOCKERS 1+2 REMEDIATED / CANONICAL MAKE VERIFIED; awaiting WS3 import | Issue #18. Not R5 complete. CORE-05 not started by WS2. BR-07 not started. |
+| HARDEN-03 | INTEGRATED on main via PRE-R5 PR #51 | Historical. |
+
+## Previous snapshot (BR-06 complete unexpired reservation proof — historical; current section above controls)
+
+
+Reservation proof no longer treats COUNT(reserved-stock rows)>0 as complete. Production proves the **entire** Woo-managed reservation set (stock-managed, aggregated by `get_stock_managed_by_id()`, skipping unmanaged/backorder items), with current unexpired quantity-correct rows. `PreparedSale.expiresAt` is the minimum actual reservation expiry, not `now + woocommerce_hold_stock_minutes`. `ReserveStockException` is normalized (STOCK_CHANGED on create; REQUIRES_ATTENTION on recovery). Partial A-then-crash-before-B is not proven; retry completes through the official reserve path and re-proves both, without a second Woo order. GET resolve does not complete stock. In-memory fake is **not** a live Woo database PASS.
+
+Canonical GNU Make: ephemeral `php:8.5-cli` (PHP **8.5.10**, GNU Make **4.4.1**). `check` PASS (37 files); `test` **674 passed / 0 failed**; `parity` **138 passed / 0 failed / 19 skipped**. Host: `python scripts/verify_control_plane.py` PASS; derive `--check` PASS; `git diff --check` clean.
+
+| Task | State | Branch / evidence |
+| --- | --- | --- |
+| BR-06 | STOCK-RESERVATION REMEDIATION IMPLEMENTED / CANONICAL MAKE VERIFIED; awaiting WS3 re-import | Issue #18. Remediation `7f3ca2d…`. Not R5 complete. CORE-05 not started by WS2. BR-07 not started. |
+| HARDEN-03 | INTEGRATED on main via PRE-R5 PR #51 | Historical. |
+
+## Previous snapshot (BR-06 crash-recovery windows — historical; current section above controls)
+
+## Previous snapshot (BR-06 initial delivery — historical; current section above controls)
+
+# WS2 current status
+
+Snapshot 2026-09-14. `origin/main` `da86434cc471703b8309cea77cda88b7845c299b`. R5 activation observed on `origin/batch/r5-idempotent-prepare-cash` `54a9a13e95758d9318260f90dc2ae81b93f7f840` (WS3-owned; not imported into this contributor branch). Owner and actual implementer: Developer 2 / @Emmanuel-coder-prog. Current task **BR-06 / issue #18** on `ws2/br-06-implement-hpos-safe-idempotent-prepare-and-re`. Implementation SHA `ec5dc534b3c3f5ab2373e1e1783c48ce55cae4cb`. ADR-014 applies: WS3 may import these exact tested commits into `batch/r5-idempotent-prepare-cash` (draft PR #53) but does not implement this issue.
+
+R5 is ACTIVE. BR-06 is implemented on the WS2 contributor branch. CORE-05 remains BLOCKED until WS3 publishes `BR06_INTEGRATION_SHA`. BR-07 is NOT STARTED. Contract changes NONE, ADR changes NONE, dependency changes NONE, pricing-semantics changes NONE. `pricingParityVerified` remains **false**. Issue #4 stays OPEN. Live/staging effectful prepare rehearsal is PENDING.
+
+BR-06 result: POST `/wp-json/cetech-pos/v1/sales/prepare` and GET `/wp-json/cetech-pos/v1/sales/{transactionId}` are implemented with a durable atomic claim (`wp_cetech_pos_prepare_claims` UNIQUE idempotency and UNIQUE transaction indexes) before HPOS-safe `wc_create_order`. Same intent creates at most one unpaid Woo order. Crash-after-create recovers the original order. Quote/stock are revalidated authoritatively; stock commitment is truthful `reserved` via `wc_reserve_stock_for_order` when hold-stock minutes are configured. Canonical contract files were not edited; the plugin projection now includes PrepareSaleRequest/PreparedSale/SaleResolution.
+
+Canonical GNU Make: ephemeral `php:8.5-cli` (PHP **8.5.10**, GNU Make **4.4.1**). `check` PASS (37 files); `test` **575 passed / 0 failed**; `parity` **138 passed / 0 failed / 19 skipped**. Host: `python scripts/verify_control_plane.py` PASS; derive `--check` PASS; `git diff --check` clean. See HANDOFF.md and `evidence/BR-06-PREPARE.md`.
+
+| Task | State | Branch / evidence |
+| --- | --- | --- |
+| BR-06 | IMPLEMENTED / CANONICAL MAKE VERIFIED; awaiting WS3 import + independent review | Issue #18. `ws2/br-06-implement-hpos-safe-idempotent-prepare-and-re` implementation `ec5dc53…`. Not R5 complete. CORE-05 not started by WS2. |
+| HARDEN-03 | INTEGRATED on main via PRE-R5 PR #51 | Historical. Quote-schema gate on main `da86434…`. |
+
+## Previous snapshot (HARDEN-03 canonical Make — historical; current section above controls)
+
+# WS2 current status
+
 Snapshot 2026-09-14. `origin/main` `29cea52acbee2729175df61d2ae1a6658c5c04b1`. Owner and actual implementer: Developer 2 / @Emmanuel-coder-prog. Current task **HARDEN-03 / issue #48** on `ws2/pre-r5-quote-schema-bridge`, base `29cea52…`. Implementation SHA `c06c9e67108d372e25e815a43e05029ba12e6ab5`. Initial evidence SHA `2da3dc4f3e15d8d8da12c9f732296f25f4528bea`. ADR-014 applies: WS3 may import these exact tested commits into `batch/pre-r5-hardening` (draft PR #51) but does not implement this issue.
 
 This is **PRE-R5 hardening**, not R5. BR-06 is not started, CORE-05 is not implemented, and R5 is not activated. Contract changes NONE, ADR changes NONE, dependency changes NONE, pricing-semantics changes NONE. `pricingParityVerified` remains **false**. Issue #4 stays OPEN. PRE-R5 is not complete; HARDEN-03 clears only the WS2/bridge portion of the quote-schema gate, and the WS3 BFF portion is separate.

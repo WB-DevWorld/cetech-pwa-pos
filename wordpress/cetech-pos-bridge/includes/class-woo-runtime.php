@@ -23,6 +23,29 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 	protected $counter_sale_isolation_depth = 0;
 	/** @var bool */
 	protected $added_b2bking_cart_discount = false;
+	/** @var int */
+	public $create_calls = 0;
+	/** @var callable|null after initial Woo save with recovery token, before first Quote item write */
+	public $after_initial_order_save = null;
+	/** @var callable|null after each durable Quote line item persist, before remaining lines */
+	public $after_quote_line = null;
+	/** @var callable|null after complete Quote snapshot, before ordinary recovery metadata */
+	public $after_quote_snapshot = null;
+	/** @var callable|null test seam after recovery metadata save, before wc_reserve_stock_for_order */
+	public $after_meta_save = null;
+	/** @var array<string,int> Woo mutation counters for GET zero-write proof */
+	protected $woo_mutations = array(
+		'order_creates'         => 0,
+		'item_adds'             => 0,
+		'item_removes'          => 0,
+		'item_updates'          => 0,
+		'repair_saves'          => 0,
+		'recovery_meta_writes'  => 0,
+		'quote_snapshot_writes' => 0,
+		'stock_reservations'    => 0,
+	);
+	/** @var array<string,array<string,mixed>> last authoritative cart tax-rate breakdown, not a wire field */
+	protected $last_provider_tax = array();
 
 	public function __construct( Cetech_Pos_Bridge_Environment $environment ) {
 		$this->environment = $environment;
@@ -52,6 +75,25 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 
 	public function side_effect_counts() {
 		return $this->side_effects;
+	}
+
+	/**
+	 * Deterministic Woo mutation counters. GET resolve must leave these unchanged.
+	 *
+	 * @return array<string,int>
+	 */
+	public function woo_mutation_counts() {
+		return $this->woo_mutations;
+	}
+
+	/**
+	 * @param string $key
+	 * @param int    $n
+	 */
+	protected function record_woo_mutation( $key, $n = 1 ) {
+		if ( isset( $this->woo_mutations[ $key ] ) ) {
+			$this->woo_mutations[ $key ] += (int) $n;
+		}
 	}
 
 	/**
@@ -340,8 +382,9 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $cart_level ) ) {
 			return $cart_level;
 		}
-		$contents = method_exists( $cart, 'get_cart' ) ? $cart->get_cart() : array();
-		$lines    = array();
+		$contents                = method_exists( $cart, 'get_cart' ) ? $cart->get_cart() : array();
+		$lines                   = array();
+		$this->last_provider_tax = array();
 		foreach ( $contents as $item ) {
 			$mapped = $this->map_cart_item( $item, $currency );
 			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $mapped ) ) {
@@ -397,6 +440,9 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		);
 		if ( $variation_id ) {
 			$mapped['variationId'] = $variation_id;
+		}
+		if ( is_array( $item ) && isset( $item['line_tax_data'] ) && is_array( $item['line_tax_data'] ) ) {
+			$this->last_provider_tax[ $this->line_tax_key( $mapped ) ] = $item['line_tax_data'];
 		}
 		if ( ! $purchasable ) {
 			$mapped['problems'][] = array(
@@ -813,5 +859,1476 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 			'resolve',
 			503
 		);
+	}
+
+	/**
+	 * Hold-stock lifetime from Woo configuration. Zero is not a bounded
+	 * reserved commitment and is refused rather than replaced with a guessed TTL.
+	 *
+	 * @return int seconds
+	 */
+	public function hold_stock_seconds() {
+		$minutes = 0;
+		if ( $this->environment->function_exists( 'get_option' ) ) {
+			$minutes = (int) get_option( 'woocommerce_hold_stock_minutes', 0 );
+		}
+		if ( $minutes <= 0 ) {
+			return 0;
+		}
+		return $minutes * 60;
+	}
+
+	/**
+	 * Create exactly one unpaid pending Woo order through HPOS-safe CRUD.
+	 * Recovery identity is bound into the INITIAL order save, not a later claim update.
+	 *
+	 * @param array<string,mixed> $quote
+	 * @param string              $transaction_id
+	 * @param string              $request_hash
+	 * @param string              $recovery_token
+	 * @return array<string,mixed>|WP_Error
+	 */
+	public function create_prepared_order( array $quote, $transaction_id, $request_hash, $recovery_token = '' ) {
+		$hold = $this->hold_stock_seconds();
+		if ( $hold <= 0 ) {
+			return $this->unavailable( 'Woo hold-stock minutes is not configured; prepare cannot claim a bounded reserved commitment.' );
+		}
+		if ( ! is_string( $recovery_token ) || ! preg_match( '/^[0-9a-f]{64}$/', $recovery_token ) ) {
+			return $this->unavailable( 'A high-entropy Woo recovery token is required before order create.' );
+		}
+		if ( ! $this->environment->function_exists( 'wc_create_order' ) ) {
+			return $this->unavailable( 'wc_create_order is not available; HPOS-safe order create cannot run.' );
+		}
+		$before       = $this->count_orders();
+		$disable_mail = function () {
+			return false;
+		};
+		if ( $this->environment->function_exists( 'add_filter' ) ) {
+			add_filter( 'woocommerce_email_enabled_new_order', $disable_mail, 99 );
+			add_filter( 'woocommerce_email_enabled_customer_on_hold_order', $disable_mail, 99 );
+		}
+		try {
+			$order = $this->persist_initial_order_with_recovery_token( $quote, $recovery_token );
+			++$this->create_calls;
+			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $order ) ) {
+				return $order;
+			}
+			$this->record_woo_mutation( 'order_creates' );
+			$this->fire_seam( $this->after_initial_order_save );
+			$applied = $this->apply_quote_snapshot_to_order( $order, $quote );
+			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $applied ) ) {
+				return $applied;
+			}
+			$this->fire_seam( $this->after_quote_snapshot );
+			$sale_id = 'sale-' . ( method_exists( $order, 'get_id' ) ? (string) $order->get_id() : bin2hex( random_bytes( 8 ) ) );
+			$meta    = $this->save_ordinary_recovery_meta( $order, $transaction_id, $request_hash, $sale_id, $quote );
+			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $meta ) ) {
+				return $meta;
+			}
+			$this->fire_seam( $this->after_meta_save );
+			if ( ! $this->environment->function_exists( 'wc_reserve_stock_for_order' ) ) {
+				return $this->unavailable( 'wc_reserve_stock_for_order is not available; prepare will not invent stock arithmetic.' );
+			}
+			$reserved = $this->call_reserve_stock_for_order( $order, false );
+			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $reserved ) ) {
+				$this->trash_incomplete_order( $order );
+				return $reserved;
+			}
+			if ( ! $this->order_has_proven_reservation( $order ) ) {
+				return $this->unavailable( 'Woo did not expose a complete current stock reservation after wc_reserve_stock_for_order.' );
+			}
+			$matched = $this->assert_order_matches_quote( $order, $quote );
+			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $matched ) ) {
+				return $matched;
+			}
+			$described = $this->describe_order( $order, $hold );
+			if ( $described === null || empty( $described['reservationProven'] ) ) {
+				return $this->unavailable( 'Prepared order reservation could not be described as proven.' );
+			}
+			$this->side_effects['orders']++;
+			$this->side_effects['stock']++;
+			$after = $this->count_orders();
+			if ( $before !== null && $after !== null && ( $after - $before ) !== 1 ) {
+				return $this->unavailable( 'Woo order count did not increase by exactly one during prepare.' );
+			}
+			return $described;
+		} finally {
+			if ( $this->environment->function_exists( 'remove_filter' ) ) {
+				remove_filter( 'woocommerce_email_enabled_new_order', $disable_mail, 99 );
+				remove_filter( 'woocommerce_email_enabled_customer_on_hold_order', $disable_mail, 99 );
+			}
+		}
+	}
+
+	/**
+	 * Bind the recovery token into the INITIAL wc_create_order save via Woo CRUD
+	 * properties (order_key + meta) set on woocommerce_before_order_object_save.
+	 *
+	 * @param array<string,mixed> $quote
+	 * @param string              $recovery_token
+	 * @return object|WP_Error
+	 */
+	protected function persist_initial_order_with_recovery_token( array $quote, $recovery_token ) {
+		$customer_id = $this->quote_customer_user_id( $quote );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $customer_id ) ) {
+			return $customer_id;
+		}
+		$binder = function ( $order ) use ( $recovery_token, $quote, $customer_id ) {
+			if ( ! is_object( $order ) ) {
+				return;
+			}
+			if ( method_exists( $order, 'set_order_key' ) ) {
+				$order->set_order_key( $recovery_token );
+			}
+			if ( method_exists( $order, 'set_created_via' ) ) {
+				$order->set_created_via( 'cetech-pos' );
+			}
+			if ( method_exists( $order, 'set_customer_id' ) ) {
+				$order->set_customer_id( $customer_id );
+			}
+			if ( method_exists( $order, 'set_currency' ) && isset( $quote['currency'] ) ) {
+				$order->set_currency( $quote['currency'] );
+			}
+			if ( method_exists( $order, 'update_meta_data' ) ) {
+				$order->update_meta_data( Cetech_Pos_Bridge_Constants::ORDER_META_RECOVERY, $recovery_token );
+			}
+		};
+		if ( $this->environment->function_exists( 'add_action' ) ) {
+			add_action( 'woocommerce_before_order_object_save', $binder, 0, 1 );
+		}
+		try {
+			$order = wc_create_order(
+				array(
+					'status'      => 'pending',
+					'created_via' => 'cetech-pos',
+					'customer_id' => $customer_id,
+				)
+			);
+		} finally {
+			if ( $this->environment->function_exists( 'remove_action' ) ) {
+				remove_action( 'woocommerce_before_order_object_save', $binder, 0 );
+			}
+		}
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $order ) || ! is_object( $order ) ) {
+			return $this->unavailable( 'Woo did not create a pending order.' );
+		}
+		if ( ! $this->order_carries_recovery_token( $order, $recovery_token ) ) {
+			return $this->unavailable( 'Woo did not persist the recovery identity during the initial order save.' );
+		}
+		return $order;
+	}
+
+	/**
+	 * Query Woo by the recovery token using supported order_key / meta CRUD.
+	 *
+	 * @param string $recovery_token
+	 * @return array<int,array<string,mixed>>|WP_Error
+	 */
+	public function find_orders_by_recovery_token( $recovery_token ) {
+		if ( ! is_string( $recovery_token ) || ! preg_match( '/^[0-9a-f]{64}$/', $recovery_token ) ) {
+			return array();
+		}
+		if ( ! $this->environment->function_exists( 'wc_get_orders' ) && ! $this->environment->function_exists( 'wc_get_order_id_by_order_key' ) ) {
+			return $this->unavailable( 'Woo order query APIs are not available for recovery-token lookup.' );
+		}
+		$ids = array();
+		if ( $this->environment->function_exists( 'wc_get_order_id_by_order_key' ) ) {
+			$by_key = wc_get_order_id_by_order_key( $recovery_token );
+			if ( $by_key ) {
+				$ids[ (string) $by_key ] = true;
+			}
+		}
+		if ( $this->environment->function_exists( 'wc_get_orders' ) ) {
+			$by_key_orders = wc_get_orders(
+				array(
+					'limit'     => 5,
+					'return'    => 'ids',
+					'order_key' => $recovery_token,
+				)
+			);
+			if ( is_array( $by_key_orders ) ) {
+				foreach ( $by_key_orders as $id ) {
+					$ids[ (string) $id ] = true;
+				}
+			}
+			$by_meta = wc_get_orders(
+				array(
+					'limit'      => 5,
+					'return'     => 'ids',
+					'meta_key'   => Cetech_Pos_Bridge_Constants::ORDER_META_RECOVERY,
+					'meta_value' => $recovery_token,
+				)
+			);
+			if ( is_array( $by_meta ) ) {
+				foreach ( $by_meta as $id ) {
+					$ids[ (string) $id ] = true;
+				}
+			}
+		}
+		if ( count( $ids ) > 1 ) {
+			return $this->attention_recovery( 'Multiple Woo orders carry this recovery token.' );
+		}
+		if ( count( $ids ) === 0 ) {
+			return array();
+		}
+		if ( ! $this->environment->function_exists( 'wc_get_order' ) ) {
+			return $this->unavailable( 'wc_get_order is not available to load the recovered order.' );
+		}
+		$order_id = (int) array_key_first( $ids );
+		$order    = wc_get_order( $order_id );
+		if ( ! is_object( $order ) ) {
+			return $this->unavailable( 'Woo order found by recovery token could not be loaded.' );
+		}
+		$hold      = $this->hold_stock_seconds();
+		$described = $this->describe_order( $order, $hold );
+		if ( $described === null ) {
+			return array();
+		}
+		$described['recoveryToken'] = $recovery_token;
+		return array( $described );
+	}
+
+	/**
+	 * Map accepted Quote line/order economics onto the Woo order using
+	 * deterministic QuoteLine identity. Adds missing CETECH lines and
+	 * completes recoverable partials. Never silently deletes ambiguous lines.
+	 *
+	 * @param object              $order
+	 * @param array<string,mixed> $quote
+	 * @return true|WP_Error
+	 */
+	public function apply_quote_snapshot_to_order( $order, array $quote ) {
+		return $this->reconcile_quote_snapshot_to_order( $order, $quote, false );
+	}
+
+	/**
+	 * @param object $order
+	 * @param string $transaction_id
+	 * @param string $request_hash
+	 * @param string $sale_id
+	 * @param array<string,mixed> $quote
+	 * @return true|WP_Error
+	 */
+	public function save_ordinary_recovery_meta( $order, $transaction_id, $request_hash, $sale_id, array $quote ) {
+		if ( ! is_object( $order ) || ! method_exists( $order, 'update_meta_data' ) || ! method_exists( $order, 'save' ) ) {
+			return $this->unavailable( 'Woo order object does not expose HPOS-safe CRUD methods.' );
+		}
+		$order->update_meta_data( Cetech_Pos_Bridge_Constants::ORDER_META_TX, $transaction_id );
+		$order->update_meta_data( Cetech_Pos_Bridge_Constants::ORDER_META_HASH, $request_hash );
+		$order->update_meta_data( Cetech_Pos_Bridge_Constants::ORDER_META_SALE, $sale_id );
+		if ( isset( $quote['id'] ) ) {
+			$order->update_meta_data( Cetech_Pos_Bridge_Constants::ORDER_META_QUOTE, (string) $quote['id'] );
+		}
+		if ( isset( $quote['fingerprint'] ) ) {
+			$order->update_meta_data( Cetech_Pos_Bridge_Constants::ORDER_META_QUOTE_FP, (string) $quote['fingerprint'] );
+		}
+		$order->save();
+		$this->record_woo_mutation( 'recovery_meta_writes' );
+		return true;
+	}
+
+	/**
+	 * GET resolve: inspect a recovered Woo order without creating, repairing,
+	 * saving, or reserving. Returns a described prepared-capable order, null
+	 * when the truthful state is preparing, or WP_Error for requires_attention.
+	 *
+	 * @param array<string,mixed> $found
+	 * @param array<string,mixed> $quote
+	 * @param string              $transaction_id
+	 * @param string              $request_hash
+	 * @return array<string,mixed>|WP_Error|null
+	 */
+	public function inspect_recovered_order( array $found, array $quote, $transaction_id, $request_hash ) {
+		if ( ! $this->environment->function_exists( 'wc_get_order' ) ) {
+			return $this->unavailable( 'wc_get_order is not available to inspect recovered prepare.' );
+		}
+		$order = wc_get_order( $found['orderId'] );
+		if ( ! is_object( $order ) ) {
+			return $this->unavailable( 'Woo order could not be loaded to inspect recovered prepare.' );
+		}
+		$owned = $this->assert_recovered_order_is_cetech_owned( $order, $found, $transaction_id, $request_hash );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $owned ) ) {
+			return $owned;
+		}
+		$records = $this->extract_product_line_records( $order );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $records ) ) {
+			return $records;
+		}
+		$state = $this->classify_quote_snapshot_state( $records, $quote );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $state ) ) {
+			return $state;
+		}
+		if ( $state !== 'complete' ) {
+			return null;
+		}
+		$matched = $this->assert_order_matches_quote( $order, $quote );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $matched ) ) {
+			return null;
+		}
+		$hold      = $this->hold_stock_seconds();
+		$described = $this->describe_order( $order, $hold );
+		if ( $described === null ) {
+			return $this->unavailable( 'Recovered Woo order could not be described.' );
+		}
+		if ( ! empty( $described['reservationProven'] ) && isset( $described['stockCommitment'] ) ) {
+			return $described;
+		}
+		return null;
+	}
+
+	/**
+	 * POST prepare retry: repair a token-owned order while the creator lock is held.
+	 *
+	 * @param array<string,mixed> $found
+	 * @param array<string,mixed> $quote
+	 * @param string              $transaction_id
+	 * @param string              $request_hash
+	 * @return array<string,mixed>|WP_Error
+	 */
+	public function repair_recovered_order( array $found, array $quote, $transaction_id, $request_hash ) {
+		if ( ! $this->environment->function_exists( 'wc_get_order' ) ) {
+			return $this->unavailable( 'wc_get_order is not available to repair recovered prepare.' );
+		}
+		$order = wc_get_order( $found['orderId'] );
+		if ( ! is_object( $order ) ) {
+			return $this->unavailable( 'Woo order could not be loaded to repair recovered prepare.' );
+		}
+		$owned = $this->assert_recovered_order_is_cetech_owned( $order, $found, $transaction_id, $request_hash );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $owned ) ) {
+			return $owned;
+		}
+		$records = $this->extract_product_line_records( $order );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $records ) ) {
+			return $records;
+		}
+		$state = $this->classify_quote_snapshot_state( $records, $quote );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $state ) ) {
+			return $state;
+		}
+		if ( $state === 'incomplete' && $this->order_has_any_current_reservation( $order ) ) {
+			return $this->attention_recovery( 'Existing reservation makes Quote line repair unsafe.' );
+		}
+		$applied = $this->reconcile_quote_snapshot_to_order( $order, $quote, true );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $applied ) ) {
+			return $applied;
+		}
+		$sale_id = isset( $found['saleId'] ) && is_string( $found['saleId'] ) && $found['saleId'] !== ''
+			? $found['saleId']
+			: ( 'sale-' . (string) $found['orderId'] );
+		$meta = $this->save_ordinary_recovery_meta( $order, $transaction_id, $request_hash, $sale_id, $quote );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $meta ) ) {
+			return $meta;
+		}
+		$hold      = $this->hold_stock_seconds();
+		$described = $this->describe_order( $order, $hold );
+		if ( $described === null ) {
+			return $this->unavailable( 'Recovered Woo order could not be described.' );
+		}
+		if ( ! empty( $described['reservationProven'] ) && isset( $described['stockCommitment'] ) ) {
+			$matched = $this->assert_order_matches_quote( $order, $quote );
+			return Cetech_Pos_Bridge_Quote_Request::is_error( $matched ) ? $matched : $described;
+		}
+		$completed = $this->complete_stock_reservation( $described );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $completed ) ) {
+			return $completed;
+		}
+		$matched = $this->assert_order_matches_quote( $order, $quote );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $matched ) ) {
+			return $matched;
+		}
+		return $completed;
+	}
+
+	/**
+	 * @param object              $order
+	 * @param array<string,mixed> $quote
+	 * @param bool                $repair_save
+	 * @return true|WP_Error
+	 */
+	protected function reconcile_quote_snapshot_to_order( $order, array $quote, $repair_save ) {
+		if ( ! is_object( $order ) || ! method_exists( $order, 'save' ) ) {
+			return $this->unavailable( 'Woo order object does not expose HPOS-safe CRUD methods.' );
+		}
+		$records = $this->extract_product_line_records( $order );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $records ) ) {
+			return $records;
+		}
+		$state = $this->classify_quote_snapshot_state( $records, $quote );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $state ) ) {
+			return $state;
+		}
+		if ( $state === 'incomplete' ) {
+			$written = $this->write_missing_and_partial_quote_lines( $order, $quote, $records );
+			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $written ) ) {
+				return $written;
+			}
+		}
+		$totals = $this->write_order_quote_totals( $order, $quote );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $totals ) ) {
+			return $totals;
+		}
+		$order->save();
+		$this->record_woo_mutation( 'quote_snapshot_writes' );
+		if ( $repair_save ) {
+			$this->record_woo_mutation( 'repair_saves' );
+		}
+		return $this->assert_order_matches_quote( $order, $quote );
+	}
+
+	/**
+	 * @param object                         $order
+	 * @param array<string,mixed>            $quote
+	 * @param array<int,array<string,mixed>> $records
+	 * @return true|WP_Error
+	 */
+	protected function write_missing_and_partial_quote_lines( $order, array $quote, array $records ) {
+		$by_id = array();
+		foreach ( $records as $record ) {
+			$lid = isset( $record['lineId'] ) ? (string) $record['lineId'] : '';
+			if ( $lid === '' ) {
+				continue;
+			}
+			$by_id[ $lid ][] = $record;
+		}
+		foreach ( $quote['lines'] as $line ) {
+			$lid = isset( $line['lineId'] ) ? (string) $line['lineId'] : '';
+			if ( $lid === '' ) {
+				return $this->unavailable( 'Authoritative Quote line identity is required to persist Woo order items.' );
+			}
+			$mapped = $this->quote_line_economics( $line );
+			if ( $mapped === null ) {
+				return $this->unavailable( 'Authoritative Quote line economics could not be read as minor units.' );
+			}
+			$matches = isset( $by_id[ $lid ] ) ? $by_id[ $lid ] : array();
+			if ( count( $matches ) === 0 ) {
+				$added = $this->persist_quote_line_item( $order, $line, $mapped );
+				if ( Cetech_Pos_Bridge_Quote_Request::is_error( $added ) ) {
+					return $added;
+				}
+				continue;
+			}
+			$record = $matches[0];
+			if ( $this->line_record_matches_quote( $record, $line, $mapped ) ) {
+				continue;
+			}
+			$updated = $this->update_quote_line_item( $record['item'], $line, $mapped );
+			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $updated ) ) {
+				return $updated;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Persist a Quote line with bridge-private line identity present on the
+	 * first durable item save. Does not use add_product(), which saves before
+	 * identity meta can be attached.
+	 *
+	 * @param object              $order
+	 * @param array<string,mixed> $line
+	 * @param array<string,mixed> $mapped
+	 * @return true|WP_Error
+	 */
+	protected function persist_quote_line_item( $order, array $line, array $mapped ) {
+		$product = $this->resolve_product( $line );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $product ) ) {
+			return $product;
+		}
+		if ( ! $this->environment->class_exists( 'WC_Order_Item_Product' ) ) {
+			return $this->unavailable( 'WC_Order_Item_Product is required to persist Quote line identity on the first Woo item save.' );
+		}
+		$item = new WC_Order_Item_Product();
+		if ( method_exists( $item, 'set_product' ) ) {
+			$item->set_product( $product );
+		}
+		$configured = $this->configure_quote_line_item( $item, $line, $mapped );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $configured ) ) {
+			return $configured;
+		}
+		if ( ! method_exists( $order, 'add_item' ) ) {
+			return $this->unavailable( 'Woo order object does not expose add_item for HPOS-safe line persistence.' );
+		}
+		$order->add_item( $item );
+		if ( method_exists( $item, 'save' ) ) {
+			$item->save();
+		}
+		$this->record_woo_mutation( 'item_adds' );
+		$this->record_woo_mutation( 'quote_snapshot_writes' );
+		$this->fire_seam( $this->after_quote_line );
+		return true;
+	}
+
+	/**
+	 * @param object              $item
+	 * @param array<string,mixed> $line
+	 * @param array<string,mixed> $mapped
+	 * @return true|WP_Error
+	 */
+	protected function update_quote_line_item( $item, array $line, array $mapped ) {
+		if ( ! is_object( $item ) ) {
+			return $this->unavailable( 'Recovered Woo line item could not be updated.' );
+		}
+		$configured = $this->configure_quote_line_item( $item, $line, $mapped );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $configured ) ) {
+			return $configured;
+		}
+		if ( method_exists( $item, 'save' ) ) {
+			$item->save();
+		}
+		$this->record_woo_mutation( 'item_updates' );
+		$this->record_woo_mutation( 'quote_snapshot_writes' );
+		return true;
+	}
+
+	/**
+	 * Attach Quote economics and bridge-private line identity before save.
+	 *
+	 * @param object              $item
+	 * @param array<string,mixed> $line
+	 * @param array<string,mixed> $mapped
+	 * @return true|WP_Error
+	 */
+	protected function configure_quote_line_item( $item, array $line, array $mapped ) {
+		$qty     = isset( $line['quantity'] ) ? $line['quantity'] : '1';
+		$line_id = isset( $line['lineId'] ) ? (string) $line['lineId'] : '';
+		if ( $line_id === '' ) {
+			return $this->unavailable( 'Authoritative Quote line identity is required to persist Woo order items.' );
+		}
+		if ( method_exists( $item, 'set_quantity' ) ) {
+			$item->set_quantity( $qty );
+		}
+		$taxed = $this->apply_line_tax( $item, $line, $mapped );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $taxed ) ) {
+			return $taxed;
+		}
+		if ( method_exists( $item, 'update_meta_data' ) ) {
+			$item->update_meta_data( Cetech_Pos_Bridge_Constants::ORDER_ITEM_META_LINE, $line_id );
+		}
+		return true;
+	}
+
+	/**
+	 * @param object              $order
+	 * @param array<string,mixed> $quote
+	 * @return true|WP_Error
+	 */
+	protected function write_order_quote_totals( $order, array $quote ) {
+		$order_econs = $this->quote_order_economics( $quote );
+		if ( $order_econs === null ) {
+			return $this->unavailable( 'Authoritative Quote order economics could not be read as minor units.' );
+		}
+		if ( method_exists( $order, 'set_currency' ) ) {
+			$order->set_currency( $order_econs['currency'] );
+		}
+		if ( method_exists( $order, 'set_discount_total' ) ) {
+			$order->set_discount_total( $order_econs['discountDec'] );
+		}
+		if ( method_exists( $order, 'set_shipping_total' ) ) {
+			$order->set_shipping_total( '0.00' );
+		}
+		if ( method_exists( $order, 'set_shipping_tax' ) ) {
+			$order->set_shipping_tax( '0.00' );
+		}
+		if ( method_exists( $order, 'set_cart_tax' ) ) {
+			$order->set_cart_tax( $order_econs['taxDec'] );
+		}
+		if ( method_exists( $order, 'set_total' ) ) {
+			$order->set_total( $order_econs['totalDec'] );
+		}
+		return true;
+	}
+
+	/**
+	 * @param object $order
+	 * @return array<int,array<string,mixed>>|WP_Error
+	 */
+	protected function extract_product_line_records( $order ) {
+		if ( ! is_object( $order ) || ! method_exists( $order, 'get_items' ) ) {
+			return $this->unavailable( 'Woo order object does not expose line items for snapshot inspection.' );
+		}
+		$items = $order->get_items();
+		if ( ! is_array( $items ) ) {
+			return $this->unavailable( 'Woo order line items could not be read.' );
+		}
+		$out = array();
+		foreach ( $items as $item ) {
+			if ( is_object( $item ) && method_exists( $item, 'is_type' ) && ! $item->is_type( 'line_item' ) ) {
+				continue;
+			}
+			$line_id = '';
+			if ( is_object( $item ) && method_exists( $item, 'get_meta' ) ) {
+				$line_id = (string) $item->get_meta( Cetech_Pos_Bridge_Constants::ORDER_ITEM_META_LINE );
+			}
+			$product_id   = is_object( $item ) && method_exists( $item, 'get_product_id' ) ? (string) $item->get_product_id() : '';
+			$variation_id = '';
+			if ( is_object( $item ) && method_exists( $item, 'get_variation_id' ) && $item->get_variation_id() ) {
+				$variation_id = (string) $item->get_variation_id();
+			}
+			$sub      = $this->decimal_prop_minor( $item, 'get_subtotal' );
+			$net      = $this->decimal_prop_minor( $item, 'get_total' );
+			$tax      = $this->decimal_prop_minor( $item, 'get_total_tax' );
+			$qty      = is_object( $item ) && method_exists( $item, 'get_quantity' ) ? (string) $item->get_quantity() : '';
+			$discount = ( $sub !== null && $net !== null ) ? ( $sub - $net ) : null;
+			$out[]    = array(
+				'item'        => $item,
+				'lineId'      => $line_id,
+				'productId'   => $product_id,
+				'variationId' => $variation_id,
+				'quantity'    => $qty,
+				'subtotal'    => $sub,
+				'discount'    => $discount,
+				'tax'         => $tax,
+				'total'       => ( $net !== null && $tax !== null ) ? ( $net + $tax ) : null,
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * @param array<int,array<string,mixed>> $records
+	 * @param array<string,mixed>            $quote
+	 * @return string|WP_Error complete|incomplete
+	 */
+	protected function classify_quote_snapshot_state( array $records, array $quote ) {
+		$expected = array();
+		foreach ( $quote['lines'] as $line ) {
+			$lid = isset( $line['lineId'] ) ? (string) $line['lineId'] : '';
+			if ( $lid === '' ) {
+				return $this->unavailable( 'Authoritative Quote line identity is required to inspect Woo order items.' );
+			}
+			if ( isset( $expected[ $lid ] ) ) {
+				return $this->attention_recovery( 'Duplicate Quote line identity.' );
+			}
+			$expected[ $lid ] = $line;
+		}
+		$by_id = array();
+		foreach ( $records as $record ) {
+			$lid = isset( $record['lineId'] ) ? (string) $record['lineId'] : '';
+			if ( $lid === '' ) {
+				return $this->attention_recovery( 'Existing Woo item has no safe deterministic Quote line identity.' );
+			}
+			if ( ! isset( $expected[ $lid ] ) ) {
+				return $this->attention_recovery( 'Token-owned Woo order contains an unexpected product line.' );
+			}
+			$by_id[ $lid ][] = $record;
+		}
+		$incomplete = false;
+		foreach ( $expected as $lid => $line ) {
+			$matches = isset( $by_id[ $lid ] ) ? $by_id[ $lid ] : array();
+			if ( count( $matches ) > 1 ) {
+				return $this->attention_recovery( 'Duplicate bridge line identity on the recovered Woo order.' );
+			}
+			if ( count( $matches ) === 0 ) {
+				$incomplete = true;
+				continue;
+			}
+			$record  = $matches[0];
+			$exp_pid = isset( $line['productId'] ) ? (string) $line['productId'] : '';
+			$exp_vid = isset( $line['variationId'] ) ? (string) $line['variationId'] : '';
+			$got_pid = isset( $record['productId'] ) ? (string) $record['productId'] : '';
+			$got_vid = isset( $record['variationId'] ) ? (string) $record['variationId'] : '';
+			if ( $got_pid !== $exp_pid || $got_vid !== $exp_vid ) {
+				return $this->attention_recovery( 'Bridge line identity points to a contradictory product or variation.' );
+			}
+			$mapped = $this->quote_line_economics( $line );
+			if ( $mapped === null || ! $this->line_record_matches_quote( $record, $line, $mapped ) ) {
+				$incomplete = true;
+			}
+		}
+		return $incomplete ? 'incomplete' : 'complete';
+	}
+
+	/**
+	 * @param array<string,mixed> $record
+	 * @param array<string,mixed> $line
+	 * @param array<string,mixed> $mapped
+	 * @return bool
+	 */
+	protected function line_record_matches_quote( array $record, array $line, array $mapped ) {
+		if ( (string) $record['quantity'] !== (string) $line['quantity'] ) {
+			return false;
+		}
+		if ( $record['subtotal'] === null || $record['discount'] === null || $record['tax'] === null || $record['total'] === null ) {
+			return false;
+		}
+		return (int) $record['subtotal'] === (int) $mapped['subtotal']
+			&& (int) $record['discount'] === (int) $mapped['discount']
+			&& (int) $record['tax'] === (int) $mapped['tax']
+			&& (int) $record['total'] === (int) $mapped['total'];
+	}
+
+	/**
+	 * @param object              $order
+	 * @param array<string,mixed> $found
+	 * @param string              $transaction_id
+	 * @param string              $request_hash
+	 * @return true|WP_Error
+	 */
+	protected function assert_recovered_order_is_cetech_owned( $order, array $found, $transaction_id, $request_hash ) {
+		$status = method_exists( $order, 'get_status' ) ? (string) $order->get_status() : '';
+		if ( method_exists( $order, 'is_paid' ) && $order->is_paid() ) {
+			return $this->attention_recovery( 'Recovered Woo order is already paid and cannot be repaired.' );
+		}
+		$blocked = array( 'processing', 'completed', 'cancelled', 'refunded', 'failed' );
+		if ( $status !== '' && in_array( $status, $blocked, true ) ) {
+			return $this->attention_recovery( 'Recovered Woo order status is not prepared-compatible.' );
+		}
+		$via = method_exists( $order, 'get_created_via' ) ? (string) $order->get_created_via() : '';
+		if ( $via !== '' && $via !== 'cetech-pos' ) {
+			return $this->attention_recovery( 'Recovered Woo order was not created via cetech-pos.' );
+		}
+		$token = isset( $found['recoveryToken'] ) ? (string) $found['recoveryToken'] : '';
+		if ( $token !== '' && ! $this->order_carries_recovery_token( $order, $token ) ) {
+			return $this->attention_recovery( 'Recovered Woo order does not carry the claimed recovery token.' );
+		}
+		$tx = method_exists( $order, 'get_meta' ) ? (string) $order->get_meta( Cetech_Pos_Bridge_Constants::ORDER_META_TX ) : '';
+		if ( $tx !== '' && $tx !== (string) $transaction_id ) {
+			return $this->attention_recovery( 'Recovered Woo order transaction identity contradicts the claim.' );
+		}
+		$hash = method_exists( $order, 'get_meta' ) ? (string) $order->get_meta( Cetech_Pos_Bridge_Constants::ORDER_META_HASH ) : '';
+		if ( $hash !== '' && $hash !== (string) $request_hash ) {
+			return $this->attention_recovery( 'Woo order recovery identity did not match the claimed request hash.' );
+		}
+		return true;
+	}
+
+	/**
+	 * @param object $order
+	 * @return bool
+	 */
+	protected function order_has_any_current_reservation( $order ) {
+		$rows = $this->read_current_reservation_rows( $order );
+		return is_array( $rows ) && count( $rows ) > 0;
+	}
+
+	/**
+	 * @param object              $order
+	 * @param array<string,mixed> $quote
+	 * @return true|WP_Error
+	 */
+	public function assert_order_matches_quote( $order, array $quote ) {
+		$eco = $this->read_order_economics( $order );
+		$q   = $this->quote_order_economics( $quote );
+		if ( $eco === null || $q === null ) {
+			return $this->unavailable( 'Prepared Woo order economics could not be compared to the authoritative Quote.' );
+		}
+		if ( $eco['currency'] !== $q['currency']
+			|| $eco['subtotal'] !== $q['subtotal']
+			|| $eco['discount'] !== $q['discount']
+			|| $eco['tax'] !== $q['tax']
+			|| $eco['total'] !== $q['total']
+		) {
+			return $this->unavailable( 'Prepared Woo order economics diverged from the authoritative Quote.' );
+		}
+		$records = $this->extract_product_line_records( $order );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $records ) ) {
+			return $records;
+		}
+		$state = $this->classify_quote_snapshot_state( $records, $quote );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $state ) || $state !== 'complete' ) {
+			return $this->unavailable( 'Prepared Woo order line economics diverged from the authoritative Quote.' );
+		}
+		return true;
+	}
+
+	/**
+	 * @param string              $order_id
+	 * @param array<string,mixed> $quote
+	 * @return true|WP_Error
+	 */
+	public function assert_saved_order_matches_quote( $order_id, array $quote ) {
+		if ( ! $this->environment->function_exists( 'wc_get_order' ) ) {
+			return $this->unavailable( 'wc_get_order is not available to prove prepared order economics.' );
+		}
+		$order = wc_get_order( $order_id );
+		if ( ! is_object( $order ) ) {
+			return $this->unavailable( 'Prepared Woo order could not be loaded to prove economics.' );
+		}
+		return $this->assert_order_matches_quote( $order, $quote );
+	}
+
+	/**
+	 * Recovery lookup. Not a claim. Uses supported Woo order querying, not post meta SQL.
+	 * Does not report stockCommitment=reserved unless reservation is proven.
+	 *
+	 * @param string $transaction_id
+	 * @return array<int,array<string,mixed>>
+	 */
+	public function find_orders_by_transaction( $transaction_id ) {
+		if ( ! $this->environment->function_exists( 'wc_get_orders' ) ) {
+			return array();
+		}
+		$orders = wc_get_orders(
+			array(
+				'limit'      => 5,
+				'return'     => 'objects',
+				'meta_key'   => Cetech_Pos_Bridge_Constants::ORDER_META_TX,
+				'meta_value' => $transaction_id,
+			)
+		);
+		if ( ! is_array( $orders ) ) {
+			return array();
+		}
+		$out  = array();
+		$hold = $this->hold_stock_seconds();
+		foreach ( $orders as $order ) {
+			$described = $this->describe_order( $order, $hold );
+			if ( $described !== null ) {
+				$out[] = $described;
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Idempotently complete stock reservation for an already identified Woo order.
+	 * Used by prepare retry, not by GET resolve.
+	 *
+	 * @param array<string,mixed> $found
+	 * @return array<string,mixed>|WP_Error
+	 */
+	public function complete_stock_reservation( array $found ) {
+		if ( ! empty( $found['reservationProven'] ) && isset( $found['stockCommitment'] ) && $found['stockCommitment'] === 'reserved' ) {
+			return $found;
+		}
+		if ( ! $this->environment->function_exists( 'wc_get_order' ) || ! $this->environment->function_exists( 'wc_reserve_stock_for_order' ) ) {
+			return $this->unavailable( 'Woo reservation APIs are not available to complete prepare recovery.' );
+		}
+		$order = wc_get_order( $found['orderId'] );
+		if ( ! is_object( $order ) ) {
+			return $this->unavailable( 'Woo order could not be loaded to complete reservation.' );
+		}
+		$reserved = $this->call_reserve_stock_for_order( $order, true );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $reserved ) ) {
+			return $reserved;
+		}
+		$hold      = $this->hold_stock_seconds();
+		$described = $this->describe_order( $order, $hold );
+		if ( $described === null || empty( $described['reservationProven'] ) ) {
+			return Cetech_Pos_Bridge_Response::wp_error(
+				'REQUIRES_ATTENTION',
+				'Existing Woo order reservation could not be proven after retry.',
+				false,
+				'contact_manager',
+				409
+			);
+		}
+		++$this->side_effects['stock'];
+		return $described;
+	}
+
+	/**
+	 * @param object $order
+	 * @param int    $hold
+	 * @return array<string,mixed>|null
+	 */
+	protected function describe_order( $order, $hold ) {
+		if ( ! is_object( $order ) ) {
+			return null;
+		}
+		$order_id = method_exists( $order, 'get_id' ) ? (string) $order->get_id() : '';
+		$hash     = method_exists( $order, 'get_meta' ) ? (string) $order->get_meta( Cetech_Pos_Bridge_Constants::ORDER_META_HASH ) : '';
+		$sale     = method_exists( $order, 'get_meta' ) ? (string) $order->get_meta( Cetech_Pos_Bridge_Constants::ORDER_META_SALE ) : '';
+		$token    = method_exists( $order, 'get_meta' ) ? (string) $order->get_meta( Cetech_Pos_Bridge_Constants::ORDER_META_RECOVERY ) : '';
+		if ( $token === '' && method_exists( $order, 'get_order_key' ) ) {
+			$token = (string) $order->get_order_key();
+		}
+		$ref    = method_exists( $order, 'get_order_number' ) ? (string) $order->get_order_number() : $order_id;
+		$proof  = $this->prove_order_reservation( $order );
+		$proven = is_array( $proof );
+		$row    = array(
+			'orderId'           => $order_id,
+			'saleId'            => $sale !== '' ? $sale : ( 'sale-' . $order_id ),
+			'orderReference'    => $ref,
+			'requestHash'       => $hash,
+			'recoveryToken'     => $token,
+			'reservationProven' => $proven,
+			'holdSeconds'       => $hold,
+		);
+		if ( $proven ) {
+			$row['stockCommitment']       = 'reserved';
+			$row['reservationExpiresAt']  = $proof['expiresAt'];
+			$row['holdSeconds']           = (int) $proof['holdSeconds'];
+		}
+		return $row;
+	}
+
+	/**
+	 * Complete current reservation for every product Woo should hold.
+	 * COUNT>0 is not proof. Expired rows are not proof.
+	 *
+	 * @param object $order
+	 * @return bool
+	 */
+	protected function order_has_proven_reservation( $order ) {
+		return is_array( $this->prove_order_reservation( $order ) );
+	}
+
+	/**
+	 * @param object $order
+	 * @return array<string,mixed>|null {expiresAt:string,holdSeconds:int}
+	 */
+	protected function prove_order_reservation( $order ) {
+		$required = $this->expected_managed_reservation_quantities( $order );
+		if ( ! is_array( $required ) || $required === array() ) {
+			return null;
+		}
+		$rows = $this->read_current_reservation_rows( $order );
+		if ( ! is_array( $rows ) ) {
+			return null;
+		}
+		$min_expiry = null;
+		foreach ( $required as $product_id => $qty ) {
+			$key = (string) $product_id;
+			if ( ! isset( $rows[ $key ] ) ) {
+				return null;
+			}
+			$row = $rows[ $key ];
+			if ( ! isset( $row['stock_quantity'] ) || ( (float) $row['stock_quantity'] + 0.0000001 ) < (float) $qty ) {
+				return null;
+			}
+			$exp = $this->reservation_expiry_unix( isset( $row['expires'] ) ? $row['expires'] : null );
+			if ( $exp === null || $exp <= time() ) {
+				return null;
+			}
+			if ( $min_expiry === null || $exp < $min_expiry ) {
+				$min_expiry = $exp;
+			}
+		}
+		if ( $min_expiry === null ) {
+			return null;
+		}
+		return array(
+			'expiresAt'   => gmdate( 'Y-m-d\TH:i:s\Z', $min_expiry ),
+			'holdSeconds' => $min_expiry - time(),
+		);
+	}
+
+	/**
+	 * Products Woo ReserveStock would actually hold: stock-managed, no backorders,
+	 * aggregated by get_stock_managed_by_id(). Unmanaged/backorder items are omitted.
+	 *
+	 * @param object $order
+	 * @return array<string,float>|null
+	 */
+	protected function expected_managed_reservation_quantities( $order ) {
+		if ( ! is_object( $order ) || ! method_exists( $order, 'get_items' ) ) {
+			return null;
+		}
+		$items = $order->get_items();
+		if ( ! is_array( $items ) ) {
+			return null;
+		}
+		$required = array();
+		foreach ( $items as $item ) {
+			if ( is_object( $item ) && method_exists( $item, 'is_type' ) && ! $item->is_type( 'line_item' ) ) {
+				continue;
+			}
+			$qty = 0;
+			if ( is_object( $item ) && method_exists( $item, 'get_quantity' ) ) {
+				$qty = $item->get_quantity();
+			}
+			if ( $qty <= 0 ) {
+				continue;
+			}
+			if ( ! is_object( $item ) || ! method_exists( $item, 'get_product' ) ) {
+				return null;
+			}
+			$product = $item->get_product();
+			if ( ! is_object( $product ) ) {
+				continue;
+			}
+			if ( ! method_exists( $product, 'managing_stock' ) || ! method_exists( $product, 'backorders_allowed' ) || ! method_exists( $product, 'get_stock_managed_by_id' ) ) {
+				return null;
+			}
+			if ( ! $product->managing_stock() || $product->backorders_allowed() ) {
+				continue;
+			}
+			if ( $this->environment->function_exists( 'apply_filters' ) ) {
+				$qty = apply_filters( 'woocommerce_order_item_quantity', $qty, $order, $item );
+			}
+			$managed_by = (string) $product->get_stock_managed_by_id();
+			if ( $managed_by === '' ) {
+				return null;
+			}
+			if ( ! isset( $required[ $managed_by ] ) ) {
+				$required[ $managed_by ] = 0;
+			}
+			$required[ $managed_by ] += $qty;
+		}
+		return $required;
+	}
+
+	/**
+	 * Read-only inspection of Woo's reservation table. Never writes.
+	 *
+	 * @param object $order
+	 * @return array<string,array<string,mixed>>|null
+	 */
+	protected function read_current_reservation_rows( $order ) {
+		$order_id = is_object( $order ) && method_exists( $order, 'get_id' ) ? (int) $order->get_id() : 0;
+		if ( $order_id <= 0 ) {
+			return null;
+		}
+		global $wpdb;
+		if ( ! isset( $wpdb ) || ! is_object( $wpdb ) || ! method_exists( $wpdb, 'get_results' ) ) {
+			return null;
+		}
+		$table = null;
+		if ( isset( $wpdb->wc_reserved_stock ) && is_string( $wpdb->wc_reserved_stock ) && preg_match( '/^[A-Za-z0-9_]+$/', $wpdb->wc_reserved_stock ) ) {
+			$table = $wpdb->wc_reserved_stock;
+		}
+		if ( $table === null ) {
+			return null;
+		}
+		$sql = 'SELECT product_id, stock_quantity, expires FROM `' . $table . '` WHERE order_id = %d AND expires > NOW()';
+		if ( method_exists( $wpdb, 'prepare' ) ) {
+			$sql = $wpdb->prepare( $sql, $order_id );
+		}
+		$results = $wpdb->get_results( $sql, ARRAY_A );
+		if ( ! is_array( $results ) ) {
+			return null;
+		}
+		$out = array();
+		foreach ( $results as $row ) {
+			if ( ! is_array( $row ) || ! isset( $row['product_id'], $row['stock_quantity'], $row['expires'] ) ) {
+				return null;
+			}
+			$key = (string) $row['product_id'];
+			if ( isset( $out[ $key ] ) ) {
+				return null;
+			}
+			$out[ $key ] = $row;
+		}
+		return $out;
+	}
+
+	/**
+	 * @param mixed $expires
+	 * @return int|null unix timestamp
+	 */
+	protected function reservation_expiry_unix( $expires ) {
+		if ( is_int( $expires ) || ( is_string( $expires ) && ctype_digit( $expires ) ) ) {
+			$unix = (int) $expires;
+			return $unix > 0 ? $unix : null;
+		}
+		if ( ! is_string( $expires ) || $expires === '' ) {
+			return null;
+		}
+		$unix = strtotime( $expires );
+		return $unix === false ? null : $unix;
+	}
+
+	/**
+	 * @param object $order
+	 * @param bool   $recovery
+	 * @return true|WP_Error
+	 */
+	protected function call_reserve_stock_for_order( $order, $recovery ) {
+		try {
+			$reserved = wc_reserve_stock_for_order( $order );
+			if ( $reserved === false || Cetech_Pos_Bridge_Quote_Request::is_error( $reserved ) ) {
+				if ( $recovery ) {
+					return Cetech_Pos_Bridge_Response::wp_error(
+						'REQUIRES_ATTENTION',
+						'Existing Woo order reservation could not be completed.',
+						false,
+						'contact_manager',
+						409
+					);
+				}
+				return Cetech_Pos_Bridge_Response::wp_error(
+					'STOCK_CHANGED',
+					'Woo could not reserve stock for the prepared order.',
+					false,
+					'review_quote',
+					409,
+					array( 'field' => 'lines' )
+				);
+			}
+			$this->record_woo_mutation( 'stock_reservations' );
+			return true;
+		} catch ( Exception $e ) {
+			return $this->reservation_failure_from_exception( $e, $recovery );
+		} catch ( Throwable $e ) {
+			return $this->reservation_failure_from_exception( $e, $recovery );
+		}
+	}
+
+	/**
+	 * Normalize Woo reservation throwables. Does not invent error codes.
+	 *
+	 * @param Exception|Throwable $e
+	 * @param bool                $recovery
+	 * @return WP_Error
+	 */
+	public function reservation_failure_from_exception( $e, $recovery ) {
+		$code  = '';
+		$class = is_object( $e ) ? get_class( $e ) : '';
+		if ( is_object( $e ) && method_exists( $e, 'getErrorCode' ) ) {
+			$code = (string) $e->getErrorCode();
+		}
+		$is_reserve = ( strpos( $class, 'ReserveStockException' ) !== false );
+		$insufficient = (
+			$code === 'woocommerce_product_not_enough_stock'
+			|| $code === 'woocommerce_product_out_of_stock'
+		);
+		if ( $insufficient || ( $is_reserve && $insufficient ) ) {
+			if ( $recovery ) {
+				return Cetech_Pos_Bridge_Response::wp_error(
+					'REQUIRES_ATTENTION',
+					'Existing Woo order reservation could not be completed.',
+					false,
+					'contact_manager',
+					409
+				);
+			}
+			return Cetech_Pos_Bridge_Response::wp_error(
+				'STOCK_CHANGED',
+				'Woo could not reserve stock for the prepared order.',
+				false,
+				'review_quote',
+				409,
+				array( 'field' => 'lines' )
+			);
+		}
+		if ( $is_reserve && ! $recovery ) {
+			return Cetech_Pos_Bridge_Response::wp_error(
+				'STOCK_CHANGED',
+				'Woo could not reserve stock for the prepared order.',
+				false,
+				'review_quote',
+				409,
+				array( 'field' => 'lines' )
+			);
+		}
+		if ( $recovery ) {
+			return Cetech_Pos_Bridge_Response::wp_error(
+				'REQUIRES_ATTENTION',
+				'Existing Woo order reservation could not be completed.',
+				false,
+				'contact_manager',
+				409
+			);
+		}
+		return $this->unavailable( 'Woo reservation failed without a classifiable stock outcome.' );
+	}
+
+	/**
+	 * @param callable|null $slot
+	 */
+	protected function fire_seam( &$slot ) {
+		if ( is_callable( $slot ) ) {
+			$cb   = $slot;
+			$slot = null;
+			$cb( $this );
+		}
+	}
+
+	/**
+	 * @param object $order
+	 * @param string $recovery_token
+	 * @return bool
+	 */
+	protected function order_carries_recovery_token( $order, $recovery_token ) {
+		$key  = method_exists( $order, 'get_order_key' ) ? (string) $order->get_order_key() : '';
+		$meta = method_exists( $order, 'get_meta' ) ? (string) $order->get_meta( Cetech_Pos_Bridge_Constants::ORDER_META_RECOVERY ) : '';
+		return $key === (string) $recovery_token || $meta === (string) $recovery_token;
+	}
+
+	/**
+	 * @param array<string,mixed> $quote
+	 * @return int|WP_Error
+	 */
+	protected function quote_customer_user_id( array $quote ) {
+		$customer = isset( $quote['customer'] ) && is_array( $quote['customer'] ) ? $quote['customer'] : array();
+		$kind     = isset( $customer['kind'] ) ? (string) $customer['kind'] : 'walkin';
+		if ( $kind === 'walkin' ) {
+			return 0;
+		}
+		if ( empty( $customer['customerId'] ) ) {
+			return $this->unavailable( 'Registered quote is missing customer identity for the prepared Woo order.' );
+		}
+		$user_id = $this->resolve_customer_user_id( $customer['customerId'] );
+		if ( $user_id === null ) {
+			return $this->unavailable( 'Authorized customer context could not be mapped onto the prepared Woo order.' );
+		}
+		return (int) $user_id;
+	}
+
+	/**
+	 * @param array<string,mixed> $line
+	 * @return array<string,mixed>|null
+	 */
+	protected function quote_line_economics( array $line ) {
+		$sub = $this->money_minor( isset( $line['subtotal'] ) ? $line['subtotal'] : null );
+		$dis = $this->money_minor( isset( $line['discount'] ) ? $line['discount'] : null );
+		$tax = $this->money_minor( isset( $line['tax'] ) ? $line['tax'] : null );
+		$tot = $this->money_minor( isset( $line['total'] ) ? $line['total'] : null );
+		if ( $sub === null || $dis === null || $tax === null || $tot === null ) {
+			return null;
+		}
+		if ( Cetech_Pos_Bridge_Money::line_total( $sub, $dis, $tax ) !== $tot ) {
+			return null;
+		}
+		$excl = $sub - $dis;
+		if ( $excl < 0 ) {
+			return null;
+		}
+		return array(
+			'subtotal'    => $sub,
+			'discount'    => $dis,
+			'tax'         => $tax,
+			'total'       => $tot,
+			'subtotalDec' => Cetech_Pos_Bridge_Money::to_decimal_string( $sub ),
+			'exclTaxDec'  => Cetech_Pos_Bridge_Money::to_decimal_string( $excl ),
+			'taxDec'      => Cetech_Pos_Bridge_Money::to_decimal_string( $tax ),
+			'totalDec'    => Cetech_Pos_Bridge_Money::to_decimal_string( $tot ),
+		);
+	}
+
+	/**
+	 * @param array<string,mixed> $quote
+	 * @return array<string,mixed>|null
+	 */
+	protected function quote_order_economics( array $quote ) {
+		$sub = $this->money_minor( isset( $quote['subtotal'] ) ? $quote['subtotal'] : null );
+		$dis = $this->money_minor( isset( $quote['discount'] ) ? $quote['discount'] : null );
+		$tax = $this->money_minor( isset( $quote['tax'] ) ? $quote['tax'] : null );
+		$tot = $this->money_minor( isset( $quote['total'] ) ? $quote['total'] : null );
+		$cur = isset( $quote['currency'] ) ? (string) $quote['currency'] : '';
+		if ( $sub === null || $dis === null || $tax === null || $tot === null || $cur === '' ) {
+			return null;
+		}
+		if ( Cetech_Pos_Bridge_Money::line_total( $sub, $dis, $tax ) !== $tot ) {
+			return null;
+		}
+		return array(
+			'currency'    => $cur,
+			'subtotal'    => $sub,
+			'discount'    => $dis,
+			'tax'         => $tax,
+			'total'       => $tot,
+			'subtotalDec' => Cetech_Pos_Bridge_Money::to_decimal_string( $sub ),
+			'discountDec' => Cetech_Pos_Bridge_Money::to_decimal_string( $dis ),
+			'taxDec'      => Cetech_Pos_Bridge_Money::to_decimal_string( $tax ),
+			'totalDec'    => Cetech_Pos_Bridge_Money::to_decimal_string( $tot ),
+		);
+	}
+
+	/**
+	 * @param mixed $envelope
+	 * @return int|null
+	 */
+	protected function money_minor( $envelope ) {
+		if ( ! is_array( $envelope ) || ! isset( $envelope['minor'] ) || ! is_numeric( $envelope['minor'] ) ) {
+			return null;
+		}
+		return (int) $envelope['minor'];
+	}
+
+	/**
+	 * @param object              $item
+	 * @param array<string,mixed> $line
+	 * @param array<string,mixed> $mapped
+	 * @return true|WP_Error
+	 */
+	protected function apply_line_tax( $item, array $line, array $mapped ) {
+		if ( method_exists( $item, 'set_subtotal' ) ) {
+			$item->set_subtotal( $mapped['subtotalDec'] );
+		}
+		if ( method_exists( $item, 'set_total' ) ) {
+			$item->set_total( $mapped['exclTaxDec'] );
+		}
+		$breakdown = $this->provider_tax_for_line( $line );
+		if ( $mapped['tax'] > 0 && $breakdown !== null && method_exists( $item, 'set_taxes' ) ) {
+			$item->set_taxes( $breakdown );
+			return true;
+		}
+		if ( $mapped['tax'] > 0 && $breakdown === null && $this->line_requires_rate_breakdown() ) {
+			return $this->unavailable( 'Authoritative Woo tax-rate breakdown is required to persist taxed order items and was not available.' );
+		}
+		if ( method_exists( $item, 'set_subtotal_tax' ) ) {
+			$item->set_subtotal_tax( $mapped['taxDec'] );
+		}
+		if ( method_exists( $item, 'set_total_tax' ) ) {
+			$item->set_total_tax( $mapped['taxDec'] );
+		}
+		return true;
+	}
+
+	/**
+	 * Tax-rate allocation is required only when Woo item APIs cannot persist
+	 * an aggregate tax amount. Default: aggregate setters are sufficient.
+	 *
+	 * @return bool
+	 */
+	protected function line_requires_rate_breakdown() {
+		return false;
+	}
+
+	/**
+	 * @param array<string,mixed> $line
+	 * @return array<string,mixed>|null
+	 */
+	protected function provider_tax_for_line( array $line ) {
+		$key = $this->line_tax_key( $line );
+		return isset( $this->last_provider_tax[ $key ] ) ? $this->last_provider_tax[ $key ] : null;
+	}
+
+	/**
+	 * @param array<string,mixed> $line
+	 * @return string
+	 */
+	protected function line_tax_key( array $line ) {
+		$pid = isset( $line['productId'] ) ? (string) $line['productId'] : '';
+		$vid = isset( $line['variationId'] ) ? (string) $line['variationId'] : '';
+		$qty = isset( $line['quantity'] ) ? (string) $line['quantity'] : '';
+		return $pid . '|' . $vid . '|' . $qty;
+	}
+
+	/**
+	 * @param object $order
+	 * @return array<string,mixed>|null
+	 */
+	protected function read_order_economics( $order ) {
+		if ( ! is_object( $order ) ) {
+			return null;
+		}
+		$currency = method_exists( $order, 'get_currency' ) ? strtoupper( (string) $order->get_currency() ) : '';
+		$sub      = $this->decimal_prop_minor( $order, 'get_subtotal' );
+		$dis      = $this->decimal_prop_minor( $order, 'get_discount_total' );
+		$tax      = $this->decimal_prop_minor( $order, 'get_total_tax' );
+		$tot      = $this->decimal_prop_minor( $order, 'get_total' );
+		if ( $currency === '' || $sub === null || $dis === null || $tax === null || $tot === null ) {
+			return null;
+		}
+		return array(
+			'currency' => $currency,
+			'subtotal' => $sub,
+			'discount' => $dis,
+			'tax'      => $tax,
+			'total'    => $tot,
+		);
+	}
+
+	/**
+	 * @param object $order
+	 * @return array<int,array<string,mixed>>|null
+	 */
+	protected function read_order_line_economics( $order ) {
+		if ( ! is_object( $order ) || ! method_exists( $order, 'get_items' ) ) {
+			return null;
+		}
+		$items = $order->get_items();
+		if ( ! is_array( $items ) ) {
+			return null;
+		}
+		$out = array();
+		foreach ( $items as $item ) {
+			if ( is_object( $item ) && method_exists( $item, 'is_type' ) && ! $item->is_type( 'line_item' ) ) {
+				continue;
+			}
+			$sub = $this->decimal_prop_minor( $item, 'get_subtotal' );
+			$net = $this->decimal_prop_minor( $item, 'get_total' );
+			$tax = $this->decimal_prop_minor( $item, 'get_total_tax' );
+			$qty = is_object( $item ) && method_exists( $item, 'get_quantity' ) ? (string) $item->get_quantity() : '';
+			if ( $sub === null || $net === null || $tax === null ) {
+				return null;
+			}
+			$discount = $sub - $net;
+			if ( $discount < 0 ) {
+				return null;
+			}
+			$out[] = array(
+				'subtotal' => $sub,
+				'discount' => $discount,
+				'tax'      => $tax,
+				'total'    => $net + $tax,
+				'quantity' => $qty,
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * @param object $obj
+	 * @param string $method
+	 * @return int|null
+	 */
+	protected function decimal_prop_minor( $obj, $method ) {
+		if ( ! is_object( $obj ) || ! method_exists( $obj, $method ) ) {
+			return null;
+		}
+		$value = $obj->{$method}();
+		if ( is_numeric( $value ) ) {
+			$value = (string) $value;
+		}
+		if ( ! is_string( $value ) ) {
+			return null;
+		}
+		return Cetech_Pos_Bridge_Money::from_decimal_string( $value, Cetech_Pos_Bridge_Constants::SETTLEMENT_CURRENCY );
+	}
+
+	protected function attention_recovery( $message ) {
+		return Cetech_Pos_Bridge_Response::wp_error(
+			'REQUIRES_ATTENTION',
+			$message,
+			false,
+			'contact_manager',
+			409
+		);
+	}
+
+	/**
+	 * @param array<string,mixed> $line
+	 * @return object|WP_Error
+	 */
+	protected function resolve_product( array $line ) {
+		if ( ! $this->environment->function_exists( 'wc_get_product' ) ) {
+			return $this->unavailable( 'wc_get_product is not available.' );
+		}
+		$id = isset( $line['variationId'] ) ? $line['variationId'] : $line['productId'];
+		$product = wc_get_product( $id );
+		if ( ! is_object( $product ) ) {
+			$product = wc_get_product( $line['productId'] );
+		}
+		if ( ! is_object( $product ) ) {
+			return Cetech_Pos_Bridge_Response::wp_error(
+				'STOCK_CHANGED',
+				'Quoted product is no longer available in Woo.',
+				false,
+				'review_quote',
+				409,
+				array( 'field' => 'lines' )
+			);
+		}
+		if ( method_exists( $product, 'is_purchasable' ) && ! $product->is_purchasable() ) {
+			return Cetech_Pos_Bridge_Response::wp_error(
+				'STOCK_CHANGED',
+				'Quoted product is no longer purchasable.',
+				false,
+				'review_quote',
+				409,
+				array( 'field' => 'lines' )
+			);
+		}
+		if ( method_exists( $product, 'is_in_stock' ) && ! $product->is_in_stock() ) {
+			return Cetech_Pos_Bridge_Response::wp_error(
+				'STOCK_CHANGED',
+				'Quoted product is out of stock.',
+				false,
+				'review_quote',
+				409,
+				array( 'field' => 'lines' )
+			);
+		}
+		return $product;
+	}
+
+	protected function trash_incomplete_order( $order ) {
+		if ( is_object( $order ) && method_exists( $order, 'delete' ) ) {
+			$order->delete( true );
+		}
 	}
 }

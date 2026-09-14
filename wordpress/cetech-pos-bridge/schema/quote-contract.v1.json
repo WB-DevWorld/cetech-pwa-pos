@@ -64,6 +64,88 @@
             ],
             "additionalProperties": false
         },
+        "PrepareSaleRequest": {
+            "type": "object",
+            "properties": {
+                "transactionId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "registerId": {
+                    "$ref": "#/$defs/Id"
+                },
+                "shiftId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "deviceId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "quoteId": {
+                    "$ref": "#/$defs/Id"
+                },
+                "quoteFingerprint": {
+                    "type": "string",
+                    "minLength": 32,
+                    "maxLength": 128
+                }
+            },
+            "required": [
+                "transactionId",
+                "registerId",
+                "shiftId",
+                "deviceId",
+                "quoteId",
+                "quoteFingerprint"
+            ],
+            "additionalProperties": false
+        },
+        "PreparedSale": {
+            "type": "object",
+            "properties": {
+                "transactionId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "saleId": {
+                    "$ref": "#/$defs/Id"
+                },
+                "orderReference": {
+                    "type": "string"
+                },
+                "quoteFingerprint": {
+                    "type": "string"
+                },
+                "total": {
+                    "$ref": "#/$defs/Money"
+                },
+                "status": {
+                    "const": "prepared"
+                },
+                "stockCommitment": {
+                    "type": "string",
+                    "enum": [
+                        "reserved",
+                        "reduced"
+                    ]
+                },
+                "preparedAt": {
+                    "$ref": "#/$defs/Timestamp"
+                },
+                "expiresAt": {
+                    "$ref": "#/$defs/Timestamp"
+                }
+            },
+            "required": [
+                "transactionId",
+                "saleId",
+                "orderReference",
+                "quoteFingerprint",
+                "total",
+                "status",
+                "stockCommitment",
+                "preparedAt",
+                "expiresAt"
+            ],
+            "additionalProperties": false
+        },
         "Quantity": {
             "type": "string",
             "pattern": "^(0\\.[0-9]{0,5}[1-9]|[1-9][0-9]{0,8}(\\.[0-9]{0,5}[1-9])?)$"
@@ -290,6 +372,50 @@
             ],
             "additionalProperties": false
         },
+        "SaleResolution": {
+            "type": "object",
+            "properties": {
+                "transactionId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "status": {
+                    "$ref": "#/$defs/SaleStatus"
+                },
+                "saleId": {
+                    "$ref": "#/$defs/Id"
+                },
+                "orderReference": {
+                    "type": "string"
+                },
+                "receiptId": {
+                    "$ref": "#/$defs/Id"
+                },
+                "paymentId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "message": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "transactionId",
+                "status"
+            ],
+            "additionalProperties": false
+        },
+        "SaleStatus": {
+            "type": "string",
+            "enum": [
+                "not_found",
+                "preparing",
+                "prepared",
+                "payment_pending",
+                "finalizing",
+                "completed",
+                "cancelled",
+                "requires_attention"
+            ]
+        },
         "StockStatus": {
             "type": "string",
             "enum": [
@@ -310,8 +436,11 @@
         }
     },
     "roots": [
+        "PrepareSaleRequest",
+        "PreparedSale",
         "Quote",
-        "QuoteRequest"
+        "QuoteRequest",
+        "SaleResolution"
     ],
     "schemaSource": "docs/contracts/pos-domain.schema.json"
 }

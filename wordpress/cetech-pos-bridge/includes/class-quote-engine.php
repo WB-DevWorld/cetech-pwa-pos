@@ -293,6 +293,10 @@ final class Cetech_Pos_Bridge_Quote_Engine {
 		return Cetech_Pos_Bridge_Money::envelope( $minor, $currency );
 	}
 
+	public function commercial_fingerprint( array $quote ) {
+		return $this->fingerprint( $quote );
+	}
+
 	private function new_quote_id() {
 		return 'q' . bin2hex( random_bytes( 16 ) );
 	}
