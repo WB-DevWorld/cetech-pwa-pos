@@ -1,44 +1,33 @@
-# WS3 current handoff — R6 activated
+# WS3 current handoff — R6 FE-05 accepted for integration
 
 Kind: INTEGRATION_CHECKPOINT. Date: 2026-09-14 UTC.
 
-Task / batch / workstream: R6 / issue #54; BR-07 #19 + FE-05 #10, then CORE-06 #25; WS3 integration editor.
+Task / batch / workstream: R6 / issue #54; FE-05 #10 accepted, BR-07 #19 active, CORE-06 #25 blocked; WS3 integration editor.
 Owner / integration editor: `@wbdevworld` / WS3.
-Neutral branch: `batch/r6-first-real-cash-sale`.
+Neutral branch / PR: `batch/r6-first-real-cash-sale` / draft PR #55.
 Base main: `bc606a690f0c167b7057e3ae9143337404275882`.
-R5 post-merge CI: `34873987182` SUCCESS on both required jobs.
 
-## R5 closure
-
-PR #53 was independently approved by `@Ben-001-sys` on exact head `73f16621b32de0fc04aceffb3af63d9227fec31d` and merged as `bc606a690f0c167b7057e3ae9143337404275882`. CORE-05 #24 and R5 integration #52 are closed completed. R5 is APPROVED / MERGED / POST-MERGE VERIFIED.
-
-## R6 owner handoffs
-
-### BR-07 / #19
-Owner / implementer: `@Emmanuel-coder-prog` / WS2.
-Contributor branch: `ws2/br-07-implement-verified-commercial-finalization-an`.
-Starting SHA: `bc606a690f0c167b7057e3ae9143337404275882`.
-State: ACTIVE — OWNER IMPLEMENTATION.
-
-WS2 owns the Woo bridge implementation. WS3 must not implement this task absent explicit reassignment. Owner publishes exact tested source SHA(s), changed files, contract/ADR changes, exact required test results, runtime limitations and contributor freshness, then stops for integration review.
-
-### FE-05 / #10
+## FE-05 / #10 — accepted source
 Owner / implementer: `@Ben-001-sys` / WS1.
 Contributor branch: `ws1/fe-05-integrate-cash-checkout-and-receipt-ux`.
-Starting SHA: `bc606a690f0c167b7057e3ae9143337404275882`.
-State: ACTIVE — OWNER IMPLEMENTATION.
+Accepted contributor head: `79708d67b655eb46f8aba77712a83508e095f758`.
+Implementation: `f6607cda70176b51be0dc8b8a6e40ae0f64d9e24`.
+Prepared-sale safety remediation: `57574fe5e8b4aceaf94773aea9bc04ee801d0980`.
+Owner evidence: verifier/lint/typecheck PASS; Vitest 50 files / 363 tests PASS; E2E 5 PASS; diff clean; FRESH_2.
 
-WS1 owns cashier UX implementation. WS3 must not implement this task absent explicit reassignment. Owner publishes exact tested source SHA(s), changed files, contract/ADR changes, exact required test results, runtime limitations and contributor freshness, then stops for integration review.
+WS3 independent review: ACCEPTED FOR R6 INTEGRATION. Prepared sale cannot be dismissed/replaced with New Sale; cash retry reuses the stable cash idempotency identity; `payment_pending` resolves the existing tender rather than sending another cash confirmation; ambiguous sale/payment results use resolve; receipt truth comes from ReceiptPort; print/reprint does not repeat sale execution.
+
+Runtime limitation remains: FE-05 uses frontend spies/fakes; CORE-06 still owns real app/BFF mounting and live vertical evidence.
+
+## BR-07 / #19
+Owner / implementer: `@Emmanuel-coder-prog` / WS2.
+Contributor branch: `ws2/br-07-implement-verified-commercial-finalization-an`.
+State: ACTIVE owner implementation; no accepted source handoff yet. WS3 must not implement this task absent explicit reassignment.
 
 ## CORE-06 gate
-
 CORE-06 / #25 owner: `@wbdevworld` / WS3.
-State: BLOCKED / NOT STARTED.
+State: BLOCKED / NOT STARTED. Its contributor branch must be created only after BR-07 is accepted/imported and the combined FE-05 + BR-07 neutral-branch tree is green with a published exact tested R6 integration SHA.
 
-Do not create `ws3/core-06-integrate-real-cash-sale-and-contract-e2e-har` yet. First accept/import BR-07 and FE-05 into the neutral branch, run combined verification, and publish the exact tested R6 integration handoff SHA. CORE-06 must branch from that exact SHA rather than from `main`.
+Frozen v1.0.0 contracts remain authoritative. Issue #4 remains OPEN. `pricingParityVerified=false`. No production promotion.
 
-## Safety / limitations
-
-Frozen contracts v1.0.0 remain unchanged unless an explicit contract decision is recorded. Issue #4 remains OPEN. `pricingParityVerified=false`. BR-07 must fail closed around uncertain money; FE-05 must not invent payment/receipt truth; CORE-06 must not call mock-only behavior a real integration pass. No production promotion or R7+ work is authorized here.
-
-Next exact action: receive and independently review the two owner handoffs. Import only accepted exact commits into `batch/r6-first-real-cash-sale`, preserving source -> import -> tested-combined provenance.
+Next exact action: verify combined CI after FE-05 import, then wait for and review BR-07. Do not start CORE-06 yet.
