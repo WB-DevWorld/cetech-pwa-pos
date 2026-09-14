@@ -17,6 +17,8 @@ import type {
 } from "../../../../../../docs/contracts/ports";
 import { parseDecimalToMinorUnits } from "../../register/parseDecimalToMinorUnits";
 import {
+  canBeginNewSale,
+  checkoutDismissAllowed,
   idleCheckoutSession,
   type CheckoutSessionView,
   type PreparedSaleView,
@@ -133,7 +135,18 @@ function paymentVerified(state: PaymentState): boolean {
 }
 
 function paymentNeedsResolve(state: PaymentState): boolean {
-  return state.nextAction === "resolve" || state.status === "pending" || state.status === "reconciling";
+  return (
+    state.nextAction === "resolve" ||
+    state.nextAction === "wait" ||
+    state.status === "pending" ||
+    state.status === "reconciling" ||
+    state.status === "initializing" ||
+    state.status === "awaiting_customer"
+  );
+}
+
+function paymentAllowsCashRetry(state: PaymentState): boolean {
+  return state.status === "failed" || state.status === "cancelled";
 }
 
 export function createCashCheckoutController(ports: CashCheckoutPorts) {
@@ -166,6 +179,9 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
 
   function identitiesFor(quote: Quote): AttemptIdentities {
     if (identities && quoteMatches(identities, quote)) {
+      return identities;
+    }
+    if (identities && session.prepared && !session.saleCompleted) {
       return identities;
     }
     identities = {
@@ -228,12 +244,21 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       await loadReceiptUnlocked();
       return;
     }
-    if (resolution.status === "prepared" || resolution.status === "payment_pending") {
+    if (resolution.status === "prepared") {
       patch({
         stage: "cash",
         message: "Enter cash received. The server verifies the tender.",
         transactionId: resolution.transactionId,
       });
+      return;
+    }
+    if (resolution.status === "payment_pending") {
+      patch({
+        stage: "resolving_payment",
+        message: "A payment is already pending for this sale. Do not confirm cash again. Checking the existing tender.",
+        transactionId: resolution.transactionId,
+      });
+      await resolvePaymentUnlocked();
       return;
     }
     if (resolution.status === "finalizing") {
@@ -296,7 +321,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
     }
     if (!outcome.value.ok) {
       patch({
-        stage: shouldResolveFailure(outcome.value) ? "resolving_payment" : "cash_failed",
+        stage: "resolving_payment",
         message: outcome.value.error.message,
       });
       return;
@@ -315,16 +340,26 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       await finalizeUnlocked();
       return;
     }
-    if (paymentNeedsResolve(state)) {
+    if (paymentAllowsCashRetry(state)) {
+      patch({
+        stage: "cash_failed",
+        message: "Cash was not confirmed. The cart is unchanged. Retry uses the same payment attempt.",
+      });
+      return;
+    }
+    if (paymentNeedsResolve(state) || state.nextAction === "present_payment") {
       patch({
         stage: "resolving_payment",
-        message: "Payment status is uncertain. Do not confirm cash again. Checking the existing tender.",
+        message:
+          state.nextAction === "present_payment"
+            ? "A payment is already in progress. Do not confirm cash again. Check payment status."
+            : "Payment status is uncertain. Do not confirm cash again. Checking the existing tender.",
       });
       return;
     }
     patch({
-      stage: "cash_failed",
-      message: "Cash was not confirmed. The cart is unchanged.",
+      stage: "resolving_payment",
+      message: "This payment needs review. Do not confirm cash again.",
     });
   }
 
@@ -456,12 +491,17 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       if (!quote || !quote.purchasable) {
         return;
       }
-      if (identities && quoteMatches(identities, quote) && session.prepared && (session.stage === "idle" || session.stage === "cash")) {
-        patch({
-          stage: "cash",
-          message: "Enter cash received. The server verifies the tender.",
-          inputError: undefined,
-        });
+      if (session.prepared && !session.saleCompleted) {
+        if (identities && quoteMatches(identities, quote) && (session.stage === "idle" || session.stage === "cash" || session.stage === "cash_failed")) {
+          patch({
+            stage: session.stage === "cash_failed" ? "cash_failed" : "cash",
+            message:
+              session.stage === "cash_failed"
+                ? session.message
+                : "Enter cash received. The server verifies the tender.",
+            inputError: undefined,
+          });
+        }
         return;
       }
       if (session.stage !== "idle" && session.stage !== "prepare_failed") {
@@ -634,24 +674,21 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       if (commandLock) {
         return;
       }
-      if (session.stage === "prepare_failed" || session.stage === "cash_failed") {
-        patch({
-          stage: "idle",
-          message: "",
-          inputError: undefined,
-        });
+      if (!checkoutDismissAllowed(session)) {
         return;
       }
-      if (session.stage === "cash") {
-        patch({
-          stage: "idle",
-          message: "",
-          inputError: undefined,
-        });
-      }
+      identities = null;
+      paymentId = undefined;
+      patch({
+        stage: "idle",
+        message: "",
+        inputError: undefined,
+        prepared: undefined,
+        transactionId: undefined,
+      });
     },
     resetForNewSale(): void {
-      if (commandLock && !session.saleCompleted) {
+      if (!canBeginNewSale(session)) {
         return;
       }
       identities = null;

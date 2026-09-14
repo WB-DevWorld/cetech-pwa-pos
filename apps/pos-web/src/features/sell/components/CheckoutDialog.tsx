@@ -36,7 +36,7 @@ export function CheckoutDialog({
 }) {
   const [cashReceived, setCashReceived] = useState("");
   const copy = describeCheckoutStage(session.stage);
-  const dismissable = checkoutDismissAllowed(session.stage) && !inFlight;
+  const dismissable = checkoutDismissAllowed(session) && !inFlight;
   const showReceipt = Boolean(session.receipt) && (session.stage === "receipt_ready" || session.stage === "printing" || session.stage === "print_failed");
 
   function handleCashSubmit(event: FormEvent<HTMLFormElement>) {
@@ -56,7 +56,13 @@ export function CheckoutDialog({
 
   return (
     <SellModal titleId="checkout-dialog-title" onClose={dismissable ? onDismiss : () => undefined}>
-      <div className="checkout-dialog" data-checkout-stage={session.stage} data-sale-completed={session.saleCompleted ? "true" : "false"}>
+      <div
+        className="checkout-dialog"
+        data-checkout-stage={session.stage}
+        data-sale-completed={session.saleCompleted ? "true" : "false"}
+        data-checkout-dismissable={dismissable ? "true" : "false"}
+        data-prepared-outstanding={session.prepared ? "true" : "false"}
+      >
         <h2 id="checkout-dialog-title">{copy.title}</h2>
         <p className="muted" role="status" aria-live="polite">
           {session.message || copy.status}
@@ -95,9 +101,11 @@ export function CheckoutDialog({
               </button>
             </div>
             <div className="dialog-actions">
-              <button type="button" className="btn" disabled={inFlight} onClick={onDismiss}>
-                Back
-              </button>
+              {dismissable ? (
+                <button type="button" className="btn" disabled={inFlight} onClick={onDismiss}>
+                  Back
+                </button>
+              ) : null}
               <button
                 type="submit"
                 className="btn primary"
@@ -113,7 +121,7 @@ export function CheckoutDialog({
             <strong>{copy.title}</strong>
           </div>
         ) : null}
-        {session.stage === "prepare_failed" ? (
+        {session.stage === "prepare_failed" && dismissable ? (
           <div className="dialog-actions">
             <button type="button" className="btn" onClick={onDismiss}>
               Keep cart

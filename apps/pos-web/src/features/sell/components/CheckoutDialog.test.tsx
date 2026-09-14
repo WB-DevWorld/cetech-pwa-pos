@@ -41,6 +41,9 @@ describe("CheckoutDialog stages", () => {
     });
     expect(cash).toContain('data-checkout-stage="cash"');
     expect(cash).toContain("Confirm cash");
+    expect(cash).toContain('data-checkout-dismissable="false"');
+    expect(cash).not.toContain(">Back<");
+    expect(cash).not.toContain("Keep cart");
     expect(cash).not.toContain("receipt-paper");
     const confirming = render({ ...idleCheckoutSession(), stage: "confirming_cash", message: "Confirming cash payment." });
     expect(confirming).toContain('data-checkout-stage="confirming_cash"');
@@ -96,5 +99,25 @@ describe("CheckoutDialog stages", () => {
     expect(ready).toContain("R-PORT-99");
     expect(ready).toContain("Canonical receipt line");
     expect(ready).not.toContain("Epoxy Hardener");
+  });
+
+  test("cash_failed after a prepared sale is not dismissible and prepare_failed without a prepared sale is", () => {
+    const cashFailed = render({
+      ...idleCheckoutSession(),
+      stage: "cash_failed",
+      prepared: {
+        transactionId: "tx",
+        saleId: "sale",
+        orderReference: "POS-1",
+        quoteFingerprint: "fp",
+        total: { minor: 1500, currency: "GHS" },
+      },
+    });
+    expect(cashFailed).toContain('data-checkout-dismissable="false"');
+    expect(cashFailed).toContain("Confirm cash");
+    expect(cashFailed).not.toContain("Keep cart");
+    const prepareFailed = render({ ...idleCheckoutSession(), stage: "prepare_failed", message: "Stock changed" });
+    expect(prepareFailed).toContain('data-checkout-dismissable="true"');
+    expect(prepareFailed).toContain("Keep cart");
   });
 });

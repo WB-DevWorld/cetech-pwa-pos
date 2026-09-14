@@ -9,6 +9,7 @@ import type {
   SaleResolution,
 } from "../../docs/contracts/domain.generated";
 import { describePayButton } from "../../apps/pos-web/src/features/sell/state/quotePresentation";
+import { canBeginNewSale } from "../../apps/pos-web/src/features/sell/state/checkoutSession";
 import { applyBarcodeScan, createSellWorkspace } from "../../apps/pos-web/src/features/sell/state/sellWorkspace";
 import { SELL_TEST_CATALOG } from "../../apps/pos-web/src/features/sell/state/sellTestCatalog";
 import { resolveQuotePresentation } from "../../apps/pos-web/src/features/sell/state/quoteRevision";
@@ -102,6 +103,28 @@ function verifiedPayment(transactionId = TX): PaymentState {
     status: "verified",
     amount: { minor: 1500, currency: "GHS" },
     verifiedAt: "2026-09-14T18:01:00.000Z",
+    nextAction: "none",
+  };
+}
+
+function pendingPayment(transactionId = TX): PaymentState {
+  return {
+    transactionId,
+    paymentId: PAYMENT,
+    tender: "cash",
+    status: "pending",
+    amount: { minor: 1500, currency: "GHS" },
+    nextAction: "wait",
+  };
+}
+
+function failedPayment(transactionId = TX): PaymentState {
+  return {
+    transactionId,
+    paymentId: PAYMENT,
+    tender: "cash",
+    status: "failed",
+    amount: { minor: 1500, currency: "GHS" },
     nextAction: "none",
   };
 }
@@ -453,6 +476,119 @@ describe("FE-05 cash checkout and receipt UX", () => {
     expect(draft).toEqual({ cartId: "cart-keep", lines: 2 });
     expect(controller.getSession().stage).toBe("resolving_sale");
     expect(controller.getSession().saleCompleted).toBe(false);
+  });
+
+  test("prepared cash checkout cannot be dismissed back to idle", async () => {
+    const ports = spyPorts();
+    const controller = createCashCheckoutController(ports);
+    await controller.startPrepare(quoteFixture());
+    expect(controller.getSession().stage).toBe("cash");
+    controller.dismiss();
+    expect(controller.getSession().stage).toBe("cash");
+    expect(controller.getSession().prepared?.transactionId).toBe(TX);
+  });
+
+  test("prepared cash checkout cannot expose or start New Sale", async () => {
+    const ports = spyPorts();
+    const controller = createCashCheckoutController(ports);
+    await controller.startPrepare(quoteFixture());
+    expect(canBeginNewSale(controller.getSession())).toBe(false);
+    controller.resetForNewSale();
+    expect(controller.getSession().stage).toBe("cash");
+    expect(controller.getSession().prepared?.transactionId).toBe(TX);
+    expect(ports.prepare).toHaveBeenCalledTimes(1);
+  });
+
+  test("cash failure after a prepared sale cannot be dismissed into an editable cart", async () => {
+    const ports = spyPorts();
+    ports.confirmCash.mockResolvedValue(success(failedPayment()));
+    ports.payments = { confirmCash: ports.confirmCash, resolve: ports.resolvePayment };
+    const controller = createCashCheckoutController(ports);
+    await controller.startPrepare(quoteFixture());
+    await controller.confirmCash("20.00");
+    expect(controller.getSession().stage).toBe("cash_failed");
+    controller.dismiss();
+    controller.resetForNewSale();
+    expect(controller.getSession().stage).toBe("cash_failed");
+    expect(canBeginNewSale(controller.getSession())).toBe(false);
+    expect(controller.getSession().prepared?.transactionId).toBe(TX);
+  });
+
+  test("retry after cash failure continues on the original transaction and cash idempotency identity", async () => {
+    const ports = spyPorts();
+    ports.confirmCash
+      .mockResolvedValueOnce(success(failedPayment()))
+      .mockResolvedValueOnce(success(verifiedPayment()));
+    ports.payments = { confirmCash: ports.confirmCash, resolve: ports.resolvePayment };
+    const controller = createCashCheckoutController(ports);
+    await controller.startPrepare(quoteFixture());
+    await controller.confirmCash("20.00");
+    expect(controller.getSession().stage).toBe("cash_failed");
+    await controller.confirmCash("20.00");
+    expect(ports.confirmCash).toHaveBeenCalledTimes(2);
+    expect(ports.confirmCash.mock.calls[0]?.[0].transactionId).toBe(TX);
+    expect(ports.confirmCash.mock.calls[1]?.[0].transactionId).toBe(TX);
+    expect(ports.confirmCash.mock.calls[0]?.[1]).toEqual({
+      idempotencyKey: CASH_KEY,
+      correlationId: CASH_CORR,
+    });
+    expect(ports.confirmCash.mock.calls[1]?.[1]).toEqual({
+      idempotencyKey: CASH_KEY,
+      correlationId: CASH_CORR,
+    });
+    expect(ports.prepare).toHaveBeenCalledTimes(1);
+  });
+
+  test("a changed cart cannot create a new checkout transaction while the prepared sale is outstanding", async () => {
+    const ports = spyPorts();
+    const controller = createCashCheckoutController(ports);
+    await controller.startPrepare(quoteFixture());
+    const changedQuote = { ...quoteFixture(), id: "quote-live-2", fingerprint: "fp-live-2", cartRevision: 2 };
+    await controller.startPrepare(changedQuote);
+    expect(ports.prepare).toHaveBeenCalledTimes(1);
+    expect(ports.prepare.mock.calls[0]?.[0].transactionId).toBe(TX);
+    expect(controller.getSession().stage).toBe("cash");
+    expect(controller.getSession().transactionId).toBe(TX);
+  });
+
+  test("prepare_failed without a confirmed prepared sale can return safely to the Sell workspace", async () => {
+    const ports = spyPorts();
+    ports.prepare.mockResolvedValue(failure("retry_same_key", "Stock changed"));
+    ports.checkout = { prepare: ports.prepare, finalize: ports.finalize };
+    const controller = createCashCheckoutController(ports);
+    await controller.startPrepare(quoteFixture());
+    expect(controller.getSession().stage).toBe("prepare_failed");
+    expect(controller.getSession().prepared).toBeUndefined();
+    expect(canBeginNewSale(controller.getSession())).toBe(true);
+    controller.dismiss();
+    expect(controller.getSession().stage).toBe("idle");
+    expect(controller.getSession().transactionId).toBeUndefined();
+  });
+
+  test("payment_pending resolution checks the existing tender instead of confirming cash again", async () => {
+    const ports = spyPorts();
+    ports.prepare.mockRejectedValue(new Error("timeout"));
+    ports.resolveSale.mockResolvedValue(
+      success({
+        transactionId: TX,
+        status: "payment_pending",
+        paymentId: PAYMENT,
+        saleId: "sale-1",
+      }),
+    );
+    ports.resolvePayment.mockResolvedValue(success(pendingPayment()));
+    ports.checkout = { prepare: ports.prepare, finalize: ports.finalize };
+    ports.sales = { resolve: ports.resolveSale };
+    ports.payments = { confirmCash: ports.confirmCash, resolve: ports.resolvePayment };
+    const controller = createCashCheckoutController(ports);
+    await controller.startPrepare(quoteFixture());
+    expect(controller.getSession().stage).toBe("resolving_payment");
+    expect(ports.confirmCash).not.toHaveBeenCalled();
+    expect(ports.resolvePayment).toHaveBeenCalledTimes(1);
+    expect(ports.resolvePayment).toHaveBeenCalledWith({ transactionId: TX, paymentId: PAYMENT });
+    await controller.confirmCash("20.00");
+    expect(ports.confirmCash).not.toHaveBeenCalled();
+    expect(canBeginNewSale(controller.getSession())).toBe(false);
   });
 
   test("15. Existing FE-03 barcode/customer/cart behavior remains intact", () => {

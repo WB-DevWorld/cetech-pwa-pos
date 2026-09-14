@@ -100,7 +100,27 @@ export function checkoutDialogOpen(stage: CheckoutStageView): boolean {
   return stage !== "idle";
 }
 
+export function hasOutstandingPreparedSale(session: CheckoutSessionView): boolean {
+  if (session.saleCompleted) {
+    return false;
+  }
+  if (session.prepared) {
+    return true;
+  }
+  return (
+    session.stage === "cash" ||
+    session.stage === "cash_failed" ||
+    session.stage === "confirming_cash" ||
+    session.stage === "resolving_payment" ||
+    session.stage === "finalizing" ||
+    session.stage === "finalize_failed"
+  );
+}
+
 export function canBeginNewSale(session: CheckoutSessionView): boolean {
+  if (hasOutstandingPreparedSale(session)) {
+    return false;
+  }
   if (checkoutCommandInFlight(session.stage)) {
     return false;
   }
@@ -119,8 +139,9 @@ export function canBeginNewSale(session: CheckoutSessionView): boolean {
   return session.stage === "idle" || session.stage === "prepare_failed";
 }
 
-export function checkoutDismissAllowed(stage: CheckoutStageView): boolean {
-  return stage === "prepare_failed" || stage === "cash_failed" || stage === "cash";
+/** Only an unprepared failure may return to the editable Sell workspace. */
+export function checkoutDismissAllowed(session: CheckoutSessionView): boolean {
+  return session.stage === "prepare_failed" && !hasOutstandingPreparedSale(session);
 }
 
 export function formatMinorDecimal(minor: number): string {

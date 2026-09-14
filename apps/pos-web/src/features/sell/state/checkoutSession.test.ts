@@ -3,7 +3,9 @@ import {
   canBeginNewSale,
   checkoutCommandInFlight,
   checkoutDialogOpen,
+  checkoutDismissAllowed,
   formatMinorDecimal,
+  hasOutstandingPreparedSale,
   idleCheckoutSession,
 } from "./checkoutSession";
 
@@ -25,6 +27,27 @@ describe("FE-05 checkout session helpers", () => {
         saleCompleted: true,
       }),
     ).toBe(true);
+  });
+
+  test("a prepared sale cannot be dismissed or replaced with a new sale", () => {
+    const cash = {
+      ...idleCheckoutSession(),
+      stage: "cash" as const,
+      prepared: {
+        transactionId: "tx",
+        saleId: "sale",
+        orderReference: "POS-1",
+        quoteFingerprint: "fp",
+        total: { minor: 1500, currency: "GHS" },
+      },
+    };
+    const cashFailed = { ...cash, stage: "cash_failed" as const };
+    expect(hasOutstandingPreparedSale(cash)).toBe(true);
+    expect(checkoutDismissAllowed(cash)).toBe(false);
+    expect(checkoutDismissAllowed(cashFailed)).toBe(false);
+    expect(canBeginNewSale(cash)).toBe(false);
+    expect(canBeginNewSale(cashFailed)).toBe(false);
+    expect(checkoutDismissAllowed({ ...idleCheckoutSession(), stage: "prepare_failed" })).toBe(true);
   });
 
   test("dialog and in-flight flags stay distinct", () => {
