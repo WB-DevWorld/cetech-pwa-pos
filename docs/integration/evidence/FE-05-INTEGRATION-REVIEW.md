@@ -37,5 +37,5 @@ Runtime limitation remains explicit: FE-05 uses frontend spies/fakes and live Pa
 ## Import provenance
 
 Accepted source head: `79708d67b655eb46f8aba77712a83508e095f758`.
-R6 integration merge: `f9cfe0531f47e8a800cd5c370f72cfeb4e38b807`.
-Combined CI: pending on the imported neutral-branch head.
+R6 integration merge candidate: `676108dbaf712b5ad0b053d47b41b63765d5a927`.
+Combined CI: pending after branch ref is advanced to the merge candidate.
