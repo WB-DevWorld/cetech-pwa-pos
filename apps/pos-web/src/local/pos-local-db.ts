@@ -1,14 +1,20 @@
 import Dexie, { type EntityTable } from "dexie";
+import { catalogSearchGrams } from "../core/catalog/query";
 import type { CatalogProjectionMeta, ProjectedCatalogItem } from "../core/catalog/source";
 import type { CartDraft, CustomerSummary, PendingOperation } from "../../../../docs/contracts/domain.generated";
 
 export const POS_LOCAL_DB_NAME = "cetech-pos-local";
 export const POS_LOCAL_SCHEMA_V1 = 1;
 export const POS_LOCAL_SCHEMA_V2 = 2;
-export const POS_LOCAL_SCHEMA_CURRENT = 3;
+export const POS_LOCAL_SCHEMA_V3 = 3;
+export const POS_LOCAL_SCHEMA_V4 = 4;
+export const POS_LOCAL_SCHEMA_CURRENT = POS_LOCAL_SCHEMA_V4;
 
 export type CatalogMetaRow = CatalogProjectionMeta & { readonly key: "catalog" };
 export type BarcodeIndexRow = { readonly barcode: string; readonly itemIds: ReadonlyArray<string> };
+export type CatalogItemRow = ProjectedCatalogItem & {
+  readonly searchGrams?: ReadonlyArray<string>;
+};
 export type JournalRecord = PendingOperation & {
   readonly payload: string;
   readonly attemptHistory: ReadonlyArray<{
@@ -21,7 +27,7 @@ export type SchemaMetaRow = { readonly key: "schema"; readonly localSchema: numb
 export type KvRow = { readonly key: string; readonly value: string };
 
 export class PosLocalDatabase extends Dexie {
-  catalogItems!: EntityTable<ProjectedCatalogItem, "id">;
+  catalogItems!: EntityTable<CatalogItemRow, "id">;
   barcodeIndex!: EntityTable<BarcodeIndexRow, "barcode">;
   catalogMeta!: EntityTable<CatalogMetaRow, "key">;
   cartDrafts!: EntityTable<CartDraft, "cartId">;
@@ -55,7 +61,7 @@ export class PosLocalDatabase extends Dexie {
         const meta = tx.table("schemaMeta");
         await meta.put({ key: "schema", localSchema: POS_LOCAL_SCHEMA_V2, appBuild: "core-04" });
       });
-    this.version(POS_LOCAL_SCHEMA_CURRENT)
+    this.version(POS_LOCAL_SCHEMA_V3)
       .stores({
         catalogItems: "id, parentId, kind, searchNormalized, tombstoned, sourceItemId",
         barcodeIndex: "barcode",
@@ -68,7 +74,34 @@ export class PosLocalDatabase extends Dexie {
       })
       .upgrade(async (tx) => {
         const meta = tx.table("schemaMeta");
-        await meta.put({ key: "schema", localSchema: POS_LOCAL_SCHEMA_CURRENT, appBuild: "core-04" });
+        await meta.put({ key: "schema", localSchema: POS_LOCAL_SCHEMA_V3, appBuild: "core-04" });
+      });
+    this.version(POS_LOCAL_SCHEMA_V4)
+      .stores({
+        catalogItems: "id, parentId, kind, searchNormalized, tombstoned, sourceItemId, *searchGrams",
+        barcodeIndex: "barcode",
+        catalogMeta: "key",
+        cartDrafts: "cartId, updatedAt",
+        journal: "id, status, idempotencyKey, transactionId, operation, [operation+idempotencyKey]",
+        customers: "id, searchNormalized",
+        schemaMeta: "key",
+        kv: "key",
+      })
+      .upgrade(async (tx) => {
+        await tx
+          .table("catalogItems")
+          .toCollection()
+          .modify((row: CatalogItemRow) => {
+            const grams = row.tombstoned
+              ? []
+              : catalogSearchGrams(row.searchNormalized, row.barcodes);
+            Object.assign(row, { searchGrams: grams });
+          });
+        await tx.table("schemaMeta").put({
+          key: "schema",
+          localSchema: POS_LOCAL_SCHEMA_V4,
+          appBuild: "harden-01",
+        });
       });
   }
 }
