@@ -1,6 +1,6 @@
 # Current work ledger
 
-Updated 2026-09-14. Canonical repo `WB-DevWorld/cetech-pwa-pos`. This file is the current cross-workstream scheduler. Historical scheduler detail from before PRE-R5 hardening is preserved verbatim at [CURRENT-WORK-HISTORY-2026-09-14-PRE-R5](docs/integration/evidence/CURRENT-WORK-HISTORY-2026-09-14-PRE-R5.md) and in reviewed PR history; historical records do not grant current implementation authority.
+Updated 2026-09-14. Canonical repo `WB-DevWorld/cetech-pwa-pos`. This file is the current cross-workstream scheduler. Historical scheduler detail from before PRE-R5 hardening is preserved verbatim at [CURRENT-WORK-HISTORY-2026-09-14-PRE-R5](docs/integration/evidence/CURRENT-WORK-HISTORY-2026-09-14-PRE-R5.txt) and in reviewed PR history; historical records do not grant current implementation authority.
 
 ## Current authority and completed gates
 
@@ -103,4 +103,4 @@ No intermediate merge to `main` is required between BR-06 and CORE-05. WS3 must 
 
 ## Historical scheduler
 
-The full scheduler state immediately before this PRE-R5 activation is preserved verbatim at [CURRENT-WORK-HISTORY-2026-09-14-PRE-R5](docs/integration/evidence/CURRENT-WORK-HISTORY-2026-09-14-PRE-R5.md). R1–R4 milestone details, prior leases, metrics and freshness chronology remain authoritative as historical evidence there and in their reviewed PR/evidence records, but they do not grant current implementation scope.
+The full scheduler state immediately before this PRE-R5 activation is preserved verbatim at [CURRENT-WORK-HISTORY-2026-09-14-PRE-R5](docs/integration/evidence/CURRENT-WORK-HISTORY-2026-09-14-PRE-R5.txt). R1–R4 milestone details, prior leases, metrics and freshness chronology remain authoritative as historical evidence there and in their reviewed PR/evidence records, but they do not grant current implementation scope.
