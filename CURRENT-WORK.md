@@ -13,6 +13,7 @@ Updated 2026-09-14. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical sche
 ## Active assignment — R6 first real cash sale
 
 - Integration issue: **#54 R6-00**.
+- Milestone PR: **#55** — `[R6] First real cash sale vertical slice` (draft integration surface).
 - Neutral branch: `batch/r6-first-real-cash-sale`.
 - Integration editor: `@wbdevworld` / WS3.
 - Activation baseline: `main` `bc606a690f0c167b7057e3ae9143337404275882`.
