@@ -15,8 +15,14 @@ final class Cetech_Pos_Bridge_Plugin {
 	private $prepare_controller;
 	/** @var Cetech_Pos_Bridge_Resolve_Controller */
 	private $resolve_controller;
+	/** @var Cetech_Pos_Bridge_Finalize_Controller */
+	private $finalize_controller;
+	/** @var Cetech_Pos_Bridge_Cancel_Controller */
+	private $cancel_controller;
 	/** @var Cetech_Pos_Bridge_Prepare_Engine */
 	private $prepare_engine;
+	/** @var Cetech_Pos_Bridge_Command_Engine */
+	private $command_engine;
 	/** @var array<int,array<string,mixed>> */
 	private $registered_routes = array();
 
@@ -39,9 +45,13 @@ final class Cetech_Pos_Bridge_Plugin {
 		$quotes                   = new Cetech_Pos_Bridge_Quote_Engine( $runtime, $store );
 		$this->quote_controller   = new Cetech_Pos_Bridge_Quote_Controller( $auth, $correlation, $quotes );
 		$claims                   = new Cetech_Pos_Bridge_Claim_Store();
-		$this->prepare_engine     = new Cetech_Pos_Bridge_Prepare_Engine( $runtime, $quotes, $store, $claims );
+		$commands                 = new Cetech_Pos_Bridge_Command_Store();
+		$this->prepare_engine     = new Cetech_Pos_Bridge_Prepare_Engine( $runtime, $quotes, $store, $claims, $commands );
+		$this->command_engine     = new Cetech_Pos_Bridge_Command_Engine( $runtime, $claims, $commands );
 		$this->prepare_controller = new Cetech_Pos_Bridge_Prepare_Controller( $auth, $correlation, $this->prepare_engine );
 		$this->resolve_controller = new Cetech_Pos_Bridge_Resolve_Controller( $auth, $correlation, $this->prepare_engine );
+		$this->finalize_controller = new Cetech_Pos_Bridge_Finalize_Controller( $auth, $correlation, $this->command_engine );
+		$this->cancel_controller  = new Cetech_Pos_Bridge_Cancel_Controller( $auth, $correlation, $this->command_engine );
 	}
 
 	public function boot() {
@@ -76,6 +86,16 @@ final class Cetech_Pos_Bridge_Plugin {
 			'callback'            => array( $this->resolve_controller, 'handle' ),
 			'permission_callback' => array( $this->resolve_controller, 'permission_callback' ),
 		);
+		$finalize_args = array(
+			'methods'             => 'POST',
+			'callback'            => array( $this->finalize_controller, 'handle' ),
+			'permission_callback' => array( $this->finalize_controller, 'permission_callback' ),
+		);
+		$cancel_args = array(
+			'methods'             => 'POST',
+			'callback'            => array( $this->cancel_controller, 'handle' ),
+			'permission_callback' => array( $this->cancel_controller, 'permission_callback' ),
+		);
 		$this->registered_routes[] = array(
 			'namespace' => Cetech_Pos_Bridge_Constants::NAMESPACE,
 			'route'     => Cetech_Pos_Bridge_Constants::HEALTH_ROUTE,
@@ -95,6 +115,16 @@ final class Cetech_Pos_Bridge_Plugin {
 			'namespace' => Cetech_Pos_Bridge_Constants::NAMESPACE,
 			'route'     => Cetech_Pos_Bridge_Constants::RESOLVE_ROUTE,
 			'args'      => $resolve_args,
+		);
+		$this->registered_routes[] = array(
+			'namespace' => Cetech_Pos_Bridge_Constants::NAMESPACE,
+			'route'     => Cetech_Pos_Bridge_Constants::FINALIZE_ROUTE,
+			'args'      => $finalize_args,
+		);
+		$this->registered_routes[] = array(
+			'namespace' => Cetech_Pos_Bridge_Constants::NAMESPACE,
+			'route'     => Cetech_Pos_Bridge_Constants::CANCEL_ROUTE,
+			'args'      => $cancel_args,
 		);
 		if ( function_exists( 'register_rest_route' ) ) {
 			register_rest_route(
@@ -116,6 +146,16 @@ final class Cetech_Pos_Bridge_Plugin {
 				Cetech_Pos_Bridge_Constants::NAMESPACE,
 				Cetech_Pos_Bridge_Constants::RESOLVE_ROUTE,
 				$resolve_args
+			);
+			register_rest_route(
+				Cetech_Pos_Bridge_Constants::NAMESPACE,
+				Cetech_Pos_Bridge_Constants::FINALIZE_ROUTE,
+				$finalize_args
+			);
+			register_rest_route(
+				Cetech_Pos_Bridge_Constants::NAMESPACE,
+				Cetech_Pos_Bridge_Constants::CANCEL_ROUTE,
+				$cancel_args
 			);
 		}
 	}
@@ -142,6 +182,18 @@ final class Cetech_Pos_Bridge_Plugin {
 
 	public function get_prepare_engine() {
 		return $this->prepare_engine;
+	}
+
+	public function get_command_engine() {
+		return $this->command_engine;
+	}
+
+	public function get_finalize_controller() {
+		return $this->finalize_controller;
+	}
+
+	public function get_cancel_controller() {
+		return $this->cancel_controller;
 	}
 
 	/**

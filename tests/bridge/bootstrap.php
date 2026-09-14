@@ -198,9 +198,13 @@ require_once $plugin_dir . '/includes/class-quote-controller.php';
 require_once $plugin_dir . '/includes/class-request-hash.php';
 require_once $plugin_dir . '/includes/class-schema-install.php';
 require_once $plugin_dir . '/includes/class-claim-store.php';
+require_once $plugin_dir . '/includes/class-command-store.php';
 require_once $plugin_dir . '/includes/class-prepare-engine.php';
 require_once $plugin_dir . '/includes/class-prepare-controller.php';
 require_once $plugin_dir . '/includes/class-resolve-controller.php';
+require_once $plugin_dir . '/includes/class-command-engine.php';
+require_once $plugin_dir . '/includes/class-finalize-controller.php';
+require_once $plugin_dir . '/includes/class-cancel-controller.php';
 require_once $plugin_dir . '/includes/class-pricing-rules.php';
 require_once $plugin_dir . '/includes/class-plugin.php';
 

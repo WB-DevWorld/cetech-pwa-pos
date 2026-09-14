@@ -43,7 +43,22 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		'recovery_meta_writes'  => 0,
 		'quote_snapshot_writes' => 0,
 		'stock_reservations'    => 0,
+		'payment_meta_writes'   => 0,
+		'payment_completes'     => 0,
+		'stock_reductions'      => 0,
+		'reservation_releases'  => 0,
+		'order_cancels'         => 0,
 	);
+	/** @var callable|null after bridge-private payment binding persist, before payment_complete */
+	public $after_payment_binding = null;
+	/** @var callable|null after payment_complete / stock commit, before command outcome persist */
+	public $after_payment_complete = null;
+	/** @var callable|null after reservation released, before cancelled status persist */
+	public $after_reservation_release = null;
+	/** @var callable|null after order cancelled persist, before command outcome persist */
+	public $after_order_cancelled = null;
+	/** @var bool when true, payment_complete mutates then throws (ambiguous effect) */
+	public $throw_after_payment_complete = false;
 	/** @var array<string,array<string,mixed>> last authoritative cart tax-rate breakdown, not a wire field */
 	protected $last_provider_tax = array();
 
@@ -84,6 +99,10 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 	 */
 	public function woo_mutation_counts() {
 		return $this->woo_mutations;
+	}
+
+	public function notify_after_payment_complete() {
+		$this->fire_seam( $this->after_payment_complete );
 	}
 
 	/**
@@ -2330,5 +2349,193 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		if ( is_object( $order ) && method_exists( $order, 'delete' ) ) {
 			$order->delete( true );
 		}
+	}
+
+	/**
+	 * Observational commercial snapshot. GET resolve must not write.
+	 *
+	 * @param string $order_id
+	 * @return array<string,mixed>|null
+	 */
+	public function inspect_commercial_snapshot( $order_id ) {
+		if ( ! $this->environment->function_exists( 'wc_get_order' ) ) {
+			return null;
+		}
+		$order = wc_get_order( $order_id );
+		if ( ! is_object( $order ) ) {
+			return null;
+		}
+		$tx       = method_exists( $order, 'get_meta' ) ? (string) $order->get_meta( Cetech_Pos_Bridge_Constants::ORDER_META_TX ) : '';
+		$sale     = method_exists( $order, 'get_meta' ) ? (string) $order->get_meta( Cetech_Pos_Bridge_Constants::ORDER_META_SALE ) : '';
+		$hash     = method_exists( $order, 'get_meta' ) ? (string) $order->get_meta( Cetech_Pos_Bridge_Constants::ORDER_META_HASH ) : '';
+		$payment  = method_exists( $order, 'get_meta' ) ? (string) $order->get_meta( Cetech_Pos_Bridge_Constants::ORDER_META_PAYMENT ) : '';
+		$evidence = method_exists( $order, 'get_meta' ) ? (string) $order->get_meta( Cetech_Pos_Bridge_Constants::ORDER_META_EVIDENCE ) : '';
+		if ( $payment === '' && method_exists( $order, 'get_transaction_id' ) ) {
+			$payment = (string) $order->get_transaction_id();
+		}
+		$status    = method_exists( $order, 'get_status' ) ? (string) $order->get_status() : '';
+		$paid      = method_exists( $order, 'is_paid' ) ? (bool) $order->is_paid() : false;
+		$currency  = method_exists( $order, 'get_currency' ) ? strtoupper( (string) $order->get_currency() ) : '';
+		$total_dec = method_exists( $order, 'get_total' ) ? (string) $order->get_total() : '';
+		$total     = $total_dec !== '' ? Cetech_Pos_Bridge_Money::from_decimal_string( $total_dec, $currency !== '' ? $currency : Cetech_Pos_Bridge_Constants::SETTLEMENT_CURRENCY ) : null;
+		$via       = method_exists( $order, 'get_created_via' ) ? (string) $order->get_created_via() : '';
+		$ref       = method_exists( $order, 'get_order_number' ) ? (string) $order->get_order_number() : (string) $order_id;
+		$reduced   = method_exists( $order, 'get_meta' ) ? (string) $order->get_meta( '_order_stock_reduced' ) : '';
+		if ( $reduced === '' && method_exists( $order, 'get_data' ) ) {
+			$data    = $order->get_data();
+			$reduced = ( is_array( $data ) && ! empty( $data['order_stock_reduced'] ) ) ? '1' : '';
+		}
+		$hold   = $this->hold_stock_seconds();
+		$proven = $this->order_has_proven_reservation( $order );
+		return array(
+			'found'             => true,
+			'orderId'           => (string) $order_id,
+			'saleId'            => $sale,
+			'orderReference'    => $ref,
+			'transactionId'     => $tx,
+			'requestHash'       => $hash,
+			'createdVia'        => $via,
+			'status'            => $status,
+			'paid'              => $paid,
+			'paymentId'         => $payment !== '' ? $payment : null,
+			'evidenceId'        => $evidence !== '' ? $evidence : null,
+			'currency'          => $currency,
+			'totalMinor'        => is_int( $total ) ? $total : null,
+			'cancelled'         => in_array( $status, array( 'cancelled', 'canceled' ), true ),
+			'reservationProven' => $proven,
+			'stockReduced'      => ( $reduced === '1' || $reduced === 'yes' || $reduced === 'true' ),
+			'cetechOwned'       => ( $via === 'cetech-pos' && $tx !== '' ),
+			'holdSeconds'       => $hold,
+		);
+	}
+
+	/**
+	 * Persist bridge-private verified payment binding via supported Woo CRUD.
+	 *
+	 * @param string              $order_id
+	 * @param array<string,mixed> $payment
+	 * @return true|WP_Error
+	 */
+	public function bind_verified_payment( $order_id, array $payment ) {
+		if ( ! $this->environment->function_exists( 'wc_get_order' ) ) {
+			return $this->unavailable( 'wc_get_order is not available to bind verified payment evidence.' );
+		}
+		$order = wc_get_order( $order_id );
+		if ( ! is_object( $order ) || ! method_exists( $order, 'update_meta_data' ) ) {
+			return $this->unavailable( 'Woo order could not be loaded to bind verified payment evidence.' );
+		}
+		$order->update_meta_data( Cetech_Pos_Bridge_Constants::ORDER_META_PAYMENT, (string) $payment['paymentId'] );
+		$order->update_meta_data( Cetech_Pos_Bridge_Constants::ORDER_META_EVIDENCE, (string) $payment['evidenceId'] );
+		$order->update_meta_data( Cetech_Pos_Bridge_Constants::ORDER_META_TENDER, (string) $payment['tender'] );
+		$order->update_meta_data( Cetech_Pos_Bridge_Constants::ORDER_META_VERIFY_SRC, (string) $payment['verificationSource'] );
+		$order->update_meta_data( Cetech_Pos_Bridge_Constants::ORDER_META_VERIFIED_AT, (string) $payment['verifiedAt'] );
+		if ( method_exists( $order, 'save' ) ) {
+			$order->save();
+		}
+		$this->record_woo_mutation( 'payment_meta_writes' );
+		$this->fire_seam( $this->after_payment_binding );
+		return true;
+	}
+
+	/**
+	 * Official Woo commercial completion. Does not create orders or copy pricing.
+	 *
+	 * @param string $order_id
+	 * @param string $payment_id
+	 * @return true|WP_Error
+	 */
+	public function complete_verified_payment( $order_id, $payment_id ) {
+		if ( ! $this->environment->function_exists( 'wc_get_order' ) ) {
+			return $this->unavailable( 'wc_get_order is not available to complete payment.' );
+		}
+		$order = wc_get_order( $order_id );
+		if ( ! is_object( $order ) ) {
+			return $this->unavailable( 'Woo order could not be loaded to complete payment.' );
+		}
+		if ( method_exists( $order, 'is_paid' ) && $order->is_paid() ) {
+			$existing = method_exists( $order, 'get_transaction_id' ) ? (string) $order->get_transaction_id() : '';
+			if ( $existing === '' && method_exists( $order, 'get_meta' ) ) {
+				$existing = (string) $order->get_meta( Cetech_Pos_Bridge_Constants::ORDER_META_PAYMENT );
+			}
+			if ( $existing === (string) $payment_id ) {
+				return true;
+			}
+			return Cetech_Pos_Bridge_Response::wp_error(
+				'REQUIRES_ATTENTION',
+				'Woo order is already paid with a different payment identity.',
+				false,
+				'contact_manager',
+				409
+			);
+		}
+		if ( ! method_exists( $order, 'payment_complete' ) ) {
+			return $this->unavailable( 'WC_Order::payment_complete is not available.' );
+		}
+		$order->payment_complete( (string) $payment_id );
+		$this->record_woo_mutation( 'payment_completes' );
+		$this->record_woo_mutation( 'stock_reductions' );
+		++$this->side_effects['payments'];
+		++$this->side_effects['stock'];
+		if ( $this->throw_after_payment_complete ) {
+			$this->throw_after_payment_complete = false;
+			throw new RuntimeException( 'payment_complete threw after commercial effect' );
+		}
+		return true;
+	}
+
+	/**
+	 * Official unpaid reservation release. Restores availability; does not invent stock arithmetic.
+	 *
+	 * @param string $order_id
+	 * @return true|WP_Error
+	 */
+	public function release_reserved_stock( $order_id ) {
+		if ( ! $this->environment->function_exists( 'wc_get_order' ) ) {
+			return $this->unavailable( 'wc_get_order is not available to release reserved stock.' );
+		}
+		if ( ! $this->environment->function_exists( 'wc_release_stock_for_order' ) ) {
+			return $this->unavailable( 'wc_release_stock_for_order is not available; cancel will not invent stock arithmetic.' );
+		}
+		$order = wc_get_order( $order_id );
+		if ( ! is_object( $order ) ) {
+			return $this->unavailable( 'Woo order could not be loaded to release reserved stock.' );
+		}
+		wc_release_stock_for_order( $order );
+		$this->record_woo_mutation( 'reservation_releases' );
+		$this->fire_seam( $this->after_reservation_release );
+		return true;
+	}
+
+	/**
+	 * Official unpaid cancel. Uses supported Woo status CRUD.
+	 *
+	 * @param string $order_id
+	 * @param string $reason
+	 * @return true|WP_Error
+	 */
+	public function cancel_unpaid_order( $order_id, $reason ) {
+		if ( ! $this->environment->function_exists( 'wc_get_order' ) ) {
+			return $this->unavailable( 'wc_get_order is not available to cancel the order.' );
+		}
+		$order = wc_get_order( $order_id );
+		if ( ! is_object( $order ) ) {
+			return $this->unavailable( 'Woo order could not be loaded to cancel.' );
+		}
+		if ( method_exists( $order, 'get_status' ) && in_array( (string) $order->get_status(), array( 'cancelled', 'canceled' ), true ) ) {
+			return true;
+		}
+		if ( method_exists( $order, 'update_status' ) ) {
+			$order->update_status( 'cancelled', is_string( $reason ) ? $reason : '', true );
+		} elseif ( method_exists( $order, 'set_status' ) ) {
+			$order->set_status( 'cancelled' );
+			if ( method_exists( $order, 'save' ) ) {
+				$order->save();
+			}
+		} else {
+			return $this->unavailable( 'Woo order status CRUD is not available to cancel.' );
+		}
+		$this->record_woo_mutation( 'order_cancels' );
+		$this->fire_seam( $this->after_order_cancelled );
+		return true;
 	}
 }

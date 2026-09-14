@@ -1,5 +1,39 @@
 {
     "$defs": {
+        "BridgeFinalizeRequest": {
+            "type": "object",
+            "properties": {
+                "transactionId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "payment": {
+                    "$ref": "#/$defs/VerifiedPaymentEvidence"
+                }
+            },
+            "required": [
+                "transactionId",
+                "payment"
+            ],
+            "additionalProperties": false
+        },
+        "CancelSaleRequest": {
+            "type": "object",
+            "properties": {
+                "transactionId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                }
+            },
+            "required": [
+                "transactionId",
+                "reason"
+            ],
+            "additionalProperties": false
+        },
         "Currency": {
             "type": "string",
             "pattern": "^[A-Z]{3}$"
@@ -63,6 +97,15 @@
                 "currency"
             ],
             "additionalProperties": false
+        },
+        "PaymentTender": {
+            "type": "string",
+            "enum": [
+                "cash",
+                "mobile_money",
+                "card",
+                "external_electronic"
+            ]
         },
         "PrepareSaleRequest": {
             "type": "object",
@@ -433,9 +476,56 @@
         "Uuid": {
             "type": "string",
             "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "VerifiedPaymentEvidence": {
+            "type": "object",
+            "properties": {
+                "evidenceId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "transactionId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "paymentId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "saleId": {
+                    "$ref": "#/$defs/Id"
+                },
+                "amount": {
+                    "$ref": "#/$defs/Money"
+                },
+                "tender": {
+                    "$ref": "#/$defs/PaymentTender"
+                },
+                "verifiedAt": {
+                    "$ref": "#/$defs/Timestamp"
+                },
+                "verificationSource": {
+                    "type": "string",
+                    "enum": [
+                        "cash_ledger",
+                        "provider_server_verification",
+                        "approved_external_attestation"
+                    ]
+                }
+            },
+            "required": [
+                "evidenceId",
+                "transactionId",
+                "paymentId",
+                "saleId",
+                "amount",
+                "tender",
+                "verifiedAt",
+                "verificationSource"
+            ],
+            "additionalProperties": false
         }
     },
     "roots": [
+        "BridgeFinalizeRequest",
+        "CancelSaleRequest",
         "PrepareSaleRequest",
         "PreparedSale",
         "Quote",
