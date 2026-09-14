@@ -8,7 +8,12 @@ import type {
 import { canonicalJson, sha256Hex } from "../../local/canonical";
 import { toIsoTimestamp } from "../auth/ids";
 import { apiFailure } from "../http/api-failure";
-import type { CheckoutStore, StaffActor, StoredPayment } from "../../core/checkout/types";
+import {
+  moneyEqual,
+  type CheckoutStore,
+  type StaffActor,
+  type StoredPayment,
+} from "../../core/checkout/types";
 import { validateCanonicalDef } from "../quotes/canonical-schema";
 
 export async function confirmCash(input: {
@@ -69,21 +74,6 @@ async function completeCash(input: {
   readonly now: Date;
 }): Promise<ApiResult<PaymentState>> {
   const { store, actor, request, context, now } = input;
-  const existing = await store.getPaymentForTransaction(request.transactionId);
-  if (existing) {
-    const sale = await store.getSale(request.transactionId);
-    if (sale && sale.status !== "cancelled") {
-      await store.saveSale({
-        ...sale,
-        status: sale.status === "prepared" ? "finalizing" : sale.status,
-        assignedPaymentId: existing.paymentId,
-      });
-    }
-    const state = toVerifiedPaymentState(existing);
-    await store.acknowledgeIdempotency(actor.organizationId, "payment.cash", context.idempotencyKey, state);
-    return { ok: true, data: state, correlationId: context.correlationId };
-  }
-
   const sale = await store.getSale(request.transactionId);
   if (!sale) {
     await store.releaseIdempotency(actor.organizationId, "payment.cash", context.idempotencyKey);
@@ -97,7 +87,7 @@ async function completeCash(input: {
     await store.releaseIdempotency(actor.organizationId, "payment.cash", context.idempotencyKey);
     return apiFailure("FORBIDDEN", "sale location is out of staff scope", context.correlationId);
   }
-  if (sale.status === "cancelled" || sale.status === "completed") {
+  if (sale.status === "cancelled") {
     await store.releaseIdempotency(actor.organizationId, "payment.cash", context.idempotencyKey);
     return apiFailure("VALIDATION_ERROR", "sale cannot accept cash in its current state", context.correlationId);
   }
@@ -112,6 +102,53 @@ async function completeCash(input: {
   if (request.cashReceived.minor < sale.prepared.total.minor) {
     await store.releaseIdempotency(actor.organizationId, "payment.cash", context.idempotencyKey);
     return apiFailure("VALIDATION_ERROR", "cash received is less than the prepared sale total", context.correlationId);
+  }
+
+  const existing = await store.getPaymentForTransaction(request.transactionId);
+  if (existing) {
+    if (
+      existing.transactionId !== request.transactionId ||
+      existing.saleId !== sale.prepared.saleId ||
+      !moneyEqual(existing.amount, sale.prepared.total)
+    ) {
+      await store.releaseIdempotency(actor.organizationId, "payment.cash", context.idempotencyKey);
+      return apiFailure(
+        "REQUIRES_ATTENTION",
+        "recorded cash payment does not match the prepared sale",
+        context.correlationId,
+      );
+    }
+    if (!moneyEqual(existing.cashReceived, request.cashReceived)) {
+      await store.releaseIdempotency(actor.organizationId, "payment.cash", context.idempotencyKey);
+      return apiFailure(
+        "VALIDATION_ERROR",
+        "cash received does not match the recorded cash payment",
+        context.correlationId,
+      );
+    }
+    if (sale.assignedPaymentId && sale.assignedPaymentId !== existing.paymentId) {
+      await store.releaseIdempotency(actor.organizationId, "payment.cash", context.idempotencyKey);
+      return apiFailure(
+        "REQUIRES_ATTENTION",
+        "a different payment is already assigned to this sale",
+        context.correlationId,
+      );
+    }
+    if (sale.status !== "completed") {
+      await store.saveSale({
+        ...sale,
+        status: sale.status === "prepared" ? "finalizing" : sale.status,
+        assignedPaymentId: existing.paymentId,
+      });
+    }
+    const state = toVerifiedPaymentState(existing);
+    await store.acknowledgeIdempotency(actor.organizationId, "payment.cash", context.idempotencyKey, state);
+    return { ok: true, data: state, correlationId: context.correlationId };
+  }
+
+  if (sale.status === "completed") {
+    await store.releaseIdempotency(actor.organizationId, "payment.cash", context.idempotencyKey);
+    return apiFailure("VALIDATION_ERROR", "sale cannot accept cash in its current state", context.correlationId);
   }
 
   const shift = await store.getShift(sale.shiftId);
