@@ -278,8 +278,16 @@ final class Cetech_Pos_Bridge_Prepare_Engine {
 			$this->mark_attention( $claim, 'Woo order outcome did not prove a stock commitment.' );
 			return $this->unavailable( 'PreparedSale was not returned because stock commitment was not proven.' );
 		}
+		if ( empty( $order['reservationExpiresAt'] ) || ! is_string( $order['reservationExpiresAt'] ) ) {
+			$this->mark_attention( $claim, 'Proven reservation did not expose an actual expiry.' );
+			return $this->unavailable( 'PreparedSale was not returned because reservation expiry was not proven.' );
+		}
+		$expiry_unix = strtotime( $order['reservationExpiresAt'] );
+		if ( $expiry_unix === false || $expiry_unix <= time() ) {
+			$this->mark_attention( $claim, 'Proven reservation expiry is not in the future.' );
+			return $this->unavailable( 'PreparedSale was not returned because reservation expiry was not current.' );
+		}
 		$now      = gmdate( 'Y-m-d\TH:i:s\Z' );
-		$ttl      = isset( $order['holdSeconds'] ) ? (int) $order['holdSeconds'] : 0;
 		$prepared = array(
 			'transactionId'    => $raw['transactionId'],
 			'saleId'           => (string) $order['saleId'],
@@ -289,7 +297,7 @@ final class Cetech_Pos_Bridge_Prepare_Engine {
 			'status'           => 'prepared',
 			'stockCommitment'  => (string) $order['stockCommitment'],
 			'preparedAt'       => $now,
-			'expiresAt'        => gmdate( 'Y-m-d\TH:i:s\Z', time() + $ttl ),
+			'expiresAt'        => gmdate( 'Y-m-d\TH:i:s\Z', $expiry_unix ),
 		);
 		$violation = Cetech_Pos_Bridge_Schema::instance()->validate( $prepared, 'PreparedSale' );
 		if ( $violation !== null ) {

@@ -33,10 +33,20 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 	public $during_create = null;
 	/** @var callable|null */
 	public $during_reserve = null;
+	/** @var callable|null fired after each managed product reservation row is written */
+	public $after_product_reserve = null;
 	/** @var string|null force an invalid PreparedSale stockCommitment */
 	public $force_commitment = null;
 	/** @var int */
 	public $create_calls = 0;
+	/** @var int|null unix expiry written onto fake reservation rows */
+	public $reservation_expiry_unix = null;
+	/** @var array<string,array<string,mixed>> productId => managing_stock/backorders_allowed/stock_managed_by */
+	public $product_stock_rules = array();
+	/** @var string|null ReserveStockException error code to throw from reserve */
+	public $reserve_exception = null;
+	/** @var array<string,array<string,array<string,mixed>>> orderId => productId => row */
+	public $reservation_rows = array();
 
 	public function available() {
 		return (bool) $this->environment->wc_available();
@@ -275,21 +285,24 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 		$this->fire_seam( $this->after_meta_save );
 		$reserved = $this->reserve_order_stock( $order_id );
 		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $reserved ) ) {
+			if ( is_object( $reserved ) && method_exists( $reserved, 'get_error_code' ) && $reserved->get_error_code() === 'STOCK_CHANGED' ) {
+				$this->trash_pos_order( $order_id );
+			}
 			return $reserved;
+		}
+		$described = $this->describe_order( $this->order_as_proof_object_by_id( $order_id ), $hold );
+		if ( $described === null || empty( $described['reservationProven'] ) ) {
+			return $this->unavailable( 'Woo did not expose a complete current stock reservation after wc_reserve_stock_for_order.' );
 		}
 		++$this->side_effects['orders'];
 		++$this->side_effects['stock'];
 		$commitment = $this->force_commitment !== null ? $this->force_commitment : 'reserved';
-		$proven     = ( $commitment === 'reserved' || $commitment === 'reduced' );
-		return array(
-			'orderId'           => $order_id,
-			'saleId'            => $sale_id,
-			'orderReference'    => $order_id,
-			'requestHash'       => (string) $request_hash,
-			'reservationProven' => $proven,
-			'stockCommitment'   => $commitment,
-			'holdSeconds'       => $hold,
-		);
+		if ( $commitment !== 'reserved' && $commitment !== 'reduced' ) {
+			$described['reservationProven'] = false;
+			unset( $described['stockCommitment'], $described['reservationExpiresAt'] );
+			$described['stockCommitment'] = $commitment;
+		}
+		return $described;
 	}
 
 	public function find_orders_by_transaction( $transaction_id ) {
@@ -299,48 +312,44 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 			if ( empty( $order['pos'] ) || $order['transaction_id'] === null || (string) $order['transaction_id'] !== (string) $transaction_id ) {
 				continue;
 			}
-			$proven = ! empty( $order['reserved'] );
-			$row    = array(
-				'orderId'           => (string) $order['id'],
-				'saleId'            => (string) $order['sale_id'],
-				'orderReference'    => (string) $order['id'],
-				'requestHash'       => isset( $order['request_hash'] ) ? (string) $order['request_hash'] : '',
-				'reservationProven' => $proven,
-				'holdSeconds'       => $hold,
-			);
-			if ( $proven ) {
-				$row['stockCommitment'] = 'reserved';
+			$described = $this->describe_order( $this->order_as_proof_object( $order ), $hold );
+			if ( $described !== null ) {
+				$out[] = $described;
 			}
-			$out[] = $row;
 		}
 		return $out;
 	}
 
 	public function complete_stock_reservation( array $found ) {
-		if ( ! empty( $found['reservationProven'] ) && isset( $found['stockCommitment'] ) ) {
+		if ( ! empty( $found['reservationProven'] ) && isset( $found['stockCommitment'] ) && isset( $found['reservationExpiresAt'] ) && $found['stockCommitment'] === 'reserved' ) {
 			return $found;
 		}
 		$reserved = $this->reserve_order_stock( $found['orderId'] );
 		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $reserved ) ) {
+			if ( is_object( $reserved ) && method_exists( $reserved, 'get_error_code' ) && $reserved->get_error_code() === 'STOCK_CHANGED' ) {
+				return Cetech_Pos_Bridge_Response::wp_error(
+					'REQUIRES_ATTENTION',
+					'Existing Woo order reservation could not be completed.',
+					false,
+					'contact_manager',
+					409
+				);
+			}
+			return $reserved;
+		}
+		++$this->side_effects['stock'];
+		$hold      = $this->hold_stock_seconds();
+		$described = $this->describe_order( $this->order_as_proof_object_by_id( $found['orderId'] ), $hold );
+		if ( $described === null || empty( $described['reservationProven'] ) ) {
 			return Cetech_Pos_Bridge_Response::wp_error(
 				'REQUIRES_ATTENTION',
-				'Existing Woo order reservation could not be completed.',
+				'Existing Woo order reservation could not be proven after retry.',
 				false,
 				'contact_manager',
 				409
 			);
 		}
-		++$this->side_effects['stock'];
-		$hold = $this->hold_stock_seconds();
-		return array(
-			'orderId'           => (string) $found['orderId'],
-			'saleId'            => (string) $found['saleId'],
-			'orderReference'    => (string) $found['orderReference'],
-			'requestHash'       => isset( $found['requestHash'] ) ? (string) $found['requestHash'] : '',
-			'reservationProven' => true,
-			'stockCommitment'   => 'reserved',
-			'holdSeconds'       => $hold,
-		);
+		return $described;
 	}
 
 	public function inject_duplicate_transaction_order( $transaction_id ) {
@@ -367,7 +376,7 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 			'request_hash'   => (string) $request_hash,
 			'sale_id'        => 'sale-' . $order_id,
 			'status'         => 'pending',
-			'reserved'       => (bool) $reserved,
+			'reserved'       => false,
 			'quote_lines'    => array(
 				array(
 					'productId' => '101',
@@ -375,6 +384,19 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 				),
 			),
 		);
+		if ( $reserved ) {
+			$this->write_reservation_row( $order_id, '101', 1, $this->current_reservation_expiry() );
+			$this->mark_reserved( $order_id );
+		}
+	}
+
+	public function inject_reservation_row( $order_id, $product_id, $quantity, $expires_unix ) {
+		$this->write_reservation_row( $order_id, $product_id, $quantity, $expires_unix );
+	}
+
+	public function reservation_is_proven( $order_id ) {
+		$obj = $this->order_as_proof_object_by_id( $order_id );
+		return $obj !== null && is_array( $this->prove_order_reservation( $obj ) );
 	}
 
 	private function attach_recovery_meta( $order_id, $transaction_id, $request_hash ) {
@@ -388,13 +410,7 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 	}
 
 	private function reserve_order_stock( $order_id ) {
-		$target = null;
-		foreach ( $this->orders as $order ) {
-			if ( (string) $order['id'] === (string) $order_id ) {
-				$target = $order;
-				break;
-			}
-		}
+		$target = $this->order_array_by_id( $order_id );
 		if ( $target === null ) {
 			return Cetech_Pos_Bridge_Response::wp_error(
 				'STOCK_CHANGED',
@@ -405,7 +421,9 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 				array( 'field' => 'lines' )
 			);
 		}
-		if ( ! empty( $target['reserved'] ) ) {
+		$obj = $this->order_as_proof_object( $target );
+		if ( is_array( $this->prove_order_reservation( $obj ) ) ) {
+			$this->mark_reserved( $order_id );
 			return true;
 		}
 		if ( is_callable( $this->during_reserve ) ) {
@@ -413,16 +431,27 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 			$this->during_reserve = null;
 			$cb( $this );
 		}
-		$lines = isset( $target['quote_lines'] ) && is_array( $target['quote_lines'] ) ? $target['quote_lines'] : array();
-		foreach ( $lines as $line ) {
-			$pid = isset( $line['variationId'] ) ? (string) $line['variationId'] : (string) $line['productId'];
-			$qty = (int) $line['quantity'];
-			if ( $qty < 1 ) {
-				$qty = 1;
+		if ( is_string( $this->reserve_exception ) && $this->reserve_exception !== '' ) {
+			$ex = new Cetech_Pos_Bridge_Test_ReserveStockException( $this->reserve_exception, 'forced reserve failure' );
+			$this->reserve_exception = null;
+			return $this->reservation_failure_from_exception( $ex, false );
+		}
+		$required = $this->expected_managed_reservation_quantities( $obj );
+		if ( ! is_array( $required ) || $required === array() ) {
+			return $this->unavailable( 'Woo did not expose a complete current stock reservation after wc_reserve_stock_for_order.' );
+		}
+		ksort( $required );
+		foreach ( $required as $pid => $qty ) {
+			$pid = (string) $pid;
+			$qty = (float) $qty;
+			$row = $this->current_reservation_row( $order_id, $pid );
+			if ( $row !== null && ( (float) $row['stock_quantity'] + 0.0000001 ) >= $qty ) {
+				continue;
 			}
-			$available = isset( $this->stock[ $pid ] ) ? (int) $this->stock[ $pid ] : ( isset( $this->stock[ $line['productId'] ] ) ? (int) $this->stock[ $line['productId'] ] : 0 );
-			$key       = isset( $this->stock[ $pid ] ) ? $pid : (string) $line['productId'];
-			if ( $available < $qty ) {
+			$available = isset( $this->stock[ $pid ] ) ? (int) $this->stock[ $pid ] : 0;
+			$already   = isset( $this->reservations[ $order_id ][ $pid ] ) ? (int) $this->reservations[ $order_id ][ $pid ] : 0;
+			$need      = (int) $qty - $already;
+			if ( $need > 0 && $available < $need ) {
 				$this->trash_pos_order( $order_id );
 				return Cetech_Pos_Bridge_Response::wp_error(
 					'STOCK_CHANGED',
@@ -433,14 +462,121 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 					array( 'field' => 'lines' )
 				);
 			}
-			$this->stock[ $key ] -= $qty;
-			if ( ! isset( $this->reservations[ $order_id ] ) ) {
-				$this->reservations[ $order_id ] = array();
+			if ( $need > 0 ) {
+				$this->stock[ $pid ] -= $need;
+				if ( ! isset( $this->reservations[ $order_id ] ) ) {
+					$this->reservations[ $order_id ] = array();
+				}
+				$this->reservations[ $order_id ][ $pid ] = (int) $qty;
 			}
-			$this->reservations[ $order_id ][ $key ] = $qty;
+			$this->write_reservation_row( $order_id, $pid, $qty, $this->current_reservation_expiry() );
+			if ( is_callable( $this->after_product_reserve ) ) {
+				$cb = $this->after_product_reserve;
+				$this->after_product_reserve = null;
+				$cb( $this, $pid );
+			}
 		}
-		$this->mark_reserved( $order_id );
+		if ( is_array( $this->prove_order_reservation( $this->order_as_proof_object_by_id( $order_id ) ) ) ) {
+			$this->mark_reserved( $order_id );
+		}
 		return true;
+	}
+
+	protected function read_current_reservation_rows( $order ) {
+		if ( ! $order instanceof Cetech_Pos_Bridge_Fake_Order ) {
+			return parent::read_current_reservation_rows( $order );
+		}
+		$order_id = (string) $order->get_id();
+		$out      = array();
+		if ( ! isset( $this->reservation_rows[ $order_id ] ) || ! is_array( $this->reservation_rows[ $order_id ] ) ) {
+			return $out;
+		}
+		foreach ( $this->reservation_rows[ $order_id ] as $pid => $row ) {
+			$exp = isset( $row['expires'] ) ? (int) $row['expires'] : 0;
+			if ( $exp <= time() ) {
+				continue;
+			}
+			$out[ (string) $pid ] = array(
+				'product_id'     => (string) $pid,
+				'stock_quantity' => $row['stock_quantity'],
+				'expires'        => $exp,
+			);
+		}
+		return $out;
+	}
+
+	private function order_as_proof_object_by_id( $order_id ) {
+		$order = $this->order_array_by_id( $order_id );
+		return $order === null ? null : $this->order_as_proof_object( $order );
+	}
+
+	private function order_array_by_id( $order_id ) {
+		foreach ( $this->orders as $order ) {
+			if ( (string) $order['id'] === (string) $order_id ) {
+				return $order;
+			}
+		}
+		return null;
+	}
+
+	private function order_as_proof_object( array $order ) {
+		$obj     = new Cetech_Pos_Bridge_Fake_Order( $order['id'] );
+		$obj->id = $order['id'];
+		$obj->meta[ Cetech_Pos_Bridge_Constants::ORDER_META_TX ]   = isset( $order['transaction_id'] ) ? (string) $order['transaction_id'] : '';
+		$obj->meta[ Cetech_Pos_Bridge_Constants::ORDER_META_HASH ] = isset( $order['request_hash'] ) ? (string) $order['request_hash'] : '';
+		$obj->meta[ Cetech_Pos_Bridge_Constants::ORDER_META_SALE ] = isset( $order['sale_id'] ) ? (string) $order['sale_id'] : '';
+		$lines   = isset( $order['quote_lines'] ) && is_array( $order['quote_lines'] ) ? $order['quote_lines'] : array();
+		foreach ( $lines as $line ) {
+			$pid   = isset( $line['variationId'] ) ? (string) $line['variationId'] : (string) $line['productId'];
+			$rules = $this->product_reserve_rules( $pid, isset( $line['productId'] ) ? (string) $line['productId'] : $pid );
+			$item  = new Cetech_Pos_Bridge_Fake_Order_Item(
+				new Cetech_Pos_Bridge_Fake_Stock_Product( $rules['managing_stock'], $rules['backorders_allowed'], $rules['stock_managed_by'] ),
+				isset( $line['quantity'] ) ? $line['quantity'] : 1
+			);
+			$obj->items[] = $item;
+		}
+		return $obj;
+	}
+
+	private function product_reserve_rules( $pid, $parent ) {
+		$defaults = array(
+			'managing_stock'     => true,
+			'backorders_allowed' => false,
+			'stock_managed_by'   => (string) $pid,
+		);
+		$rules = isset( $this->product_stock_rules[ $pid ] ) ? $this->product_stock_rules[ $pid ] : ( isset( $this->product_stock_rules[ $parent ] ) ? $this->product_stock_rules[ $parent ] : array() );
+		return array_merge( $defaults, $rules );
+	}
+
+	private function current_reservation_row( $order_id, $product_id ) {
+		if ( ! isset( $this->reservation_rows[ $order_id ][ $product_id ] ) ) {
+			return null;
+		}
+		$row = $this->reservation_rows[ $order_id ][ $product_id ];
+		$exp = isset( $row['expires'] ) ? (int) $row['expires'] : 0;
+		if ( $exp <= time() ) {
+			return null;
+		}
+		return $row;
+	}
+
+	private function write_reservation_row( $order_id, $product_id, $quantity, $expires_unix ) {
+		$order_id   = (string) $order_id;
+		$product_id = (string) $product_id;
+		if ( ! isset( $this->reservation_rows[ $order_id ] ) ) {
+			$this->reservation_rows[ $order_id ] = array();
+		}
+		$this->reservation_rows[ $order_id ][ $product_id ] = array(
+			'stock_quantity' => $quantity,
+			'expires'        => (int) $expires_unix,
+		);
+	}
+
+	private function current_reservation_expiry() {
+		if ( $this->reservation_expiry_unix !== null ) {
+			return (int) $this->reservation_expiry_unix;
+		}
+		return time() + $this->hold_stock_seconds();
 	}
 
 	private function mark_reserved( $order_id ) {
@@ -453,6 +589,7 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 	}
 
 	private function trash_pos_order( $order_id ) {
+		$order_id = (string) $order_id;
 		if ( isset( $this->reservations[ $order_id ] ) ) {
 			foreach ( $this->reservations[ $order_id ] as $pid => $qty ) {
 				if ( ! isset( $this->stock[ $pid ] ) ) {
@@ -462,6 +599,7 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 			}
 			unset( $this->reservations[ $order_id ] );
 		}
+		unset( $this->reservation_rows[ $order_id ] );
 		$kept = array();
 		foreach ( $this->orders as $order ) {
 			if ( (string) $order['id'] !== (string) $order_id ) {
@@ -482,6 +620,91 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 	private function minor_to_decimal( $minor ) {
 		$minor = (int) $minor;
 		return sprintf( '%d.%02d', intdiv( $minor, 100 ), $minor % 100 );
+	}
+}
+
+class Cetech_Pos_Bridge_Fake_Order {
+	public $id;
+	public $items = array();
+	public $meta  = array();
+
+	public function __construct( $id ) {
+		$this->id = $id;
+	}
+
+	public function get_id() {
+		return $this->id;
+	}
+
+	public function get_items() {
+		return $this->items;
+	}
+
+	public function get_meta( $key ) {
+		return isset( $this->meta[ $key ] ) ? $this->meta[ $key ] : '';
+	}
+
+	public function get_order_number() {
+		return (string) $this->id;
+	}
+}
+
+class Cetech_Pos_Bridge_Fake_Order_Item {
+	public $product;
+	public $qty;
+
+	public function __construct( $product, $qty ) {
+		$this->product = $product;
+		$this->qty     = $qty;
+	}
+
+	public function is_type( $type ) {
+		return $type === 'line_item';
+	}
+
+	public function get_quantity() {
+		return $this->qty;
+	}
+
+	public function get_product() {
+		return $this->product;
+	}
+}
+
+class Cetech_Pos_Bridge_Fake_Stock_Product {
+	public $managing;
+	public $backorders;
+	public $managed_by;
+
+	public function __construct( $managing, $backorders, $managed_by ) {
+		$this->managing   = (bool) $managing;
+		$this->backorders = (bool) $backorders;
+		$this->managed_by = (string) $managed_by;
+	}
+
+	public function managing_stock() {
+		return $this->managing;
+	}
+
+	public function backorders_allowed() {
+		return $this->backorders;
+	}
+
+	public function get_stock_managed_by_id() {
+		return $this->managed_by;
+	}
+}
+
+class Cetech_Pos_Bridge_Test_ReserveStockException extends Exception {
+	private $error_code;
+
+	public function __construct( $code, $message = '', $http = 403 ) {
+		$this->error_code = (string) $code;
+		parent::__construct( $message, $http );
+	}
+
+	public function getErrorCode() {
+		return $this->error_code;
 	}
 }
 

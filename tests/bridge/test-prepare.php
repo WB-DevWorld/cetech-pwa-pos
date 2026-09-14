@@ -140,7 +140,7 @@ function br06_prepare_crashed( $prep, array $body, $key, $message ) {
 
 function br06_order_reserved( Cetech_Pos_Bridge_Fake_Woo_Runtime $runtime ) {
 	foreach ( $runtime->orders as $order ) {
-		if ( ! empty( $order['pos'] ) && ! empty( $order['reserved'] ) ) {
+		if ( ! empty( $order['pos'] ) && $runtime->reservation_is_proven( $order['id'] ) ) {
 			return true;
 		}
 	}
@@ -190,6 +190,11 @@ br01_assert( strpos( $woo_src, 'wc_get_orders' ) !== false, 'production recovery
 br01_assert( strpos( $woo_src, 'after_wc_create' ) !== false, 'production exposes crash seam A after wc_create_order' );
 br01_assert( strpos( $woo_src, 'after_meta_save' ) !== false, 'production exposes crash seam B after recovery metadata save' );
 br01_assert( strpos( $woo_src, 'wc_reserved_stock' ) !== false, 'production proves reservation from Woo reserved-stock state' );
+br01_assert( strpos( $woo_src, 'expires > NOW()' ) !== false, 'production reservation proof rejects expired holds' );
+br01_assert( strpos( $woo_src, 'stock_quantity' ) !== false, 'production reservation proof checks reserved quantity' );
+br01_assert( strpos( $woo_src, 'get_stock_managed_by_id' ) !== false, 'production expected reservation uses Woo stock-managed-by identity' );
+br01_assert( strpos( $woo_src, 'ReserveStockException' ) !== false, 'production normalizes Woo ReserveStockException' );
+br01_assert( strpos( $woo_src, 'reservationExpiresAt' ) !== false, 'production describes actual reservation expiry' );
 
 $prep_src = file_get_contents( dirname( __DIR__, 2 ) . '/wordpress/cetech-pos-bridge/includes/class-prepare-engine.php' );
 br01_assert( strpos( $prep_src, 'wp_insert_post' ) === false, 'prepare engine does not insert posts' );
@@ -693,6 +698,70 @@ if ( is_array( $br06_two_second ) ) {
 br01_assert_eq( 1, $br06_two_wins, 'two competing prepares cannot both commit the last unit' );
 br01_assert_eq( 1, $br06_two_runtime->pos_order_count(), 'last-unit POS race leaves exactly one POS order' );
 br01_assert_eq( 0, $br06_two_runtime->stock['101'], 'last unit stock is exhausted once' );
+
+/* ---------------------------------------------------------------------------
+ * Complete reservation proof, actual expiry, exception normalization, partial A/B crash
+ * ------------------------------------------------------------------------ */
+
+$br06_exp_hold_runtime = br06_runtime();
+$br06_exp_hold_runtime->hold_stock_minutes       = 60;
+$br06_exp_hold_runtime->reservation_expiry_unix  = time() + 600;
+$br06_exp_hold_stack = br06_stack( $br06_exp_hold_runtime );
+$br06_exp_hold_quote = $br06_exp_hold_stack['quotes']->quote( br06_quote_request() );
+$br06_exp_hold       = $br06_exp_hold_stack['prep']->prepare( br06_prepare_body( $br06_exp_hold_quote ), br06_next_uuid() );
+br01_assert( is_array( $br06_exp_hold ), 'prepare with distinct reservation expiry returns PreparedSale' );
+br01_assert_eq( gmdate( 'Y-m-d\TH:i:s\Z', $br06_exp_hold_runtime->reservation_expiry_unix ), $br06_exp_hold['expiresAt'], 'PreparedSale.expiresAt comes from proven reservation expiry' );
+br01_assert( $br06_exp_hold['expiresAt'] !== gmdate( 'Y-m-d\TH:i:s\Z', time() + 3600 ), 'PreparedSale.expiresAt is not the guessed global hold-stock TTL' );
+
+$br06_ex_runtime = br06_runtime();
+$br06_ex_runtime->reserve_exception = 'woocommerce_product_not_enough_stock';
+$br06_ex_stack = br06_stack( $br06_ex_runtime );
+$br06_ex_quote = $br06_ex_stack['quotes']->quote( br06_quote_request() );
+$br06_ex       = $br06_ex_stack['prep']->prepare( br06_prepare_body( $br06_ex_quote ), br06_next_uuid() );
+br01_assert_eq( 'STOCK_CHANGED', br06_error_code( $br06_ex ), 'ReserveStockException is normalized to STOCK_CHANGED' );
+br01_assert_eq( 0, $br06_ex_runtime->pos_order_count(), 'normalized reserve exception does not keep a POS order' );
+
+$br06_ab_runtime = br06_runtime();
+$br06_ab_priced  = $br06_ab_runtime->catalog['walkin']['101']['1'];
+$br06_ab_runtime->catalog['walkin']['102']['1']               = $br06_ab_priced;
+$br06_ab_runtime->catalog['retail:cust_retail_1']['102']['1'] = $br06_ab_priced;
+$br06_ab_runtime->stock['102']                                = 10;
+$br06_ab_stack = br06_stack( $br06_ab_runtime );
+$br06_ab_req   = br06_quote_request();
+$br06_ab_req['lines'][] = array(
+	'lineId'    => br06_next_uuid(),
+	'productId' => '102',
+	'quantity'  => '1',
+);
+$br06_ab_quote = $br06_ab_stack['quotes']->quote( $br06_ab_req );
+br01_assert( is_array( $br06_ab_quote ), 'two-line quote succeeds' );
+$br06_ab_body = br06_prepare_body( $br06_ab_quote );
+$br06_ab_key  = br06_next_uuid();
+$br06_ab_runtime->after_product_reserve = function () {
+	throw new RuntimeException( 'partial reservation after product A' );
+};
+br06_prepare_crashed( $br06_ab_stack['prep'], $br06_ab_body, $br06_ab_key, 'partial reservation after product A' );
+br01_assert_eq( 1, $br06_ab_runtime->pos_order_count(), 'partial A/B crash leaves exactly one Woo order' );
+br01_assert_eq( 1, $br06_ab_runtime->create_calls, 'partial A/B crash called create once' );
+br01_assert( ! $br06_ab_runtime->reservation_is_proven( $br06_ab_runtime->orders[0]['id'] ), 'partial A-only reservation is not proven' );
+$br06_ab_oid = $br06_ab_runtime->orders[0]['id'];
+br01_assert( isset( $br06_ab_runtime->reservation_rows[ $br06_ab_oid ]['101'] ), 'product A reservation row exists after crash' );
+br01_assert( ! isset( $br06_ab_runtime->reservation_rows[ $br06_ab_oid ]['102'] ), 'product B reservation row is missing after crash' );
+$br06_ab_resolved = $br06_ab_stack['prep']->resolve( $br06_ab_body['transactionId'] );
+br01_assert_eq( 'preparing', $br06_ab_resolved['status'], 'resolve alone does not report prepared for a partial reservation' );
+br01_assert( ! $br06_ab_runtime->reservation_is_proven( $br06_ab_oid ), 'resolve alone does not complete stock reservation' );
+br01_assert_eq( 1, $br06_ab_runtime->create_calls, 'resolve after partial crash does not call wc_create_order' );
+br01_assert_eq( 1, $br06_ab_runtime->pos_order_count(), 'resolve after partial crash creates no second order' );
+$br06_ab_retry = $br06_ab_stack['prep']->prepare( $br06_ab_body, $br06_ab_key );
+br01_assert( is_array( $br06_ab_retry ), 'retry after partial A/B crash recovers PreparedSale' );
+br01_assert_eq( 'prepared', $br06_ab_retry['status'], 'retry after partial reservation is prepared' );
+br01_assert_eq( 'reserved', $br06_ab_retry['stockCommitment'], 'retry reports reserved only after A and B are proven' );
+br01_assert( isset( $br06_ab_retry['expiresAt'] ), 'retry PreparedSale includes proven expiry' );
+br01_assert( $br06_ab_runtime->reservation_is_proven( $br06_ab_oid ), 'retry proves both required reservation rows' );
+br01_assert( isset( $br06_ab_runtime->reservation_rows[ $br06_ab_oid ]['101'] ), 'retry keeps product A reservation' );
+br01_assert( isset( $br06_ab_runtime->reservation_rows[ $br06_ab_oid ]['102'] ), 'retry completed product B reservation' );
+br01_assert_eq( 1, $br06_ab_runtime->create_calls, 'retry after partial crash does not create a second Woo order' );
+br01_assert_eq( 1, $br06_ab_runtime->pos_order_count(), 'retry after partial crash order count remains one' );
 
 br01_assert_eq( 0, $br06_ok_runtime->side_effect_counts()['payments'], 'suite still has no payment side effect on the happy-path runtime' );
 br01_assert( strpos( $woo_src, 'WoodMart' ) === false || strpos( $prep_src, 'b2bking_get' ) === false, 'prepare path does not copy B2BKing getters' );

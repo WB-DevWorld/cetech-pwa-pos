@@ -360,3 +360,153 @@ br01_assert_eq( 'b2b', $kind_runtime->expose_kind( 8 ), 'B2BKing b2bking_b2buser
 $kind_runtime->stored_flag  = '';
 br01_assert_eq( 'retail', $kind_runtime->expose_kind( 13 ), 'absent B2BKing flag is retail' );
 
+class Cetech_Pos_Bridge_Reservation_Proof_Harness extends Cetech_Pos_Bridge_Woo_Runtime {
+	public $injected_rows = array();
+
+	public function prove( $order ) {
+		return $this->prove_order_reservation( $order );
+	}
+
+	protected function read_current_reservation_rows( $order ) {
+		unset( $order );
+		return $this->injected_rows;
+	}
+}
+
+class Cetech_Pos_Bridge_Stub_Reserve_Product {
+	public $managing;
+	public $backorders;
+	public $managed_by;
+
+	public function __construct( $managing, $backorders, $managed_by ) {
+		$this->managing   = $managing;
+		$this->backorders = $backorders;
+		$this->managed_by = $managed_by;
+	}
+
+	public function managing_stock() {
+		return $this->managing;
+	}
+
+	public function backorders_allowed() {
+		return $this->backorders;
+	}
+
+	public function get_stock_managed_by_id() {
+		return $this->managed_by;
+	}
+}
+
+class Cetech_Pos_Bridge_Stub_Reserve_Item {
+	public $product;
+	public $qty;
+	public $type = 'line_item';
+
+	public function is_type( $type ) {
+		return $type === $this->type;
+	}
+
+	public function get_quantity() {
+		return $this->qty;
+	}
+
+	public function get_product() {
+		return $this->product;
+	}
+}
+
+class Cetech_Pos_Bridge_Stub_Reserve_Order {
+	public $id    = 42;
+	public $items = array();
+
+	public function get_id() {
+		return $this->id;
+	}
+
+	public function get_items() {
+		return $this->items;
+	}
+}
+
+function br02_reserve_item( $managed_by, $qty, $managing = true, $backorders = false ) {
+	$item          = new Cetech_Pos_Bridge_Stub_Reserve_Item();
+	$item->qty     = $qty;
+	$item->product = new Cetech_Pos_Bridge_Stub_Reserve_Product( $managing, $backorders, $managed_by );
+	return $item;
+}
+
+$proof_runtime = new Cetech_Pos_Bridge_Reservation_Proof_Harness( br01_authorized_env() );
+$proof_order   = new Cetech_Pos_Bridge_Stub_Reserve_Order();
+$proof_order->items[] = br02_reserve_item( '101', 1 );
+$proof_order->items[] = br02_reserve_item( '102', 2 );
+$future = time() + 1800;
+
+$proof_runtime->injected_rows = array(
+	'101' => array(
+		'product_id'     => '101',
+		'stock_quantity' => 1,
+		'expires'        => $future,
+	),
+);
+br01_assert_eq( null, $proof_runtime->prove( $proof_order ), 'only one of two required reservation rows is not proven' );
+
+$proof_runtime->injected_rows['102'] = array(
+	'product_id'     => '102',
+	'stock_quantity' => 1,
+	'expires'        => $future,
+);
+br01_assert_eq( null, $proof_runtime->prove( $proof_order ), 'wrong reserved quantity is not proven' );
+
+$proof_runtime->injected_rows['102']['stock_quantity'] = 2;
+$proof_runtime->injected_rows['102']['expires']        = time() - 30;
+br01_assert_eq( null, $proof_runtime->prove( $proof_order ), 'expired reservation row is not proven' );
+
+$proof_runtime->injected_rows['102']['expires'] = $future;
+$proof_ok = $proof_runtime->prove( $proof_order );
+br01_assert( is_array( $proof_ok ), 'all expected current quantity-correct rows are proven' );
+br01_assert_eq( gmdate( 'Y-m-d\TH:i:s\Z', $future ), $proof_ok['expiresAt'], 'proven expiry is the minimum actual reservation expiry' );
+
+$agg_order   = new Cetech_Pos_Bridge_Stub_Reserve_Order();
+$agg_order->items[] = br02_reserve_item( '201', 1 );
+$agg_order->items[] = br02_reserve_item( '201', 3 );
+$proof_runtime->injected_rows = array(
+	'201' => array(
+		'product_id'     => '201',
+		'stock_quantity' => 4,
+		'expires'        => $future,
+	),
+);
+br01_assert( is_array( $proof_runtime->prove( $agg_order ) ), 'repeated managed product IDs are aggregated before proof' );
+
+$skip_order   = new Cetech_Pos_Bridge_Stub_Reserve_Order();
+$skip_order->items[] = br02_reserve_item( '301', 1, true, false );
+$skip_order->items[] = br02_reserve_item( '302', 1, false, false );
+$skip_order->items[] = br02_reserve_item( '303', 1, true, true );
+$proof_runtime->injected_rows = array(
+	'301' => array(
+		'product_id'     => '301',
+		'stock_quantity' => 1,
+		'expires'        => $future,
+	),
+);
+br01_assert( is_array( $proof_runtime->prove( $skip_order ) ), 'unmanaged and backorder items are omitted from the required reservation set' );
+
+$empty_order = new Cetech_Pos_Bridge_Stub_Reserve_Order();
+$empty_order->items[] = br02_reserve_item( '401', 1, false, false );
+$proof_runtime->injected_rows = array();
+br01_assert_eq( null, $proof_runtime->prove( $empty_order ), 'an order with nothing Woo would reserve is not a reserved commitment' );
+
+$norm_runtime = new Cetech_Pos_Bridge_Woo_Runtime( br01_authorized_env() );
+$norm_stock   = $norm_runtime->reservation_failure_from_exception(
+	new Cetech_Pos_Bridge_Test_ReserveStockException( 'woocommerce_product_not_enough_stock', 'no stock' ),
+	false
+);
+br01_assert_eq( 'STOCK_CHANGED', $norm_stock->get_error_code(), 'ReserveStockException insufficient stock is STOCK_CHANGED on create' );
+$norm_recover = $norm_runtime->reservation_failure_from_exception(
+	new Cetech_Pos_Bridge_Test_ReserveStockException( 'woocommerce_product_out_of_stock', 'oos' ),
+	true
+);
+br01_assert_eq( 'REQUIRES_ATTENTION', $norm_recover->get_error_code(), 'ReserveStockException on recovery is canonical requires_attention' );
+$norm_other = $norm_runtime->reservation_failure_from_exception( new RuntimeException( 'provider boom' ), false );
+br01_assert_eq( 'INTEGRATION_UNAVAILABLE', $norm_other->get_error_code(), 'unclassifiable reservation throwable is not a fatal and is not PreparedSale' );
+

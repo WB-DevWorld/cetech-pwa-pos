@@ -915,20 +915,13 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 				$this->trash_incomplete_order( $order );
 				return $this->unavailable( 'wc_reserve_stock_for_order is not available; prepare will not invent stock arithmetic.' );
 			}
-			$reserved = wc_reserve_stock_for_order( $order );
-			if ( $reserved === false || Cetech_Pos_Bridge_Quote_Request::is_error( $reserved ) ) {
+			$reserved = $this->call_reserve_stock_for_order( $order, false );
+			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $reserved ) ) {
 				$this->trash_incomplete_order( $order );
-				return Cetech_Pos_Bridge_Response::wp_error(
-					'STOCK_CHANGED',
-					'Woo could not reserve stock for the prepared order.',
-					false,
-					'review_quote',
-					409,
-					array( 'field' => 'lines' )
-				);
+				return $reserved;
 			}
 			if ( ! $this->order_has_proven_reservation( $order ) ) {
-				return $this->unavailable( 'Woo did not expose proven stock reservation after wc_reserve_stock_for_order.' );
+				return $this->unavailable( 'Woo did not expose a complete current stock reservation after wc_reserve_stock_for_order.' );
 			}
 			$described = $this->describe_order( $order, $hold );
 			if ( $described === null || empty( $described['reservationProven'] ) ) {
@@ -1000,15 +993,9 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		if ( ! is_object( $order ) ) {
 			return $this->unavailable( 'Woo order could not be loaded to complete reservation.' );
 		}
-		$reserved = wc_reserve_stock_for_order( $order );
-		if ( $reserved === false || Cetech_Pos_Bridge_Quote_Request::is_error( $reserved ) ) {
-			return Cetech_Pos_Bridge_Response::wp_error(
-				'REQUIRES_ATTENTION',
-				'Existing Woo order reservation could not be completed.',
-				false,
-				'contact_manager',
-				409
-			);
+		$reserved = $this->call_reserve_stock_for_order( $order, true );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $reserved ) ) {
+			return $reserved;
 		}
 		$hold      = $this->hold_stock_seconds();
 		$described = $this->describe_order( $order, $hold );
@@ -1038,7 +1025,8 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		$hash     = method_exists( $order, 'get_meta' ) ? (string) $order->get_meta( Cetech_Pos_Bridge_Constants::ORDER_META_HASH ) : '';
 		$sale     = method_exists( $order, 'get_meta' ) ? (string) $order->get_meta( Cetech_Pos_Bridge_Constants::ORDER_META_SALE ) : '';
 		$ref      = method_exists( $order, 'get_order_number' ) ? (string) $order->get_order_number() : $order_id;
-		$proven   = $this->order_has_proven_reservation( $order );
+		$proof    = $this->prove_order_reservation( $order );
+		$proven   = is_array( $proof );
 		$row      = array(
 			'orderId'            => $order_id,
 			'saleId'             => $sale !== '' ? $sale : ( 'sale-' . $order_id ),
@@ -1048,33 +1036,271 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 			'holdSeconds'        => $hold,
 		);
 		if ( $proven ) {
-			$row['stockCommitment'] = 'reserved';
+			$row['stockCommitment']       = 'reserved';
+			$row['reservationExpiresAt']  = $proof['expiresAt'];
+			$row['holdSeconds']           = (int) $proof['holdSeconds'];
 		}
 		return $row;
 	}
 
 	/**
-	 * Inspect Woo reservation state. Does not invent reserved from order existence.
+	 * Complete current reservation for every product Woo should hold.
+	 * COUNT>0 is not proof. Expired rows are not proof.
 	 *
 	 * @param object $order
 	 * @return bool
 	 */
 	protected function order_has_proven_reservation( $order ) {
-		$order_id = method_exists( $order, 'get_id' ) ? (int) $order->get_id() : 0;
+		return is_array( $this->prove_order_reservation( $order ) );
+	}
+
+	/**
+	 * @param object $order
+	 * @return array<string,mixed>|null {expiresAt:string,holdSeconds:int}
+	 */
+	protected function prove_order_reservation( $order ) {
+		$required = $this->expected_managed_reservation_quantities( $order );
+		if ( ! is_array( $required ) || $required === array() ) {
+			return null;
+		}
+		$rows = $this->read_current_reservation_rows( $order );
+		if ( ! is_array( $rows ) ) {
+			return null;
+		}
+		$min_expiry = null;
+		foreach ( $required as $product_id => $qty ) {
+			$key = (string) $product_id;
+			if ( ! isset( $rows[ $key ] ) ) {
+				return null;
+			}
+			$row = $rows[ $key ];
+			if ( ! isset( $row['stock_quantity'] ) || ( (float) $row['stock_quantity'] + 0.0000001 ) < (float) $qty ) {
+				return null;
+			}
+			$exp = $this->reservation_expiry_unix( isset( $row['expires'] ) ? $row['expires'] : null );
+			if ( $exp === null || $exp <= time() ) {
+				return null;
+			}
+			if ( $min_expiry === null || $exp < $min_expiry ) {
+				$min_expiry = $exp;
+			}
+		}
+		if ( $min_expiry === null ) {
+			return null;
+		}
+		return array(
+			'expiresAt'   => gmdate( 'Y-m-d\TH:i:s\Z', $min_expiry ),
+			'holdSeconds' => $min_expiry - time(),
+		);
+	}
+
+	/**
+	 * Products Woo ReserveStock would actually hold: stock-managed, no backorders,
+	 * aggregated by get_stock_managed_by_id(). Unmanaged/backorder items are omitted.
+	 *
+	 * @param object $order
+	 * @return array<string,float>|null
+	 */
+	protected function expected_managed_reservation_quantities( $order ) {
+		if ( ! is_object( $order ) || ! method_exists( $order, 'get_items' ) ) {
+			return null;
+		}
+		$items = $order->get_items();
+		if ( ! is_array( $items ) ) {
+			return null;
+		}
+		$required = array();
+		foreach ( $items as $item ) {
+			if ( is_object( $item ) && method_exists( $item, 'is_type' ) && ! $item->is_type( 'line_item' ) ) {
+				continue;
+			}
+			$qty = 0;
+			if ( is_object( $item ) && method_exists( $item, 'get_quantity' ) ) {
+				$qty = $item->get_quantity();
+			}
+			if ( $qty <= 0 ) {
+				continue;
+			}
+			if ( ! is_object( $item ) || ! method_exists( $item, 'get_product' ) ) {
+				return null;
+			}
+			$product = $item->get_product();
+			if ( ! is_object( $product ) ) {
+				continue;
+			}
+			if ( ! method_exists( $product, 'managing_stock' ) || ! method_exists( $product, 'backorders_allowed' ) || ! method_exists( $product, 'get_stock_managed_by_id' ) ) {
+				return null;
+			}
+			if ( ! $product->managing_stock() || $product->backorders_allowed() ) {
+				continue;
+			}
+			if ( $this->environment->function_exists( 'apply_filters' ) ) {
+				$qty = apply_filters( 'woocommerce_order_item_quantity', $qty, $order, $item );
+			}
+			$managed_by = (string) $product->get_stock_managed_by_id();
+			if ( $managed_by === '' ) {
+				return null;
+			}
+			if ( ! isset( $required[ $managed_by ] ) ) {
+				$required[ $managed_by ] = 0;
+			}
+			$required[ $managed_by ] += $qty;
+		}
+		return $required;
+	}
+
+	/**
+	 * Read-only inspection of Woo's reservation table. Never writes.
+	 *
+	 * @param object $order
+	 * @return array<string,array<string,mixed>>|null
+	 */
+	protected function read_current_reservation_rows( $order ) {
+		$order_id = is_object( $order ) && method_exists( $order, 'get_id' ) ? (int) $order->get_id() : 0;
 		if ( $order_id <= 0 ) {
-			return false;
+			return null;
 		}
 		global $wpdb;
-		if ( ! isset( $wpdb ) || ! is_object( $wpdb ) || ! method_exists( $wpdb, 'get_var' ) || ! isset( $wpdb->prefix ) ) {
-			return false;
+		if ( ! isset( $wpdb ) || ! is_object( $wpdb ) || ! method_exists( $wpdb, 'get_results' ) ) {
+			return null;
 		}
-		$table = $wpdb->prefix . 'wc_reserved_stock';
-		$sql   = 'SELECT COUNT(1) FROM ' . $table . ' WHERE order_id = %d';
+		$table = null;
+		if ( isset( $wpdb->wc_reserved_stock ) && is_string( $wpdb->wc_reserved_stock ) && preg_match( '/^[A-Za-z0-9_]+$/', $wpdb->wc_reserved_stock ) ) {
+			$table = $wpdb->wc_reserved_stock;
+		}
+		if ( $table === null ) {
+			return null;
+		}
+		$sql = 'SELECT product_id, stock_quantity, expires FROM `' . $table . '` WHERE order_id = %d AND expires > NOW()';
 		if ( method_exists( $wpdb, 'prepare' ) ) {
 			$sql = $wpdb->prepare( $sql, $order_id );
 		}
-		$counted = $wpdb->get_var( $sql );
-		return $counted !== null && (int) $counted > 0;
+		$results = $wpdb->get_results( $sql, ARRAY_A );
+		if ( ! is_array( $results ) ) {
+			return null;
+		}
+		$out = array();
+		foreach ( $results as $row ) {
+			if ( ! is_array( $row ) || ! isset( $row['product_id'], $row['stock_quantity'], $row['expires'] ) ) {
+				return null;
+			}
+			$key = (string) $row['product_id'];
+			if ( isset( $out[ $key ] ) ) {
+				return null;
+			}
+			$out[ $key ] = $row;
+		}
+		return $out;
+	}
+
+	/**
+	 * @param mixed $expires
+	 * @return int|null unix timestamp
+	 */
+	protected function reservation_expiry_unix( $expires ) {
+		if ( is_int( $expires ) || ( is_string( $expires ) && ctype_digit( $expires ) ) ) {
+			$unix = (int) $expires;
+			return $unix > 0 ? $unix : null;
+		}
+		if ( ! is_string( $expires ) || $expires === '' ) {
+			return null;
+		}
+		$unix = strtotime( $expires );
+		return $unix === false ? null : $unix;
+	}
+
+	/**
+	 * @param object $order
+	 * @param bool   $recovery
+	 * @return true|WP_Error
+	 */
+	protected function call_reserve_stock_for_order( $order, $recovery ) {
+		try {
+			$reserved = wc_reserve_stock_for_order( $order );
+			if ( $reserved === false || Cetech_Pos_Bridge_Quote_Request::is_error( $reserved ) ) {
+				if ( $recovery ) {
+					return Cetech_Pos_Bridge_Response::wp_error(
+						'REQUIRES_ATTENTION',
+						'Existing Woo order reservation could not be completed.',
+						false,
+						'contact_manager',
+						409
+					);
+				}
+				return Cetech_Pos_Bridge_Response::wp_error(
+					'STOCK_CHANGED',
+					'Woo could not reserve stock for the prepared order.',
+					false,
+					'review_quote',
+					409,
+					array( 'field' => 'lines' )
+				);
+			}
+			return true;
+		} catch ( Exception $e ) {
+			return $this->reservation_failure_from_exception( $e, $recovery );
+		} catch ( Throwable $e ) {
+			return $this->reservation_failure_from_exception( $e, $recovery );
+		}
+	}
+
+	/**
+	 * Normalize Woo reservation throwables. Does not invent error codes.
+	 *
+	 * @param Exception|Throwable $e
+	 * @param bool                $recovery
+	 * @return WP_Error
+	 */
+	public function reservation_failure_from_exception( $e, $recovery ) {
+		$code  = '';
+		$class = is_object( $e ) ? get_class( $e ) : '';
+		if ( is_object( $e ) && method_exists( $e, 'getErrorCode' ) ) {
+			$code = (string) $e->getErrorCode();
+		}
+		$is_reserve = ( strpos( $class, 'ReserveStockException' ) !== false );
+		$insufficient = (
+			$code === 'woocommerce_product_not_enough_stock'
+			|| $code === 'woocommerce_product_out_of_stock'
+		);
+		if ( $insufficient || ( $is_reserve && $insufficient ) ) {
+			if ( $recovery ) {
+				return Cetech_Pos_Bridge_Response::wp_error(
+					'REQUIRES_ATTENTION',
+					'Existing Woo order reservation could not be completed.',
+					false,
+					'contact_manager',
+					409
+				);
+			}
+			return Cetech_Pos_Bridge_Response::wp_error(
+				'STOCK_CHANGED',
+				'Woo could not reserve stock for the prepared order.',
+				false,
+				'review_quote',
+				409,
+				array( 'field' => 'lines' )
+			);
+		}
+		if ( $is_reserve && ! $recovery ) {
+			return Cetech_Pos_Bridge_Response::wp_error(
+				'STOCK_CHANGED',
+				'Woo could not reserve stock for the prepared order.',
+				false,
+				'review_quote',
+				409,
+				array( 'field' => 'lines' )
+			);
+		}
+		if ( $recovery ) {
+			return Cetech_Pos_Bridge_Response::wp_error(
+				'REQUIRES_ATTENTION',
+				'Existing Woo order reservation could not be completed.',
+				false,
+				'contact_manager',
+				409
+			);
+		}
+		return $this->unavailable( 'Woo reservation failed without a classifiable stock outcome.' );
 	}
 
 	/**
