@@ -16,6 +16,8 @@ final class Cetech_Pos_Bridge_Response {
 		'STOCK_CHANGED'           => array( 409, false, 'review_quote' ),
 		'IDEMPOTENCY_CONFLICT'    => array( 409, false, 'contact_manager' ),
 		'REQUIRES_ATTENTION'      => array( 409, false, 'contact_manager' ),
+		'PAYMENT_PENDING'         => array( 409, false, 'resolve' ),
+		'PAYMENT_NOT_VERIFIED'    => array( 409, false, 'resolve' ),
 		'INTEGRATION_UNAVAILABLE' => array( 503, true, 'resolve' ),
 	);
 

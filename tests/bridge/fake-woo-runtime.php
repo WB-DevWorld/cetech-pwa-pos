@@ -39,6 +39,14 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 	public $force_commitment = null;
 	/** @var int */
 	public $create_calls = 0;
+	/** @var int */
+	public $payment_complete_calls = 0;
+	/** @var int */
+	public $stock_reduce_calls = 0;
+	/** @var int */
+	public $reservation_release_calls = 0;
+	/** @var int */
+	public $order_cancel_calls = 0;
 	/** @var int|null unix expiry written onto fake reservation rows */
 	public $reservation_expiry_unix = null;
 	/** @var array<string,array<string,mixed>> productId => managing_stock/backorders_allowed/stock_managed_by */
@@ -1247,6 +1255,210 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 	private function minor_to_decimal( $minor ) {
 		$minor = (int) $minor;
 		return sprintf( '%d.%02d', intdiv( $minor, 100 ), $minor % 100 );
+	}
+
+	public function inspect_commercial_snapshot( $order_id ) {
+		$order = $this->order_array_by_id( $order_id );
+		if ( ! is_array( $order ) ) {
+			return null;
+		}
+		$obj    = $this->order_as_proof_object( $order );
+		$proven = $obj !== null && $this->order_has_proven_reservation( $obj );
+		$paid   = ! empty( $order['paid'] ) || in_array( isset( $order['status'] ) ? $order['status'] : '', array( 'processing', 'completed' ), true );
+		$status = isset( $order['status'] ) ? (string) $order['status'] : 'pending';
+		return array(
+			'found'             => true,
+			'orderId'           => (string) $order['id'],
+			'saleId'            => isset( $order['sale_id'] ) ? (string) $order['sale_id'] : '',
+			'orderReference'    => (string) $order['id'],
+			'transactionId'     => isset( $order['transaction_id'] ) ? (string) $order['transaction_id'] : '',
+			'requestHash'       => isset( $order['request_hash'] ) ? (string) $order['request_hash'] : '',
+			'createdVia'        => isset( $order['created_via'] ) ? (string) $order['created_via'] : '',
+			'status'            => $status,
+			'paid'              => $paid,
+			'paymentId'         => isset( $order['payment_id'] ) && $order['payment_id'] !== '' && $order['payment_id'] !== null
+				? (string) $order['payment_id']
+				: null,
+			'evidenceId'        => isset( $order['evidence_id'] ) && $order['evidence_id'] !== '' && $order['evidence_id'] !== null
+				? (string) $order['evidence_id']
+				: null,
+			'currency'          => isset( $order['currency'] ) ? (string) $order['currency'] : Cetech_Pos_Bridge_Constants::SETTLEMENT_CURRENCY,
+			'totalMinor'        => $this->force_saved_total_minor !== null
+				? (int) $this->force_saved_total_minor
+				: ( isset( $order['total_minor'] ) ? (int) $order['total_minor'] : null ),
+			'cancelled'         => in_array( $status, array( 'cancelled', 'canceled' ), true ),
+			'reservationProven' => $proven,
+			'stockReduced'      => ! empty( $order['stock_reduced'] ),
+			'cetechOwned'       => ( isset( $order['created_via'] ) && $order['created_via'] === 'cetech-pos' && ! empty( $order['pos'] ) ),
+			'holdSeconds'       => $this->hold_stock_seconds(),
+		);
+	}
+
+	public function bind_verified_payment( $order_id, array $payment ) {
+		$order = $this->order_array_by_id( $order_id );
+		if ( ! is_array( $order ) ) {
+			return $this->unavailable( 'Woo order could not be loaded to bind verified payment evidence.' );
+		}
+		$order['payment_id']          = (string) $payment['paymentId'];
+		$order['evidence_id']         = (string) $payment['evidenceId'];
+		$order['tender']              = (string) $payment['tender'];
+		$order['verification_source'] = (string) $payment['verificationSource'];
+		$order['verified_at']         = (string) $payment['verifiedAt'];
+		$this->replace_order( $order_id, $order );
+		$this->record_woo_mutation( 'payment_meta_writes' );
+		$this->fire_seam( $this->after_payment_binding );
+		return true;
+	}
+
+	public function complete_verified_payment( $order_id, $payment_id ) {
+		$order = $this->order_array_by_id( $order_id );
+		if ( ! is_array( $order ) ) {
+			return $this->unavailable( 'Woo order could not be loaded to complete payment.' );
+		}
+		$paid = ! empty( $order['paid'] ) || in_array( isset( $order['status'] ) ? $order['status'] : '', array( 'processing', 'completed' ), true );
+		if ( $paid ) {
+			$existing = isset( $order['payment_id'] ) ? (string) $order['payment_id'] : '';
+			if ( $existing === (string) $payment_id ) {
+				return true;
+			}
+			return Cetech_Pos_Bridge_Response::wp_error(
+				'REQUIRES_ATTENTION',
+				'Woo order is already paid with a different payment identity.',
+				false,
+				'contact_manager',
+				409
+			);
+		}
+		$order['paid']       = true;
+		$order['status']     = 'processing';
+		$order['payment_id'] = (string) $payment_id;
+		if ( empty( $order['stock_reduced'] ) ) {
+			$this->commit_reserved_stock( $order_id );
+			$order                   = $this->order_array_by_id( $order_id );
+			$order['stock_reduced']  = true;
+			$order['paid']           = true;
+			$order['status']         = 'processing';
+			$order['payment_id']     = (string) $payment_id;
+			++$this->stock_reduce_calls;
+			$this->record_woo_mutation( 'stock_reductions' );
+			++$this->side_effects['stock'];
+		}
+		$this->replace_order( $order_id, $order );
+		++$this->payment_complete_calls;
+		$this->record_woo_mutation( 'payment_completes' );
+		++$this->side_effects['payments'];
+		if ( $this->throw_after_payment_complete ) {
+			$this->throw_after_payment_complete = false;
+			throw new RuntimeException( 'payment_complete threw after commercial effect' );
+		}
+		return true;
+	}
+
+	public function release_reserved_stock( $order_id ) {
+		$order = $this->order_array_by_id( $order_id );
+		if ( ! is_array( $order ) ) {
+			return $this->unavailable( 'Woo order could not be loaded to release reserved stock.' );
+		}
+		if ( ! empty( $order['stock_reduced'] ) ) {
+			return Cetech_Pos_Bridge_Response::wp_error(
+				'REQUIRES_ATTENTION',
+				'Prepared order stock is already reduced; cancel will not invent a restock.',
+				false,
+				'contact_manager',
+				409
+			);
+		}
+		$had = isset( $this->reservations[ $order_id ] ) || isset( $this->reservation_rows[ $order_id ] );
+		if ( $had ) {
+			if ( isset( $this->reservations[ $order_id ] ) && is_array( $this->reservations[ $order_id ] ) ) {
+				foreach ( $this->reservations[ $order_id ] as $pid => $qty ) {
+					if ( ! isset( $this->stock[ $pid ] ) ) {
+						$this->stock[ $pid ] = 0;
+					}
+					$this->stock[ $pid ] += (int) $qty;
+				}
+			}
+			unset( $this->reservations[ $order_id ], $this->reservation_rows[ $order_id ] );
+			++$this->reservation_release_calls;
+			$this->record_woo_mutation( 'reservation_releases' );
+		}
+		$order['reserved'] = false;
+		$this->replace_order( $order_id, $order );
+		$this->fire_seam( $this->after_reservation_release );
+		return true;
+	}
+
+	public function cancel_unpaid_order( $order_id, $reason ) {
+		unset( $reason );
+		$order = $this->order_array_by_id( $order_id );
+		if ( ! is_array( $order ) ) {
+			return $this->unavailable( 'Woo order could not be loaded to cancel.' );
+		}
+		if ( in_array( isset( $order['status'] ) ? $order['status'] : '', array( 'cancelled', 'canceled' ), true ) ) {
+			return true;
+		}
+		$order['status'] = 'cancelled';
+		$this->replace_order( $order_id, $order );
+		++$this->order_cancel_calls;
+		$this->record_woo_mutation( 'order_cancels' );
+		$this->fire_seam( $this->after_order_cancelled );
+		return true;
+	}
+
+	public function expire_reservations( $order_id ) {
+		if ( ! isset( $this->reservation_rows[ $order_id ] ) || ! is_array( $this->reservation_rows[ $order_id ] ) ) {
+			return;
+		}
+		foreach ( $this->reservation_rows[ $order_id ] as $pid => $row ) {
+			$row['expires'] = time() - 30;
+			$this->reservation_rows[ $order_id ][ $pid ] = $row;
+		}
+		$order = $this->order_array_by_id( $order_id );
+		if ( is_array( $order ) ) {
+			$order['reserved'] = false;
+			$this->replace_order( $order_id, $order );
+		}
+	}
+
+	public function mark_stock_reduced_unpaid( $order_id ) {
+		$order = $this->order_array_by_id( $order_id );
+		if ( ! is_array( $order ) ) {
+			return;
+		}
+		$order['stock_reduced'] = true;
+		$order['paid']          = false;
+		$order['status']        = 'pending';
+		$this->replace_order( $order_id, $order );
+	}
+
+	public function mark_paid_with_payment( $order_id, $payment_id ) {
+		$order = $this->order_array_by_id( $order_id );
+		if ( ! is_array( $order ) ) {
+			return;
+		}
+		$order['paid']          = true;
+		$order['status']        = 'processing';
+		$order['payment_id']    = (string) $payment_id;
+		$order['stock_reduced'] = true;
+		$this->replace_order( $order_id, $order );
+	}
+
+	private function commit_reserved_stock( $order_id ) {
+		unset( $this->reservations[ $order_id ], $this->reservation_rows[ $order_id ] );
+		$order = $this->order_array_by_id( $order_id );
+		if ( is_array( $order ) ) {
+			$order['reserved'] = false;
+			$this->replace_order( $order_id, $order );
+		}
+	}
+
+	private function replace_order( $order_id, array $row ) {
+		foreach ( $this->orders as $i => $order ) {
+			if ( (string) $order['id'] === (string) $order_id ) {
+				$this->orders[ $i ] = $row;
+				return;
+			}
+		}
 	}
 }
 

@@ -146,11 +146,11 @@ $harden03_artifact = json_decode( (string) file_get_contents( Cetech_Pos_Bridge_
 br01_assert( is_array( $harden03_artifact ), 'shipped quote-contract artifact decodes' );
 br01_assert_eq( $harden03_derived, $harden03_artifact, 'shipped artifact equals a fresh derivation of the canonical schema' );
 br01_assert_eq( $harden03_derived, Cetech_Pos_Bridge_Contract_Derivation::derive( $harden03_root ), 'derivation is deterministic across runs' );
-br01_assert_eq( array( 'PrepareSaleRequest', 'PreparedSale', 'Quote', 'QuoteRequest', 'SaleResolution' ), $harden03_artifact['roots'], 'artifact declares the enforced roots' );
+br01_assert_eq( array( 'BridgeFinalizeRequest', 'CancelSaleRequest', 'PrepareSaleRequest', 'PreparedSale', 'Quote', 'QuoteRequest', 'SaleResolution' ), $harden03_artifact['roots'], 'artifact declares the enforced roots' );
 br01_assert_eq( 'docs/contracts/pos-domain.schema.json', $harden03_artifact['schemaSource'], 'artifact records the canonical source path' );
 
 $harden03_canonical = json_decode( (string) file_get_contents( $harden03_root . '/docs/contracts/pos-domain.schema.json' ), true );
-foreach ( array( 'QuoteRequest', 'Quote', 'QuoteLine', 'Money', 'CustomerContext', 'Quantity', 'StockStatus', 'QuoteProblem', 'PrepareSaleRequest', 'PreparedSale', 'SaleResolution', 'SaleStatus' ) as $harden03_def ) {
+foreach ( array( 'QuoteRequest', 'Quote', 'QuoteLine', 'Money', 'CustomerContext', 'Quantity', 'StockStatus', 'QuoteProblem', 'PrepareSaleRequest', 'PreparedSale', 'SaleResolution', 'SaleStatus', 'BridgeFinalizeRequest', 'CancelSaleRequest', 'VerifiedPaymentEvidence' ) as $harden03_def ) {
 	br01_assert_eq(
 		$harden03_canonical['$defs'][ $harden03_def ],
 		$harden03_artifact['$defs'][ $harden03_def ],
@@ -160,6 +160,9 @@ foreach ( array( 'QuoteRequest', 'Quote', 'QuoteLine', 'Money', 'CustomerContext
 br01_assert( isset( $harden03_artifact['$defs']['PrepareSaleRequest'] ), 'artifact carries the v1 PrepareSaleRequest contract' );
 br01_assert( isset( $harden03_artifact['$defs']['PreparedSale'] ), 'artifact carries the v1 PreparedSale contract' );
 br01_assert( isset( $harden03_artifact['$defs']['SaleResolution'] ), 'artifact carries the v1 SaleResolution contract' );
+br01_assert( isset( $harden03_artifact['$defs']['BridgeFinalizeRequest'] ), 'artifact carries the v1 BridgeFinalizeRequest contract' );
+br01_assert( isset( $harden03_artifact['$defs']['CancelSaleRequest'] ), 'artifact carries the v1 CancelSaleRequest contract' );
+br01_assert( isset( $harden03_artifact['$defs']['VerifiedPaymentEvidence'] ), 'artifact carries the v1 VerifiedPaymentEvidence contract' );
 
 $harden03_schema = Cetech_Pos_Bridge_Schema::instance();
 br01_assert( $harden03_schema->has_definition( 'QuoteRequest' ), 'runtime schema exposes QuoteRequest' );
@@ -167,6 +170,9 @@ br01_assert( $harden03_schema->has_definition( 'Quote' ), 'runtime schema expose
 br01_assert( $harden03_schema->has_definition( 'PrepareSaleRequest' ), 'runtime schema exposes PrepareSaleRequest' );
 br01_assert( $harden03_schema->has_definition( 'PreparedSale' ), 'runtime schema exposes PreparedSale' );
 br01_assert( $harden03_schema->has_definition( 'SaleResolution' ), 'runtime schema exposes SaleResolution' );
+br01_assert( $harden03_schema->has_definition( 'BridgeFinalizeRequest' ), 'runtime schema exposes BridgeFinalizeRequest' );
+br01_assert( $harden03_schema->has_definition( 'CancelSaleRequest' ), 'runtime schema exposes CancelSaleRequest' );
+br01_assert( $harden03_schema->has_definition( 'VerifiedPaymentEvidence' ), 'runtime schema exposes VerifiedPaymentEvidence' );
 
 /* ---------------------------------------------------------------------------
  * 2. Ingress: contract-invalid QuoteRequest payloads are rejected
