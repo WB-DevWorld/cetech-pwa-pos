@@ -235,5 +235,409 @@
       "nextAction": "none",
       "verifiedAt": "2026-09-11T12:00:00Z"
     }
+  },
+  {
+    "name": "b2b quote request",
+    "schema": "QuoteRequest",
+    "valid": true,
+    "value": {
+      "cartId": "00000000-0000-4000-8000-000000000001",
+      "cartRevision": 2,
+      "customer": {
+        "kind": "b2b",
+        "customerId": "cust-b2b-1"
+      },
+      "locationId": "store-1",
+      "lines": [
+        {
+          "lineId": "00000000-0000-4000-8000-000000000002",
+          "productId": "product-1",
+          "quantity": "12"
+        }
+      ]
+    }
+  },
+  {
+    "name": "quote request missing cartId",
+    "schema": "QuoteRequest",
+    "valid": false,
+    "value": {
+      "cartRevision": 1,
+      "customer": {
+        "kind": "walkin"
+      },
+      "locationId": "store-1",
+      "lines": [
+        {
+          "lineId": "00000000-0000-4000-8000-000000000001",
+          "productId": "product-1",
+          "quantity": "1"
+        }
+      ]
+    }
+  },
+  {
+    "name": "quote request quantity number denied",
+    "schema": "QuoteRequest",
+    "valid": false,
+    "value": {
+      "cartId": "00000000-0000-4000-8000-000000000001",
+      "cartRevision": 1,
+      "customer": {
+        "kind": "walkin"
+      },
+      "locationId": "store-1",
+      "lines": [
+        {
+          "lineId": "00000000-0000-4000-8000-000000000001",
+          "productId": "product-1",
+          "quantity": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "quote request zero quantity denied",
+    "schema": "QuoteRequest",
+    "valid": false,
+    "value": {
+      "cartId": "00000000-0000-4000-8000-000000000001",
+      "cartRevision": 1,
+      "customer": {
+        "kind": "walkin"
+      },
+      "locationId": "store-1",
+      "lines": [
+        {
+          "lineId": "00000000-0000-4000-8000-000000000001",
+          "productId": "product-1",
+          "quantity": "0"
+        }
+      ]
+    }
+  },
+  {
+    "name": "quote request line extra unitPrice denied",
+    "schema": "QuoteRequest",
+    "valid": false,
+    "value": {
+      "cartId": "00000000-0000-4000-8000-000000000001",
+      "cartRevision": 1,
+      "customer": {
+        "kind": "walkin"
+      },
+      "locationId": "store-1",
+      "lines": [
+        {
+          "lineId": "00000000-0000-4000-8000-000000000001",
+          "productId": "product-1",
+          "quantity": "1",
+          "unitPrice": {
+            "minor": 1250,
+            "currency": "GHS"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "valid whole cart quote",
+    "schema": "Quote",
+    "valid": true,
+    "value": {
+      "id": "quote-1",
+      "fingerprint": "0123456789abcdef0123456789abcdef",
+      "cartId": "00000000-0000-4000-8000-000000000001",
+      "cartRevision": 1,
+      "customer": {
+        "kind": "walkin"
+      },
+      "locationId": "store-1",
+      "currency": "GHS",
+      "lines": [
+        {
+          "lineId": "00000000-0000-4000-8000-000000000001",
+          "productId": "product-1",
+          "quantity": "1",
+          "unitPrice": {
+            "minor": 1500,
+            "currency": "GHS"
+          },
+          "subtotal": {
+            "minor": 1500,
+            "currency": "GHS"
+          },
+          "discount": {
+            "minor": 0,
+            "currency": "GHS"
+          },
+          "tax": {
+            "minor": 0,
+            "currency": "GHS"
+          },
+          "total": {
+            "minor": 1500,
+            "currency": "GHS"
+          },
+          "stockStatus": "in_stock",
+          "purchasable": true,
+          "problems": []
+        }
+      ],
+      "subtotal": {
+        "minor": 1500,
+        "currency": "GHS"
+      },
+      "discount": {
+        "minor": 0,
+        "currency": "GHS"
+      },
+      "tax": {
+        "minor": 0,
+        "currency": "GHS"
+      },
+      "total": {
+        "minor": 1500,
+        "currency": "GHS"
+      },
+      "calculatedAt": "2026-09-13T20:00:00Z",
+      "expiresAt": "2026-09-13T21:00:00Z",
+      "purchasable": true
+    }
+  },
+  {
+    "name": "quote empty lines denied",
+    "schema": "Quote",
+    "valid": false,
+    "value": {
+      "id": "quote-1",
+      "fingerprint": "0123456789abcdef0123456789abcdef",
+      "cartId": "00000000-0000-4000-8000-000000000001",
+      "cartRevision": 1,
+      "customer": {
+        "kind": "walkin"
+      },
+      "locationId": "store-1",
+      "currency": "GHS",
+      "lines": [],
+      "subtotal": {
+        "minor": 1500,
+        "currency": "GHS"
+      },
+      "discount": {
+        "minor": 0,
+        "currency": "GHS"
+      },
+      "tax": {
+        "minor": 0,
+        "currency": "GHS"
+      },
+      "total": {
+        "minor": 1500,
+        "currency": "GHS"
+      },
+      "calculatedAt": "2026-09-13T20:00:00Z",
+      "expiresAt": "2026-09-13T21:00:00Z",
+      "purchasable": true
+    }
+  },
+  {
+    "name": "quote negative money denied",
+    "schema": "Quote",
+    "valid": false,
+    "value": {
+      "id": "quote-1",
+      "fingerprint": "0123456789abcdef0123456789abcdef",
+      "cartId": "00000000-0000-4000-8000-000000000001",
+      "cartRevision": 1,
+      "customer": {
+        "kind": "walkin"
+      },
+      "locationId": "store-1",
+      "currency": "GHS",
+      "lines": [
+        {
+          "lineId": "00000000-0000-4000-8000-000000000001",
+          "productId": "product-1",
+          "quantity": "1",
+          "unitPrice": {
+            "minor": 1500,
+            "currency": "GHS"
+          },
+          "subtotal": {
+            "minor": 1500,
+            "currency": "GHS"
+          },
+          "discount": {
+            "minor": 0,
+            "currency": "GHS"
+          },
+          "tax": {
+            "minor": 0,
+            "currency": "GHS"
+          },
+          "total": {
+            "minor": 1500,
+            "currency": "GHS"
+          },
+          "stockStatus": "in_stock",
+          "purchasable": true,
+          "problems": []
+        }
+      ],
+      "subtotal": {
+        "minor": 1500,
+        "currency": "GHS"
+      },
+      "discount": {
+        "minor": 0,
+        "currency": "GHS"
+      },
+      "tax": {
+        "minor": 0,
+        "currency": "GHS"
+      },
+      "total": {
+        "minor": -1,
+        "currency": "GHS"
+      },
+      "calculatedAt": "2026-09-13T20:00:00Z",
+      "expiresAt": "2026-09-13T21:00:00Z",
+      "purchasable": true
+    }
+  },
+  {
+    "name": "quote invalid stockStatus denied",
+    "schema": "Quote",
+    "valid": false,
+    "value": {
+      "id": "quote-1",
+      "fingerprint": "0123456789abcdef0123456789abcdef",
+      "cartId": "00000000-0000-4000-8000-000000000001",
+      "cartRevision": 1,
+      "customer": {
+        "kind": "walkin"
+      },
+      "locationId": "store-1",
+      "currency": "GHS",
+      "lines": [
+        {
+          "lineId": "00000000-0000-4000-8000-000000000001",
+          "productId": "product-1",
+          "quantity": "1",
+          "unitPrice": {
+            "minor": 1500,
+            "currency": "GHS"
+          },
+          "subtotal": {
+            "minor": 1500,
+            "currency": "GHS"
+          },
+          "discount": {
+            "minor": 0,
+            "currency": "GHS"
+          },
+          "tax": {
+            "minor": 0,
+            "currency": "GHS"
+          },
+          "total": {
+            "minor": 1500,
+            "currency": "GHS"
+          },
+          "stockStatus": "available",
+          "purchasable": true,
+          "problems": []
+        }
+      ],
+      "subtotal": {
+        "minor": 1500,
+        "currency": "GHS"
+      },
+      "discount": {
+        "minor": 0,
+        "currency": "GHS"
+      },
+      "tax": {
+        "minor": 0,
+        "currency": "GHS"
+      },
+      "total": {
+        "minor": 1500,
+        "currency": "GHS"
+      },
+      "calculatedAt": "2026-09-13T20:00:00Z",
+      "expiresAt": "2026-09-13T21:00:00Z",
+      "purchasable": true
+    }
+  },
+  {
+    "name": "quote extra property denied",
+    "schema": "Quote",
+    "valid": false,
+    "value": {
+      "id": "quote-1",
+      "fingerprint": "0123456789abcdef0123456789abcdef",
+      "cartId": "00000000-0000-4000-8000-000000000001",
+      "cartRevision": 1,
+      "customer": {
+        "kind": "walkin"
+      },
+      "locationId": "store-1",
+      "currency": "GHS",
+      "lines": [
+        {
+          "lineId": "00000000-0000-4000-8000-000000000001",
+          "productId": "product-1",
+          "quantity": "1",
+          "unitPrice": {
+            "minor": 1500,
+            "currency": "GHS"
+          },
+          "subtotal": {
+            "minor": 1500,
+            "currency": "GHS"
+          },
+          "discount": {
+            "minor": 0,
+            "currency": "GHS"
+          },
+          "tax": {
+            "minor": 0,
+            "currency": "GHS"
+          },
+          "total": {
+            "minor": 1500,
+            "currency": "GHS"
+          },
+          "stockStatus": "in_stock",
+          "purchasable": true,
+          "problems": []
+        }
+      ],
+      "subtotal": {
+        "minor": 1500,
+        "currency": "GHS"
+      },
+      "discount": {
+        "minor": 0,
+        "currency": "GHS"
+      },
+      "tax": {
+        "minor": 0,
+        "currency": "GHS"
+      },
+      "total": {
+        "minor": 1500,
+        "currency": "GHS"
+      },
+      "calculatedAt": "2026-09-13T20:00:00Z",
+      "expiresAt": "2026-09-13T21:00:00Z",
+      "purchasable": true,
+      "clientTotal": {
+        "minor": 1500,
+        "currency": "GHS"
+      }
+    }
   }
 ]
