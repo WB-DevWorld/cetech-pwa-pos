@@ -33,3 +33,9 @@ Owner handoff reports:
 Contributor branch has no standalone PR-triggered GitHub Actions run; combined R6 CI after import is therefore the integration-level remote verification gate.
 
 Runtime limitation remains explicit: FE-05 uses frontend spies/fakes and live Pay stays disabled until CORE-06 mounts the real app/BFF ports. This acceptance is source/integration acceptance only, not runtime or production approval.
+
+## Import provenance
+
+Accepted source head: `79708d67b655eb46f8aba77712a83508e095f758`.
+R6 integration merge: `f9cfe0531f47e8a800cd5c370f72cfeb4e38b807`.
+Combined CI: pending on the imported neutral-branch head.
