@@ -1,5 +1,22 @@
 # WS2 current status
 
+Snapshot 2026-09-14. Issue #18 independent review remediation (crash-recovery windows). `origin/main` will be re-pinned in the new ADR-012 two-pass after this evidence commit. Owner and actual implementer: Developer 2 / @Emmanuel-coder-prog. Current task **BR-06 / issue #18 REVIEW REMEDIATION ONLY** on `ws2/br-06-implement-hpos-safe-idempotent-prepare-and-re`. Original implementation SHA `ec5dc534b3c3f5ab2373e1e1783c48ce55cae4cb`. Original evidence SHA `230daad09af684dba92a481abce3ec8aad83cdc3`. Remediation SHA `4417ed867adb6962025d62184385d394083d1737`. ADR-014 applies: WS3 may import the declared tested commits into `batch/r5-idempotent-prepare-cash` (draft PR #53) but must not implement this issue and must not treat this contributor as editing that batch branch.
+
+R5 is ACTIVE. This continuation does **not** start CORE-05 or BR-07 and does **not** modify `batch/r5-idempotent-prepare-cash`. Contract changes NONE, ADR changes NONE, dependency changes NONE, pricing-semantics changes NONE. `pricingParityVerified` remains **false**. Issue #4 stays OPEN. Live/staging effectful prepare rehearsal is PENDING.
+
+BR-06 crash-recovery remediation: durable `woo_create_entered` is persisted on the bridge-owned unique claim **before** `wc_create_order`. Recovery matches Woo identity on **transactionId and request hash**; a hash mismatch is `requires_attention` and never adopted as PreparedSale. Stock commitment is `reserved` only when Woo reserved-stock state is proven (or prepare retry completes `wc_reserve_stock_for_order` and then proves it). GET resolve does not complete reservation. Crash seam A (after `wc_create_order`, before recovery metadata) → retry/resolve `requires_attention`, order count 1, no second create. Crash seam B (after metadata save, before `wc_reserve_stock_for_order`) → resolve `preparing` without false `reserved`; retry completes reservation → `prepared`. Crash seam C (after proven reservation, before claim PreparedSale persist) → retry/resolve recover `prepared`. The prior statement "crash-after-order-create PASS" is superseded by these named seams.
+
+Canonical GNU Make: ephemeral `php:8.5-cli` (PHP **8.5.10**, GNU Make **4.4.1**). `check` PASS (37 files); `test` **633 passed / 0 failed**; `parity` **138 passed / 0 failed / 19 skipped**. Host: `python scripts/verify_control_plane.py` PASS; derive `--check` PASS; `git diff --check` clean. See HANDOFF.md and `evidence/BR-06-PREPARE.md`.
+
+| Task | State | Branch / evidence |
+| --- | --- | --- |
+| BR-06 | REVIEW REMEDIATION IMPLEMENTED / CANONICAL MAKE VERIFIED; awaiting WS3 re-import + independent review | Issue #18. Remediation `4417ed8…`. Not R5 complete. CORE-05 not started by WS2. BR-07 not started. |
+| HARDEN-03 | INTEGRATED on main via PRE-R5 PR #51 | Historical. Quote-schema gate on main. |
+
+## Previous snapshot (BR-06 initial delivery — historical; current section above controls)
+
+# WS2 current status
+
 Snapshot 2026-09-14. `origin/main` `da86434cc471703b8309cea77cda88b7845c299b`. R5 activation observed on `origin/batch/r5-idempotent-prepare-cash` `54a9a13e95758d9318260f90dc2ae81b93f7f840` (WS3-owned; not imported into this contributor branch). Owner and actual implementer: Developer 2 / @Emmanuel-coder-prog. Current task **BR-06 / issue #18** on `ws2/br-06-implement-hpos-safe-idempotent-prepare-and-re`. Implementation SHA `ec5dc534b3c3f5ab2373e1e1783c48ce55cae4cb`. ADR-014 applies: WS3 may import these exact tested commits into `batch/r5-idempotent-prepare-cash` (draft PR #53) but does not implement this issue.
 
 R5 is ACTIVE. BR-06 is implemented on the WS2 contributor branch. CORE-05 remains BLOCKED until WS3 publishes `BR06_INTEGRATION_SHA`. BR-07 is NOT STARTED. Contract changes NONE, ADR changes NONE, dependency changes NONE, pricing-semantics changes NONE. `pricingParityVerified` remains **false**. Issue #4 stays OPEN. Live/staging effectful prepare rehearsal is PENDING.
