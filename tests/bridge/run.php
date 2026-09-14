@@ -29,6 +29,7 @@ require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/fake-woo-runtime.php';
 require_once __DIR__ . '/test-health.php';
 require_once __DIR__ . '/test-quote.php';
+require_once __DIR__ . '/test-quote-schema.php';
 require_once __DIR__ . '/test-woo-runtime.php';
 require_once __DIR__ . '/test-pricing-rules.php';
 require_once __DIR__ . '/test-cart-discount.php';

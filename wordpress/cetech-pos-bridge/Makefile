@@ -12,6 +12,7 @@ PHP_SOURCES := \
 	includes/class-correlation.php \
 	includes/class-detector.php \
 	includes/class-response.php \
+	includes/class-schema.php \
 	includes/class-health-controller.php \
 	includes/class-money.php \
 	includes/class-cart-discount.php \
@@ -22,7 +23,8 @@ PHP_SOURCES := \
 	includes/class-quote-engine.php \
 	includes/class-quote-controller.php \
 	includes/class-pricing-rules.php \
-	includes/class-plugin.php
+	includes/class-plugin.php \
+	tools/derive-quote-contract.php
 
 TEST_SOURCES := \
 	$(TEST_DIR)/run.php \
@@ -30,6 +32,7 @@ TEST_SOURCES := \
 	$(TEST_DIR)/fake-woo-runtime.php \
 	$(TEST_DIR)/test-health.php \
 	$(TEST_DIR)/test-quote.php \
+	$(TEST_DIR)/test-quote-schema.php \
 	$(TEST_DIR)/test-woo-runtime.php \
 	$(TEST_DIR)/test-pricing-rules.php \
 	$(TEST_DIR)/test-cart-discount.php \

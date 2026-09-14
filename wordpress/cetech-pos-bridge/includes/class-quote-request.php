@@ -5,7 +5,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Frozen v1 QuoteRequest parser. Rejects extra fields. Does not price.
+ * Frozen v1 QuoteRequest ingress gate. Does not price.
+ *
+ * The canonical `QuoteRequest` JSON Schema is enforced first, from the shipped
+ * projection of `docs/contracts/pos-domain.schema.json`. The normalisation below then
+ * produces the canonical field order the Woo runtime consumes. Contract-invalid
+ * payloads are rejected here, before any Woo/WoodMart/B2BKing pricing runs.
  */
 final class Cetech_Pos_Bridge_Quote_Request {
 	/**
@@ -15,6 +20,13 @@ final class Cetech_Pos_Bridge_Quote_Request {
 	public static function parse( $raw ) {
 		if ( ! is_array( $raw ) ) {
 			return self::invalid( 'QuoteRequest must be a JSON object.', 'body' );
+		}
+		$violation = Cetech_Pos_Bridge_Schema::instance()->validate( $raw, 'QuoteRequest' );
+		if ( $violation !== null ) {
+			return self::invalid(
+				'QuoteRequest does not satisfy the v1 contract schema.',
+				Cetech_Pos_Bridge_Schema::field_of( $violation )
+			);
 		}
 		$allowed = array( 'cartId', 'cartRevision', 'customer', 'locationId', 'lines' );
 		foreach ( array_keys( $raw ) as $key ) {
