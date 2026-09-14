@@ -4,43 +4,49 @@ Updated 2026-09-14. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical sche
 
 ## Current authority
 
-- `main`: `da86434cc471703b8309cea77cda88b7845c299b` — PRE-R5 PR #51 merge; protected.
+- `main`: `bc606a690f0c167b7057e3ae9143337404275882` — R5 PR #53 merge; protected.
+- R5 post-merge CI `34873987182`: SUCCESS on both required jobs.
 - ADR-012 and ADR-014 are active; ownership-preserving milestone execution remains required.
 - Issue #4 remains **OPEN**. `pricingParityVerified=false`. Production promotion is not authorized.
 - Explicit implementation reassignments: **NONE**.
 
-## Active assignment — R5 idempotent prepare + cash
+## Active assignment — R6 first real cash sale
 
-- Integration issue: **#52 R5-00**.
-- Milestone PR: **#53** — `[R5] Idempotent prepare and cash orchestration`.
-- Neutral branch: `batch/r5-idempotent-prepare-cash`.
+- Integration issue: **#54 R6-00**.
+- Neutral branch: `batch/r6-first-real-cash-sale`.
 - Integration editor: `@wbdevworld` / WS3.
-- Activation baseline: `main` `da86434cc471703b8309cea77cda88b7845c299b`.
-- Milestone state: **REMEDIATED / AWAITING FINAL EXACT-HEAD CI + FRESH_2 + BEN RE-REVIEW**.
+- Activation baseline: `main` `bc606a690f0c167b7057e3ae9143337404275882`.
+- Milestone state: **ACTIVE / PARALLEL OWNER EXECUTION**.
 
-### R5 provenance
+### Parallel owner contributions
 
-| Step | Task | Owner | Source / integration | State |
-| --- | --- | --- | --- | --- |
-| 1 | BR-06 / #18 | `@Emmanuel-coder-prog` / WS2 | accepted source `a0fa00d452c3a672d97c5a3cb253a5ca6f11cf8f`; import merge `30af336925fd29dc43e7315d81919ae2a7bd5bfc` | **ACCEPTED / IMPORTED** |
-| 2 | BR-06 combined handoff | WS3 integration | `BR06_INTEGRATION_SHA=15baab1b47a35902b8a3ddde989df55cc4b25436`; CI `34855313462` SUCCESS | **VERIFIED** |
-| 3 | CORE-05 / #24 initial accepted source | `@wbdevworld` / WS3 | replacement implementation `7226b686982b3da8746526aa8f60744a8b53ab25`; source head `5c5c93f523ac9a5218cc916a8a6b6503cca4df75`; import merge `53b3982772b35886b3ac0fa0d50e374e9e359752` | **SUPERSEDED BY REVIEW REMEDIATION** |
-| 4 | Ben review blocker | `@Ben-001-sys` | `CHANGES_REQUESTED` on R5 head `f0ddc31f1ee1d9cd69768049ec33da839ab8185a`: fresh-key existing-payment path bypassed cash mismatch validation | **REMEDIATED** |
-| 5 | CORE-05 Ben-review fix | `@wbdevworld` / WS3 | source `80414c6396832b9f9ec209cdec6e73ab19cd160a`; source CI `34870285209` SUCCESS; owner handoff FRESH_2 | **ACCEPTED / IMPORTED** |
-| 6 | CORE-05 remediation import | WS3 integration | merge `bc14b1e860a992ba432ff752f3ab15e4ad5c1001`; combined CI `34870882712` SUCCESS | **VERIFIED** |
-| 7 | Final R5 review gate | independent competent human | exact final integration-control head after this ledger commit | **PENDING BEN RE-REVIEW** |
+| Task | Owner | Contributor branch | State |
+| --- | --- | --- | --- |
+| BR-07 / #19 | `@Emmanuel-coder-prog` / WS2 | `ws2/br-07-implement-verified-commercial-finalization-an` | **ACTIVE — OWNER IMPLEMENTATION** |
+| FE-05 / #10 | `@Ben-001-sys` / WS1 | `ws1/fe-05-integrate-cash-checkout-and-receipt-ux` | **ACTIVE — OWNER IMPLEMENTATION** |
+| CORE-06 / #25 | `@wbdevworld` / WS3 | not created yet | **BLOCKED — WAITING FOR TESTED COMBINED BR-07 + FE-05 INTEGRATION SHA** |
 
-The Ben-review remediation validates sale/org/location/economic invariants before the existing-payment shortcut. A fresh idempotency key may reuse prior cash evidence only when the recorded `saleId`, amount and exact `cashReceived` match. Wrong currency, underpayment, and materially different cash received fail closed without a second `cash_sale` ledger effect. Same-key replay/repair remains intact.
+BR-07 and FE-05 start from exact R5 merge `bc606a690f0c167b7057e3ae9143337404275882` and may proceed in parallel because their dependencies are satisfied. Each owner must publish exact tested source SHA(s) and task evidence, then stop. WS3 integration imports accepted owner contributions into the neutral branch and verifies the combined tree.
 
-Frozen v1.0.0 contracts and ADRs remain unchanged. BR-06 is not reopened.
+CORE-06 must not start from `main`. Its contributor branch is created only after both BR-07 and FE-05 are accepted, imported, and combined-tested, and WS3 publishes the exact tested R6 integration handoff SHA.
 
-## Final R5 gate
+## R6 ownership and safety rules
 
-Before review/merge:
-1. required CI must pass on the exact final integration-control head;
-2. perform exactly two final ADR-012 freshness observations after that head is frozen;
-3. no Pass 3;
-4. re-request `@Ben-001-sys` on that exact replacement head;
-5. no self-approval or automatic merge.
+1. WS3 integration ownership does not transfer BR-07 or FE-05 implementation ownership.
+2. Review fixes return to the human/workstream owner of the affected task unless an explicit reassignment is recorded here.
+3. Contributor agents treat this file and shared integration ledgers as integration-editor-owned/read-only.
+4. Frozen v1.0.0 contracts remain authoritative unless a separate contract-change decision is explicitly recorded.
+5. BR-07 must preserve idempotent commercial finalization/cancel safety; uncertain money blocks unsafe release.
+6. FE-05 must not invent browser-side payment or receipt truth; failed print must not repeat a sale.
+7. CORE-06 cannot claim a real vertical pass from mocks; its isolated staging/runtime evidence remains mandatory.
+8. No production promotion, electronic payment-provider execution, returns/refunds, or R7+ work is authorized by this R6 session.
 
-R6 / BR-07 / FE-05 / CORE-06 are **NOT STARTED / NOT AUTHORIZED BY THIS R5 SESSION**. BR-07 remains the real commercial finalizer; CORE-05 uses the explicitly permitted mock boundary. Live HPOS/real DB concurrency and production promotion remain later runtime/release evidence and are not claimed here.
+## Completion sequence
+
+1. Accept BR-07 exact source SHA(s).
+2. Accept FE-05 exact source SHA(s).
+3. Import both into `batch/r6-first-real-cash-sale` and run combined verification.
+4. Publish the exact tested combined R6 integration SHA.
+5. Create CORE-06 contributor branch from that exact SHA and implement #25.
+6. Import CORE-06, run full combined verification, freeze final head, perform exactly two ADR-012 freshness observations, and request independent human review.
+7. No Pass 3; no self-approval; no automatic merge.
