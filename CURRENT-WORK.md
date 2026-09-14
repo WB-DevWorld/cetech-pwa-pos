@@ -51,9 +51,9 @@ Declared source chain, preserved exactly in merge ancestry:
 9. `fc89e5f03e822224bb8c9c4f2c4e2f663eccce9b`
 10. `a0fa00d452c3a672d97c5a3cb253a5ca6f11cf8f`
 
-Integration merge commit: `7c633ce50b310f0b4ecab1f5bd3a7a7ce4cedc7c`.
+Exact BR-06 integration merge commit: `30af336925fd29dc43e7315d81919ae2a7bd5bfc`.
 
-The merge was synthesized from the exact contributor final tree plus the four WS3-owned batch coordination files, preserving the contributor commits as second-parent ancestry rather than rewriting them. The discarded experimental merge object `ecac90417e57b12ea7727ad3efb4a42f41b1c20f` was never referenced by the branch and is not part of PR #53 history.
+The merge was synthesized from the exact contributor final tree plus the four WS3-owned batch coordination files, preserving the contributor commits as second-parent ancestry rather than rewriting them.
 
 Source verification at acceptance:
 - bridge Make test: **1020 passed / 0 failed**;
@@ -65,7 +65,7 @@ Independent WS3 review accepted the current implementation after bounded owner r
 
 ## Current gate
 
-`BR06_INTEGRATION_SHA` is **NOT PUBLISHED YET**. The current merge commit is an integration candidate only until exact-head combined verification succeeds.
+`BR06_INTEGRATION_SHA` is **NOT PUBLISHED YET**. The current branch head is an integration candidate only until exact-head combined verification succeeds.
 
 After combined verification succeeds, WS3 may publish the tested exact `BR06_INTEGRATION_SHA`, then create CORE-05 / #24 from that exact SHA. CORE-05 must not start from `main` or from an unverified integration candidate.
 
