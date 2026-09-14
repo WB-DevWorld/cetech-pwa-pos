@@ -82,6 +82,7 @@ class Cetech_Pos_Bridge_Claim_Store {
 				'error_message'   => null,
 				'error_details_json' => null,
 				'woo_create_entered' => isset( $row['woo_create_entered'] ) ? (int) $row['woo_create_entered'] : 0,
+				'woo_recovery_token' => isset( $row['woo_recovery_token'] ) ? $row['woo_recovery_token'] : null,
 				'created_at'      => $now,
 				'updated_at'      => $now,
 			)
@@ -132,6 +133,9 @@ class Cetech_Pos_Bridge_Claim_Store {
 					'error_details_json' => $row['error_details_json'],
 					'quote_id'           => isset( $row['quote_id'] ) ? $row['quote_id'] : null,
 					'woo_create_entered' => isset( $row['woo_create_entered'] ) ? (int) $row['woo_create_entered'] : 0,
+					'woo_recovery_token' => isset( $row['woo_recovery_token'] ) && is_string( $row['woo_recovery_token'] ) && $row['woo_recovery_token'] !== ''
+						? $row['woo_recovery_token']
+						: null,
 					'updated_at'         => $row['updated_at'],
 				),
 				array(
@@ -192,6 +196,7 @@ class Cetech_Pos_Bridge_Claim_Store {
 				'quote_id'           => isset( $row['quote_id'] ) ? $row['quote_id'] : null,
 				'internal_status'    => self::STATUS_PREPARING,
 				'woo_create_entered' => 0,
+				'woo_recovery_token' => null,
 				'created_at'         => $now,
 				'updated_at'         => $now,
 			)

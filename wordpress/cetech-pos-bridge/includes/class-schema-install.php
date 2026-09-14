@@ -44,11 +44,13 @@ final class Cetech_Pos_Bridge_Schema_Install {
 			error_message varchar(255) NULL,
 			error_details_json text NULL,
 			woo_create_entered tinyint(1) NOT NULL DEFAULT 0,
+			woo_recovery_token char(64) NULL,
 			created_at datetime NOT NULL,
 			updated_at datetime NOT NULL,
 			PRIMARY KEY  (claim_id),
 			UNIQUE KEY uniq_idempotency (site_scope, operation_type, idempotency_key),
-			UNIQUE KEY uniq_transaction (site_scope, transaction_id)
+			UNIQUE KEY uniq_transaction (site_scope, transaction_id),
+			UNIQUE KEY uniq_recovery_token (site_scope, woo_recovery_token)
 		) $charset;";
 	}
 

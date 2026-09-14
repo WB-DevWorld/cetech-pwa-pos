@@ -113,11 +113,16 @@ final class Cetech_Pos_Bridge_Prepare_Engine {
 			return $this->resolution( $transaction_id, 'requires_attention', null, null, $message );
 		}
 		if ( ! empty( $claim['woo_create_entered'] ) ) {
-			$found = $this->runtime->find_orders_by_transaction( $transaction_id );
-			if ( ! is_array( $found ) || count( $found ) === 0 ) {
-				$this->mark_attention( $claim, 'Woo order create was entered and no matching order could be reconciled.' );
-				return $this->resolution( $transaction_id, 'requires_attention', null, null, 'Woo order create was entered and no matching order could be reconciled.' );
+			$located = $this->lookup_recoverable_order( $claim );
+			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $located ) ) {
+				$message = method_exists( $located, 'get_error_message' ) ? $located->get_error_message() : 'Prepared sale requires attention.';
+				return $this->resolution( $transaction_id, 'requires_attention', null, null, $message );
 			}
+			if ( is_array( $located ) && count( $located ) === 1 ) {
+				return $this->resolution( $transaction_id, 'preparing' );
+			}
+			$this->mark_attention( $claim, 'Woo order create was entered and no matching order could be reconciled.' );
+			return $this->resolution( $transaction_id, 'requires_attention', null, null, 'Woo order create was entered and no matching order could be reconciled.' );
 		}
 		return $this->resolution( $transaction_id, 'preparing' );
 	}
@@ -256,9 +261,14 @@ final class Cetech_Pos_Bridge_Prepare_Engine {
 		if ( ! $this->runtime->available() ) {
 			return $this->unavailable( 'WooCommerce runtime is not available for prepare.' );
 		}
-		$claim['woo_create_entered'] = 1;
+		$token = $this->new_recovery_token();
+		if ( $token === null ) {
+			return $this->unavailable( 'A high-entropy Woo recovery token could not be generated.' );
+		}
+		$claim['woo_recovery_token'] = $token;
+		$claim['woo_create_entered']  = 1;
 		$this->claims->save( $claim );
-		$order = $this->runtime->create_prepared_order( $fresh, $raw['transactionId'], $hash );
+		$order = $this->runtime->create_prepared_order( $fresh, $raw['transactionId'], $hash, $token );
 		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $order ) ) {
 			if ( is_object( $order ) && method_exists( $order, 'get_error_code' ) && $order->get_error_code() === 'STOCK_CHANGED' ) {
 				return $this->fail_terminal_from_error( $claim, $order );
@@ -286,6 +296,15 @@ final class Cetech_Pos_Bridge_Prepare_Engine {
 		if ( $expiry_unix === false || $expiry_unix <= time() ) {
 			$this->mark_attention( $claim, 'Proven reservation expiry is not in the future.' );
 			return $this->unavailable( 'PreparedSale was not returned because reservation expiry was not current.' );
+		}
+		if ( ! isset( $quote['total'] ) || ! is_array( $quote['total'] ) || ! isset( $quote['total']['minor'] ) ) {
+			$this->mark_attention( $claim, 'Authoritative Quote total is unreadable.' );
+			return $this->unavailable( 'PreparedSale was not returned because Quote.total could not be proven.' );
+		}
+		$matched = $this->runtime->assert_saved_order_matches_quote( isset( $order['orderId'] ) ? $order['orderId'] : '', $quote );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $matched ) ) {
+			$this->mark_attention( $claim, 'Prepared Woo order economics diverged from the authoritative Quote.' );
+			return $matched;
 		}
 		$now      = gmdate( 'Y-m-d\TH:i:s\Z' );
 		$prepared = array(
@@ -317,9 +336,71 @@ final class Cetech_Pos_Bridge_Prepare_Engine {
 	}
 
 	private function try_recover_order( array $claim, $may_complete_reservation = false ) {
+		$located = $this->lookup_recoverable_order( $claim );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $located ) ) {
+			return $located;
+		}
+		if ( ! is_array( $located ) || count( $located ) === 0 ) {
+			return null;
+		}
+		if ( count( $located ) > 1 ) {
+			$this->mark_attention( $claim, 'Multiple Woo orders carry this recovery identity.' );
+			return $this->attention_error( 'Multiple Woo orders carry this recovery identity.' );
+		}
+		$order = $located[0];
+		$hash  = isset( $order['requestHash'] ) ? (string) $order['requestHash'] : '';
+		if ( $hash !== '' && $hash !== (string) $claim['request_hash'] ) {
+			$this->mark_attention( $claim, 'Woo order recovery identity did not match the claimed request hash.' );
+			return $this->attention_error( 'Woo order recovery identity did not match the claimed request hash.' );
+		}
+		$quote = $this->quote_store->get( isset( $claim['quote_id'] ) ? $claim['quote_id'] : '' );
+		if ( ! is_array( $quote ) ) {
+			$this->mark_attention( $claim, 'Woo order exists but the quote snapshot is missing.' );
+			return $this->attention_error( 'Woo order exists but the quote snapshot is missing.' );
+		}
+		$finished = $this->runtime->finish_recovered_order(
+			$order,
+			$quote,
+			$claim['transaction_id'],
+			$claim['request_hash'],
+			$may_complete_reservation
+		);
+		if ( $finished === null ) {
+			return null;
+		}
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $finished ) ) {
+			$code = method_exists( $finished, 'get_error_code' ) ? $finished->get_error_code() : '';
+			if ( $code === 'REQUIRES_ATTENTION' ) {
+				$this->mark_attention( $claim, method_exists( $finished, 'get_error_message' ) ? $finished->get_error_message() : 'Recovered Woo order requires attention.' );
+				return $finished;
+			}
+			return $finished;
+		}
+		if ( empty( $finished['reservationProven'] ) || ! isset( $finished['stockCommitment'] ) || ( $finished['stockCommitment'] !== 'reserved' && $finished['stockCommitment'] !== 'reduced' ) ) {
+			if ( ! $may_complete_reservation ) {
+				return null;
+			}
+			$this->mark_attention( $claim, 'Recovered Woo order did not prove a stock commitment.' );
+			return $this->attention_error( 'Recovered Woo order did not prove a stock commitment.' );
+		}
+		$raw = array(
+			'transactionId'    => $claim['transaction_id'],
+			'quoteId'          => $quote['id'],
+			'quoteFingerprint' => $quote['fingerprint'],
+		);
+		return $this->persist_prepared( $claim, $raw, $quote, $finished );
+	}
+
+	/**
+	 * Locate the original Woo order by transaction+hash and/or recovery token.
+	 *
+	 * @param array<string,mixed> $claim
+	 * @return array<int,array<string,mixed>>|WP_Error
+	 */
+	private function lookup_recoverable_order( array $claim ) {
 		$found = $this->runtime->find_orders_by_transaction( $claim['transaction_id'] );
 		if ( ! is_array( $found ) ) {
-			return null;
+			return $this->unavailable( 'Woo order recovery lookup failed.' );
 		}
 		$matched = array();
 		foreach ( $found as $candidate ) {
@@ -336,36 +417,36 @@ final class Cetech_Pos_Bridge_Prepare_Engine {
 			$this->mark_attention( $claim, 'Multiple Woo orders carry this transaction identity.' );
 			return $this->attention_error( 'Multiple Woo orders carry this transaction identity.' );
 		}
-		if ( count( $matched ) !== 1 ) {
+		if ( count( $matched ) === 1 ) {
+			return $matched;
+		}
+		$token = isset( $claim['woo_recovery_token'] ) ? (string) $claim['woo_recovery_token'] : '';
+		if ( $token === '' ) {
+			return array();
+		}
+		$by_token = $this->runtime->find_orders_by_recovery_token( $token );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $by_token ) ) {
+			$code = method_exists( $by_token, 'get_error_code' ) ? $by_token->get_error_code() : '';
+			if ( $code === 'REQUIRES_ATTENTION' ) {
+				$this->mark_attention( $claim, method_exists( $by_token, 'get_error_message' ) ? $by_token->get_error_message() : 'Recovery token matched more than one Woo order.' );
+			}
+			return $by_token;
+		}
+		if ( ! is_array( $by_token ) ) {
+			return array();
+		}
+		return $by_token;
+	}
+
+	private function new_recovery_token() {
+		if ( ! function_exists( 'random_bytes' ) ) {
 			return null;
 		}
-		$order = $matched[0];
-		if ( empty( $order['reservationProven'] ) || ! isset( $order['stockCommitment'] ) ) {
-			if ( ! $may_complete_reservation ) {
-				return null;
-			}
-			$completed = $this->runtime->complete_stock_reservation( $order );
-			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $completed ) ) {
-				$this->mark_attention( $claim, 'Existing Woo order reservation could not be completed.' );
-				return $this->attention_error( 'Existing Woo order reservation could not be completed.' );
-			}
-			$order = $completed;
+		try {
+			return bin2hex( random_bytes( 32 ) );
+		} catch ( Exception $e ) {
+			return null;
 		}
-		if ( empty( $order['reservationProven'] ) || ! isset( $order['stockCommitment'] ) || ( $order['stockCommitment'] !== 'reserved' && $order['stockCommitment'] !== 'reduced' ) ) {
-			$this->mark_attention( $claim, 'Recovered Woo order did not prove a stock commitment.' );
-			return $this->attention_error( 'Recovered Woo order did not prove a stock commitment.' );
-		}
-		$quote = $this->quote_store->get( isset( $claim['quote_id'] ) ? $claim['quote_id'] : '' );
-		if ( ! is_array( $quote ) ) {
-			$this->mark_attention( $claim, 'Woo order exists but the quote snapshot is missing.' );
-			return $this->attention_error( 'Woo order exists but the quote snapshot is missing.' );
-		}
-		$raw = array(
-			'transactionId'    => $claim['transaction_id'],
-			'quoteId'          => $quote['id'],
-			'quoteFingerprint' => $quote['fingerprint'],
-		);
-		return $this->persist_prepared( $claim, $raw, $quote, $order );
 	}
 
 	private function quote_expired( array $quote ) {

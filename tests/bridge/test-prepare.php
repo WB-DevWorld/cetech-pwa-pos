@@ -157,6 +157,36 @@ function br06_assert_honest_commitment( $result, Cetech_Pos_Bridge_Fake_Woo_Runt
 	}
 }
 
+function br06_last_pos_order( Cetech_Pos_Bridge_Fake_Woo_Runtime $runtime ) {
+	$last = null;
+	foreach ( $runtime->orders as $order ) {
+		if ( ! empty( $order['pos'] ) ) {
+			$last = $order;
+		}
+	}
+	return $last;
+}
+
+function br06_assert_saved_matches_quote( Cetech_Pos_Bridge_Fake_Woo_Runtime $runtime, array $quote, array $prepared, $label ) {
+	$order = br06_last_pos_order( $runtime );
+	br01_assert( is_array( $order ), $label . ' saved a POS Woo order' );
+	br01_assert_eq( (int) $quote['subtotal']['minor'], (int) $order['subtotal_minor'], $label . ' Woo subtotal equals Quote.subtotal' );
+	br01_assert_eq( (int) $quote['discount']['minor'], (int) $order['discount_minor'], $label . ' Woo discount equals Quote.discount' );
+	br01_assert_eq( (int) $quote['tax']['minor'], (int) $order['tax_minor'], $label . ' Woo tax equals Quote.tax' );
+	br01_assert_eq( (int) $quote['total']['minor'], (int) $order['total_minor'], $label . ' Woo grand total equals Quote.total' );
+	br01_assert_eq( (int) $quote['total']['minor'], (int) $prepared['total']['minor'], $label . ' PreparedSale.total equals Quote.total' );
+	br01_assert_eq( (string) $quote['currency'], (string) $order['currency'], $label . ' Woo currency equals Quote.currency' );
+	$lines = isset( $order['line_economics'] ) ? $order['line_economics'] : array();
+	br01_assert_eq( count( $quote['lines'] ), count( $lines ), $label . ' Woo line count equals Quote line count' );
+	foreach ( $quote['lines'] as $index => $line ) {
+		br01_assert_eq( (int) $line['subtotal']['minor'], (int) $lines[ $index ]['subtotal'], $label . ' line subtotal matches' );
+		br01_assert_eq( (int) $line['discount']['minor'], (int) $lines[ $index ]['discount'], $label . ' line discount matches' );
+		br01_assert_eq( (int) $line['tax']['minor'], (int) $lines[ $index ]['tax'], $label . ' line tax matches' );
+		br01_assert_eq( (int) $line['total']['minor'], (int) $lines[ $index ]['total'], $label . ' line total matches' );
+		br01_assert_eq( (string) $line['quantity'], (string) $lines[ $index ]['quantity'], $label . ' line quantity matches' );
+	}
+}
+
 $br06_schema = Cetech_Pos_Bridge_Schema::instance();
 
 /* ---------------------------------------------------------------------------
@@ -172,7 +202,9 @@ $sql = Cetech_Pos_Bridge_Schema_Install::create_table_sql( 'wp_cetech_pos_prepar
 br01_assert( strpos( $sql, 'UNIQUE KEY uniq_idempotency (site_scope, operation_type, idempotency_key)' ) !== false, 'claim table UNIQUE idempotency identity' );
 br01_assert( strpos( $sql, 'UNIQUE KEY uniq_transaction (site_scope, transaction_id)' ) !== false, 'claim table UNIQUE transaction identity' );
 br01_assert( strpos( $sql, 'woo_create_entered tinyint(1) NOT NULL DEFAULT 0' ) !== false, 'claim table persists woo_create_entered before wc_create_order' );
-br01_assert_eq( '2', Cetech_Pos_Bridge_Constants::DB_VERSION, 'claim schema version includes woo_create_entered' );
+br01_assert( strpos( $sql, 'woo_recovery_token char(64) NULL' ) !== false, 'claim table persists opaque Woo recovery token' );
+br01_assert( strpos( $sql, 'UNIQUE KEY uniq_recovery_token (site_scope, woo_recovery_token)' ) !== false, 'recovery token uniqueness is bridge-owned' );
+br01_assert_eq( '3', Cetech_Pos_Bridge_Constants::DB_VERSION, 'claim schema version includes woo_recovery_token' );
 br01_assert_eq( $sql, Cetech_Pos_Bridge_Schema_Install::create_table_sql( 'wp_cetech_pos_prepare_claims' ), 'CREATE TABLE SQL is deterministic across calls' );
 br01_assert_eq( 'wp_cetech_pos_prepare_claims', Cetech_Pos_Bridge_Schema_Install::table_name( (object) array( 'prefix' => 'wp_' ) ), 'bridge-owned table name' );
 
@@ -184,11 +216,19 @@ $woo_src = file_get_contents( dirname( __DIR__, 2 ) . '/wordpress/cetech-pos-bri
 br01_assert( strpos( $woo_src, 'wp_insert_post' ) === false, 'production Woo runtime does not wp_insert_post' );
 br01_assert( ! preg_match( '/\$wpdb->(insert|update|query).*(posts|postmeta)/', $woo_src ), 'production Woo runtime does not write legacy post tables' );
 br01_assert( strpos( $woo_src, 'wc_create_order' ) !== false, 'production create uses wc_create_order' );
+br01_assert( strpos( $woo_src, 'woocommerce_before_order_object_save' ) !== false, 'production binds recovery identity during the initial Woo save' );
+br01_assert( strpos( $woo_src, 'set_order_key' ) !== false, 'production recovery token uses Woo order_key CRUD' );
+br01_assert( strpos( $woo_src, 'ORDER_META_RECOVERY' ) !== false || strpos( $woo_src, '_cetech_pos_woo_recovery_token' ) !== false, 'production recovery token is also Woo order meta on the initial save' );
+br01_assert( strpos( $woo_src, 'wc_get_order_id_by_order_key' ) !== false, 'production recovery lookup uses Woo order_key query' );
 br01_assert( strpos( $woo_src, 'update_meta_data' ) !== false, 'production recovery meta uses Woo CRUD' );
 br01_assert( strpos( $woo_src, 'wc_reserve_stock_for_order' ) !== false, 'production stock uses wc_reserve_stock_for_order' );
 br01_assert( strpos( $woo_src, 'wc_get_orders' ) !== false, 'production recovery lookup uses wc_get_orders' );
 br01_assert( strpos( $woo_src, 'after_wc_create' ) !== false, 'production exposes crash seam A after wc_create_order' );
 br01_assert( strpos( $woo_src, 'after_meta_save' ) !== false, 'production exposes crash seam B after recovery metadata save' );
+br01_assert( strpos( $woo_src, 'calculate_totals( false )' ) === false, 'production does not reprice prepared orders via calculate_totals' );
+br01_assert( strpos( $woo_src, 'set_subtotal' ) !== false, 'production writes authoritative line subtotals' );
+br01_assert( strpos( $woo_src, 'set_discount_total' ) !== false, 'production writes authoritative order discount' );
+br01_assert( strpos( $woo_src, 'line_tax_data' ) !== false, 'production captures provider tax-rate breakdown from the quote cart' );
 br01_assert( strpos( $woo_src, 'wc_reserved_stock' ) !== false, 'production proves reservation from Woo reserved-stock state' );
 br01_assert( strpos( $woo_src, 'expires > NOW()' ) !== false, 'production reservation proof rejects expired holds' );
 br01_assert( strpos( $woo_src, 'stock_quantity' ) !== false, 'production reservation proof checks reserved quantity' );
@@ -200,6 +240,7 @@ $prep_src = file_get_contents( dirname( __DIR__, 2 ) . '/wordpress/cetech-pos-br
 br01_assert( strpos( $prep_src, 'wp_insert_post' ) === false, 'prepare engine does not insert posts' );
 br01_assert( strpos( $prep_src, 'wc_update_product_stock' ) === false, 'prepare engine does not decrement _stock itself' );
 br01_assert( strpos( $prep_src, 'woo_create_entered' ) !== false, 'prepare persists create-entered before wc_create_order' );
+br01_assert( strpos( $prep_src, 'woo_recovery_token' ) !== false, 'prepare persists recovery token before wc_create_order' );
 
 br01_assert_eq( null, $br06_schema->validate(
 	array(
@@ -312,6 +353,9 @@ br01_assert_eq( 1, $br06_ok_runtime->side_effect_counts()['stock'], 'stock commi
 br01_assert_eq( 0, $br06_ok_runtime->side_effect_counts()['payments'], 'prepare takes no payment' );
 br01_assert_eq( 0, $br06_ok_runtime->side_effect_counts()['mail'], 'prepare sends no mail' );
 br01_assert_eq( 'pending', $br06_ok_runtime->orders[0]['status'], 'Woo order remains unpaid pending' );
+br06_assert_saved_matches_quote( $br06_ok_runtime, $br06_quote, $br06_first_payload['data'], 'walk-in happy path' );
+br01_assert_eq( 'walkin', $br06_ok_runtime->orders[0]['customer_kind'], 'walk-in Woo order is guest/walk-in' );
+br01_assert_eq( 0, $br06_ok_runtime->orders[0]['customer_id'], 'walk-in Woo customer id is 0' );
 br01_assert( isset( $br06_first->headers['Cache-Control'] ) && $br06_first->headers['Cache-Control'] === 'no-store', 'prepare Cache-Control no-store' );
 
 $br06_replay = br06_dispatch_prepare( $br06_ok_plugin, $br06_body, br06_headers( $br06_key ) );
@@ -484,16 +528,58 @@ br01_assert_eq( 1, $br06_a_runtime->create_calls, 'seam A called wc_create_order
 br01_assert( ! br06_order_reserved( $br06_a_runtime ), 'seam A does not invent a reservation' );
 $br06_a_claim = $br06_a_stack['claims']->get_by_idempotency( Cetech_Pos_Bridge_Constants::OPERATION_PREPARE, $br06_a_key );
 br01_assert_eq( 1, (int) $br06_a_claim['woo_create_entered'], 'seam A persisted woo_create_entered before create' );
+br01_assert( is_string( $br06_a_claim['woo_recovery_token'] ) && strlen( $br06_a_claim['woo_recovery_token'] ) === 64, 'seam A persisted recovery token before create' );
+br01_assert_eq( $br06_a_claim['woo_recovery_token'], $br06_a_runtime->orders[0]['recovery_token'], 'seam A bound the claim token into the created Woo order' );
+br01_assert_eq( $br06_a_claim['woo_recovery_token'], $br06_a_runtime->orders[0]['order_key'], 'seam A persisted recovery identity as Woo order_key' );
+br01_assert_eq( null, $br06_a_runtime->orders[0]['transaction_id'], 'seam A has not yet saved ordinary transaction metadata' );
 $br06_a_resolved = $br06_a_stack['prep']->resolve( $br06_a_body['transactionId'] );
-br01_assert_eq( 'requires_attention', $br06_a_resolved['status'], 'seam A resolve is requires_attention, not prepared' );
+br01_assert_eq( 'preparing', $br06_a_resolved['status'], 'seam A resolve is truthful preparing, not requires_attention' );
 br01_assert( ! isset( $br06_a_resolved['stockCommitment'] ), 'seam A resolve does not report stockCommitment' );
 br01_assert_eq( 1, $br06_a_runtime->pos_order_count(), 'seam A resolve creates no second Woo order' );
 br01_assert_eq( 1, $br06_a_runtime->create_calls, 'seam A resolve does not call wc_create_order' );
 $br06_a_retry = $br06_a_stack['prep']->prepare( $br06_a_body, $br06_a_key );
-br01_assert_eq( 'REQUIRES_ATTENTION', br06_error_code( $br06_a_retry ), 'seam A retry does not create order #2' );
+br01_assert( is_array( $br06_a_retry ), 'seam A retry recovers the original order as PreparedSale' );
+br01_assert_eq( 'prepared', $br06_a_retry['status'], 'seam A retry is prepared' );
+br01_assert_eq( 'reserved', $br06_a_retry['stockCommitment'], 'seam A retry reports reserved only after proven reservation' );
 br06_assert_honest_commitment( $br06_a_retry, $br06_a_runtime, 'seam A retry' );
+br01_assert_eq( (string) $br06_a_runtime->orders[0]['id'], $br06_a_retry['orderReference'], 'seam A recovery maps the original Woo order' );
 br01_assert_eq( 1, $br06_a_runtime->pos_order_count(), 'seam A retry creates no second Woo order' );
-br01_assert_eq( 1, $br06_a_runtime->create_calls, 'ambiguous seam A recovery does not call wc_create_order again' );
+br01_assert_eq( 1, $br06_a_runtime->create_calls, 'seam A recovery does not call wc_create_order again' );
+$br06_a_resolved_ok = $br06_a_stack['prep']->resolve( $br06_a_body['transactionId'] );
+br01_assert_eq( 'prepared', $br06_a_resolved_ok['status'], 'seam A resolve after repair is prepared' );
+
+$br06_tok_runtime = br06_runtime();
+$br06_tok_stack   = br06_stack( $br06_tok_runtime );
+$br06_tok_quote   = $br06_tok_stack['quotes']->quote( br06_quote_request() );
+$br06_tok_body    = br06_prepare_body( $br06_tok_quote );
+$br06_tok_key     = br06_next_uuid();
+$br06_tok_runtime->after_wc_create = br06_thrower( 'crash seam A wrong token' );
+br06_prepare_crashed( $br06_tok_stack['prep'], $br06_tok_body, $br06_tok_key, 'crash seam A wrong token' );
+$br06_tok_claim = $br06_tok_stack['claims']->get_by_idempotency( Cetech_Pos_Bridge_Constants::OPERATION_PREPARE, $br06_tok_key );
+$br06_tok_claim['woo_recovery_token'] = str_repeat( 'ab', 32 );
+$br06_tok_stack['claims']->save( $br06_tok_claim );
+$br06_tok_resolved = $br06_tok_stack['prep']->resolve( $br06_tok_body['transactionId'] );
+br01_assert_eq( 'requires_attention', $br06_tok_resolved['status'], 'wrong recovery token is not adopted' );
+br01_assert_eq( 1, $br06_tok_runtime->create_calls, 'wrong-token resolve does not create another order' );
+$br06_tok_retry = $br06_tok_stack['prep']->prepare( $br06_tok_body, $br06_tok_key );
+br01_assert_eq( 'REQUIRES_ATTENTION', br06_error_code( $br06_tok_retry ), 'wrong recovery token retry is requires_attention' );
+br01_assert_eq( 1, $br06_tok_runtime->create_calls, 'wrong-token retry does not call wc_create_order again' );
+br01_assert_eq( 1, $br06_tok_runtime->pos_order_count(), 'wrong-token retry creates no second Woo order' );
+
+$br06_dup_runtime = br06_runtime();
+$br06_dup_stack   = br06_stack( $br06_dup_runtime );
+$br06_dup_quote   = $br06_dup_stack['quotes']->quote( br06_quote_request() );
+$br06_dup_body    = br06_prepare_body( $br06_dup_quote );
+$br06_dup_key     = br06_next_uuid();
+$br06_dup_runtime->after_wc_create = br06_thrower( 'crash seam A duplicate token' );
+br06_prepare_crashed( $br06_dup_stack['prep'], $br06_dup_body, $br06_dup_key, 'crash seam A duplicate token' );
+$br06_dup_claim = $br06_dup_stack['claims']->get_by_idempotency( Cetech_Pos_Bridge_Constants::OPERATION_PREPARE, $br06_dup_key );
+$br06_dup_runtime->inject_duplicate_recovery_token( $br06_dup_claim['woo_recovery_token'] );
+$br06_dup_resolved = $br06_dup_stack['prep']->resolve( $br06_dup_body['transactionId'] );
+br01_assert_eq( 'requires_attention', $br06_dup_resolved['status'], 'duplicate recovery token is requires_attention' );
+$br06_dup_retry = $br06_dup_stack['prep']->prepare( $br06_dup_body, $br06_dup_key );
+br01_assert_eq( 'REQUIRES_ATTENTION', br06_error_code( $br06_dup_retry ), 'duplicate recovery token retry is requires_attention' );
+br01_assert_eq( 1, $br06_dup_runtime->create_calls, 'duplicate-token retry does not call wc_create_order again' );
 
 $br06_b_runtime = br06_runtime();
 $br06_b_stack   = br06_stack( $br06_b_runtime );
@@ -762,6 +848,155 @@ br01_assert( isset( $br06_ab_runtime->reservation_rows[ $br06_ab_oid ]['101'] ),
 br01_assert( isset( $br06_ab_runtime->reservation_rows[ $br06_ab_oid ]['102'] ), 'retry completed product B reservation' );
 br01_assert_eq( 1, $br06_ab_runtime->create_calls, 'retry after partial crash does not create a second Woo order' );
 br01_assert_eq( 1, $br06_ab_runtime->pos_order_count(), 'retry after partial crash order count remains one' );
+
+/* ---------------------------------------------------------------------------
+ * Quote-to-order economics snapshot (walk-in, retail/B2B, discount, ADR-013, tax, divergence)
+ * ------------------------------------------------------------------------ */
+
+$br06_retail_runtime = br06_runtime();
+$br06_retail_runtime->catalog['retail:cust_retail_1']['101']['1'] = array(
+	'unitPrice'   => '9.00',
+	'subtotal'    => '9.00',
+	'discount'    => '0.00',
+	'tax'         => '0.00',
+	'stockStatus' => 'in_stock',
+	'purchasable' => true,
+);
+$br06_retail_stack = br06_stack( $br06_retail_runtime );
+$br06_retail_req   = br06_quote_request();
+$br06_retail_req['customer'] = array(
+	'kind'       => 'retail',
+	'customerId' => 'cust_retail_1',
+);
+$br06_retail_quote = $br06_retail_stack['quotes']->quote( $br06_retail_req );
+br01_assert( is_array( $br06_retail_quote ), 'registered retail quote succeeds' );
+br01_assert_eq( 900, (int) $br06_retail_quote['total']['minor'], 'registered retail uses customer-context price, not walk-in/staff' );
+$br06_retail_prep = $br06_retail_stack['prep']->prepare( br06_prepare_body( $br06_retail_quote ), br06_next_uuid() );
+br01_assert( is_array( $br06_retail_prep ), 'registered retail prepare succeeds' );
+br06_assert_saved_matches_quote( $br06_retail_runtime, $br06_retail_quote, $br06_retail_prep, 'registered retail' );
+br01_assert_eq( 'retail', $br06_retail_runtime->orders[0]['customer_kind'], 'registered retail Woo order keeps buyer context' );
+br01_assert_eq( 'cust_retail_1', $br06_retail_runtime->orders[0]['customer_id'], 'registered retail Woo order keeps customer id' );
+
+$br06_b2b_runtime = br06_runtime();
+$br06_b2b_runtime->customers['cust_b2b_1'] = 'b2b';
+$br06_b2b_runtime->catalog['b2b:cust_b2b_1']['101']['1'] = array(
+	'unitPrice'   => '8.00',
+	'subtotal'    => '8.00',
+	'discount'    => '0.00',
+	'tax'         => '0.00',
+	'stockStatus' => 'in_stock',
+	'purchasable' => true,
+);
+$br06_b2b_stack = br06_stack( $br06_b2b_runtime );
+$br06_b2b_req   = br06_quote_request();
+$br06_b2b_req['customer'] = array(
+	'kind'       => 'b2b',
+	'customerId' => 'cust_b2b_1',
+);
+$br06_b2b_quote = $br06_b2b_stack['quotes']->quote( $br06_b2b_req );
+br01_assert( is_array( $br06_b2b_quote ), 'B2B quote succeeds' );
+$br06_b2b_prep = $br06_b2b_stack['prep']->prepare( br06_prepare_body( $br06_b2b_quote ), br06_next_uuid() );
+br01_assert( is_array( $br06_b2b_prep ), 'B2B prepare succeeds' );
+br06_assert_saved_matches_quote( $br06_b2b_runtime, $br06_b2b_quote, $br06_b2b_prep, 'B2B' );
+br01_assert_eq( 'b2b', $br06_b2b_runtime->orders[0]['customer_kind'], 'B2B Woo order keeps buyer context' );
+
+$br06_disc_runtime = br06_runtime();
+$br06_disc_runtime->catalog['walkin']['101']['1'] = array(
+	'unitPrice'   => '10.00',
+	'subtotal'    => '10.00',
+	'discount'    => '2.00',
+	'tax'         => '0.00',
+	'stockStatus' => 'in_stock',
+	'purchasable' => true,
+);
+$br06_disc_stack = br06_stack( $br06_disc_runtime );
+$br06_disc_quote = $br06_disc_stack['quotes']->quote( br06_quote_request() );
+br01_assert( is_array( $br06_disc_quote ), 'discount quote succeeds' );
+br01_assert_eq( 200, (int) $br06_disc_quote['discount']['minor'], 'discount quote has non-zero discount' );
+$br06_disc_prep = $br06_disc_stack['prep']->prepare( br06_prepare_body( $br06_disc_quote ), br06_next_uuid() );
+br01_assert( is_array( $br06_disc_prep ), 'discount prepare succeeds' );
+br06_assert_saved_matches_quote( $br06_disc_runtime, $br06_disc_quote, $br06_disc_prep, 'discount-bearing' );
+
+$br06_alloc_runtime = br06_runtime();
+$br06_alloc_priced_a = array(
+	'unitPrice'   => '10.00',
+	'subtotal'    => '10.00',
+	'discount'    => '1.50',
+	'tax'         => '0.00',
+	'stockStatus' => 'in_stock',
+	'purchasable' => true,
+);
+$br06_alloc_priced_b = array(
+	'unitPrice'   => '10.00',
+	'subtotal'    => '10.00',
+	'discount'    => '0.50',
+	'tax'         => '0.00',
+	'stockStatus' => 'in_stock',
+	'purchasable' => true,
+);
+$br06_alloc_runtime->catalog['walkin']['101']['1']               = $br06_alloc_priced_a;
+$br06_alloc_runtime->catalog['walkin']['102']['1']               = $br06_alloc_priced_b;
+$br06_alloc_runtime->catalog['retail:cust_retail_1']['101']['1'] = $br06_alloc_priced_a;
+$br06_alloc_runtime->catalog['retail:cust_retail_1']['102']['1'] = $br06_alloc_priced_b;
+$br06_alloc_runtime->stock['102']                                = 10;
+$br06_alloc_stack = br06_stack( $br06_alloc_runtime );
+$br06_alloc_req   = br06_quote_request();
+$br06_alloc_req['lines'][] = array(
+	'lineId'    => br06_next_uuid(),
+	'productId' => '102',
+	'quantity'  => '1',
+);
+$br06_alloc_quote = $br06_alloc_stack['quotes']->quote( $br06_alloc_req );
+br01_assert( is_array( $br06_alloc_quote ), 'ADR-013 allocated two-line quote succeeds' );
+br01_assert_eq( 150, (int) $br06_alloc_quote['lines'][0]['discount']['minor'], 'first line keeps allocated discount' );
+br01_assert_eq( 50, (int) $br06_alloc_quote['lines'][1]['discount']['minor'], 'second line keeps allocated discount' );
+br01_assert_eq( 1800, (int) $br06_alloc_quote['total']['minor'], 'allocated lines sum to quote total' );
+$br06_alloc_prep = $br06_alloc_stack['prep']->prepare( br06_prepare_body( $br06_alloc_quote ), br06_next_uuid() );
+br01_assert( is_array( $br06_alloc_prep ), 'ADR-013 prepare succeeds' );
+br06_assert_saved_matches_quote( $br06_alloc_runtime, $br06_alloc_quote, $br06_alloc_prep, 'ADR-013 allocation' );
+$br06_alloc_sum = (int) $br06_alloc_runtime->orders[0]['line_economics'][0]['total'] + (int) $br06_alloc_runtime->orders[0]['line_economics'][1]['total'];
+br01_assert_eq( (int) $br06_alloc_quote['total']['minor'], $br06_alloc_sum, 'summed Woo lines equal quote/order total' );
+
+$br06_tax_runtime = br06_runtime();
+$br06_tax_runtime->catalog['walkin']['101']['1'] = array(
+	'unitPrice'   => '10.00',
+	'subtotal'    => '10.00',
+	'discount'    => '0.00',
+	'tax'         => '1.50',
+	'taxRates'    => array(
+		'total'    => array( '1' => '1.50' ),
+		'subtotal' => array( '1' => '1.50' ),
+	),
+	'stockStatus' => 'in_stock',
+	'purchasable' => true,
+);
+$br06_tax_stack = br06_stack( $br06_tax_runtime );
+$br06_tax_quote = $br06_tax_stack['quotes']->quote( br06_quote_request() );
+br01_assert( is_array( $br06_tax_quote ), 'tax-capable quote succeeds' );
+br01_assert_eq( 150, (int) $br06_tax_quote['tax']['minor'], 'tax-capable quote preserves accepted tax' );
+$br06_tax_prep = $br06_tax_stack['prep']->prepare( br06_prepare_body( $br06_tax_quote ), br06_next_uuid() );
+br01_assert( is_array( $br06_tax_prep ), 'tax-capable prepare succeeds' );
+br06_assert_saved_matches_quote( $br06_tax_runtime, $br06_tax_quote, $br06_tax_prep, 'tax-capable' );
+br01_assert( isset( $br06_tax_runtime->orders[0]['line_economics'][0]['taxRates']['total']['1'] ), 'tax-rate breakdown came from the Woo cart snapshot' );
+br01_assert_eq( '1.50', $br06_tax_runtime->orders[0]['line_economics'][0]['taxRates']['total']['1'], 'persisted tax rate matches provider snapshot' );
+
+$br06_div_runtime = br06_runtime();
+$br06_div_runtime->force_saved_total_minor = 9999;
+$br06_div_stack = br06_stack( $br06_div_runtime );
+$br06_div_quote = $br06_div_stack['quotes']->quote( br06_quote_request() );
+$br06_div_body  = br06_prepare_body( $br06_div_quote );
+$br06_div_key   = br06_next_uuid();
+$br06_div       = $br06_div_stack['prep']->prepare( $br06_div_body, $br06_div_key );
+br01_assert_eq( 'INTEGRATION_UNAVAILABLE', br06_error_code( $br06_div ), 'forced economic divergence fails closed' );
+br01_assert( ! is_array( $br06_div ) || ! isset( $br06_div['status'] ) || $br06_div['status'] !== 'prepared', 'forced divergence does not return PreparedSale' );
+br01_assert_eq( 1, $br06_div_runtime->create_calls, 'forced divergence created the original order once' );
+br01_assert_eq( 1, $br06_div_runtime->pos_order_count(), 'forced divergence keeps exactly one Woo order' );
+$br06_div_retry = $br06_div_stack['prep']->prepare( $br06_div_body, $br06_div_key );
+br01_assert_eq( 'INTEGRATION_UNAVAILABLE', br06_error_code( $br06_div_retry ), 'forced divergence retry still fails closed' );
+br01_assert_eq( 1, $br06_div_runtime->create_calls, 'forced divergence retry does not create a second order' );
+br01_assert_eq( 1, $br06_div_runtime->pos_order_count(), 'forced divergence retry order count remains one' );
+$br06_div_resolved = $br06_div_stack['prep']->resolve( $br06_div_body['transactionId'] );
+br01_assert( $br06_div_resolved['status'] === 'preparing' || $br06_div_resolved['status'] === 'requires_attention', 'forced divergence remains resolvable without PreparedSale' );
 
 br01_assert_eq( 0, $br06_ok_runtime->side_effect_counts()['payments'], 'suite still has no payment side effect on the happy-path runtime' );
 br01_assert( strpos( $woo_src, 'WoodMart' ) === false || strpos( $prep_src, 'b2bking_get' ) === false, 'prepare path does not copy B2BKing getters' );
