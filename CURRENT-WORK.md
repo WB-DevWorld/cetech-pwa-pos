@@ -17,37 +17,28 @@ Updated 2026-09-14. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical sche
 - Neutral branch: `batch/r6-first-real-cash-sale`.
 - Integration editor: `@wbdevworld` / WS3.
 - Activation baseline: `main` `bc606a690f0c167b7057e3ae9143337404275882`.
-- Milestone state: **ASSEMBLING / FE-05 ACCEPTED + BR-07 IMPORT CANDIDATE**.
+- Tested combined pre-CORE06 handoff: **`R6_INTEGRATION_SHA=ef7660ddca607ca748cb9eb71487b856004d0817`**.
+- Exact combined CI `34908900786`: **SUCCESS** on Linux + Windows.
+- Milestone state: **CORE-06 ACTIVE FROM TESTED COMBINED SHA**.
 
-### R6 owner contributions
+### R6 contributions
 
-| Task | Owner | Contributor branch | State |
+| Task | Owner | Source / integration | State |
 | --- | --- | --- | --- |
-| FE-05 / #10 | `@Ben-001-sys` / WS1 | `ws1/fe-05-integrate-cash-checkout-and-receipt-ux` | **ACCEPTED / IMPORTED / COMBINED VERIFIED** |
-| BR-07 / #19 | `@Emmanuel-coder-prog` / WS2 | `ws2/br-07-implement-verified-commercial-finalization-an` | **ACCEPTED / IMPORTING / AWAITING COMBINED CI** |
-| CORE-06 / #25 | `@wbdevworld` / WS3 | not created yet | **BLOCKED — WAITING FOR TESTED COMBINED FE-05 + BR-07 SHA** |
+| FE-05 / #10 | `@Ben-001-sys` / WS1 | source `79708d67b655eb46f8aba77712a83508e095f758`; import `8dabbde2af91b3aa31f00ae159b5f8cd7a3280a9`; CI `34890381897` | **ACCEPTED / IMPORTED / VERIFIED** |
+| BR-07 / #19 | `@Emmanuel-coder-prog` / WS2 | source `fe97acfe0b5530d7eb861ccc0a9aea391e3daca3`; import `2ef938c4f9e89e50537804e2511ac9b7e0b596da`; combined handoff `ef7660dd…`; CI `34908900786` | **ACCEPTED / IMPORTED / VERIFIED** |
+| CORE-06 / #25 | `@wbdevworld` / WS3 | branch `ws3/core-06-integrate-real-cash-sale-and-contract-e2e-har` from exact `ef7660dd…` | **ACTIVE — OWNER IMPLEMENTATION** |
 
-FE-05 accepted source/evidence head: `79708d67b655eb46f8aba77712a83508e095f758`. Exact import merge: `8dabbde2af91b3aa31f00ae159b5f8cd7a3280a9`. Combined CI `34890381897`: SUCCESS on Linux + Windows.
+FE-05 retains prepared-sale lockout, stable cash attempt identity, payment resolution instead of duplicate tender, ReceiptPort truth and print isolation.
 
-BR-07 accepted source/evidence head: `fe97acfe0b5530d7eb861ccc0a9aea391e3daca3`. Implementation includes uncertain-money remediation `af9fab2f19e496481d3dd627a64419f880282cd6`; source CI `34906844176`: SUCCESS; owner freshness FRESH_2. Exact R6 import merge is `2cc819214cf14d4475c9d1acaf88c3faefe72e59`, pending combined verification.
+BR-07 retains durable finalize/cancel command claims, exact prepared-sale/payment/economic binding, one commercial payment/stock effect, and fail-closed cancellation when money is unresolved. Live HPOS finalize/cancel rehearsal and real DB concurrency remain pending evidence and are not claimed.
 
-CORE-06 must not start from `main`. Its contributor branch is created only after combined FE-05 + BR-07 verification is green and WS3 publishes the exact tested R6 integration handoff SHA.
+## CORE-06 execution gate
 
-## R6 ownership and safety rules
+CORE-06 must use the branch already created from exact tested `R6_INTEGRATION_SHA=ef7660ddca607ca748cb9eb71487b856004d0817`. Do not rebase it onto `main` or the later scheduler-only neutral-branch commits.
 
-1. WS3 integration ownership does not transfer BR-07 or FE-05 implementation ownership.
-2. Review fixes return to the human/workstream owner unless an explicit reassignment is recorded here.
-3. Contributor agents treat this file and shared integration ledgers as integration-editor-owned/read-only.
-4. Frozen v1.0.0 contracts remain authoritative unless a separate contract-change decision is explicitly recorded.
-5. BR-07 must preserve idempotent commercial finalization/cancel safety; uncertain money blocks unsafe release.
-6. FE-05 must not invent browser-side payment or receipt truth; failed print must not repeat a sale.
-7. CORE-06 cannot claim a real vertical pass from mocks; isolated staging/runtime evidence remains mandatory.
-8. No production promotion, electronic payment-provider execution, returns/refunds, or R7+ work is authorized by this R6 session.
+CORE-06 owns the real cash-sale integration/contract/E2E harness in issue #25 allowed paths. It must not call mocks a real pass: isolated staging/runtime evidence remains required by #25. Frozen v1.0.0 contracts remain authoritative unless a genuine contract blocker is separately recorded.
 
-## Completion sequence
+After CORE-06 owner handoff, WS3 integration imports its exact accepted source into the neutral branch, runs full combined verification, freezes the final R6 head, performs exactly two ADR-012 freshness observations, and requests independent competent-human review before merge. No Pass 3; no self-approval; no automatic merge.
 
-1. Verify combined FE-05 + BR-07 import head.
-2. Publish exact tested combined R6 integration SHA.
-3. Create CORE-06 contributor branch from that exact SHA and implement #25.
-4. Import CORE-06, run full combined verification, freeze final head, perform exactly two ADR-012 freshness observations, and request independent human review.
-5. No Pass 3; no self-approval; no automatic merge.
+No R7+, returns/refunds, electronic payment-provider execution, or production promotion is authorized by this R6 session.
