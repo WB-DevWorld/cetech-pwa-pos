@@ -178,6 +178,7 @@ require_once $plugin_dir . '/includes/class-auth.php';
 require_once $plugin_dir . '/includes/class-correlation.php';
 require_once $plugin_dir . '/includes/class-detector.php';
 require_once $plugin_dir . '/includes/class-response.php';
+require_once $plugin_dir . '/includes/class-schema.php';
 require_once $plugin_dir . '/includes/class-health-controller.php';
 require_once $plugin_dir . '/includes/class-money.php';
 require_once $plugin_dir . '/includes/class-cart-discount.php';
