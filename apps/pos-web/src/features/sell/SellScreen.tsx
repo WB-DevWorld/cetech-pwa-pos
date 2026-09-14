@@ -4,10 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BarcodeCollisionDialog } from "./components/BarcodeCollisionDialog";
 import { CartPanel } from "./components/CartPanel";
 import { CatalogStatusBanners } from "./components/CatalogStatus";
+import { CheckoutDialog } from "./components/CheckoutDialog";
 import { CustomerPicker } from "./components/CustomerPicker";
 import { ProductResults, ProductSearch } from "./components/ProductSearch";
 import { VariationDialog } from "./components/VariationDialog";
 import { useBarcodeScanner } from "./hooks/useBarcodeScanner";
+import { canBeginNewSale, checkoutDialogOpen, type CheckoutSessionView } from "./state/checkoutSession";
 import { formatMoneyDisplay, type CheckoutEligibilityView, type QuoteDisplayState } from "./state/quotePresentation";
 import { resolveQuotePresentation } from "./state/quoteRevision";
 import { isDigitBarcodeQuery } from "./state/barcodeResolution";
@@ -68,6 +70,18 @@ export type SellScreenProps = {
   onNewSale?: () => void;
   quote?: QuoteDisplayState;
   eligibility?: CheckoutEligibilityView;
+  checkoutReady?: boolean;
+  checkoutInFlight?: boolean;
+  checkoutSession?: CheckoutSessionView;
+  onPay?: () => void;
+  onConfirmCash?: (cashReceivedText: string) => void;
+  onResolveSale?: () => void;
+  onResolvePayment?: () => void;
+  onRetryFinalize?: () => void;
+  onRetryReceipt?: () => void;
+  onPrintReceipt?: () => void;
+  onCheckoutNewSale?: () => void;
+  onDismissCheckout?: () => void;
   searchCatalog?: (query: string) => Promise<readonly SellProductView[]>;
   resolveBarcodeCatalog?: (barcode: string) => Promise<readonly SellProductView[]>;
   loadVariations?: (parentId: string) => Promise<readonly SellProductView[]>;
@@ -95,6 +109,18 @@ export function SellScreen({
   onNewSale,
   quote,
   eligibility,
+  checkoutReady = false,
+  checkoutInFlight = false,
+  checkoutSession,
+  onPay,
+  onConfirmCash,
+  onResolveSale,
+  onResolvePayment,
+  onRetryFinalize,
+  onRetryReceipt,
+  onPrintReceipt,
+  onCheckoutNewSale,
+  onDismissCheckout,
   searchCatalog,
   resolveBarcodeCatalog,
   loadVariations,
@@ -125,7 +151,10 @@ export function SellScreen({
   };
 
   const modalOpen =
-    customerPickerOpen || displayed.notice?.kind === "chooser" || displayed.notice?.kind === "collision";
+    customerPickerOpen ||
+    displayed.notice?.kind === "chooser" ||
+    displayed.notice?.kind === "collision" ||
+    Boolean(checkoutSession && checkoutDialogOpen(checkoutSession.stage));
   const catalogMutationAllowed = isCatalogMutationAllowed(displayed.catalogAvailability);
 
   const closeNotice = useCallback(() => {
@@ -254,6 +283,10 @@ export function SellScreen({
   }
 
   function handleNewSale() {
+    if (checkoutSession && !canBeginNewSale(checkoutSession)) {
+      return;
+    }
+    onCheckoutNewSale?.();
     onNewSale?.();
     setCustomerPickerOpen(false);
     setState((current) => (applyNewSale(current, catalog, deps)));
@@ -327,6 +360,10 @@ export function SellScreen({
             onCloseMobile={() => setState((current) => (applyMobileCartOpen(current, false)))}
             quote={presentedQuote.quote}
             eligibility={presentedQuote.eligibility}
+            checkoutReady={checkoutReady}
+            checkoutInFlight={checkoutInFlight}
+            newSaleDisabled={Boolean(checkoutSession && !canBeginNewSale(checkoutSession))}
+            onPay={onPay}
           />
           <div className="mobile-cart-bar">
             <div>
@@ -369,6 +406,20 @@ export function SellScreen({
           onClear={handleClearCustomer}
           onCancel={closeCustomerPicker}
           onQueryChange={onCustomerQueryChange}
+        />
+      ) : null}
+      {checkoutSession && checkoutDialogOpen(checkoutSession.stage) ? (
+        <CheckoutDialog
+          session={checkoutSession}
+          inFlight={checkoutInFlight}
+          onConfirmCash={(value) => onConfirmCash?.(value)}
+          onResolveSale={() => onResolveSale?.()}
+          onResolvePayment={() => onResolvePayment?.()}
+          onRetryFinalize={() => onRetryFinalize?.()}
+          onRetryReceipt={() => onRetryReceipt?.()}
+          onPrint={() => onPrintReceipt?.()}
+          onNewSale={handleNewSale}
+          onDismiss={() => onDismissCheckout?.()}
         />
       ) : null}
     </div>

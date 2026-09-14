@@ -1,13 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { CartDraftStore, CatalogPort, CustomerPort, PricingPort } from "../../../../../../docs/contracts/ports";
+import type { CartDraftStore, CatalogPort, CheckoutUseCases, CustomerPort, PaymentPort, PricingPort, PrintPort, ReceiptPort, SalesPort } from "../../../../../../docs/contracts/ports";
 import { SellScreen } from "../SellScreen";
 import type { CatalogAvailability, CustomerSearchResultView, SellProductView, SellWorkspaceState } from "../state/sellView";
 import { lookupBarcodeViews, lookupVariations, searchCatalogViews } from "./catalogLookup";
 import { customerViewFromSummary, workspaceToCartDraft } from "./mapCartDraft";
 import { restoreSellWorkspace } from "./restoreWorkspace";
 import { useCartQuote } from "./useCartQuote";
+import { useCashCheckout, type CashCheckoutPorts } from "./useCashCheckout";
+import type { CashCheckoutScope } from "./cashCheckoutController";
 
 export type SellSessionPorts = {
   readonly catalog: CatalogPort;
@@ -22,6 +24,13 @@ export type SellSessionPorts = {
   readonly createLineId?: () => string;
   readonly pricing?: PricingPort;
   readonly shiftOpen?: boolean;
+  readonly checkout?: CheckoutUseCases;
+  readonly payments?: Pick<PaymentPort, "confirmCash" | "resolve">;
+  readonly sales?: Pick<SalesPort, "resolve">;
+  readonly receipts?: ReceiptPort;
+  readonly printer?: PrintPort;
+  readonly checkoutScope?: CashCheckoutScope;
+  readonly createCheckoutUuid?: () => string;
 };
 
 function defaultNow(): Date {
@@ -76,6 +85,29 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
     shiftOpen: ports.shiftOpen ?? true,
     now,
   });
+  const checkoutPorts = useMemo<CashCheckoutPorts | undefined>(() => {
+    if (!ports.checkout || !ports.payments || !ports.sales || !ports.receipts || !ports.printer || !ports.checkoutScope) {
+      return undefined;
+    }
+    return {
+      checkout: ports.checkout,
+      payments: ports.payments,
+      sales: ports.sales,
+      receipts: ports.receipts,
+      printer: ports.printer,
+      scope: ports.checkoutScope,
+      createUuid: ports.createCheckoutUuid,
+    };
+  }, [
+    ports.checkout,
+    ports.checkoutScope,
+    ports.createCheckoutUuid,
+    ports.payments,
+    ports.printer,
+    ports.receipts,
+    ports.sales,
+  ]);
+  const cashCheckout = useCashCheckout(checkoutPorts);
 
   useEffect(() => {
     nowRef.current = now;
@@ -199,6 +231,32 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
         onWorkspaceChange={persist}
         quote={presentedQuote.quote}
         eligibility={presentedQuote.eligibility}
+        checkoutReady={cashCheckout.ready}
+        checkoutInFlight={cashCheckout.inFlight}
+        checkoutSession={cashCheckout.session}
+        onPay={() => {
+          void cashCheckout.startPrepare(presentedQuote.confirmedQuote);
+        }}
+        onConfirmCash={(value) => {
+          void cashCheckout.confirmCash(value);
+        }}
+        onResolveSale={() => {
+          void cashCheckout.resolveSale();
+        }}
+        onResolvePayment={() => {
+          void cashCheckout.resolvePayment();
+        }}
+        onRetryFinalize={() => {
+          void cashCheckout.retryFinalize();
+        }}
+        onRetryReceipt={() => {
+          void cashCheckout.loadReceipt();
+        }}
+        onPrintReceipt={() => {
+          void cashCheckout.printReceipt();
+        }}
+        onCheckoutNewSale={cashCheckout.resetForNewSale}
+        onDismissCheckout={cashCheckout.dismiss}
       />
     </div>
   );

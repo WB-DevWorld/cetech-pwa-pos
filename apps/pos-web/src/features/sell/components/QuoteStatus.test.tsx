@@ -162,4 +162,30 @@ describe("CartPanel eligibility presentation", () => {
     expect(html).toContain("Payment is not available on this screen");
     expect(html).not.toContain("PRICING_UNAVAILABLE");
   });
+
+  test("Pay is enabled when eligibility is allowed and checkout runtime is supplied", () => {
+    const html = renderToStaticMarkup(
+      createElement(CartPanel, {
+        revision: 2,
+        lines: [
+          {
+            lineId: "line-1",
+            catalogItemId: "sku-1",
+            name: "Sample line",
+            quantity: "1",
+          },
+        ],
+        customer: null,
+        mobileOpen: false,
+        quote: { status: "confirmed", revision: 2, quote: { total: { minor: 500, currency: "GHS" } } },
+        eligibility: { allowed: true },
+        checkoutReady: true,
+        onPay: () => undefined,
+        ...emptyHandlers,
+      }),
+    );
+    expect(html).toContain('data-eligibility-allowed="true"');
+    expect(html).not.toMatch(/pay-btn[^>]*disabled/);
+    expect(html).not.toContain("Payment is not available on this screen");
+  });
 });
