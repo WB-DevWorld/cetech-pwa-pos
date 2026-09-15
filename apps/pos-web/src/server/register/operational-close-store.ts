@@ -125,13 +125,13 @@ function mapShift(row: Record<string, unknown>): Shift | null {
     typeof row.cashier_id !== "string" ||
     row.status !== "closed" ||
     typeof row.opening_float_minor !== "number" ||
-    typeof row.opening_float_currency !== "string" ||
+    row.opening_float_currency !== "GHS" ||
     typeof row.expected_cash_minor !== "number" ||
-    typeof row.expected_cash_currency !== "string" ||
+    row.expected_cash_currency !== "GHS" ||
     typeof row.counted_cash_minor !== "number" ||
-    typeof row.counted_cash_currency !== "string" ||
+    row.counted_cash_currency !== "GHS" ||
     typeof row.variance_minor !== "number" ||
-    typeof row.variance_currency !== "string" ||
+    row.variance_currency !== "GHS" ||
     typeof row.opened_at !== "string" ||
     typeof row.closed_at !== "string" ||
     typeof row.z_report_id !== "string"
@@ -144,10 +144,10 @@ function mapShift(row: Record<string, unknown>): Shift | null {
     deviceId: row.device_id,
     cashierId: row.cashier_id,
     status: "closed",
-    openingFloat: { minor: row.opening_float_minor, currency: row.opening_float_currency },
-    expectedCash: { minor: row.expected_cash_minor, currency: row.expected_cash_currency },
-    countedCash: { minor: row.counted_cash_minor, currency: row.counted_cash_currency },
-    variance: { minor: row.variance_minor, currency: row.variance_currency },
+    openingFloat: { minor: row.opening_float_minor, currency: "GHS" },
+    expectedCash: { minor: row.expected_cash_minor, currency: "GHS" },
+    countedCash: { minor: row.counted_cash_minor, currency: "GHS" },
+    variance: { minor: row.variance_minor, currency: "GHS" },
     openedAt: normalizeTimestamp(row.opened_at),
     closedAt: normalizeTimestamp(row.closed_at),
     zReportId: row.z_report_id,
@@ -162,7 +162,7 @@ function mapReport(row: Record<string, unknown>): ShiftReport | null {
     typeof row.expected_cash_minor !== "number" ||
     typeof row.counted_cash_minor !== "number" ||
     typeof row.variance_minor !== "number" ||
-    typeof row.currency !== "string" ||
+    row.currency !== "GHS" ||
     typeof row.created_at !== "string"
   ) {
     return null;
@@ -171,9 +171,9 @@ function mapReport(row: Record<string, unknown>): ShiftReport | null {
     id: row.id,
     shiftId: row.shift_id,
     kind: "Z",
-    expectedCash: { minor: row.expected_cash_minor, currency: row.currency },
-    countedCash: { minor: row.counted_cash_minor, currency: row.currency },
-    variance: { minor: row.variance_minor, currency: row.currency },
+    expectedCash: { minor: row.expected_cash_minor, currency: "GHS" },
+    countedCash: { minor: row.counted_cash_minor, currency: "GHS" },
+    variance: { minor: row.variance_minor, currency: "GHS" },
     createdAt: normalizeTimestamp(row.created_at),
   };
 }
