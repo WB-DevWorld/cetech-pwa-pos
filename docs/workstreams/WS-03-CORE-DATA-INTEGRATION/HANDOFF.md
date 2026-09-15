@@ -1,43 +1,39 @@
-# WS3 current handoff — R6 FE-05 + BR-07 assembled
+# WS3 current handoff — CORE-06 contributor READY_FOR_INTEGRATION
 
-Kind: INTEGRATION_CHECKPOINT. Date: 2026-09-14 UTC.
+Kind: TASK_COMPLETION. Date: 2026-09-15 UTC.
 
-Task / batch / workstream: R6 / issue #54; FE-05 #10 + BR-07 #19 assembled; CORE-06 #25 blocked; WS3 integration editor.
-Owner / integration editor: `@wbdevworld` / WS3.
-Neutral branch / PR: `batch/r6-first-real-cash-sale` / draft PR #55.
-Base main: `bc606a690f0c167b7057e3ae9143337404275882`.
+Task / batch / workstream: CORE-06 / issue #25; R6 / issue #54; WS3
+Owner / integration editor / requested human reviewer: `@wbdevworld` / WS3 implementer; integration editor imports later; different competent human must review senior-authored work
+Branch: `ws3/core-06-integrate-real-cash-sale-and-contract-e2e-har`
+Starting/base SHA: `ef7660ddca607ca748cb9eb71487b856004d0817`
+Implementation SHA: `0162e408d10e22eb9806aa5c5d61ca74a91a2192`
+Neutral branch / PR: `batch/r6-first-real-cash-sale` / draft PR #55 (not updated by this assignment)
+Base main: `bc606a690f0c167b7057e3ae9143337404275882`
 
-## FE-05 / #10
+## What was implemented
 
-Owner / implementer: `@Ben-001-sys` / WS1.
-Accepted source head: `79708d67b655eb46f8aba77712a83508e095f758`.
-Implementation: `f6607cda70176b51be0dc8b8a6e40ae0f64d9e24`.
-Prepared-sale remediation: `57574fe5e8b4aceaf94773aea9bc04ee801d0980`.
-Import merge: `8dabbde2af91b3aa31f00ae159b5f8cd7a3280a9`.
-Combined CI `34890381897`: SUCCESS both required jobs.
-State: **ACCEPTED / IMPORTED / VERIFIED**.
+CORE-06 connected already-built FE-05 checkout, CORE-05 cash/finalize/receipt, and BR-07 commercial prepare/finalize/resolve as one cash-sale path. Quote snapshots are stored on the BFF. Prepare is idempotent and recovers a lost bridge response without a second Woo order. Browser Sell now mounts checkout ports so Pay can run the combined path. Combined proof is the in-process harness plus Playwright against mocked BFF routes.
 
-## BR-07 / #19
+FE-05 screens and BR-07 PHP were not rebuilt. Frozen v1.0.0 contracts were not edited.
 
-Owner / implementer: `@Emmanuel-coder-prog` / WS2.
-Accepted source/evidence head: `fe97acfe0b5530d7eb861ccc0a9aea391e3daca3`.
-Implementation: `78c8403697ac2f925cdf189b5d2f705c5da6b3a5`.
-Uncertain-money remediation: `af9fab2f19e496481d3dd627a64419f880282cd6`.
-Owner source CI `34906844176`: SUCCESS Linux + Windows.
-Owner bridge evidence: 1297 passed / 0 failed; parity 138 / 0 / 19 skipped; schema drift PASS; FRESH_2.
-Import merge: `2ef938c4f9e89e50537804e2511ac9b7e0b596da`.
+## Evidence
 
-WS3 independent review: ACCEPTED FOR R6 INTEGRATION. Finalize binds frozen verified-payment evidence to the prepared sale and exact Woo economics before `payment_complete`; durable command claims constrain replay and payment/evidence reuse; cancel checks durable finalize state and Woo money/stock state before release/cancel. The remediation closes the process-loss hazard by blocking cancel when a finalize claim remains `PENDING`/`IN_PROGRESS`, even after `GET_LOCK` disappears.
+See `docs/integration/evidence/CORE-06-ACCEPTANCE.md` and `docs/integration/evidence/CORE-06-FRESHNESS.md`.
 
-Runtime limitations: live HPOS finalize/cancel rehearsal and real DB concurrency are PENDING. These are not claimed by source acceptance.
+- Combined Node harness: PASS (retail, B2B, duplicate prepare, conflict, lost prepare, duplicate cash/finalize, receipt recover)
+- Contract producer-consumer: PASS
+- Playwright mocked BFF: PASS (retail + B2B)
+- Isolated staging Woo: **BLOCKED** (training host plugin 404; no authorized writes)
+- Production: none
 
-## CORE-06 gate
+Commands: control-plane PASS; tooling 48 PASS; lint PASS; typecheck PASS; Vitest 53 files / 406 tests PASS; production build PASS; Playwright 7 PASS.
 
-CORE-06 / #25 owner: `@wbdevworld` / WS3.
-State: **BLOCKED / NOT STARTED** until the reconciled FE-05 + BR-07 branch head passes exact combined CI and WS3 publishes the tested R6 integration SHA.
+## Freshness
 
-When that SHA exists, create `ws3/core-06-integrate-real-cash-sale-and-contract-e2e-har` from that exact SHA, not from `main`.
+FRESH_2. origin/main unchanged at `bc606a690f0c167b7057e3ae9143337404275882`. Scheduler-only batch commits were not rebased onto this branch.
 
-Frozen v1.0.0 contracts remain authoritative. Issue #4 OPEN. `pricingParityVerified=false`. No production promotion.
+## Next exact action
 
-Next exact action: exact-head combined CI. If green, publish R6 integration SHA and activate CORE-06.
+Ready for the integration editor to import this exact SHA into `batch/r6-first-real-cash-sale` and run the R6 final combined gate.
+
+Do not declare R6 merged, approved, production-ready, or cut over. Do not start R7. Pass 3 is not permitted.
