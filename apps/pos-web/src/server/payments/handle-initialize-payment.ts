@@ -65,10 +65,12 @@ export async function handleInitializePayment(input: HandleInitializePaymentInpu
   }
 
   const config = readPaymentProviderConfig(input.env ?? {});
-  if (config.kind === "blocked_live") {
+  if (config.kind === "blocked_live" || config.kind === "blocked_unsafe") {
     const body = apiFailure(
       "INTEGRATION_UNAVAILABLE",
-      "electronic payment is not authorized in live mode",
+      config.kind === "blocked_live"
+        ? "electronic payment is not authorized in live mode"
+        : "electronic payment requires a Paystack test secret",
       guard.correlationId,
     );
     return { status: httpStatusFor(body.error.code), body, headers: guard.headers };

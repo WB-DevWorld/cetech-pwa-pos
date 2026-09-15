@@ -16,7 +16,12 @@ export type PaymentProviderConfig =
       readonly secretKey: string;
       readonly sandboxPayerEmail?: string;
     }
-  | { readonly kind: "blocked_live" };
+  | { readonly kind: "blocked_live" }
+  | { readonly kind: "blocked_unsafe" };
+
+export function isPaystackTestSecret(secret: string): boolean {
+  return secret.startsWith("sk_test_");
+}
 
 export function readPaymentProviderConfig(
   env: Readonly<Record<string, string | undefined>> = process.env,
@@ -31,7 +36,10 @@ export function readPaymentProviderConfig(
   }
   const mode = (env.PAYSTACK_MODE ?? env.PAYMENT_MODE ?? "test").trim().toLowerCase();
   const secretKey = (env.PAYSTACK_SECRET_KEY ?? env.PAYMENT_SECRET_KEY ?? "").trim();
-  if (mode === "live" || secretKey.startsWith("sk_live_")) {
+  if (mode === "live") {
+    return { kind: "blocked_live" };
+  }
+  if (secretKey.startsWith("sk_live_")) {
     return { kind: "blocked_live" };
   }
   if (mode !== "test") {
@@ -40,8 +48,8 @@ export function readPaymentProviderConfig(
   if (!secretKey || isUnusableCredential(secretKey)) {
     return { kind: "disabled" };
   }
-  if (secretKey.startsWith("sk_live_")) {
-    return { kind: "blocked_live" };
+  if (!isPaystackTestSecret(secretKey)) {
+    return { kind: "blocked_unsafe" };
   }
   const sandboxPayerEmail = (env.PAYSTACK_TEST_PAYER_EMAIL ?? "").trim();
   return {

@@ -1,4 +1,5 @@
 import type { ElectronicTender } from "../../../../../docs/contracts/domain.generated";
+import { isPaystackTestSecret } from "./config";
 import { paystackSignatureValid } from "./hmac";
 import type {
   ElectronicPaymentProvider,
@@ -35,22 +36,8 @@ const DEFAULT_BASE_URL = "https://api.paystack.co";
 export function createPaystackElectronicPaymentProvider(
   options: PaystackElectronicPaymentProviderOptions,
 ): ElectronicPaymentProvider {
-  if (options.secretKey.startsWith("sk_live_")) {
-    return {
-      id: "paystack",
-      async initialize() {
-        return { kind: "live_mode_blocked" };
-      },
-      async verify() {
-        return { kind: "unavailable", retryable: false, message: "live Paystack keys are not authorized" };
-      },
-      authenticateWebhook() {
-        return false;
-      },
-      parseWebhook() {
-        return null;
-      },
-    };
+  if (!isPaystackTestSecret(options.secretKey)) {
+    return refusedPaystackProvider();
   }
 
   const fetchImpl = options.fetchImpl ?? (globalThis.fetch as PaystackFetch);
@@ -260,4 +247,22 @@ function isPendingStatus(status: string): boolean {
 
 function isTimeout(error: unknown): boolean {
   return error instanceof Error && (error.name === "TimeoutError" || /timeout/i.test(error.message));
+}
+
+function refusedPaystackProvider(): ElectronicPaymentProvider {
+  return {
+    id: "paystack",
+    async initialize() {
+      return { kind: "live_mode_blocked" };
+    },
+    async verify() {
+      return { kind: "unavailable", retryable: false, message: "Paystack operations require a test secret" };
+    },
+    authenticateWebhook() {
+      return false;
+    },
+    parseWebhook() {
+      return null;
+    },
+  };
 }
