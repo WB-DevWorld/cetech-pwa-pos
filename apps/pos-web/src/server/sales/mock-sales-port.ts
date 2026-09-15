@@ -1,16 +1,21 @@
 import type { ApiResult, SalesPort } from "../../../../../docs/contracts/ports";
 import type {
   BridgeFinalizeRequest,
+  CancelSaleRequest,
   CommandContext,
+  PrepareSaleRequest,
+  PreparedSale,
   SaleResolution,
+  Uuid,
 } from "../../../../../docs/contracts/domain.generated";
 import { apiFailure } from "../http/api-failure";
 
 /**
- * CORE-05 commercial finalizer mock until BR-07. Idempotent per transaction:
- * a repair/retry does not create a second commercial sale.
+ * Local/dev commercial finalizer mock. It implements the full SalesPort surface
+ * so BFF composition stays type-stable, while only confirmPayment simulates a
+ * completed commercial sale. Staging/production never select this adapter.
  */
-export type MockSalesPort = Pick<SalesPort, "confirmPayment"> & {
+export type MockSalesPort = SalesPort & {
   commercialSaleCount: number;
   failNextConfirm: boolean;
   readonly confirmedTransactionIds: ReadonlySet<string>;
@@ -23,6 +28,24 @@ export function createMockSalesPort(): MockSalesPort {
     failNextConfirm: false,
     get confirmedTransactionIds() {
       return new Set(confirmed.keys());
+    },
+    async prepare(
+      _input: PrepareSaleRequest,
+      context: CommandContext,
+    ): Promise<ApiResult<PreparedSale>> {
+      return apiFailure(
+        "INTEGRATION_UNAVAILABLE",
+        "local mock SalesPort does not implement Woo prepare",
+        context.correlationId,
+      );
+    },
+    async resolve(transactionId: Uuid): Promise<ApiResult<SaleResolution>> {
+      const existing = confirmed.get(transactionId);
+      return {
+        ok: true,
+        correlationId: crypto.randomUUID(),
+        data: existing ?? { transactionId, status: "not_found" },
+      };
     },
     async confirmPayment(
       input: BridgeFinalizeRequest,
@@ -49,6 +72,20 @@ export function createMockSalesPort(): MockSalesPort {
       };
       confirmed.set(input.transactionId, resolution);
       return { ok: true, data: resolution, correlationId: context.correlationId };
+    },
+    async cancel(input: CancelSaleRequest, context: CommandContext): Promise<ApiResult<SaleResolution>> {
+      if (confirmed.has(input.transactionId)) {
+        return apiFailure(
+          "REQUIRES_ATTENTION",
+          "local mock cannot cancel a commercially completed sale",
+          context.correlationId,
+        );
+      }
+      return {
+        ok: true,
+        correlationId: context.correlationId,
+        data: { transactionId: input.transactionId, status: "cancelled" },
+      };
     },
   };
   return port;

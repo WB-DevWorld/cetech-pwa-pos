@@ -21,6 +21,7 @@ export function composeBridgeSalesPort(
 ): SalesPort | undefined {
   const bridge = readBridgeServiceEnv(env);
   if (!bridge || !fetchImpl) return undefined;
+  const restFetch: PosRestFetch = fetchImpl;
   const identity = createBridgeServiceIdentity({
     username: bridge.username,
     applicationPassword: bridge.applicationPassword,
@@ -84,7 +85,7 @@ export function composeBridgeSalesPort(
     schema: "PreparedSale" | "SaleResolution",
   ): Promise<ApiResult<T>> {
     try {
-      const response = await fetchImpl(url, init);
+      const response = await restFetch(url, init);
       const json = await response.json();
       if (isFailure(json)) return json;
       if (!isSuccessEnvelope(json)) {

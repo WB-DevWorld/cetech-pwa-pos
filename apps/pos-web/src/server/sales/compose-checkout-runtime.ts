@@ -15,9 +15,15 @@ import { createServerRestFetch, type PosRestFetch } from "../http/server-fetch";
 import { composeBridgeSalesPort } from "./bridge-sales-port";
 import { createMockSalesPort } from "./mock-sales-port";
 
+export type CheckoutSalesPort = SalesPort & {
+  commercialSaleCount?: number;
+  failNextConfirm?: boolean;
+  readonly confirmedTransactionIds?: ReadonlySet<string>;
+};
+
 export type CheckoutRuntime = {
   readonly store: CheckoutStore;
-  readonly salesPort: SalesPort;
+  readonly salesPort: CheckoutSalesPort;
   readonly quoteSnapshots: QuoteSnapshotStore;
   readonly prepareIntents: PrepareIntentStore;
   readonly durable: boolean;
