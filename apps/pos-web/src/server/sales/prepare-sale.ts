@@ -22,8 +22,15 @@ export async function prepareSale(input: {
 }): Promise<ApiResult<PreparedSale>> {
   const { store, salesPort, actor, request, context, now } = input;
   return store.withLock(`prepare:${request.transactionId}`, async () => {
+    const registerForClaim = await store.getRegister(request.registerId);
     const hash = await sha256Hex(canonicalJson(request));
-    const claim = await store.claimIdempotency(actor.organizationId, "sale.prepare", context.idempotencyKey, hash);
+    const claim = await store.claimIdempotency(
+      actor.organizationId,
+      "sale.prepare",
+      context.idempotencyKey,
+      hash,
+      registerForClaim?.locationId ?? actor.locationIds[0],
+    );
     if (claim.kind === "conflict") {
       return apiFailure(
         "IDEMPOTENCY_CONFLICT",

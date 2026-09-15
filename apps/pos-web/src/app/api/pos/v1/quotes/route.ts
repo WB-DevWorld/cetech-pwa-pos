@@ -11,14 +11,19 @@ import { resolveCorrelationId } from "../../../../../server/http/correlation";
 import { composeCheckoutRuntime } from "../../../../../server/sales/compose-checkout-runtime";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  const fetchImpl = createServerRestFetch();
   let sessionStore;
+  let snapshots;
+  let bridge;
   try {
-    sessionStore = composeStaffSessionStore(process.env, createServerRestFetch());
+    sessionStore = composeStaffSessionStore(process.env, fetchImpl);
+    snapshots = composeCheckoutRuntime(process.env, fetchImpl).store;
+    bridge = composeQuoteBridge(process.env, fetchImpl);
   } catch {
     const correlation = resolveCorrelationId(request.headers.get("x-correlation-id") ?? undefined);
     const body = authFailure(
       "INTEGRATION_UNAVAILABLE",
-      "durable staff session store is required",
+      "durable staff session and checkout stores are required",
       correlation.correlationId,
     );
     return NextResponse.json(body, {
@@ -42,19 +47,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     now: new Date(),
     sessionStore,
     allowedOrigins: staffAllowedOrigins(),
-    bridge: composeQuoteBridge(process.env, createServerRestFetch()),
-    snapshots: tryQuoteSnapshots(),
+    bridge,
+    snapshots,
   });
   return NextResponse.json(result.body, {
     status: result.status,
     headers: result.headers,
   });
-}
-
-function tryQuoteSnapshots() {
-  try {
-    return composeCheckoutRuntime(process.env).store;
-  } catch {
-    return undefined;
-  }
 }

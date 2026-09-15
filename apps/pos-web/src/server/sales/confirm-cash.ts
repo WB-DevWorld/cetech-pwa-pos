@@ -25,8 +25,15 @@ export async function confirmCash(input: {
 }): Promise<ApiResult<PaymentState>> {
   const { store, actor, request, context, now } = input;
   return store.withLock(`cash:${request.transactionId}`, async () => {
+    const saleForClaim = await store.getSale(request.transactionId);
     const hash = await sha256Hex(canonicalJson(request));
-    const claim = await store.claimIdempotency(actor.organizationId, "payment.cash", context.idempotencyKey, hash);
+    const claim = await store.claimIdempotency(
+      actor.organizationId,
+      "payment.cash",
+      context.idempotencyKey,
+      hash,
+      saleForClaim?.locationId ?? actor.locationIds[0],
+    );
     if (claim.kind === "conflict") {
       return apiFailure(
         "IDEMPOTENCY_CONFLICT",

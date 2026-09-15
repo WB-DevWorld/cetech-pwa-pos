@@ -1,0 +1,250 @@
+import { describe, expect, test } from "vitest";
+import type { Quote, ReceiptSnapshot } from "../../../../docs/contracts/domain.generated";
+import { composeCheckoutRuntime } from "../../../apps/pos-web/src/server/sales/compose-checkout-runtime";
+import { createSupabaseCheckoutStore } from "../../../apps/pos-web/src/server/sales/supabase-checkout-store";
+import type { PosRestFetch } from "../../../apps/pos-web/src/server/http/server-fetch";
+import { createFakePosgrest } from "./fake-posgrest";
+
+const DEVICE_ID = "00000000-0000-4000-8000-0000000000a1";
+const TX = "11111111-1111-4111-8111-111111111111";
+const SHIFT_ID = "55555555-5555-4555-8555-555555555555";
+const PAYMENT_ID = "22222222-2222-4222-8222-222222222222";
+const PREPARE_KEY = "66666666-6666-4666-8666-666666666666";
+const HASH_A = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const HASH_B = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+
+function restFrom(
+  handler: (input: string, init: Parameters<PosRestFetch>[1]) => Promise<{ status: number; body?: unknown }>,
+): PosRestFetch {
+  return async (input, init) => {
+    const result = await handler(input, init);
+    return {
+      ok: result.status >= 200 && result.status < 300,
+      status: result.status,
+      json: async () => result.body ?? [],
+    };
+  };
+}
+
+function quote(): Quote {
+  const total = { minor: 2900, currency: "GHS" as const };
+  const zero = { minor: 0, currency: "GHS" as const };
+  return {
+    id: "quote-r6-1",
+    fingerprint: "0123456789abcdef0123456789abcdef",
+    cartId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    cartRevision: 1,
+    customer: { kind: "walkin" },
+    locationId: "loc_a1",
+    currency: "GHS",
+    lines: [
+      {
+        lineId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        productId: "49111",
+        quantity: "1",
+        unitPrice: total,
+        subtotal: total,
+        discount: zero,
+        tax: zero,
+        total,
+        stockStatus: "in_stock",
+        purchasable: true,
+        problems: [],
+      },
+    ],
+    subtotal: total,
+    discount: zero,
+    tax: zero,
+    total,
+    calculatedAt: "2026-09-15T12:00:00.000Z",
+    expiresAt: "2026-09-15T18:00:00.000Z",
+    purchasable: true,
+  };
+}
+
+function receipt(): ReceiptSnapshot {
+  const total = { minor: 2900, currency: "GHS" as const };
+  const zero = { minor: 0, currency: "GHS" as const };
+  return {
+    id: "receipt-r6-1",
+    transactionId: TX,
+    receiptNumber: "R-1",
+    orderReference: "woo-49111",
+    issuedAt: "2026-09-15T12:05:00.000Z",
+    locationName: "loc_a1",
+    registerName: "Register A",
+    cashierName: "Cashier A",
+    customerLabel: "Walk-in",
+    lines: [
+      {
+        name: "Hardener",
+        quantity: "1",
+        unitPrice: total,
+        subtotal: total,
+        discount: zero,
+        tax: zero,
+        total,
+      },
+    ],
+    subtotal: total,
+    discount: zero,
+    tax: zero,
+    total,
+    tender: "cash",
+    cashReceived: { minor: 3000, currency: "GHS" },
+    changeDue: { minor: 100, currency: "GHS" },
+    documentKind: "operational_pos_receipt",
+  };
+}
+
+describe("R6-REM-01 durable checkout store", () => {
+  test("ephemeral store is refused for staging and production", () => {
+    expect(() => composeCheckoutRuntime({ APP_ENV: "staging" })).toThrow(/durable checkout store is required/);
+    expect(() =>
+      composeCheckoutRuntime(
+        { APP_ENV: "production", SUPABASE_URL: "https://example.supabase.co" },
+        restFrom(async () => ({ status: 200 })),
+      ),
+    ).toThrow(/durable checkout store is required/);
+    expect(() => composeCheckoutRuntime({ APP_ENV: "local" })).not.toThrow();
+  });
+
+  test("process restart recovers quote, sale, payment, receipt, cash, and idempotency without a second effect", async () => {
+    const fake = createFakePosgrest();
+    const first = createSupabaseCheckoutStore({
+      url: "https://example.supabase.co",
+      serviceRoleKey: "server-only-infrastructure",
+      fetchImpl: fake.fetchImpl,
+    });
+    await first.seedRegister({
+      id: "reg_a",
+      name: "Register A",
+      locationId: "loc_a1",
+      currency: "GHS",
+      status: "active",
+      organizationId: "org_a",
+    });
+    await first.seedDevice({
+      id: DEVICE_ID,
+      organizationId: "org_a",
+      locationId: "loc_a1",
+      status: "active",
+    });
+    expect(
+      await first.insertOpenShift({
+        id: SHIFT_ID,
+        registerId: "reg_a",
+        deviceId: DEVICE_ID,
+        cashierId: "cashier_a",
+        status: "open",
+        openingFloat: { minor: 10000, currency: "GHS" },
+        expectedCash: { minor: 10000, currency: "GHS" },
+        openedAt: "2026-09-15T12:00:00.000Z",
+        organizationId: "org_a",
+        locationId: "loc_a1",
+      }),
+    ).toBe("ok");
+    await first.saveQuote(quote());
+    const prepared = await first.seedPreparedSale({
+      organizationId: "org_a",
+      locationId: "loc_a1",
+      locationName: "loc_a1",
+      registerId: "reg_a",
+      registerName: "Register A",
+      deviceId: DEVICE_ID,
+      shiftId: SHIFT_ID,
+      cashierId: "cashier_a",
+      cashierName: "Cashier A",
+      customer: { kind: "walkin" },
+      customerLabel: "Walk-in",
+      prepared: {
+        transactionId: TX,
+        saleId: "woo-49111",
+        orderReference: "woo-49111",
+        quoteFingerprint: "0123456789abcdef0123456789abcdef",
+        total: { minor: 2900, currency: "GHS" },
+        status: "prepared",
+        stockCommitment: "reserved",
+        preparedAt: "2026-09-15T12:01:00.000Z",
+        expiresAt: "2026-09-15T18:00:00.000Z",
+      },
+      lines: receipt().lines,
+      subtotal: { minor: 2900, currency: "GHS" },
+      discount: { minor: 0, currency: "GHS" },
+      tax: { minor: 0, currency: "GHS" },
+    });
+    expect(
+      await first.appendCashMovement({
+        id: "77777777-7777-4777-8777-777777777777",
+        organizationId: "org_a",
+        shiftId: SHIFT_ID,
+        kind: "cash_sale",
+        signedAmount: { minor: 2900, currency: "GHS" },
+        actorId: "cashier_a",
+        createdAt: "2026-09-15T12:02:00.000Z",
+        transactionId: TX,
+        reason: "cash sale",
+      }),
+    ).toBe("ok");
+    await first.savePayment({
+      paymentId: PAYMENT_ID,
+      transactionId: TX,
+      saleId: "woo-49111",
+      evidenceId: "88888888-8888-4888-8888-888888888888",
+      tender: "cash",
+      status: "verified",
+      amount: { minor: 2900, currency: "GHS" },
+      cashReceived: { minor: 3000, currency: "GHS" },
+      verifiedAt: "2026-09-15T12:02:00.000Z",
+      verificationSource: "cash_ledger",
+      actorId: "cashier_a",
+    });
+    await first.saveSale({ ...prepared, status: "completed", assignedPaymentId: PAYMENT_ID, commercialConfirmed: true });
+    expect(await first.saveReceipt(receipt())).toBe("ok");
+    expect(await first.claimIdempotency("org_a", "sale.prepare", PREPARE_KEY, HASH_A, "loc_a1")).toEqual({
+      kind: "acquired",
+    });
+    await first.acknowledgeIdempotency("org_a", "sale.prepare", PREPARE_KEY, prepared.prepared);
+
+    const restarted = createSupabaseCheckoutStore({
+      url: "https://example.supabase.co",
+      serviceRoleKey: "server-only-infrastructure",
+      fetchImpl: fake.fetchImpl,
+    });
+    await expect(restarted.getQuote("quote-r6-1")).resolves.toMatchObject({ id: "quote-r6-1", total: { minor: 2900 } });
+    const recoveredSale = await restarted.getSale(TX);
+    expect(recoveredSale?.status).toBe("completed");
+    expect(recoveredSale?.prepared.saleId).toBe("woo-49111");
+    expect(recoveredSale?.commercialConfirmed).toBe(true);
+    await expect(restarted.getPaymentForTransaction(TX)).resolves.toMatchObject({ paymentId: PAYMENT_ID });
+    await expect(restarted.getReceipt(TX)).resolves.toMatchObject({ id: "receipt-r6-1" });
+    await expect(restarted.listCashSales(TX)).resolves.toHaveLength(1);
+    await expect(restarted.expectedCash(SHIFT_ID)).resolves.toEqual({ minor: 12900, currency: "GHS" });
+    expect(await restarted.claimIdempotency("org_a", "sale.prepare", PREPARE_KEY, HASH_A, "loc_a1")).toMatchObject({
+      kind: "replay",
+    });
+    expect(await restarted.claimIdempotency("org_a", "sale.prepare", PREPARE_KEY, HASH_B, "loc_a1")).toEqual({
+      kind: "conflict",
+    });
+    expect(
+      await restarted.appendCashMovement({
+        id: "99999999-9999-4999-8999-999999999999",
+        organizationId: "org_a",
+        shiftId: SHIFT_ID,
+        kind: "cash_sale",
+        signedAmount: { minor: 2900, currency: "GHS" },
+        actorId: "cashier_a",
+        createdAt: "2026-09-15T12:03:00.000Z",
+        transactionId: TX,
+        reason: "cash sale",
+      }),
+    ).toBe("duplicate_sale");
+    expect(
+      await restarted.saveReceipt({
+        ...receipt(),
+        id: "receipt-r6-other",
+      }),
+    ).toBe("duplicate");
+    expect(await restarted.listCashSales(TX)).toHaveLength(1);
+  });
+});
