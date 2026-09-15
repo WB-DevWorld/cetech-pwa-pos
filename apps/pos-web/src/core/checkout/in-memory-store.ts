@@ -1,4 +1,4 @@
-import type { Id, PendingOperation, ReceiptSnapshot, Uuid } from "../../../../../docs/contracts/domain.generated";
+import type { Id, PendingOperation, Quote, ReceiptSnapshot, Uuid } from "../../../../../docs/contracts/domain.generated";
 import type {
   CheckoutStore,
   OutboxEvent,
@@ -29,6 +29,7 @@ export function createInMemoryCheckoutStore(): CheckoutStore {
   const shifts = new Map<Uuid, StoredShift>();
   const activeByRegister = new Map<Id, Uuid>();
   const movements: StoredCashMovement[] = [];
+  const quotes = new Map<Id, Quote>();
   const sales = new Map<Uuid, PosSaleRecord>();
   const payments = new Map<Uuid, StoredPayment>();
   const paymentsByTx = new Map<Uuid, Uuid>();
@@ -129,6 +130,14 @@ export function createInMemoryCheckoutStore(): CheckoutStore {
 
     async expectedCash(shiftId) {
       return shifts.get(shiftId)?.expectedCash;
+    },
+
+    async saveQuote(quote) {
+      quotes.set(quote.id, quote);
+    },
+
+    async getQuote(quoteId) {
+      return quotes.get(quoteId);
     },
 
     async seedPreparedSale(input) {

@@ -8,6 +8,7 @@ import { handleQuote } from "../../../../../server/quotes/handle-quote";
 import { httpStatusFor } from "../../../../../server/http/status";
 import { authFailure } from "../../../../../server/auth/errors";
 import { resolveCorrelationId } from "../../../../../server/http/correlation";
+import { composeCheckoutRuntime } from "../../../../../server/sales/compose-checkout-runtime";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   let sessionStore;
@@ -42,9 +43,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     sessionStore,
     allowedOrigins: staffAllowedOrigins(),
     bridge: composeQuoteBridge(process.env, createServerRestFetch()),
+    snapshots: tryQuoteSnapshots(),
   });
   return NextResponse.json(result.body, {
     status: result.status,
     headers: result.headers,
   });
+}
+
+function tryQuoteSnapshots() {
+  try {
+    return composeCheckoutRuntime(process.env).store;
+  } catch {
+    return undefined;
+  }
 }

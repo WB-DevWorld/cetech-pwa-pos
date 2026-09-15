@@ -19,6 +19,7 @@ const unitTestDiscovery = {
     "../../tests/integration/auth/**/*.test.*",
     "../../tests/integration/health/**/*.test.*",
     "../../tests/integration/sync/**/*.test.*",
+    "../../tests/contracts/**/*.test.*",
   ],
   exclude: [
     "**/node_modules/**",

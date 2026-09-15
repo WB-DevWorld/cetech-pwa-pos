@@ -9,6 +9,7 @@ import type {
   ReceiptSnapshot,
   Register,
   SaleStatus,
+  Quote,
   Session,
   Shift,
   Timestamp,
@@ -123,6 +124,8 @@ export interface CheckoutStore {
   appendCashMovement(movement: StoredCashMovement): Promise<"ok" | "duplicate_sale" | "shift_required" | "negative_expected">;
   listCashSales(transactionId: Uuid): Promise<readonly StoredCashMovement[]>;
   expectedCash(shiftId: Uuid): Promise<Money | undefined>;
+  saveQuote(quote: Quote): Promise<void>;
+  getQuote(quoteId: Id): Promise<Quote | undefined>;
   seedPreparedSale(input: SeedPreparedSaleInput): Promise<PosSaleRecord>;
   getSale(transactionId: Uuid): Promise<PosSaleRecord | undefined>;
   saveSale(sale: PosSaleRecord): Promise<void>;
