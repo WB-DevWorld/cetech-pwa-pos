@@ -215,7 +215,17 @@ br01_assert( strpos( $sql, 'UNIQUE KEY uniq_transaction (site_scope, transaction
 br01_assert( strpos( $sql, 'woo_create_entered tinyint(1) NOT NULL DEFAULT 0' ) !== false, 'claim table persists woo_create_entered before wc_create_order' );
 br01_assert( strpos( $sql, 'woo_recovery_token char(64) NULL' ) !== false, 'claim table persists opaque Woo recovery token' );
 br01_assert( strpos( $sql, 'UNIQUE KEY uniq_recovery_token (site_scope, woo_recovery_token)' ) !== false, 'recovery token uniqueness is bridge-owned' );
-br01_assert_eq( '4', Cetech_Pos_Bridge_Constants::DB_VERSION, 'claim schema version includes command claims' );
+$cmd_sql = Cetech_Pos_Bridge_Schema_Install::create_command_table_sql( 'wp_cetech_pos_command_claims' );
+br01_assert( strpos( $cmd_sql, 'UNIQUE KEY uniq_command (site_scope, transaction_id, operation_type)' ) !== false, 'command table retains per-transaction uniqueness' );
+
+$fx_sql = Cetech_Pos_Bridge_Schema_Install::create_return_effect_table_sql( 'wp_cetech_pos_return_effect_claims' );
+br01_assert( strpos( $fx_sql, 'UNIQUE KEY uniq_idempotency (site_scope, operation_type, idempotency_key)' ) !== false, 'return-effect UNIQUE idempotency identity' );
+br01_assert( strpos( $fx_sql, 'UNIQUE KEY uniq_effect (site_scope, operation_type, effect_id)' ) !== false, 'return-effect UNIQUE effect identity' );
+br01_assert( strpos( $fx_sql, 'UNIQUE KEY uniq_command' ) === false, 'return-effect table does not unique on transaction_id' );
+br01_assert( strpos( $fx_sql, 'transaction_id, operation_type' ) === false, 'return-effect table allows multiple partial effects per sale' );
+$ln_sql = Cetech_Pos_Bridge_Schema_Install::create_return_effect_line_table_sql( 'wp_cetech_pos_return_effect_lines' );
+br01_assert( strpos( $ln_sql, 'UNIQUE KEY uniq_effect_line (site_scope, operation_type, effect_id, line_id)' ) !== false, 'return-effect line UNIQUE identity' );
+br01_assert_eq( '5', Cetech_Pos_Bridge_Constants::DB_VERSION, 'claim schema version includes return-effect claims' );
 br01_assert_eq( $sql, Cetech_Pos_Bridge_Schema_Install::create_table_sql( 'wp_cetech_pos_prepare_claims' ), 'CREATE TABLE SQL is deterministic across calls' );
 br01_assert_eq( 'wp_cetech_pos_prepare_claims', Cetech_Pos_Bridge_Schema_Install::table_name( (object) array( 'prefix' => 'wp_' ) ), 'bridge-owned table name' );
 

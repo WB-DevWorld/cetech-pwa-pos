@@ -19,10 +19,16 @@ final class Cetech_Pos_Bridge_Plugin {
 	private $finalize_controller;
 	/** @var Cetech_Pos_Bridge_Cancel_Controller */
 	private $cancel_controller;
+	/** @var Cetech_Pos_Bridge_Commercial_Refund_Controller */
+	private $commercial_refund_controller;
+	/** @var Cetech_Pos_Bridge_Stock_Disposition_Controller */
+	private $stock_disposition_controller;
 	/** @var Cetech_Pos_Bridge_Prepare_Engine */
 	private $prepare_engine;
 	/** @var Cetech_Pos_Bridge_Command_Engine */
 	private $command_engine;
+	/** @var Cetech_Pos_Bridge_Return_Effect_Engine */
+	private $return_effect_engine;
 	/** @var array<int,array<string,mixed>> */
 	private $registered_routes = array();
 
@@ -52,6 +58,10 @@ final class Cetech_Pos_Bridge_Plugin {
 		$this->resolve_controller = new Cetech_Pos_Bridge_Resolve_Controller( $auth, $correlation, $this->prepare_engine );
 		$this->finalize_controller = new Cetech_Pos_Bridge_Finalize_Controller( $auth, $correlation, $this->command_engine );
 		$this->cancel_controller  = new Cetech_Pos_Bridge_Cancel_Controller( $auth, $correlation, $this->command_engine );
+		$effects                  = new Cetech_Pos_Bridge_Return_Effect_Store();
+		$this->return_effect_engine = new Cetech_Pos_Bridge_Return_Effect_Engine( $runtime, $store, $claims, $commands, $effects );
+		$this->commercial_refund_controller = new Cetech_Pos_Bridge_Commercial_Refund_Controller( $auth, $correlation, $this->return_effect_engine );
+		$this->stock_disposition_controller = new Cetech_Pos_Bridge_Stock_Disposition_Controller( $auth, $correlation, $this->return_effect_engine );
 	}
 
 	public function boot() {
@@ -96,6 +106,26 @@ final class Cetech_Pos_Bridge_Plugin {
 			'callback'            => array( $this->cancel_controller, 'handle' ),
 			'permission_callback' => array( $this->cancel_controller, 'permission_callback' ),
 		);
+		$commercial_args = array(
+			'methods'             => 'POST',
+			'callback'            => array( $this->commercial_refund_controller, 'handle' ),
+			'permission_callback' => array( $this->commercial_refund_controller, 'permission_callback' ),
+		);
+		$commercial_resolve_args = array(
+			'methods'             => 'GET',
+			'callback'            => array( $this->commercial_refund_controller, 'handle_resolve' ),
+			'permission_callback' => array( $this->commercial_refund_controller, 'permission_callback' ),
+		);
+		$stock_args = array(
+			'methods'             => 'POST',
+			'callback'            => array( $this->stock_disposition_controller, 'handle' ),
+			'permission_callback' => array( $this->stock_disposition_controller, 'permission_callback' ),
+		);
+		$stock_resolve_args = array(
+			'methods'             => 'GET',
+			'callback'            => array( $this->stock_disposition_controller, 'handle_resolve' ),
+			'permission_callback' => array( $this->stock_disposition_controller, 'permission_callback' ),
+		);
 		$this->registered_routes[] = array(
 			'namespace' => Cetech_Pos_Bridge_Constants::NAMESPACE,
 			'route'     => Cetech_Pos_Bridge_Constants::HEALTH_ROUTE,
@@ -125,6 +155,26 @@ final class Cetech_Pos_Bridge_Plugin {
 			'namespace' => Cetech_Pos_Bridge_Constants::NAMESPACE,
 			'route'     => Cetech_Pos_Bridge_Constants::CANCEL_ROUTE,
 			'args'      => $cancel_args,
+		);
+		$this->registered_routes[] = array(
+			'namespace' => Cetech_Pos_Bridge_Constants::NAMESPACE,
+			'route'     => Cetech_Pos_Bridge_Constants::COMMERCIAL_REFUND_ROUTE,
+			'args'      => $commercial_args,
+		);
+		$this->registered_routes[] = array(
+			'namespace' => Cetech_Pos_Bridge_Constants::NAMESPACE,
+			'route'     => Cetech_Pos_Bridge_Constants::COMMERCIAL_REFUND_RESOLVE_ROUTE,
+			'args'      => $commercial_resolve_args,
+		);
+		$this->registered_routes[] = array(
+			'namespace' => Cetech_Pos_Bridge_Constants::NAMESPACE,
+			'route'     => Cetech_Pos_Bridge_Constants::STOCK_DISPOSITION_ROUTE,
+			'args'      => $stock_args,
+		);
+		$this->registered_routes[] = array(
+			'namespace' => Cetech_Pos_Bridge_Constants::NAMESPACE,
+			'route'     => Cetech_Pos_Bridge_Constants::STOCK_DISPOSITION_RESOLVE_ROUTE,
+			'args'      => $stock_resolve_args,
 		);
 		if ( function_exists( 'register_rest_route' ) ) {
 			register_rest_route(
@@ -156,6 +206,26 @@ final class Cetech_Pos_Bridge_Plugin {
 				Cetech_Pos_Bridge_Constants::NAMESPACE,
 				Cetech_Pos_Bridge_Constants::CANCEL_ROUTE,
 				$cancel_args
+			);
+			register_rest_route(
+				Cetech_Pos_Bridge_Constants::NAMESPACE,
+				Cetech_Pos_Bridge_Constants::COMMERCIAL_REFUND_ROUTE,
+				$commercial_args
+			);
+			register_rest_route(
+				Cetech_Pos_Bridge_Constants::NAMESPACE,
+				Cetech_Pos_Bridge_Constants::COMMERCIAL_REFUND_RESOLVE_ROUTE,
+				$commercial_resolve_args
+			);
+			register_rest_route(
+				Cetech_Pos_Bridge_Constants::NAMESPACE,
+				Cetech_Pos_Bridge_Constants::STOCK_DISPOSITION_ROUTE,
+				$stock_args
+			);
+			register_rest_route(
+				Cetech_Pos_Bridge_Constants::NAMESPACE,
+				Cetech_Pos_Bridge_Constants::STOCK_DISPOSITION_RESOLVE_ROUTE,
+				$stock_resolve_args
 			);
 		}
 	}
@@ -194,6 +264,18 @@ final class Cetech_Pos_Bridge_Plugin {
 
 	public function get_cancel_controller() {
 		return $this->cancel_controller;
+	}
+
+	public function get_commercial_refund_controller() {
+		return $this->commercial_refund_controller;
+	}
+
+	public function get_stock_disposition_controller() {
+		return $this->stock_disposition_controller;
+	}
+
+	public function get_return_effect_engine() {
+		return $this->return_effect_engine;
 	}
 
 	/**
