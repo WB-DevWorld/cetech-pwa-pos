@@ -24,6 +24,7 @@ export type HandleQuoteInput = {
   readonly sessionStore: StaffSessionStore;
   readonly allowedOrigins: readonly string[];
   readonly bridge?: QuoteBridge;
+  readonly snapshots?: { saveQuote(quote: Quote): Promise<void> };
 };
 
 export type HandleQuoteResponse = {
@@ -96,6 +97,9 @@ export async function handleQuote(input: HandleQuoteInput): Promise<HandleQuoteR
       correlation.correlationId,
     );
     return { status: httpStatusFor(body.error.code), body, headers };
+  }
+  if (input.snapshots) {
+    await input.snapshots.saveQuote(result.data);
   }
   return { status: 200, body: result, headers };
 }

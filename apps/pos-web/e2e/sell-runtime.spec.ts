@@ -123,7 +123,7 @@ test("New Sale Cart B quote is accepted even when Cart A had a higher revision",
   await expect(page.locator("[data-quote-status='confirmed']")).toContainText("GHS 15.00");
   await expect(page.getByText("GHS 40.00")).toHaveCount(0);
   await expect(page.locator("[data-quote-status='changed']")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Pay" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Pay" })).toBeEnabled();
 });
 
 test("equal revision across New Sale cannot reuse Cart A quote while Cart B is quoting", async ({ page }) => {
@@ -151,7 +151,7 @@ test("equal revision across New Sale cannot reuse Cart A quote while Cart B is q
   await expect(page.locator("[data-quote-status='confirmed']")).toBeVisible({ timeout: 15_000 });
   await expect(page.locator("[data-quote-status='confirmed']")).toContainText("GHS 15.00");
   await expect(page.getByText("GHS 40.00")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Pay" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Pay" })).toBeEnabled();
 });
 
 function quotePayload(
