@@ -25,9 +25,9 @@ Issue #4 remains OPEN. Woo order `49439` is historical R6 training evidence. R6-
 
 - Integration issue: **#57** — `[R7-00] Integrate verified electronic payment and reconciliation`.
 - Implementation task: **PAY-01 / #26** — `[PAY-01] Implement verified electronic payment and reconciliation`.
-- Neutral branch: `batch/r7-electronic-payment-reconciliation` (starts at exact post-R6 `main`).
+- Neutral branch: `batch/r7-electronic-payment-reconciliation`.
 - Owner / integration editor: `@wbdevworld` / WS3.
-- Milestone PR: **not opened**. ChatGPT owns later GitHub review-control. Do not open, request reviewers, approve, or merge.
+- Milestone PR: **#58 draft**. Do not mark ready. Do not request reviewers, approve, or merge.
 - FE-06 / returns / refunds / R8: **not authorized**.
 
 ```text
@@ -37,7 +37,7 @@ mode: INTEGRATE
 task: PAY-01 / #26
 ```
 
-PAY-01 source is imported onto the neutral branch.
+PAY-01 source is imported onto the neutral branch. Control-plane review remediation (positive `sk_test_` requirement) is imported.
 
 | Role | SHA |
 | --- | --- |
@@ -46,6 +46,9 @@ PAY-01 source is imported onto the neutral branch.
 | PAY01_SOURCE_SHA (FRESH_2) | `3352b7267984fd9125fdaa46196f176e6bf54e4a` |
 | PAY01_IMPORT_SHA (implementation) | `15542c555ab65b7151bc115d377d9478dca1f3cd` |
 | PAY01_IMPORT_SHA (FRESH_2) | `b049ff5446184be7a69fccef82daf5f588c6a6e9` |
+| Prior combined head | `dd6c91c27035e0387938d819f880b71b515b338e` |
+| REMEDIATION_SOURCE_SHA | `ac3340cf63eec771b194dd2c0d2eb54b2bf1b457` |
+| REMEDIATION_IMPORT_SHA | `cc5666fd3b31fa45f7da0a9045002ad3c5c72741` |
 
 Allowed PAY-01 paths: `apps/pos-web/src/server/**`; `apps/pos-web/src/core/**`; `apps/pos-web/src/app/api/**`; `supabase/**`; `tests/integration/payments/**`. Bounded WS3 evidence/status/handoff and this ledger may be updated on the neutral branch for scheduler/activation/integration truth.
 
