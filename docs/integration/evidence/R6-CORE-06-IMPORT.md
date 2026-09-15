@@ -57,13 +57,9 @@ GitHub Actions on exact head `e64b0fa94bddb40ccf2e13b3ffb289a995b49c92`:
 - JSON envelope `ok:false`, `error.code=AUTH_REQUIRED`, message `Authentication is required for the CETECH POS bridge.`
 - This is **not** the 2026-09-12 404 “plugin absent” observation. The route exists.
 
-Still not authorized:
+**Correction (later same day):** CP04-W1 and CP04-W4 were **not** unfinished first-time work. Historical PASS 2026-09-13 on `ws3/cp-04-r2-runtime-gates` (`af7e2a2…`, `67ea42c…` / `edf24af…`) was accepted in merged PR #43 / `R2-CP04-W4-CONSUMED.md`. 2026-09-12 MailPoet/`cetechbpa.com` UNSAFE is historical **before** the W1 apply.
 
-- CP-04 write-safety / cutover remains OPEN (`LIVE-ENVIRONMENT-FACTS.md`, `docs/runbooks/CP-04-REMAINING-WORK.md`, issue #4)
-- training isolation vs production writes **NOT PROVEN**
-- MailPoet active / `admin_email` domain previously classified **UNSAFE** for write tests (CP04-W1 not closed)
-- no repository record authorizing a controlled staging order/stock/tender write
-- credentials, if present, are not treated as authorization
+2026-09-15 SSH/WP-CLI freshness (no writes): W1 CURRENT_PASS; W4 identity/health CURRENT_PASS; training plugin still `0.2.7-br02` so BR-07 sale routes are DRIFTED; isolation vs production still NOT PROVEN; **no** order/stock/tender-write grant found. See `R6-CP04-CHRONOLOGY.md`.
 
 No staging Woo order, stock mutation, cash tender, or customer communication was performed.
 
@@ -81,4 +77,4 @@ Final ADR-012 FRESH_2 + independent review for R6 acceptance is **not** started.
 
 ## Unblock
 
-Close CP04-W1 (mail/notification containment) and CP04-W2 (write boundary / isolation) with operator evidence, then record explicit authorization for one synthetic training cash-sale rehearsal. Only then may CORE-06 execute the isolated staging vertical.
+Do not redo W1/W4 from scratch. Re-check containment immediately before execution. Obtain explicit authorization for BR-07 plugin install (if routes remain absent) plus one synthetic training cash-sale rehearsal. W2 map still says order/stock/payment writes are NO.
