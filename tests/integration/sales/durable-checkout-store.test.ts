@@ -201,7 +201,13 @@ describe("R6-REM-01 durable checkout store", () => {
     });
     await first.saveSale({ ...prepared, status: "completed", assignedPaymentId: PAYMENT_ID, commercialConfirmed: true });
     expect(await first.saveReceipt(receipt())).toBe("ok");
-    expect(await first.claimIdempotency("org_a", "sale.prepare", PREPARE_KEY, HASH_A, "loc_a1")).toEqual({
+    expect(
+      await first.claimIdempotency("org_a", "sale.prepare", PREPARE_KEY, HASH_A, "loc_a1", {
+        registerId: "reg_a",
+        shiftId: SHIFT_ID,
+        transactionId: TX,
+      }),
+    ).toEqual({
       kind: "acquired",
     });
     await first.acknowledgeIdempotency("org_a", "sale.prepare", PREPARE_KEY, prepared.prepared);
@@ -225,6 +231,13 @@ describe("R6-REM-01 durable checkout store", () => {
     await expect(restarted.getReceipt(TX)).resolves.toMatchObject({ id: "receipt-r6-1" });
     await expect(restarted.listCashSales(TX)).resolves.toHaveLength(1);
     await expect(restarted.expectedCash(SHIFT_ID)).resolves.toEqual({ minor: 12900, currency: "GHS" });
+    expect(await restarted.lookupCommandScope({ transactionId: TX, operation: "sale.prepare" })).toMatchObject({
+      organizationId: "org_a",
+      locationId: "loc_a1",
+      registerId: "reg_a",
+      shiftId: SHIFT_ID,
+      transactionId: TX,
+    });
     expect(await restarted.claimIdempotency("org_a", "sale.prepare", PREPARE_KEY, HASH_A, "loc_a1")).toMatchObject({
       kind: "replay",
     });

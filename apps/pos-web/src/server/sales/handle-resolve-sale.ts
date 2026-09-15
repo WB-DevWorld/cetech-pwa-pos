@@ -65,6 +65,24 @@ export async function handleResolveSale(input: HandleResolveSaleInput): Promise<
     if (!authorized.ok) {
       return { status: httpStatusFor(authorized.error.code), body: authorized, headers: guard.headers };
     }
+  } else {
+    const binding = await input.checkoutStore.lookupCommandScope({
+      transactionId: input.transactionId,
+      operation: "sale.prepare",
+    });
+    if (binding?.registerId) {
+      const authorized = await authorizeCheckoutRead({
+        session: guard.session,
+        assignments: input.assignments,
+        correlationId: guard.correlationId,
+        organizationId: binding.organizationId,
+        locationId: binding.locationId,
+        registerId: binding.registerId,
+      });
+      if (!authorized.ok) {
+        return { status: httpStatusFor(authorized.error.code), body: authorized, headers: guard.headers };
+      }
+    }
   }
   const result = await resolveSale({
     store: input.checkoutStore,

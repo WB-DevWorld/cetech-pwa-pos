@@ -25,14 +25,24 @@ export async function confirmCash(input: {
 }): Promise<ApiResult<PaymentState>> {
   const { store, actor, request, context, now } = input;
   return store.withLock(`cash:${request.transactionId}`, async () => {
-    const saleForClaim = await store.getSale(request.transactionId);
+    const sale = await store.getSale(request.transactionId);
+    const existingPayment = sale ? await store.getPaymentForTransaction(request.transactionId) : undefined;
+    const existingMoves = sale ? await store.listCashSales(request.transactionId) : [];
+    const effectful = Boolean(existingPayment) || existingMoves.length > 0;
+    if (!effectful) {
+      const preflight = validateCashBeforeEffect({ sale, actor, request, context });
+      if (!preflight.ok) {
+        return preflight;
+      }
+    }
+
     const hash = await sha256Hex(canonicalJson(request));
     const claim = await store.claimIdempotency(
       actor.organizationId,
       "payment.cash",
       context.idempotencyKey,
       hash,
-      saleForClaim?.locationId ?? actor.locationIds[0],
+      sale?.locationId ?? actor.locationIds[0],
     );
     if (claim.kind === "conflict") {
       return apiFailure(
@@ -244,6 +254,37 @@ async function completeCash(input: {
   }
   await store.acknowledgeIdempotency(actor.organizationId, "payment.cash", context.idempotencyKey, state);
   return { ok: true, data: state, correlationId: context.correlationId };
+}
+
+function validateCashBeforeEffect(input: {
+  readonly sale: Awaited<ReturnType<CheckoutStore["getSale"]>>;
+  readonly actor: StaffActor;
+  readonly request: CashPaymentRequest;
+  readonly context: CommandContext;
+}): ApiResult<NonNullable<Awaited<ReturnType<CheckoutStore["getSale"]>>>> {
+  const { sale, actor, request, context } = input;
+  if (!sale) {
+    return apiFailure("NOT_FOUND", "prepared sale was not found", context.correlationId);
+  }
+  if (sale.organizationId !== actor.organizationId) {
+    return apiFailure("FORBIDDEN", "sale organization is out of staff scope", context.correlationId);
+  }
+  if (!actor.locationIds.includes(sale.locationId)) {
+    return apiFailure("FORBIDDEN", "sale location is out of staff scope", context.correlationId);
+  }
+  if (sale.status === "cancelled" || sale.status === "completed") {
+    return apiFailure("VALIDATION_ERROR", "sale cannot accept cash in its current state", context.correlationId);
+  }
+  if (sale.prepared.total.minor <= 0) {
+    return apiFailure("VALIDATION_ERROR", "prepared sale total must be positive for cash", context.correlationId);
+  }
+  if (request.cashReceived.currency !== sale.prepared.total.currency) {
+    return apiFailure("VALIDATION_ERROR", "cash received currency does not match the prepared sale", context.correlationId);
+  }
+  if (request.cashReceived.minor < sale.prepared.total.minor) {
+    return apiFailure("VALIDATION_ERROR", "cash received is less than the prepared sale total", context.correlationId);
+  }
+  return { ok: true, data: sale, correlationId: context.correlationId };
 }
 
 function toVerifiedPaymentState(payment: StoredPayment): PaymentState {

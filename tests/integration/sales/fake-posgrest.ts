@@ -140,12 +140,21 @@ function findConflict(table: string, tables: Record<string, Row[]>, body: Row, o
     return tables[table].find((row) => row[onConflict] === body[onConflict]);
   }
   if (table === "pos_pending_operations") {
-    return tables[table].find(
+    const idemp = tables[table].find(
       (row) =>
         row.organization_id === body.organization_id &&
         row.operation === body.operation &&
         row.idempotency_key === body.idempotency_key,
     );
+    if (idemp) {
+      return idemp;
+    }
+    if (body.operation === "sale.prepare" && body.transaction_id) {
+      return tables[table].find(
+        (row) => row.operation === "sale.prepare" && row.transaction_id === body.transaction_id,
+      );
+    }
+    return undefined;
   }
   if (table === "pos_checkout_payments") {
     return tables[table].find(

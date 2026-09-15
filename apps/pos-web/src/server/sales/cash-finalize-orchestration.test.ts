@@ -266,6 +266,82 @@ describe("CORE-05 cash + FinalizeSale orchestration", () => {
     expect(await checkoutStore.listCashSales(TX_A)).toHaveLength(1);
   });
 
+  test("insufficient cash then a corrected amount on the same key is one tender and one receipt", async () => {
+    const runtime = createCheckoutRuntime();
+    await seedRegister(runtime.store);
+    const opened = await openRegister(runtime.store);
+    await seedSale(runtime.store, {
+      transactionId: TX_A,
+      saleId: "woo-1001",
+      total: ghs(1500),
+      customer: { kind: "walkin" },
+      shiftId: opened.shift.id,
+      customerLabel: "Walk-in",
+    });
+    const short = await handleConfirmCash({
+      correlationIdHeader: CORRELATION,
+      origin: ORIGIN,
+      referer: null,
+      csrfHeader: CSRF,
+      cookieHeader: opened.cookieHeader,
+      idempotencyKeyHeader: CASH_KEY,
+      body: { transactionId: TX_A, cashReceived: ghs(500) },
+      now: NOW,
+      sessionStore: opened.sessionStore,
+      allowedOrigins: [ORIGIN],
+      checkoutStore: runtime.store,
+      assignments: cashierAssignments(),
+    });
+    expect(short.body.ok).toBe(false);
+    if (!short.body.ok) {
+      expect(short.body.error.code).toBe("VALIDATION_ERROR");
+    }
+    expect(await runtime.store.listCashSales(TX_A)).toHaveLength(0);
+    expect(await runtime.store.getPaymentForTransaction(TX_A)).toBeUndefined();
+    expect(await runtime.store.peekIdempotency("org_a", "payment.cash", CASH_KEY)).toBeUndefined();
+
+    const corrected = await handleConfirmCash({
+      correlationIdHeader: CORRELATION,
+      origin: ORIGIN,
+      referer: null,
+      csrfHeader: CSRF,
+      cookieHeader: opened.cookieHeader,
+      idempotencyKeyHeader: CASH_KEY,
+      body: { transactionId: TX_A, cashReceived: ghs(2000) },
+      now: NOW,
+      sessionStore: opened.sessionStore,
+      allowedOrigins: [ORIGIN],
+      checkoutStore: runtime.store,
+      assignments: cashierAssignments(),
+    });
+    expect(corrected.body.ok).toBe(true);
+    if (!corrected.body.ok) {
+      throw new Error("expected corrected cash");
+    }
+    const finalized = await handleFinalizeSale({
+      correlationIdHeader: CORRELATION,
+      origin: ORIGIN,
+      referer: null,
+      csrfHeader: CSRF,
+      cookieHeader: opened.cookieHeader,
+      idempotencyKeyHeader: FINALIZE_KEY,
+      body: { transactionId: TX_A, paymentId: corrected.body.data.paymentId },
+      now: NOW,
+      sessionStore: opened.sessionStore,
+      allowedOrigins: [ORIGIN],
+      checkoutStore: runtime.store,
+      assignments: cashierAssignments(),
+      salesPort: runtime.salesPort,
+    });
+    expect(finalized.body.ok).toBe(true);
+    if (finalized.body.ok) {
+      expect(finalized.body.data.status).toBe("completed");
+    }
+    expect(await runtime.store.listCashSales(TX_A)).toHaveLength(1);
+    expect(await runtime.store.getReceipt(TX_A)).toBeTruthy();
+    expect(runtime.salesPort.commercialSaleCount).toBe(1);
+  });
+
   test("amount, currency, customer, and scope mismatches are rejected without a ledger write", async () => {
     const checkoutStore = createInMemoryCheckoutStore();
     await seedRegister(checkoutStore);
@@ -945,5 +1021,78 @@ describe("CORE-05 cash + FinalizeSale orchestration", () => {
     }
     expect(runtime.salesPort.commercialSaleCount).toBe(1);
     expect(await runtime.store.peekIdempotency("org_a", "sale.finalize", FINALIZE_KEY)).toBe("acknowledged");
+  });
+
+  test("ok requires_attention from the commercial bridge does not complete a POS receipt", async () => {
+    const runtime = createCheckoutRuntime();
+    await seedRegister(runtime.store);
+    const opened = await openRegister(runtime.store);
+    await seedSale(runtime.store, {
+      transactionId: TX_A,
+      saleId: "woo-1001",
+      total: ghs(1500),
+      customer: { kind: "walkin" },
+      shiftId: opened.shift.id,
+      customerLabel: "Walk-in",
+    });
+    const cash = await handleConfirmCash({
+      correlationIdHeader: CORRELATION,
+      origin: ORIGIN,
+      referer: null,
+      csrfHeader: CSRF,
+      cookieHeader: opened.cookieHeader,
+      idempotencyKeyHeader: CASH_KEY,
+      body: { transactionId: TX_A, cashReceived: ghs(2000) },
+      now: NOW,
+      sessionStore: opened.sessionStore,
+      allowedOrigins: [ORIGIN],
+      checkoutStore: runtime.store,
+      assignments: cashierAssignments(),
+    });
+    expect(cash.body.ok).toBe(true);
+    if (!cash.body.ok) {
+      throw new Error("expected cash");
+    }
+    let confirmCalls = 0;
+    const first = await handleFinalizeSale({
+      correlationIdHeader: CORRELATION,
+      origin: ORIGIN,
+      referer: null,
+      csrfHeader: CSRF,
+      cookieHeader: opened.cookieHeader,
+      idempotencyKeyHeader: FINALIZE_KEY,
+      body: { transactionId: TX_A, paymentId: cash.body.data.paymentId },
+      now: NOW,
+      sessionStore: opened.sessionStore,
+      allowedOrigins: [ORIGIN],
+      checkoutStore: runtime.store,
+      assignments: cashierAssignments(),
+      salesPort: {
+        async confirmPayment(input, context) {
+          confirmCalls += 1;
+          return {
+            ok: true,
+            data: {
+              transactionId: input.transactionId,
+              status: "requires_attention",
+              saleId: input.payment.saleId,
+              paymentId: input.payment.paymentId,
+              message: "Woo requires attention",
+            },
+            correlationId: context.correlationId,
+          };
+        },
+      },
+    });
+    expect(first.body.ok).toBe(true);
+    if (first.body.ok) {
+      expect(first.body.data.status).toBe("requires_attention");
+    }
+    const stored = await runtime.store.getSale(TX_A);
+    expect(stored?.commercialConfirmed).toBe(false);
+    expect(stored?.status).not.toBe("completed");
+    expect(await runtime.store.getReceipt(TX_A)).toBeUndefined();
+    expect(confirmCalls).toBe(1);
+    expect(runtime.salesPort.commercialSaleCount).toBe(0);
   });
 });

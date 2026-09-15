@@ -8,6 +8,7 @@ import type {
 import type { PosRestFetch } from "../http/server-fetch";
 import type {
   CheckoutStore,
+  CommandScopeBinding,
   IdempotencyClaim,
   OutboxEvent,
   PosSaleRecord,
@@ -404,7 +405,15 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
       return rows.map(mapOutbox).filter((row): row is OutboxEvent => row !== undefined);
     },
 
-    async claimIdempotency(organizationId, operation, idempotencyKey, requestHash, locationId) {
+    async lookupCommandScope(input) {
+      const rows = await getRows(
+        `pos_pending_operations?transaction_id=eq.${encodeURIComponent(input.transactionId)}&operation=eq.${encodeURIComponent(input.operation)}&select=organization_id,location_id,register_id,shift_id,transaction_id,operation`,
+      );
+      const row = rows[0];
+      return row ? mapCommandScope(row) : undefined;
+    },
+
+    async claimIdempotency(organizationId, operation, idempotencyKey, requestHash, locationId, scope) {
       const existing = await getPending(getRows, organizationId, operation, idempotencyKey);
       if (existing) {
         return claimFromRow(existing, requestHash);
@@ -423,6 +432,9 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
           idempotency_key: idempotencyKey,
           request_hash: requestHash,
           status: "pending",
+          ...(scope?.registerId ? { register_id: scope.registerId } : {}),
+          ...(scope?.shiftId ? { shift_id: scope.shiftId } : {}),
+          ...(scope?.transactionId ? { transaction_id: scope.transactionId } : {}),
         },
       });
       if (result.status === 201 || result.status === 200) {
@@ -430,10 +442,10 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
       }
       if (result.status === 409) {
         const raced = await getPending(getRows, organizationId, operation, idempotencyKey);
-        if (!raced) {
-          throw new Error("durable checkout store lost idempotency row after conflict");
+        if (raced) {
+          return claimFromRow(raced, requestHash);
         }
-        return claimFromRow(raced, requestHash);
+        return { kind: "conflict" };
       }
       throw new Error("durable checkout store rejected idempotency claim");
     },
@@ -536,6 +548,25 @@ async function patchPending(
   if (result.status >= 400) {
     throw new Error("durable checkout store rejected idempotency update");
   }
+}
+
+function mapCommandScope(row: RestRow): CommandScopeBinding | undefined {
+  if (
+    typeof row.organization_id !== "string" ||
+    typeof row.location_id !== "string" ||
+    typeof row.transaction_id !== "string" ||
+    typeof row.operation !== "string"
+  ) {
+    return undefined;
+  }
+  return {
+    organizationId: row.organization_id,
+    locationId: row.location_id,
+    registerId: typeof row.register_id === "string" ? row.register_id : undefined,
+    shiftId: typeof row.shift_id === "string" ? row.shift_id : undefined,
+    transactionId: row.transaction_id,
+    operation: row.operation as CommandScopeBinding["operation"],
+  };
 }
 
 function claimFromRow(row: RestRow, requestHash: string): IdempotencyClaim {
