@@ -14,6 +14,7 @@ import {
   type StaffActor,
   type StoredPayment,
 } from "../../core/checkout/types";
+import { toPaymentState } from "../payments/payment-state";
 import { validateCanonicalDef } from "../quotes/canonical-schema";
 
 export async function confirmCash(input: {
@@ -123,6 +124,18 @@ async function completeCash(input: {
 
   const existing = await store.getPaymentForTransaction(request.transactionId);
   if (existing) {
+    if (existing.tender !== "cash") {
+      await store.releaseIdempotency(actor.organizationId, "payment.cash", context.idempotencyKey);
+      return apiFailure(
+        "VALIDATION_ERROR",
+        "an electronic payment intent already exists for this sale",
+        context.correlationId,
+      );
+    }
+    if (!existing.cashReceived) {
+      await store.releaseIdempotency(actor.organizationId, "payment.cash", context.idempotencyKey);
+      return apiFailure("REQUIRES_ATTENTION", "recorded cash payment is missing cash received", context.correlationId);
+    }
     if (
       existing.transactionId !== request.transactionId ||
       existing.saleId !== sale.prepared.saleId ||
@@ -158,7 +171,7 @@ async function completeCash(input: {
         assignedPaymentId: existing.paymentId,
       });
     }
-    const state = toVerifiedPaymentState(existing);
+    const state = toPaymentState(existing);
     await store.acknowledgeIdempotency(actor.organizationId, "payment.cash", context.idempotencyKey, state);
     return { ok: true, data: state, correlationId: context.correlationId };
   }
@@ -247,7 +260,7 @@ async function completeCash(input: {
     return { ok: true, data: attention, correlationId: context.correlationId };
   }
 
-  const state = toVerifiedPaymentState(payment);
+  const state = toPaymentState(payment);
   if (!validateCanonicalDef("PaymentState", state)) {
     await store.releaseIdempotency(actor.organizationId, "payment.cash", context.idempotencyKey);
     return apiFailure("INTEGRATION_UNAVAILABLE", "cash confirmation produced an invalid PaymentState", context.correlationId);
@@ -285,18 +298,6 @@ function validateCashBeforeEffect(input: {
     return apiFailure("VALIDATION_ERROR", "cash received is less than the prepared sale total", context.correlationId);
   }
   return { ok: true, data: sale, correlationId: context.correlationId };
-}
-
-function toVerifiedPaymentState(payment: StoredPayment): PaymentState {
-  return {
-    transactionId: payment.transactionId,
-    paymentId: payment.paymentId,
-    tender: "cash",
-    status: "verified",
-    amount: payment.amount,
-    verifiedAt: payment.verifiedAt,
-    nextAction: "none",
-  };
 }
 
 function attentionPayment(

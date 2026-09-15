@@ -27,6 +27,7 @@ export function createFakePosgrest(options?: {
     pos_checkout_sales: [],
     pos_checkout_payments: [],
     pos_checkout_receipts: [],
+    pos_provider_payment_events: [],
     pos_staff_location_assignments: [],
     pos_staff_register_assignments: [],
   };
@@ -158,7 +159,20 @@ function findConflict(table: string, tables: Record<string, Row[]>, body: Row, o
   }
   if (table === "pos_checkout_payments") {
     return tables[table].find(
-      (row) => row.payment_id === body.payment_id || row.transaction_id === body.transaction_id,
+      (row) =>
+        row.payment_id === body.payment_id ||
+        row.transaction_id === body.transaction_id ||
+        (Boolean(body.provider) &&
+          Boolean(body.provider_reference) &&
+          row.provider === body.provider &&
+          row.provider_reference === body.provider_reference),
+    );
+  }
+  if (table === "pos_provider_payment_events") {
+    return tables[table].find(
+      (row) =>
+        row.id === body.id ||
+        (row.provider === body.provider && row.event_fingerprint === body.event_fingerprint),
     );
   }
   if (table === "pos_checkout_receipts") {
