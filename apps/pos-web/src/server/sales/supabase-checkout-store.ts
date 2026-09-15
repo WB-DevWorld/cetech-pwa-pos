@@ -27,8 +27,21 @@ export type SupabaseCheckoutStoreOptions = {
 };
 
 const DEFAULT_TIMEOUT_MS = 8_000;
+const CONTRACT_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?Z$/;
 
 type RestRow = Record<string, unknown>;
+
+/** PostgREST timestamptz round-trips as +00:00; frozen v1 Timestamp requires Z. */
+function toContractTimestamp(value: string): string | null {
+  if (CONTRACT_TIMESTAMP.test(value)) {
+    return value;
+  }
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) {
+    return null;
+  }
+  return new Date(parsed).toISOString();
+}
 
 /**
  * Durable CheckoutStore backed by POS operational tables.
@@ -618,8 +631,8 @@ function mapShift(row: RestRow): StoredShift | undefined {
       typeof row.expected_cash_minor === "number" && typeof row.expected_cash_currency === "string"
         ? { minor: row.expected_cash_minor, currency: row.expected_cash_currency as StoredShift["openingFloat"]["currency"] }
         : undefined,
-    openedAt: row.opened_at,
-    closedAt: typeof row.closed_at === "string" ? row.closed_at : undefined,
+    openedAt: toContractTimestamp(row.opened_at) ?? row.opened_at,
+    closedAt: typeof row.closed_at === "string" ? toContractTimestamp(row.closed_at) ?? row.closed_at : undefined,
     zReportId: typeof row.z_report_id === "string" ? row.z_report_id : undefined,
   };
 }
@@ -644,7 +657,7 @@ function mapCashMovement(row: RestRow): StoredCashMovement | undefined {
     kind: row.kind as StoredCashMovement["kind"],
     signedAmount: { minor: row.signed_amount_minor, currency: row.currency as StoredCashMovement["signedAmount"]["currency"] },
     actorId: row.actor_id,
-    createdAt: row.created_at,
+    createdAt: toContractTimestamp(row.created_at) ?? row.created_at,
     transactionId: typeof row.transaction_id === "string" ? row.transaction_id : undefined,
     reason: typeof row.reason === "string" ? row.reason : undefined,
   };
@@ -665,6 +678,10 @@ function mapPayment(row: RestRow): StoredPayment | undefined {
   ) {
     return undefined;
   }
+  const verifiedAt = toContractTimestamp(row.verified_at);
+  if (!verifiedAt) {
+    return undefined;
+  }
   return {
     paymentId: row.payment_id,
     transactionId: row.transaction_id,
@@ -677,7 +694,7 @@ function mapPayment(row: RestRow): StoredPayment | undefined {
       minor: row.cash_received_minor,
       currency: row.cash_received_currency as StoredPayment["amount"]["currency"],
     },
-    verifiedAt: row.verified_at,
+    verifiedAt,
     verificationSource: "cash_ledger",
     actorId: row.actor_id,
   };
@@ -707,7 +724,7 @@ function mapOutbox(row: RestRow): OutboxEvent | undefined {
     aggregateId: row.aggregate_id,
     eventType: row.event_type,
     payload,
-    createdAt: row.created_at,
+    createdAt: toContractTimestamp(row.created_at) ?? row.created_at,
     publishedAt: typeof row.published_at === "string" ? row.published_at : undefined,
   };
 }
