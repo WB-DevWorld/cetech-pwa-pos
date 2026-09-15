@@ -1,5 +1,17 @@
 # WS1 current status
 
+Snapshot 2026-09-15. FE-06 / issue #11 HIGH outstanding-return abandonment remediated. Replacement implementation SHA `d3ddf0a7592845c710fe768b3645b9a9109693cb` supersedes prior published head `91641f4f9ab242f3026cc47dcc5a8cc78d5b9c39` / prior implementation `bb2010b260a78d3741186df48462b22f7ece3861`. An executed return in `executing` / `resolving` / `refund_pending` / `in_progress` / `requires_attention` stays bound to its `returnId`; sale lookup, sale selection, and quantity/reason/condition edits are locked in both controller and UI until authoritative `completed`. Failed `ReturnPort.resolve` with an outstanding identity stays `requires_attention`, not editable `failed`. Prior FRESH_2 that watched obsolete `batch/rt01-safe-returns` is superseded; current receiver is `origin/batch/rt01-safe-returns-ws3-integrated` `4650a0fa18c909743e9fbab4be0b6067bd1eff18` (COMPATIBLE / DO_NOT_CONSUME). PAY-01 remains **PROVISIONAL_TEST**. No live refund/restock/provider acceptance. Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION**. Reassignment NONE. Do not merge; do not modify the WS3 integration branch; do not start FE-07/R8.
+
+## Previous snapshot (historical; current section above controls)
+
+# WS1 current status
+
+Snapshot 2026-09-15. FE-06 / issue #11 payment, return, and register frontend states implemented on `ws1/fe-06-implement-payment-returns-and-register-states`. Pre-handoff implementation SHA `bb2010b260a78d3741186df48462b22f7ece3861` on contract baseline `58d385300bfba784435448029e88f07742048cde`. Feature-local controllers consume frozen v1.0.0 `PaymentPort` / `ReturnPort` / `RegisterPort` via injected fakes. Pending/reconciling payments say **Do not charge again** and do not reinitialize; historic return preview displays server refund totals and remaining quantities; damaged/quarantine/not-physically-returned never appear as automatic sellable restock; blind close accepts counted cash only. PAY-01 remains **PROVISIONAL_TEST**. BR-08 / RT-01 runtime producers and live refund/restock/provider acceptance are **not claimed**. No production effects. Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION**. Reassignment NONE. Do not merge; do not open a separate FE-06 milestone PR; do not start FE-07.
+
+## Previous snapshot (historical; current section above controls)
+
+# WS1 current status
+
 Snapshot 2026-09-14. FE-05 / issue #10 HIGH prepared-sale abandonment blocker remediated. Replacement implementation SHA `57574fe5e8b4aceaf94773aea9bc04ee801d0980` supersedes `f6607cda70176b51be0dc8b8a6e40ae0f64d9e24` / prior FRESH_2 `cd2c9c1`. Prepared `cash` / `cash_failed` cannot dismiss to an editable cart; New Sale stays blocked while a prepared transaction is outstanding; cash retry reuses the same idempotency identity; `payment_pending` resolves the existing tender instead of a second `confirmCash`. Contracts v1.0.0 unchanged. CORE-06 not started. Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION**. Reassignment NONE. Do not merge; PR #55 is the R6 review surface.
 
 ## Previous snapshot (historical; current section above controls)
