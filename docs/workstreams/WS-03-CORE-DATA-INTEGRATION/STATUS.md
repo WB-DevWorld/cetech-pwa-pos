@@ -1,46 +1,53 @@
 # WS3 current status
 
-Snapshot 2026-09-15T18:31:00Z. Contributor branch `ws3/rt-01-implement-safe-returns-runtime` for RT-01 / #27 safe-returns runtime.
+Snapshot 2026-09-15. RT-01 / #27 combined safe-returns integration on `batch/rt01-safe-returns-ws3-integrated`.
 
-## Starting truth
+## Current truth
 
 | Role | SHA / classification |
 | --- | --- |
 | Post-R6 `main` | `bd79c2901ce33c3177141d4244cc196be0a719d2` ACCEPTED / MERGED |
-| PAY-01 / R7 code-ready head | `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091` PROVISIONAL_TEST |
+| PAY-01 / R7 code-ready head | `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091` PROVISIONAL_TEST / sandbox-deferred |
 | Accepted RT-01 contract | `58d385300bfba784435448029e88f07742048cde` |
-| Neutral `batch/rt01-safe-returns` | `58d385300bfba784435448029e88f07742048cde` |
-| WS3 runtime branch | `ws3/rt-01-implement-safe-returns-runtime` (implementation in progress on this snapshot) |
-| WS2 #60 | `ws2/br-08-implement-return-refund-stock-effects` observed, not imported |
-| WS1 #11 | `ws1/fe-06-implement-payment-returns-and-register-states` observed, not imported |
+| Accepted WS3 RT-01 runtime | `4650a0fa18c909743e9fbab4be0b6067bd1eff18` |
+| Accepted BR-08 / WS2 source | `dcf9098a331f878647e067fc78b3c05778f8f668` |
+| Accepted FE-06 / WS1 source | `0ddde7c727337c4005e9878071817bbf826d41a2` |
+| Combined RT-01 receiver | `d54a916946a6dcf0dfbc636d93528ac58a77ca1b` |
 
 R7 PR #58 remains draft / sandbox-deferred / NOT MERGED. Issue #4 remains OPEN. `pricingParityVerified=false`. Production promotion is NOT AUTHORIZED.
 
-## RT-01 runtime
+## RT-01 combined integration
 
-Owner `@wbdevworld` / WS3. Mode: IMPLEMENT. ADR-015 accepted. Shared contracts frozen; `docs/contracts/**` not edited.
+ADR-015 is accepted and frozen. The three owner lanes are now combined without transferring implementation ownership:
 
-Allowed used: `apps/pos-web/src/core/**`, `apps/pos-web/src/server/**`, `supabase/**`, `tests/integration/returns/**`, this STATUS/HANDOFF, plus WS3 vitest discovery so the new suite is CI-visible.
+- WS3: return preview/orchestration/storage/reconciliation runtime.
+- WS2 / BR-08: commercial refund and physical stock-disposition Woo bridge effects.
+- WS1 / FE-06: payment-return/register-state cashier UX.
 
-Forbidden preserved: WS1 features/UI, WS2 WordPress, `apps/pos-web/src/app/api/**`, CURRENT-WORK, contract redesign.
+PR #62 imported only the accepted WS2 and WS1 owner contributions onto the already-accepted WS3 receiver. The resulting receiver commit is `d54a916946a6dcf0dfbc636d93528ac58a77ca1b`.
 
-HTTP route mounting was not required to complete WS3 core/server/storage/orchestration/tests. Remaining UI/API mounting is out of issue #27.
+## Verification
 
-No real Woo/Paystack/cash payouts. Deterministic fakes only.
+- WS3 source CI `35008724817`: Linux + Windows SUCCESS.
+- PR #62 exact combined CI `35017127991`: Linux + Windows SUCCESS.
+- Post-integration receiver CI `35017460256`: Linux + Windows SUCCESS.
+- Post-integration receiver gate includes fresh Supabase reset, pgTAP, lint, typecheck, unit tests, production build and E2E.
+- BR-08 / #60: CLOSED / COMPLETED.
+- FE-06 / #11: CLOSED / COMPLETED.
 
-## Policy gaps (fail-closed, not invented)
+## Remaining disposition
 
-- No approved numeric/threshold manager-approval rule (no GHS 500, no cashier %). Production preview sets `approvalRequired=false`. Architecture for binding/fingerprint/expiry is implemented; tests inject `requireApproval`.
-- `opened_resellable` / `defective` have no bound tenant restock policy → `no_automatic_restock` / `tenant_policy_required`.
-- Paystack refund create has no client-controlled idempotency key. Concrete adapter is fail-closed `requires_attention` and never POSTs. Fake provider proves orchestration.
+RT-01 implementation is combined and automated acceptance evidence is green. Remaining work is control-plane closure/reconciliation only; no new RT-01 feature implementation is currently justified by the accepted scope.
 
-## Local evidence (pre-push)
+Provider/runtime safety gates remain deliberately deferred and are **not** RT-01 completion claims:
 
-- `python scripts/verify_control_plane.py` PASS
-- `python -m unittest discover -s tests/tooling -v` 48 OK
-- `pnpm --dir apps/pos-web lint` ok
-- `pnpm --dir apps/pos-web typecheck` ok
-- `pnpm --dir apps/pos-web test` 63 files / 599 tests PASS
-- `pnpm --dir apps/pos-web build` ok
-- `pnpm --dir apps/pos-web exec playwright test --workers=1` 7 passed
-- Local Supabase reset/pgTAP not executed on this Windows workstation (npx supabase hung). Linux CI `control-plane` remains the pgTAP runner for `supabase/tests/pos_returns.sql` (plan 41).
+- No approved Paystack TEST sandbox credential is present for R7 milestone acceptance.
+- No real provider refund is authorized.
+- No real Woo refund/restock is authorized.
+- No production mutation/promotion is authorized.
+- `opened_resellable` / `defective` remain fail-closed without an approved tenant restock policy.
+- Concrete Paystack refund create remains fail-closed where provider idempotency/recovery cannot satisfy ADR-015.
+
+## Next boundary
+
+Do not open an R8 milestone PR while R7 PR #58 remains the active milestone review surface. R7 must complete its Paystack TEST sandbox acceptance, final freshness, independent review and authorized merge before the next protected-main milestone integration.
