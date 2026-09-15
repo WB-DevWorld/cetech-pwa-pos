@@ -1,25 +1,35 @@
-# WS3 current handoff — R6-REM-02 FRESH_2
+# WS3 current handoff — R7 activation
 
-Kind: BATCH_COMPLETION (R6-REM-02). Date: 2026-09-15 UTC.
+Kind: PROGRESS_CHECKPOINT. Date: 2026-09-15 UTC.
 
-Task: R6-REM-02 / issue #54 / draft PR #55.
+Task / batch / workstream: R7 / PAY-01 / #26 / issue #57 / WS3.
 Owner / integration editor: `@wbdevworld` / WS3.
-Requested human reviewer: ChatGPT control (do not self-request Ben/Emmanuel from this handoff).
+Requested human reviewer: ChatGPT control later. Do not self-request reviewers from this checkpoint.
 
-Branch: `batch/r6-first-real-cash-sale`
-Authority: `922720ccbc9e12c535c765c44f1dfea887b19ccc`
-Source: `edafe1e64c869528f57eb8e4bba8b317b33a46c4`
-Import: `82a85f4082f461a2709ccfece9a73e4e8872d3d3`
-Freeze candidate: `3f702f2353a3b9911dd0571e59e8cc2fbeefa535`
+Branch: `batch/r7-electronic-payment-reconciliation`
+Starting/base SHA: `bd79c2901ce33c3177141d4244cc196be0a719d2`
+Current task head SHA: activation commit on this branch (see git after commit).
 
-Allowed: R6-REM-02 paths. Forbidden: WS1 features/UI; WS2 plugin source; production; R7; merge of PR #55; second training commercial sale; requesting reviewers; marking #55 ready.
+Allowed: PAY-01 paths plus WS3 evidence/status/handoff and `CURRENT-WORK.md` on the neutral branch.
+Forbidden: WS1 features/UI; WS2 plugin source as implementation; frozen contract widening; live payments; production; R8; opening/merging an R7 PR; second training Woo sale.
 
 Contracts: v1.0.0 unchanged.
-Migration: additive `20260915120000_pos_prepare_transaction_scope.sql`.
-Remote effects: none. Woo **49439** retained.
+Database migrations: none at activation.
+Architecture decisions: none new; Paystack test mode is the initial concrete sandbox provider because no newer explicit provider decision exists.
 
-Freshness: **FRESH_2**. Pass 1 UTC 2026-09-15T11:40:08Z. Pass 2 UTC 2026-09-15T11:40:42Z. Main unchanged `bc606a6…`. Pass 3 not permitted.
+Completed: R7 activation recorded.
+Current: PAY-01 implementation authorized after this checkpoint is pushed.
+Remaining: initialize, webhook, server verification, reconciliation, electronic finalize/receipt, tests, contributor freshness, import, combined gate, sandbox classification.
 
-Next exact action for ChatGPT control: independent review of the replacement exact head after this freshness commit's CI is green. Do not mark #55 ready from this handoff.
+Dependencies: CORE-06 accepted on merged R6. CP-04 remains OPEN (`pricingParityVerified=false`); it does not block PAY-01 code. Provider sandbox evidence is a separate gate.
+
+Remote effects: none.
+Assumptions: origin/main equals the R6 merge SHA at activation fetch.
+Unresolved risks: sandbox credentials may be absent; customer action may be required for real TEST completion; live mode must fail closed.
+
+Next exact action: push this activation commit, record `R7_ACTIVATION_SHA`, create `ws3/pay-01-implement-verified-electronic-payment-and-rec` from that SHA, implement PAY-01.
 
 Production promotion: NOT AUTHORIZED.
+Live electronic payment: NOT AUTHORIZED.
+R8: NOT STARTED.
+R7: NOT MERGED.
