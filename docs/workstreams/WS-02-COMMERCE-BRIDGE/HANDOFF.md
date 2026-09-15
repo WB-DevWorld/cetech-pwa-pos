@@ -8,6 +8,7 @@ Branch: `ws2/br-08-implement-return-refund-stock-effects`
 Accepted starting SHA: `58d385300bfba784435448029e88f07742048cde`
 Observed RT-01 neutral starting SHA: `58d385300bfba784435448029e88f07742048cde`
 Implementation SHA: `6a8f30dcb50564b97d7fcc3eab8fd0a9d7317ec4`
+Evidence SHA: `4c7f0b5ef29b09e9ed5b3afd30b5a668f0f4569f`
 Allowed paths: `wordpress/cetech-pos-bridge/**`; `tests/bridge/**`; `tests/fixtures/commerce/**`; WS2 STATUS/HANDOFF/evidence
 Forbidden untouched: `apps/**`; `supabase/**`; `docs/contracts/**`; `docs/decisions/**`; `.github/**`; `reference/**`; FE-06; RT-01 orchestration; R7; main; shared `CURRENT-WORK.md`
 Contracts changed: **NONE**. Bridge DB version: **4 → 5**. ADRs: **NONE**. Supabase: **NONE**. Pricing formulas copied: **NONE**.

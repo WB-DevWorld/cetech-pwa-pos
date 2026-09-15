@@ -8,6 +8,7 @@ Kind: TASK_COMPLETION evidence (WS2). Not live Woo/HPOS write evidence. Not a re
 - Accepted starting SHA: `58d385300bfba784435448029e88f07742048cde`
 - Neutral `batch/rt01-safe-returns` starting SHA observed: `58d385300bfba784435448029e88f07742048cde`
 - Implementation SHA: `6a8f30dcb50564b97d7fcc3eab8fd0a9d7317ec4`
+- Evidence SHA: `4c7f0b5ef29b09e9ed5b3afd30b5a668f0f4569f`
 - Plugin version: `0.5.0-br08` (prior `0.4.0-br07`)
 - Frozen contracts: v1.0.0 **READ-ONLY** (no `docs/contracts/**` edits)
 - ADRs: **NONE** (ADR-015 consumed, not edited; issue #27 contract-gate acceptance of `58d3853…` supersedes stale candidate-status text)
