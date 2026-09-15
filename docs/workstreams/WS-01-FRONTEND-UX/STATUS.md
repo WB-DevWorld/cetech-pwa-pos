@@ -1,5 +1,11 @@
 # WS1 current status
 
+Snapshot 2026-09-15. FE-06 / issue #11 payment, return, and register frontend states implemented on `ws1/fe-06-implement-payment-returns-and-register-states`. Pre-handoff implementation SHA `bb2010b260a78d3741186df48462b22f7ece3861` on contract baseline `58d385300bfba784435448029e88f07742048cde`. Feature-local controllers consume frozen v1.0.0 `PaymentPort` / `ReturnPort` / `RegisterPort` via injected fakes. Pending/reconciling payments say **Do not charge again** and do not reinitialize; historic return preview displays server refund totals and remaining quantities; damaged/quarantine/not-physically-returned never appear as automatic sellable restock; blind close accepts counted cash only. PAY-01 remains **PROVISIONAL_TEST**. BR-08 / RT-01 runtime producers and live refund/restock/provider acceptance are **not claimed**. No production effects. Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION**. Reassignment NONE. Do not merge; do not open a separate FE-06 milestone PR; do not start FE-07.
+
+## Previous snapshot (historical; current section above controls)
+
+# WS1 current status
+
 Snapshot 2026-09-14. FE-05 / issue #10 HIGH prepared-sale abandonment blocker remediated. Replacement implementation SHA `57574fe5e8b4aceaf94773aea9bc04ee801d0980` supersedes `f6607cda70176b51be0dc8b8a6e40ae0f64d9e24` / prior FRESH_2 `cd2c9c1`. Prepared `cash` / `cash_failed` cannot dismiss to an editable cart; New Sale stays blocked while a prepared transaction is outstanding; cash retry reuses the same idempotency identity; `payment_pending` resolves the existing tender instead of a second `confirmCash`. Contracts v1.0.0 unchanged. CORE-06 not started. Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION**. Reassignment NONE. Do not merge; PR #55 is the R6 review surface.
 
 ## Previous snapshot (historical; current section above controls)

@@ -1,3 +1,63 @@
+# WS1 current handoff — FE-06 payment, returns, and register states (TASK_COMPLETION FRESH_2)
+
+Kind / UTC: TASK_COMPLETION / 2026-09-15T19:17:13Z
+Task / batch / workstream: FE-06 / issue #11 / WS1
+Owner / integration editor / requested human reviewer: Ben / @Ben-001-sys owns WS1; WS3 independently reviews/imports into the RT-01/M2 integration surface. Do not self-approve. Do not merge.
+Branch: `ws1/fe-06-implement-payment-returns-and-register-states`
+Starting/base SHA: `58d385300bfba784435448029e88f07742048cde`
+Pre-handoff implementation SHA: `bb2010b260a78d3741186df48462b22f7ece3861`
+Commit(s) / contributor source SHAs: `bb2010b260a78d3741186df48462b22f7ece3861`
+Allowed / forbidden paths and central leases: `apps/pos-web/src/features/**`; `apps/pos-web/src/ui/**`; `tests/frontend/**`; this workstream STATUS/HANDOFF. No `src/app`, core/server/local/config, contracts, CURRENT-WORK, R7/RT-01/BR-08 branches, or provider adapters.
+Files changed: electronic payment controller/panel; refund-identity reconciliation; return preview/execute/resolve flow; register close/variance workspace; optional electronic presentment on FE-05 checkout; FE-06 frontend tests; regenerated visual evidence CSS.
+Contracts changed: none. Frozen v1.0.0 consumed (`PaymentPort.initialize`/`resolve`/`resolveRefund`, `ReturnPort.preview`/`execute`/`resolve`, `RegisterPort.open`/`close`/`activeShift`/`report`).
+Database migrations: none
+Architecture decisions: none authored
+Completed/current/remaining tasks: FE-06 owner contribution complete. WS3 still must mount `/returns` and `/register` screens and inject runtime ports. Do not start FE-07/R8.
+Dependencies (accepted / provisional SHA / prep-only / blocked): RT-01 contract freeze accepted at `58d3853`. PAY-01 remains **PROVISIONAL_TEST** (Paystack TEST sandbox evidence deferred; R7 PR #58 DRAFT). BR-08 / RT-01 runtime producers not consumed as live acceptance.
+Tests executed:
+- `python3 scripts/verify_control_plane.py` → PASS (exit 0)
+- `pnpm --dir apps/pos-web lint` → exit 0
+- `pnpm --dir apps/pos-web typecheck` → exit 0
+- `pnpm --dir apps/pos-web test` → 64 files, 603 passed, exit 0
+- `pnpm --dir apps/pos-web test:e2e` → 7 passed, exit 0 (`next build` included)
+- `git diff --check` → clean
+Runtime verification and tested combined SHA/environment: frontend spies/fakes only. Not live Paystack, refund, restock, or register accounting acceptance. `src/app` still owned by WS3; Returns/Register screens are exported seams, not mounted by this task.
+Remote effects performed: none (no production; no real refund/restock/electronic charge). Contributor branch push only after this handoff.
+Assumptions / limitations / unresolved risks: historic sale lookup is an injected frontend seam (`HistoricSaleLookup`); manager approval is injected (`bindApproval`) and never fabricated; `PaymentPort.refund` is not called from the browser; browser/provider callbacks are not payment truth. PAY-01 is still PROVISIONAL_TEST. BR-08/RT-01 runtime acceptance is not claimed.
+Next exact action: WS3 independently reviews/imports accepted FE-06 source into the downstream RT-01/M2 integration surface. Reassignment: NONE.
+
+Freshness protocol:
+START_FRESHNESS_SNAPSHOT UTC: 2026-09-15T18:43:18Z
+Start main SHA: `bd79c2901ce33c3177141d4244cc196be0a719d2`
+Start batch refs/SHAs: `origin/batch/r7-electronic-payment-reconciliation` `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091`; `origin/batch/rt01-safe-returns` `58d385300bfba784435448029e88f07742048cde`
+Applicable contracts / ADRs / ownership / queue revision: v1.0.0; ADR-012; ADR-014; ADR-015; issue #11 ACTIVE for Ben/WS1
+
+Pass 1 fetch UTC / success evidence: 2026-09-15T19:16:59Z `git fetch origin --prune` succeeded
+Pass 1 main SHA: `bd79c2901ce33c3177141d4244cc196be0a719d2`
+Pass 1 R7 SHA: `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091`
+Pass 1 RT-01 integration SHA: `58d385300bfba784435448029e88f07742048cde`
+Relevant upstream paths and dependency/authority effects: none
+Classification per change: no arrivals since start snapshot — IRRELEVANT
+Actions taken / reconciliation commits: none
+Tests rerun / tested combined SHA: existing suite on `bb2010b260a78d3741186df48462b22f7ece3861`
+
+Pass 2 fetch UTC / success evidence: 2026-09-15T19:17:13Z `git fetch origin --prune` succeeded
+Pass 2 main SHA: `bd79c2901ce33c3177141d4244cc196be0a719d2`
+Pass 2 R7 SHA: `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091`
+Pass 2 RT-01 integration SHA: `58d385300bfba784435448029e88f07742048cde`
+Relevant upstream paths and dependency/authority effects: none since Pass 1
+Classification per change: no arrivals — IRRELEVANT
+Actions taken / reconciliation commits: none
+Tests rerun / tested combined SHA: `bb2010b260a78d3741186df48462b22f7ece3861`
+
+Final freshness status: FRESH_2
+Delivery status: READY_FOR_INTEGRATION
+Pass 3: NOT PERMITTED for this assignment.
+Review/merge/release status and limitations: not merged; R7 remains DRAFT/sandbox-pending; RT-01 runtime producers still being implemented; no production promotion.
+Metrics delta for CURRENT-WORK: not edited (forbidden this assignment).
+
+## Previous current handoff — FE-05 prepared-sale lock remediation (TASK_COMPLETION FRESH_2)
+
 # WS1 current handoff — FE-05 prepared-sale lock remediation (TASK_COMPLETION FRESH_2)
 
 Kind / UTC: TASK_COMPLETION / 2026-09-14T19:30:17Z
