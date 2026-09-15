@@ -65,7 +65,7 @@ DECLARE
   report_row pos_shift_reports%ROWTYPE;
   existing_claim pos_pending_operations%ROWTYPE;
   report_id pos_id;
-  outcome jsonb;
+  v_outcome jsonb;
 BEGIN
   IF p_counted_cash_minor < 0 OR p_counted_cash_minor > 9007199254740991 THEN
     RAISE EXCEPTION 'invalid counted cash' USING ERRCODE = '23514';
@@ -114,7 +114,7 @@ BEGIN
       RAISE EXCEPTION 'closed shift cannot be recounted' USING ERRCODE = '23505';
     END IF;
 
-    outcome := jsonb_build_object('shift', to_jsonb(sh), 'report', to_jsonb(report_row));
+    v_outcome := jsonb_build_object('shift', to_jsonb(sh), 'report', to_jsonb(report_row));
 
     IF existing_claim.id IS NULL THEN
       INSERT INTO pos_pending_operations (
@@ -124,15 +124,15 @@ BEGIN
       ) VALUES (
         sh.organization_id, sh.location_id, sh.register_id, sh.id,
         'shift.close', p_idempotency_key, p_request_hash, 'acknowledged', 1,
-        now(), now(), outcome
+        now(), now(), v_outcome
       );
     ELSE
-      UPDATE pos_pending_operations
-      SET status = 'acknowledged', attempts = GREATEST(attempts, 1),
-          last_attempt_at = now(), outcome = outcome
-      WHERE id = existing_claim.id;
+      UPDATE pos_pending_operations AS ppo
+      SET status = 'acknowledged', attempts = GREATEST(ppo.attempts, 1),
+          last_attempt_at = now(), outcome = v_outcome
+      WHERE ppo.id = existing_claim.id;
     END IF;
-    RETURN outcome;
+    RETURN v_outcome;
   END IF;
 
   IF sh.status NOT IN ('open', 'closing') THEN
@@ -152,9 +152,9 @@ BEGIN
   ELSIF existing_claim.status = 'acknowledged' AND existing_claim.outcome IS NOT NULL THEN
     RETURN existing_claim.outcome;
   ELSE
-    UPDATE pos_pending_operations
-    SET status = 'sent', attempts = attempts + 1, last_attempt_at = now()
-    WHERE id = existing_claim.id;
+    UPDATE pos_pending_operations AS ppo
+    SET status = 'sent', attempts = ppo.attempts + 1, last_attempt_at = now()
+    WHERE ppo.id = existing_claim.id;
   END IF;
 
   UPDATE pos_shifts
@@ -184,13 +184,13 @@ BEGIN
     RAISE EXCEPTION 'Z report does not match closed shift' USING ERRCODE = '55000';
   END IF;
 
-  outcome := jsonb_build_object('shift', to_jsonb(sh), 'report', to_jsonb(report_row));
+  v_outcome := jsonb_build_object('shift', to_jsonb(sh), 'report', to_jsonb(report_row));
 
-  UPDATE pos_pending_operations
-  SET status = 'acknowledged', outcome = outcome, last_attempt_at = now()
-  WHERE organization_id = sh.organization_id
-    AND operation = 'shift.close'
-    AND idempotency_key = p_idempotency_key;
+  UPDATE pos_pending_operations AS ppo
+  SET status = 'acknowledged', outcome = v_outcome, last_attempt_at = now()
+  WHERE ppo.organization_id = sh.organization_id
+    AND ppo.operation = 'shift.close'
+    AND ppo.idempotency_key = p_idempotency_key;
 
   INSERT INTO pos_outbox_events (
     organization_id, location_id, aggregate_type, aggregate_id,
@@ -202,7 +202,7 @@ BEGIN
     p_correlation_id
   );
 
-  RETURN outcome;
+  RETURN v_outcome;
 END;
 $$;
 
