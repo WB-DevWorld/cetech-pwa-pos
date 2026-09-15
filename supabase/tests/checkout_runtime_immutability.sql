@@ -3,12 +3,21 @@ BEGIN;
 
 SELECT plan(4);
 
-SELECT pos_checkout_open_shift(
-  '00000000-0000-4000-8000-000000000750'::uuid,
-  'org_a', 'loc_a1', 'reg_a',
-  '00000000-0000-4000-8000-0000000000a1'::uuid,
-  'cashier_a', 10000, 'GHS', now()
-);
+DO $$
+DECLARE
+  result text;
+BEGIN
+  SELECT pos_checkout_open_shift(
+    '00000000-0000-4000-8000-000000000750'::uuid,
+    'org_a', 'loc_a1', 'reg_a',
+    '00000000-0000-4000-8000-0000000000a1'::uuid,
+    'cashier_a', 10000, 'GHS', now()
+  ) INTO result;
+  IF result <> 'ok' THEN
+    RAISE EXCEPTION 'durable checkout setup shift failed: %', result;
+  END IF;
+END;
+$$;
 
 INSERT INTO pos_checkout_sales (
   transaction_id, organization_id, location_id, register_id, shift_id, device_id,
