@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="CETECH POS">
+  <rect width="512" height="512" rx="96" fill="#111827"/>
+  <rect x="96" y="104" width="320" height="304" rx="40" fill="#ffffff"/>
+  <path d="M144 168h224v48H144zm0 88h136v48H144zm0 88h224v48H144z" fill="#111827"/>
+  <circle cx="344" cy="280" r="40" fill="#111827"/>
+</svg>
