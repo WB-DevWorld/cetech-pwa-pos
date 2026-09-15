@@ -7,7 +7,7 @@ Updated 2026-09-15. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical sche
 - `main`: `bc606a690f0c167b7057e3ae9143337404275882` — R5 PR #53 merge; protected.
 - ADR-012 and ADR-014 are active; ownership-preserving milestone execution remains required.
 - Issue #4 remains **OPEN**. `pricingParityVerified=false`. Production promotion is not authorized.
-- Neutral R6 reviewed head: `f6f57cc39b77dd576734a5b8fb5f89be3027c44c`. PR #55 is **draft** with REQUEST_CHANGES.
+- Neutral R6 reviewed head was `f6f57cc39b77dd576734a5b8fb5f89be3027c44c`. R6-REM-02 imported onto `batch/r6-first-real-cash-sale`. PR #55 remains **draft**. Do not merge.
 
 ## Temporary R6-REM-02 lease (ADR-014) — not retroactive to R6-REM-01
 
@@ -18,14 +18,21 @@ Ben and Emmanuel REQUEST_CHANGES on `f6f57cc…`. This lease does **not** rewrit
 | Task | `R6-REM-02 — final review security/correctness remediation` |
 | Original owner | `@wbdevworld` / WS3 |
 | Remediation owner | `@wbdevworld` / WS3 (same human/workstream; scope expansion, not a transfer) |
-| Evidence | `docs/integration/evidence/R6-REM-02-AUTHORITY.md` |
+| Evidence | `docs/integration/evidence/R6-REM-02-AUTHORITY.md`, `R6-REM-02-SOURCE.md`, `R6-REM-02-IMPORT.md` |
 | Expiry | when R6-REM-02 is imported/tested and the replacement candidate frozen, **or** PR #55 closed/merged, whichever first |
+
+| Role | SHA |
+| --- | --- |
+| Reviewed head | `f6f57cc39b77dd576734a5b8fb5f89be3027c44c` |
+| Authority checkpoint | `922720ccbc9e12c535c765c44f1dfea887b19ccc` |
+| Remediation source | `edafe1e64c869528f57eb8e4bba8b317b33a46c4` |
+| Imported (cherry-pick -x) | `82a85f4082f461a2709ccfece9a73e4e8872d3d3` |
 
 Authorized paths (use only when necessary): `CURRENT-WORK.md`; `apps/pos-web/src/core/checkout/**`; `apps/pos-web/src/server/auth/**`; `apps/pos-web/src/server/sales/**`; `apps/pos-web/src/server/http/**`; `apps/pos-web/src/app/api/**`; `apps/pos-web/src/config/**`; `supabase/migrations/**`; `supabase/tests/**`; `tests/integration/**`; `tests/contracts/**`; `tests/e2e/**`; `tests/tooling/**`; `docs/integration/evidence/**`; WS3 `STATUS.md`/`HANDOFF.md`.
 
 Forbidden: WS1 `apps/pos-web/src/features/**` and `src/ui/**`. WS2 plugin/tests as source. Frozen v1 contracts unless an unavoidable blocker follows the contract process. No second training sale.
 
-After this checkpoint: WS3 remediation branch `ws3/r6-rem-02-final-review-security` from the published authority SHA. Then tested source → import onto `batch/r6-first-real-cash-sale`.
+After this checkpoint: WS3 remediation branch `ws3/r6-rem-02-final-review-security` was created from the published authority SHA. Tested source `edafe1e…` was imported onto `batch/r6-first-real-cash-sale` as `82a85f4…`. Replacement FRESH_2 remains required on the frozen candidate.
 
 ## Temporary R6-REM-01 lease (ADR-014) — not retroactive
 
@@ -62,8 +69,13 @@ After this checkpoint: WS3 remediation branch `ws3/r6-rem-01-durable-runtime` fr
 - Production / Paystack / MoMo / card / returns / R7 remain unauthorized. Do not merge PR #55 from this lease.
 
 ```text
-CODE / CONTRACT / AUTOMATED COMBINED GATE: PASS (historical on f6f57cc…; replacement required)
+CODE / CONTRACT / AUTOMATED COMBINED GATE: PASS (R6-REM-02 imported; replacement FRESH_2 pending)
 DURABLE POS RUNTIME GATE: PASS
 ISOLATED STAGING REAL-SALE GATE: PASS (order 49439 retained; no second sale)
-R6 FINAL REVIEW REMEDIATION: IN_PROGRESS (R6-REM-02)
+R6 FINAL REVIEW REMEDIATION: IMPORTED / COMBINED GATE PASS (R6-REM-02)
+BEN BLOCKER: RESOLVED (durable prepare-scope binding)
+EMMANUEL BLOCKER 1: RESOLVED (completed-only commercial confirmation)
+EMMANUEL BLOCKER 2: RESOLVED (pre-effect cash validation)
+FE-05 SOURCE: UNCHANGED
+BR-07 SOURCE: UNCHANGED
 ```
