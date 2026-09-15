@@ -138,12 +138,13 @@ SELECT throws_ok(
   'same close key with different economic input conflicts'
 );
 
+RESET ROLE;
 SELECT throws_ok(
   $$ UPDATE pos_shift_reports SET expected_cash_minor = 1
      WHERE shift_id = current_setting('pos_test.close_shift')::uuid AND kind = 'Z' $$,
   '55000',
   'shift reports are immutable',
-  'Z report cannot be rewritten after close'
+  'owner-level write attempts still hit the immutability trigger'
 );
 
 SELECT * FROM finish();
