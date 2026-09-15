@@ -1,23 +1,13 @@
 # WS3 current status
 
-Snapshot 2026-09-15. R5 is **APPROVED / MERGED / POST-MERGE VERIFIED** through PR #53. Merge/main SHA: `bc606a690f0c167b7057e3ae9143337404275882`.
+Snapshot 2026-09-15. R5 remains APPROVED / MERGED. `main` `bc606a690f0c167b7057e3ae9143337404275882`.
 
 ## R6
 
-R6 is **BLOCKED_RUNTIME_EVIDENCE** on issue #54 and draft PR #55 / `batch/r6-first-real-cash-sale`. Tested combined implementation SHA: `e64b0fa94bddb40ccf2e13b3ffb289a995b49c92`.
+Draft PR #55 / `batch/r6-first-real-cash-sale`. Combined implementation SHA `e64b0fa…`. Scheduler head this authority is recorded against: `eac32cdff60f0f6ed80bb0908f9091543c859ead`.
 
-- FE-05 / #10 and BR-07 / #19: **ACCEPTED / IMPORTED / VERIFIED**.
-- CORE-06 / #25: imported; automated combined gate PASS. Isolated staging Woo real-sale **BLOCKED**.
-- Staging preflight: **READY_FOR_OPERATOR_AUTHORIZATION**. Write authorization: **NOT GRANTED**.
+Ben COMMENTED on `eac32cd…` (not approval): CORE-06 path-scope breach; missing durable runtime.
 
-```text
-CODE / CONTRACT / AUTOMATED COMBINED GATE: PASS
-ISOLATED STAGING REAL-SALE GATE: BLOCKED
-R6 FINAL ACCEPTANCE: BLOCKED_RUNTIME_EVIDENCE
-```
+**R6-REM-01** temporary ADR-014 lease is active for `@wbdevworld` / WS3. Not retroactive. Evidence: `docs/integration/evidence/R6-REM-01-AUTHORITY.md`.
 
-CP04-W1/W4 are **not** unfinished first-time work. Historical PASS (PR #43 / `ws3/cp-04-r2-runtime-gates`). 2026-09-15 freshness: W1 CURRENT_PASS; W4 identity/health CURRENT_PASS; training plugin still `0.2.7-br02` so BR-07 routes are DRIFTED. W2 map still forbids order/stock/payment writes.
-
-Frozen v1.0.0 contracts remain authoritative. Issue #4 remains OPEN. `pricingParityVerified=false`. No production promotion. PR #55 remains draft. R7 is not started.
-
-Next exact action: operator authorization for BR-07 plugin install (if still quote-only) plus one synthetic cash sale of SKU `49111` qty 1 per `docs/runbooks/R6-STAGING-CASH-SALE-REHEARSAL.md`. Do not merge PR #55.
+Next: publish this checkpoint, then implement durable `StaffAssignmentDirectory` + `CheckoutStore` on `ws3/r6-rem-01-durable-runtime`. Do not merge PR #55. Do not start R7.
