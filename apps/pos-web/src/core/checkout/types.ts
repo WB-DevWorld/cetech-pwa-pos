@@ -141,6 +141,7 @@ export interface CheckoutStore {
     operation: PendingOperation["operation"],
     idempotencyKey: Uuid,
     requestHash: string,
+    locationId?: Id,
   ): Promise<IdempotencyClaim>;
   markIdempotencySent(organizationId: Id, operation: PendingOperation["operation"], idempotencyKey: Uuid): Promise<void>;
   acknowledgeIdempotency(
@@ -162,6 +163,13 @@ export interface CheckoutStore {
     operation: PendingOperation["operation"],
     idempotencyKey: Uuid,
   ): Promise<PendingOperation["status"] | undefined>;
+}
+
+/**
+ * Test-only persistence faults. Durable adapters must not carry process-local
+ * fault switches as business semantics.
+ */
+export interface FaultInjectingCheckoutStore extends CheckoutStore {
   failNextReceiptWrite: boolean;
   failNextPaymentWrite: boolean;
   failNextSaleWrite: boolean;

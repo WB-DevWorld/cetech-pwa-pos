@@ -1,6 +1,6 @@
 import type { Id, PendingOperation, Quote, ReceiptSnapshot, Uuid } from "../../../../../docs/contracts/domain.generated";
 import type {
-  CheckoutStore,
+  FaultInjectingCheckoutStore,
   OutboxEvent,
   PosSaleRecord,
   StoredCashMovement,
@@ -23,7 +23,7 @@ function idempKey(organizationId: Id, operation: PendingOperation["operation"], 
   return `${organizationId}\0${operation}\0${key}`;
 }
 
-export function createInMemoryCheckoutStore(): CheckoutStore {
+export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
   const registers = new Map<Id, StoredRegister>();
   const devices = new Map<Uuid, StoredDevice>();
   const shifts = new Map<Uuid, StoredShift>();
@@ -38,7 +38,7 @@ export function createInMemoryCheckoutStore(): CheckoutStore {
   const idempotency = new Map<string, IdempotencyRow>();
   const chains = new Map<string, Promise<void>>();
 
-  const store: CheckoutStore = {
+  const store: FaultInjectingCheckoutStore = {
     failNextReceiptWrite: false,
     failNextPaymentWrite: false,
     failNextSaleWrite: false,

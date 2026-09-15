@@ -15,8 +15,15 @@ export async function openShift(input: {
 }): Promise<ApiResult<Shift>> {
   const { store, actor, request, context, now } = input;
   return store.withLock(`shift:${request.registerId}`, async () => {
+    const registerForClaim = await store.getRegister(request.registerId);
     const hash = await sha256Hex(canonicalJson(request));
-    const claim = await store.claimIdempotency(actor.organizationId, "shift.open", context.idempotencyKey, hash);
+    const claim = await store.claimIdempotency(
+      actor.organizationId,
+      "shift.open",
+      context.idempotencyKey,
+      hash,
+      registerForClaim?.locationId ?? actor.locationIds[0],
+    );
     if (claim.kind === "conflict") {
       return apiFailure(
         "IDEMPOTENCY_CONFLICT",

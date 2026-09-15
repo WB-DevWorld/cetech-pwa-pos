@@ -29,8 +29,15 @@ export async function finalizeSale(input: {
 }): Promise<ApiResult<SaleResolution>> {
   const { store, salesPort, actor, request, context, now } = input;
   return store.withLock(`finalize:${request.transactionId}`, async () => {
+    const saleForClaim = await store.getSale(request.transactionId);
     const hash = await sha256Hex(canonicalJson(request));
-    const claim = await store.claimIdempotency(actor.organizationId, "sale.finalize", context.idempotencyKey, hash);
+    const claim = await store.claimIdempotency(
+      actor.organizationId,
+      "sale.finalize",
+      context.idempotencyKey,
+      hash,
+      saleForClaim?.locationId ?? actor.locationIds[0],
+    );
     if (claim.kind === "conflict") {
       return apiFailure(
         "IDEMPOTENCY_CONFLICT",

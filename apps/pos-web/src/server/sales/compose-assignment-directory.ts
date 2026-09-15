@@ -1,4 +1,7 @@
+import { readSupabaseInfrastructureEnv } from "../../config/env";
 import { createMemoryAssignmentDirectory, type StaffAssignmentDirectory } from "../auth/assignments";
+import { createSupabaseStaffAssignmentDirectory } from "../auth/supabase-assignment-directory";
+import type { PosRestFetch } from "../http/server-fetch";
 
 let processDirectory: StaffAssignmentDirectory | undefined;
 
@@ -12,13 +15,37 @@ export function assertEphemeralAssignmentDirectoryAllowed(
 }
 
 /**
- * Local/dev fail-closed assignment directory until a durable CORE-02 adapter exists.
- * Tests inject `createMemoryAssignmentDirectory`. Staging/production must not select this.
+ * Staging/production require the durable assignment directory. Local may use
+ * empty process memory when infrastructure is intentionally absent. Configured
+ * local Supabase infrastructure prefers the durable adapter.
  */
 export function composeStaffAssignmentDirectory(
   env: Readonly<Record<string, string | undefined>> = process.env,
+  fetchImpl?: PosRestFetch,
 ): StaffAssignmentDirectory {
+  const appEnv = env.APP_ENV ?? "local";
+  const infrastructure = readSupabaseInfrastructureEnv(env);
+  if (appEnv === "production" || appEnv === "staging") {
+    if (!infrastructure || !fetchImpl) {
+      throw new Error("durable staff assignment directory is required for staging/production");
+    }
+    return createSupabaseStaffAssignmentDirectory({
+      url: infrastructure.url,
+      serviceRoleKey: infrastructure.serviceRoleKey,
+      fetchImpl,
+    });
+  }
+  if (infrastructure && fetchImpl) {
+    return createSupabaseStaffAssignmentDirectory({
+      url: infrastructure.url,
+      serviceRoleKey: infrastructure.serviceRoleKey,
+      fetchImpl,
+    });
+  }
   assertEphemeralAssignmentDirectoryAllowed(env);
-  processDirectory ??= createMemoryAssignmentDirectory([]);
-  return processDirectory;
+  if (env === process.env) {
+    processDirectory ??= createMemoryAssignmentDirectory([]);
+    return processDirectory;
+  }
+  return createMemoryAssignmentDirectory([]);
 }
