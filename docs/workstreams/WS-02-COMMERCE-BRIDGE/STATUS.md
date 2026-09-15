@@ -1,5 +1,21 @@
 # WS2 current status
 
+Snapshot 2026-09-15. Issue #60 BR-08 independent commercial refund + stock-disposition producer. Owner and actual implementer: Developer 2 / @Emmanuel-coder-prog / WS2. Current task **BR-08 / issue #60** on `ws2/br-08-implement-return-refund-stock-effects`. Accepted start `58d385300bfba784435448029e88f07742048cde`. Implementation SHA `6a8f30dcb50564b97d7fcc3eab8fd0a9d7317ec4`. Plugin **0.5.0-br08**. DB **4 → 5** (`cetech_pos_return_effect_claims`, `cetech_pos_return_effect_lines`). Contracts NONE. ADRs NONE. Supabase NONE. FE-06 NOT TOUCHED. RT-01 orchestration NOT STARTED by WS2. R7 NOT MODIFIED. Neutral `batch/rt01-safe-returns` NOT MODIFIED. `pricingParityVerified` remains **false**. Issue #4 OPEN. Live Woo refund/restock PENDING. Real DB concurrency PENDING.
+
+Canonical GNU Make: ephemeral `php:8.5-cli` (PHP **8.5.10**, GNU Make **4.4.1**). `check` PASS (47 files); `test` **1525 passed / 0 failed**; `parity` **138 passed / 0 failed / 19 skipped**. Host: `python scripts/verify_control_plane.py` PASS; derive `--check` PASS; `git diff --check` clean.
+
+Routes: `POST/GET /returns/commercial-refund`, `POST/GET /returns/stock-disposition`. Commercial Woo: `wc_create_refund(refund_payment=false, restock_items=false)`. Stock: `wc_update_product_stock(..., 'increase')` or durable no-auto-restock with cap consumption. GET remains observational.
+
+| Task | State | Branch / evidence |
+| --- | --- | --- |
+| BR-08 | IMPLEMENTED / awaiting WS3 independent review/import | Issue #60. Start `58d3853`. Implementation `6a8f30d`. Evidence `docs/workstreams/WS-02-COMMERCE-BRIDGE/evidence/BR-08-RETURN-EFFECTS.md`. |
+| BR-07 | Historical on this contributor line; not reopened | Issue #19. |
+| BR-06 | INTEGRATED on main via R5 PR #53 | Historical. |
+
+## Previous snapshot (BR-07 uncertain-money cancel safety — historical; current section above controls)
+
+# WS2 current status
+
 Snapshot 2026-09-14. Issue #19 uncertain-money cancel safety remediation. Owner and actual implementer: Developer 2 / @Emmanuel-coder-prog / WS2. Current task **BR-07 / issue #19** on `ws2/br-07-implement-verified-commercial-finalization-an`. Prior published head `e15fbe09af261ecf6647ac8c6e778b42c08d96f3`. Remediation SHA `af9fab2f19e496481d3dd627a64419f880282cd6`. Durable `PENDING`/`IN_PROGRESS` finalize claims now block cancel with `PAYMENT_PENDING` before reservation release. DB version remains **4**. Contracts NONE. ADRs NONE. Supabase NONE. FE-05 NOT TOUCHED. CORE-06 NOT STARTED. Neutral R6 branch not modified. `pricingParityVerified` remains **false**. Issue #4 OPEN. Live HPOS PENDING. Real DB concurrency PENDING.
 
 Canonical GNU Make: ephemeral `php:8.5-cli` (PHP **8.5.10**, GNU Make **4.4.1**). `check` PASS (42 files); `test` **1297 passed / 0 failed**; `parity` **138 passed / 0 failed / 19 skipped**. Host: `python scripts/verify_control_plane.py` PASS; derive `--check` PASS; `git diff --check` clean.
