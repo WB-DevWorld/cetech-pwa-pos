@@ -5,78 +5,64 @@ Updated 2026-09-15. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical sche
 ## Current authority
 
 - `main`: `bd79c2901ce33c3177141d4244cc196be0a719d2` — R6 PR #55 merge; protected.
-- ADR-012 and ADR-014 are active; ownership-preserving milestone execution remains required.
+- ADR-012, ADR-014 and accepted ADR-015 are active; ownership-preserving milestone execution remains required.
 - Issue #4 remains **OPEN**. `pricingParityVerified=false`. Production promotion is not authorized.
-- Live electronic payment is not authorized. R8 is not started. R7 is not merged.
+- Live electronic payment is not authorized. Live refund/restock is not authorized.
+- R7 is not merged. R8 milestone review is not started.
 
-## R6 closure
+## R7 — electronic payment and reconciliation — PROVISIONAL_TEST / SANDBOX DEFERRED
 
-R6 PR #55 was squash-merged to `main` as `bd79c2901ce33c3177141d4244cc196be0a719d2`. Post-merge CI run `34966689340`: `control-plane` SUCCESS; `control-plane-windows` SUCCESS.
-
-Closed as completed:
-
-- CORE-06 / #25
-- R6-00 / #54
-- CORE-HARDEN-07 / #56
-
-Issue #4 remains OPEN. Woo order `49439` is historical R6 training evidence. R6-REM-01 and R6-REM-02 leases expired when PR #55 merged. No second training commercial sale is authorized.
-
-## Active assignment — R7 electronic payment and reconciliation
-
-- Integration issue: **#57** — `[R7-00] Integrate verified electronic payment and reconciliation`.
-- Implementation task: **PAY-01 / #26** — `[PAY-01] Implement verified electronic payment and reconciliation`.
+- Integration issue: **#57**.
+- Implementation task: **PAY-01 / #26**.
 - Neutral branch: `batch/r7-electronic-payment-reconciliation`.
-- Owner / integration editor: `@wbdevworld` / WS3.
-- Milestone PR: **#58 draft**. Do not mark ready. Do not request reviewers, approve, or merge.
-- FE-06 / returns / refunds / R8: **not authorized**.
-
-```text
-human: @wbdevworld
-workstream: WS3
-mode: INTEGRATE
-task: PAY-01 / #26
-```
-
-PAY-01 source is imported onto the neutral branch. Control-plane review remediation (positive `sk_test_` requirement) is imported.
-
-| Role | SHA |
-| --- | --- |
-| R7_ACTIVATION_SHA | `0c34694882e69282b9e3df66104197394c55294e` |
-| PAY01_SOURCE_SHA (implementation) | `f79544e7fd815917cbc2d7688d6a8e67f485f998` |
-| PAY01_SOURCE_SHA (FRESH_2) | `3352b7267984fd9125fdaa46196f176e6bf54e4a` |
-| PAY01_IMPORT_SHA (implementation) | `15542c555ab65b7151bc115d377d9478dca1f3cd` |
-| PAY01_IMPORT_SHA (FRESH_2) | `b049ff5446184be7a69fccef82daf5f588c6a6e9` |
-| Prior combined head | `dd6c91c27035e0387938d819f880b71b515b338e` |
-| REMEDIATION_SOURCE_SHA | `ac3340cf63eec771b194dd2c0d2eb54b2bf1b457` |
-| REMEDIATION_IMPORT_SHA | `cc5666fd3b31fa45f7da0a9045002ad3c5c72741` |
-
-Allowed PAY-01 paths: `apps/pos-web/src/server/**`; `apps/pos-web/src/core/**`; `apps/pos-web/src/app/api/**`; `supabase/**`; `tests/integration/payments/**`. Bounded WS3 evidence/status/handoff and this ledger may be updated on the neutral branch for scheduler/activation/integration truth.
-
-Forbidden: WS1 `apps/pos-web/src/features/**` and `src/ui/**`; WS2 plugin/tests as implementation work; frozen v1.0.0 contract widening unless a genuine unavoidable blocker is recorded; live Paystack/MoMo/card; production; refunds; a second training Woo sale; opening/merging the R7 PR.
-
-### Provider boundary
-
-Repository truth has no newer explicit provider decision. Initial concrete sandbox provider is **Paystack test mode**. Canonical POS payment state remains provider-neutral. Provider-specific concepts stay behind an adapter. Fail closed if configuration appears live (`R7_BLOCKED_LIVE_PROVIDER_CONFIGURATION`).
-
-Authorized only if TEST credentials already exist through an approved local/staging secret mechanism. Do not retrieve, print, rotate, or commit secrets. Do not perform live electronic payments. Do not create another training Woo order.
-
-### R7 safety limits
-
-- Server verification binds amount, currency, and order.
-- Duplicate / out-of-order callbacks are safe.
-- Pending does not re-charge.
-- Reconciliation recovers unknown outcomes without a second initialize.
-- Browser success is not payment truth.
-- Cash R6 invariants remain mandatory.
-- Production promotion: NOT AUTHORIZED.
-- Live electronic payment: NOT AUTHORIZED.
-- R8: NOT STARTED.
-- R7: NOT MERGED.
-
-### Sandbox gate
+- Milestone PR: **#58 draft**.
+- Exact code-ready head: `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091`.
+- Automated code/contract gate is green.
+- Sandbox milestone gate remains blocked because no approved Paystack TEST secret (`sk_test_...`) is present through the authorized server/local secret mechanism.
+- Do not mark #58 ready, request final review, merge, run live electronic payment, or promote production until the sandbox gate is completed.
 
 ```text
 PAYMENT PROVIDER SANDBOX GATE: BLOCKED_SANDBOX_CREDENTIALS
 ```
 
-No approved local TEST secret was present. Automated PAY-01 proof uses the fake provider. This is not milestone acceptance.
+## RT-01 safe returns preparation — COMBINED INTEGRATION ACCEPTED
+
+The senior/user explicitly authorized continuing safe-return preparation while R7's provider sandbox gate is deferred. This is preparation/provisional work only; it does not imply R7 acceptance or start an R8 milestone review.
+
+Accepted contract:
+- ADR-015 / return-refund contract exact head `58d385300bfba784435448029e88f07742048cde`.
+- Required cross-owner contract reviews: Ben / WS1 APPROVED; Emmanuel / WS2 APPROVED.
+
+Accepted owner implementations:
+- WS3 RT-01 runtime source `4650a0fa18c909743e9fbab4be0b6067bd1eff18` — accepted for neutral integration after exact-head Linux + Windows CI.
+- BR-08 / #60 WS2 source `dcf9098a331f878647e067fc78b3c05778f8f668` — completed and integrated.
+- FE-06 / #11 WS1 source `0ddde7c727337c4005e9878071817bbf826d41a2` — completed and integrated; remediation source includes `d3ddf0a7592845c710fe768b3645b9a9109693cb`.
+
+Combined receiver:
+- branch: `batch/rt01-safe-returns-ws3-integrated`
+- receiver before owner imports: `4650a0fa18c909743e9fbab4be0b6067bd1eff18`
+- BR-08 import: `79d9270a418ec958ffd716b7a20a8d1c213b5e8d`
+- FE-06 import: `bc521c598b834930d2fd6b56c8225b2b08a3ec2a`
+- exact integrated receiver: `d54a916946a6dcf0dfbc636d93528ac58a77ca1b`
+- PR #62 combined CI `35017127991`: Linux + Windows SUCCESS.
+- post-integration receiver CI `35017460256`: Linux + Windows SUCCESS, including Supabase reset, pgTAP, lint, typecheck, unit tests, production build and E2E.
+
+Owner task disposition:
+- BR-08 / #60: **CLOSED / COMPLETED**.
+- FE-06 / #11: **CLOSED / COMPLETED**.
+- RT-01 / #27: combined implementation is integrated and automated acceptance evidence is green; final control-plane closure/reconciliation is the remaining repository action.
+
+## RT-01 safety boundaries retained
+
+- No real Woo refund or real stock disposition is authorized.
+- No live Paystack/provider refund is authorized.
+- No production mutation or promotion is authorized.
+- Historic sale economics remain authoritative for returns/refunds; do not reprice from current catalog state.
+- Tender refund, Woo commercial refund accounting and physical stock disposition remain independent effects with independent durable identities/idempotency and resolve paths.
+- Damaged, quarantine and not-physically-returned goods must not auto-restock sellable stock.
+- `opened_resellable` / `defective` remain fail-closed without an approved tenant restock policy.
+- Concrete Paystack refund create remains fail-closed where the provider cannot satisfy the accepted durable idempotency/recovery contract.
+
+## Next milestone boundary
+
+Do not open or merge an R8 milestone PR while R7 PR #58 remains the active milestone review surface. Work that can proceed safely against accepted contracts/mocks may continue only within explicit ownership/path authority. The next merge to protected `main` remains R7 after its provider sandbox acceptance, final freshness, independent review and authorized merge.
