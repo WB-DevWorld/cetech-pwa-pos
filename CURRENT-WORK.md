@@ -33,9 +33,19 @@ Issue #4 remains OPEN. Woo order `49439` is historical R6 training evidence. R6-
 ```text
 human: @wbdevworld
 workstream: WS3
-mode: IMPLEMENT then INTEGRATE
+mode: INTEGRATE
 task: PAY-01 / #26
 ```
+
+PAY-01 source is imported onto the neutral branch.
+
+| Role | SHA |
+| --- | --- |
+| R7_ACTIVATION_SHA | `0c34694882e69282b9e3df66104197394c55294e` |
+| PAY01_SOURCE_SHA (implementation) | `f79544e7fd815917cbc2d7688d6a8e67f485f998` |
+| PAY01_SOURCE_SHA (FRESH_2) | `3352b7267984fd9125fdaa46196f176e6bf54e4a` |
+| PAY01_IMPORT_SHA (implementation) | `15542c555ab65b7151bc115d377d9478dca1f3cd` |
+| PAY01_IMPORT_SHA (FRESH_2) | `b049ff5446184be7a69fccef82daf5f588c6a6e9` |
 
 Allowed PAY-01 paths: `apps/pos-web/src/server/**`; `apps/pos-web/src/core/**`; `apps/pos-web/src/app/api/**`; `supabase/**`; `tests/integration/payments/**`. Bounded WS3 evidence/status/handoff and this ledger may be updated on the neutral branch for scheduler/activation/integration truth.
 
@@ -59,3 +69,11 @@ Authorized only if TEST credentials already exist through an approved local/stag
 - Live electronic payment: NOT AUTHORIZED.
 - R8: NOT STARTED.
 - R7: NOT MERGED.
+
+### Sandbox gate
+
+```text
+PAYMENT PROVIDER SANDBOX GATE: BLOCKED_SANDBOX_CREDENTIALS
+```
+
+No approved local TEST secret was present. Automated PAY-01 proof uses the fake provider. This is not milestone acceptance.
