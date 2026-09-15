@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { ElectronicPaymentPanel } from "../../payments/ElectronicPaymentPanel";
+import type { ElectronicPaymentSessionView, ElectronicTenderView } from "../../payments/electronicPaymentView";
 import {
   checkoutDismissAllowed,
   describeCheckoutStage,
@@ -22,6 +24,14 @@ export function CheckoutDialog({
   onPrint,
   onNewSale,
   onDismiss,
+  electronicSession,
+  electronicInFlight = false,
+  electronicTender = "mobile_money",
+  onElectronicTenderChange,
+  onPresentElectronic,
+  onResolveElectronic,
+  onContinueWaitingElectronic,
+  onContactManager,
 }: {
   session: CheckoutSessionView;
   inFlight: boolean;
@@ -33,15 +43,26 @@ export function CheckoutDialog({
   onPrint: () => void;
   onNewSale: () => void;
   onDismiss: () => void;
+  electronicSession?: ElectronicPaymentSessionView;
+  electronicInFlight?: boolean;
+  electronicTender?: ElectronicTenderView;
+  onElectronicTenderChange?: (tender: ElectronicTenderView) => void;
+  onPresentElectronic?: () => void;
+  onResolveElectronic?: () => void;
+  onContinueWaitingElectronic?: () => void;
+  onContactManager?: () => void;
 }) {
   const [cashReceived, setCashReceived] = useState("");
   const copy = describeCheckoutStage(session.stage);
   const dismissable = checkoutDismissAllowed(session) && !inFlight;
   const showReceipt = Boolean(session.receipt) && (session.stage === "receipt_ready" || session.stage === "printing" || session.stage === "print_failed");
+  const electronicBusy = Boolean(electronicSession?.doNotChargeAgain || (electronicSession && electronicSession.status !== "idle" && electronicSession.status !== "failed" && electronicSession.status !== "cancelled"));
+  const showCashForm = (session.stage === "cash" || session.stage === "cash_failed") && !electronicBusy;
+  const busy = inFlight || electronicInFlight;
 
   function handleCashSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (inFlight || (session.stage !== "cash" && session.stage !== "cash_failed")) {
+    if (busy || electronicBusy || (session.stage !== "cash" && session.stage !== "cash_failed")) {
       return;
     }
     onConfirmCash(cashReceived);
@@ -67,7 +88,7 @@ export function CheckoutDialog({
         <p className="muted" role="status" aria-live="polite">
           {session.message || copy.status}
         </p>
-        {session.stage === "cash" || session.stage === "cash_failed" ? (
+        {showCashForm ? (
           <form className="stack" onSubmit={handleCashSubmit}>
             {session.prepared ? (
               <div className="big-money" data-checkout-due="prepared">
@@ -115,6 +136,18 @@ export function CheckoutDialog({
               </button>
             </div>
           </form>
+        ) : null}
+        {electronicSession && onPresentElectronic && (session.stage === "cash" || session.stage === "cash_failed" || electronicBusy) ? (
+          <ElectronicPaymentPanel
+            session={electronicSession}
+            inFlight={busy}
+            selectedTender={electronicTender}
+            onSelectedTenderChange={(tender) => onElectronicTenderChange?.(tender)}
+            onPresent={onPresentElectronic}
+            onResolve={() => onResolveElectronic?.()}
+            onContinueWaiting={() => onContinueWaitingElectronic?.()}
+            onContactManager={() => onContactManager?.()}
+          />
         ) : null}
         {session.stage === "preparing" || session.stage === "resolving_sale" || session.stage === "confirming_cash" || session.stage === "resolving_payment" || session.stage === "finalizing" || session.stage === "complete" ? (
           <div className={`payment-stage ${session.stage === "finalizing" ? "finalizing" : ""}`} data-checkout-progress={session.stage}>

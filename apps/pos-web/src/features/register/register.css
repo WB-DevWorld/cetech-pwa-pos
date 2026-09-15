@@ -1,7 +1,14 @@
-.register-open {
+.register-open,
+.register-close {
   max-width: 580px;
 }
 
-.register-open .page-head {
+.register-open .page-head,
+.register-screen .page-head {
   display: block;
+}
+
+.register-screen {
+  display: grid;
+  gap: 16px;
 }

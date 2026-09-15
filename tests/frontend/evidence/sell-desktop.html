@@ -607,12 +607,19 @@ button:disabled {
   margin-top: 16px;
 }
 
-.register-open {
+.register-open,
+.register-close {
   max-width: 580px;
 }
 
-.register-open .page-head {
+.register-open .page-head,
+.register-screen .page-head {
   display: block;
+}
+
+.register-screen {
+  display: grid;
+  gap: 16px;
 }
 
 .sell-workspace {
@@ -1072,6 +1079,21 @@ button:disabled {
   .product-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.electronic-payment,
+.refund-reconciliation {
+  display: grid;
+  gap: 12px;
+}
+
+.payment-do-not-charge {
+  font-weight: 600;
+}
+
+.electronic-payment .banner.warning,
+.refund-reconciliation .banner.warning {
+  border-color: var(--color-warning);
 }
 </style>
 </head>

@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CartDraftStore, CatalogPort, CheckoutUseCases, CustomerPort, PaymentPort, PricingPort, PrintPort, ReceiptPort, SalesPort } from "../../../../../../docs/contracts/ports";
 import { SellScreen } from "../SellScreen";
+import { useElectronicPayment } from "../../payments/useElectronicPayment";
+import type { ElectronicTenderView } from "../../payments/electronicPaymentView";
 import type { CatalogAvailability, CustomerSearchResultView, SellProductView, SellWorkspaceState } from "../state/sellView";
 import { lookupBarcodeViews, lookupVariations, searchCatalogViews } from "./catalogLookup";
 import { customerViewFromSummary, workspaceToCartDraft } from "./mapCartDraft";
@@ -25,7 +27,7 @@ export type SellSessionPorts = {
   readonly pricing?: PricingPort;
   readonly shiftOpen?: boolean;
   readonly checkout?: CheckoutUseCases;
-  readonly payments?: Pick<PaymentPort, "confirmCash" | "resolve">;
+  readonly payments?: Pick<PaymentPort, "confirmCash" | "resolve"> & Partial<Pick<PaymentPort, "initialize">>;
   readonly sales?: Pick<SalesPort, "resolve">;
   readonly receipts?: ReceiptPort;
   readonly printer?: PrintPort;
@@ -108,6 +110,31 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
     ports.sales,
   ]);
   const cashCheckout = useCashCheckout(checkoutPorts);
+  const electronicPorts = useMemo(() => {
+    if (!ports.payments?.initialize || !ports.payments.resolve) {
+      return undefined;
+    }
+    return {
+      payments: {
+        initialize: ports.payments.initialize,
+        resolve: ports.payments.resolve,
+      },
+      createUuid: ports.createCheckoutUuid,
+    };
+  }, [ports.createCheckoutUuid, ports.payments]);
+  const electronic = useElectronicPayment(electronicPorts);
+  const [electronicTender, setElectronicTender] = useState<ElectronicTenderView>("mobile_money");
+  const cashCheckoutRef = useRef(cashCheckout);
+
+  useEffect(() => {
+    cashCheckoutRef.current = cashCheckout;
+  }, [cashCheckout]);
+
+  useEffect(() => {
+    if (electronic.session.status === "verified") {
+      void cashCheckoutRef.current.resolvePayment();
+    }
+  }, [electronic.session.paymentId, electronic.session.status]);
 
   useEffect(() => {
     nowRef.current = now;
@@ -255,8 +282,35 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
         onPrintReceipt={() => {
           void cashCheckout.printReceipt();
         }}
-        onCheckoutNewSale={cashCheckout.resetForNewSale}
+        onCheckoutNewSale={() => {
+          cashCheckout.resetForNewSale();
+          electronic.reset();
+        }}
         onDismissCheckout={cashCheckout.dismiss}
+        electronicSession={electronic.ready ? electronic.session : undefined}
+        electronicInFlight={electronic.inFlight}
+        electronicTender={electronicTender}
+        onElectronicTenderChange={setElectronicTender}
+        onPresentElectronic={
+          electronic.ready
+            ? () => {
+                const transactionId = cashCheckout.session.transactionId;
+                if (!transactionId) {
+                  return;
+                }
+                void electronic.present({ transactionId, tender: electronicTender });
+              }
+            : undefined
+        }
+        onResolveElectronic={() => {
+          void electronic.resolve();
+        }}
+        onContinueWaitingElectronic={() => {
+          void electronic.resolve();
+        }}
+        onContactManager={() => {
+          void electronic.resolve();
+        }}
       />
     </div>
   );
