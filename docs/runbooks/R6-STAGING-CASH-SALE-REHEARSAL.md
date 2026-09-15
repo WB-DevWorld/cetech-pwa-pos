@@ -1,8 +1,8 @@
-# R6 isolated staging cash-sale rehearsal (plan only)
+# R6 isolated staging cash-sale rehearsal
 
-Status: **NOT EXECUTED.** This runbook describes the smallest controlled synthetic cash sale that can close CORE-06 / issue #25 isolated-staging evidence. It is not authorization.
+Status: **EXECUTED 2026-09-15** on training. Evidence: `docs/integration/evidence/R6-TRAINING-REAL-SALE.md`. Production remains unauthorized.
 
-Host: `https://training.cetechbpa.com` only. Production is out of scope. Combined code tree: `e64b0fa94bddb40ccf2e13b3ffb289a995b49c92` on `batch/r6-first-real-cash-sale` (scheduler/docs commits after that SHA do not change implementation).
+Host: `https://training.cetechbpa.com` only. Combined implementation after timestamp repair: `c6a9318222f11c8b7a150c8bb558749fcf845f76` on `batch/r6-first-real-cash-sale` (later docs-only commits do not change implementation).
 
 Freshness snapshot: `docs/integration/evidence/R6-CP04-CHRONOLOGY.md` (2026-09-15). W1 containment and W4 identity/health are `CURRENT_PASS`. Training plugin is still **`0.2.7-br02`** with only `/health` and `/quotes` — BR-07 sale routes are **DRIFTED**.
 
@@ -99,7 +99,7 @@ Re-verify, without sending a new synthetic email unless separately authorized:
 | MailPoet | inactive 5.37.0 |
 | W1 MU | PRESENT |
 | mail queue | empty |
-| Plugin version / routes | `0.2.7-br02` / health+quotes only — must become `0.4.0-br07` with prepare/finalize before execution |
+| Plugin version / routes | Installed **`0.4.0-br07`** with prepare/finalize. Rollback tarball retained. |
 | POS transaction / sale / receipt / Woo order ids | capture at execution |
 
 Pass only if deltas match the expected commercial effect and containment holds.

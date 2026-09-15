@@ -46,9 +46,11 @@ Adapter: `apps/pos-web/src/server/sales/supabase-checkout-store.ts`
 - Opening-float append is idempotent when the shift trigger already wrote the ledger row
 - Test-fault helpers are not on this adapter
 
-Process-restart proof: `tests/integration/sales/durable-checkout-store.test.ts` writes with one adapter instance, constructs a second instance against the same backend, and recovers quote, prepared/completed sale, payment, receipt, cash, and idempotency without a second cash effect.
+Process-restart proof: `tests/integration/sales/durable-checkout-store.test.ts` writes with one adapter instance, constructs a second instance against the same backend, and recovers quote, prepared/completed sale, payment, receipt, cash, and idempotency without a second cash effect. The same test now also proves PostgREST `timestamptz` `+00:00` is normalized to contract `Z` before payment evidence is reused.
 
-pgTAP: `supabase/tests/durable_checkout.sql` (17). Combined local suite 105 PASS after fresh reset (was 88).
+Follow-up source SHA: `b95f4df06064af167770c6e36bb2c049412f7692`. Imported: `c6a9318222f11c8b7a150c8bb558749fcf845f76`.
+
+Training sale evidence: `docs/integration/evidence/R6-TRAINING-REAL-SALE.md`.
 
 ## Composition
 
@@ -56,7 +58,8 @@ BFF routes pass `createServerRestFetch()` into session, assignment, and checkout
 
 ## Limits
 
-Remediation source SHA: `29f2da19311c8f7d9442aaa2ee0ab9f3b46ac254` on `ws3/r6-rem-01-durable-runtime`.
-Imported SHA / tested combined SHA: `3b30b29d3859539662be7896d3782667cc841732` on `batch/r6-first-real-cash-sale`.
+Original durable-runtime source SHA: `29f2da19311c8f7d9442aaa2ee0ab9f3b46ac254`.
+Timestamp-normalization source SHA: `b95f4df06064af167770c6e36bb2c049412f7692` on `ws3/r6-rem-01-durable-runtime`.
+Imported onto `batch/r6-first-real-cash-sale` as `3b30b29…` then `c6a9318…`.
 
-BR-07 training deploy and the isolated staging sale are not claimed here.
+Training sale evidence is in `docs/integration/evidence/R6-TRAINING-REAL-SALE.md`. Production promotion is not authorized.
