@@ -52,9 +52,9 @@ export async function authorizeCheckoutMutation(input: {
   readonly locationId: string;
   readonly registerId: string;
   readonly permission: Extract<
-    StaffPermission,
-    "shift.open" | "payment.cash" | "sale.finalize" | "sale.prepare" | "payment.resolve"
-  >;
+      StaffPermission,
+      "shift.open" | "payment.cash" | "payment.initialize" | "sale.finalize" | "sale.prepare" | "payment.resolve"
+    >;
   readonly protection: MutationProtectionInput;
 }): Promise<ApiResult<AuthorizedStaffContext>> {
   return authorizeStaffMutation(

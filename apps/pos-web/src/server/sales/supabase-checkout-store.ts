@@ -16,6 +16,7 @@ import type {
   StoredCashMovement,
   StoredDevice,
   StoredPayment,
+  StoredProviderEvent,
   StoredRegister,
   StoredShift,
 } from "../../core/checkout/types";
@@ -29,6 +30,8 @@ export type SupabaseCheckoutStoreOptions = {
 
 const DEFAULT_TIMEOUT_MS = 8_000;
 const CONTRACT_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?Z$/;
+const PAYMENT_SELECT =
+  "payment_id,transaction_id,sale_id,evidence_id,tender,status,amount_minor,amount_currency,cash_received_minor,cash_received_currency,verified_at,verification_source,actor_id,provider,provider_reference,provider_transaction_id,display_reference,access_code,initialize_status,last_verified_at,attention_reason";
 
 type RestRow = Record<string, unknown>;
 
@@ -295,14 +298,21 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
 
     async getPayment(paymentId) {
       const row = await getOne(
-        `pos_checkout_payments?payment_id=eq.${encodeURIComponent(paymentId)}&select=payment_id,transaction_id,sale_id,evidence_id,tender,status,amount_minor,amount_currency,cash_received_minor,cash_received_currency,verified_at,verification_source,actor_id`,
+        `pos_checkout_payments?payment_id=eq.${encodeURIComponent(paymentId)}&select=${PAYMENT_SELECT}`,
       );
       return row ? mapPayment(row) : undefined;
     },
 
     async getPaymentForTransaction(transactionId) {
       const row = await getOne(
-        `pos_checkout_payments?transaction_id=eq.${encodeURIComponent(transactionId)}&select=payment_id,transaction_id,sale_id,evidence_id,tender,status,amount_minor,amount_currency,cash_received_minor,cash_received_currency,verified_at,verification_source,actor_id`,
+        `pos_checkout_payments?transaction_id=eq.${encodeURIComponent(transactionId)}&select=${PAYMENT_SELECT}`,
+      );
+      return row ? mapPayment(row) : undefined;
+    },
+
+    async getPaymentByProviderReference(provider, reference) {
+      const row = await getOne(
+        `pos_checkout_payments?provider=eq.${encodeURIComponent(provider)}&provider_reference=eq.${encodeURIComponent(reference)}&select=${PAYMENT_SELECT}`,
       );
       return row ? mapPayment(row) : undefined;
     },
@@ -319,28 +329,74 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
           location_id: sale?.locationId ?? "",
           transaction_id: payment.transactionId,
           sale_id: payment.saleId,
-          evidence_id: payment.evidenceId,
+          evidence_id: payment.evidenceId ?? null,
           tender: payment.tender,
           status: payment.status,
           amount_minor: payment.amount.minor,
           amount_currency: payment.amount.currency,
-          cash_received_minor: payment.cashReceived.minor,
-          cash_received_currency: payment.cashReceived.currency,
-          verified_at: payment.verifiedAt,
-          verification_source: payment.verificationSource,
+          cash_received_minor: payment.cashReceived?.minor ?? null,
+          cash_received_currency: payment.cashReceived?.currency ?? null,
+          verified_at: payment.verifiedAt ?? null,
+          verification_source: payment.verificationSource ?? null,
           actor_id: payment.actorId,
+          provider: payment.provider ?? null,
+          provider_reference: payment.providerReference ?? null,
+          provider_transaction_id: payment.providerTransactionId ?? null,
+          display_reference: payment.displayReference ?? null,
+          access_code: payment.accessCode ?? null,
+          initialize_status: payment.initializeStatus ?? null,
+          last_verified_at: payment.lastVerifiedAt ?? null,
+          attention_reason: payment.attentionReason ?? null,
         },
       });
       if (result.status === 201 || result.status === 200) {
         return;
       }
       if (result.status === 409) {
-        const existing = await this.getPaymentForTransaction(payment.transactionId);
+        const existing = await this.getPayment(payment.paymentId);
         if (existing && existing.paymentId === payment.paymentId) {
           return;
         }
       }
       throw new Error("durable checkout store rejected payment");
+    },
+
+    async saveProviderEvent(event) {
+      const result = await request({
+        path: "pos_provider_payment_events",
+        method: "POST",
+        prefer: "return=minimal",
+        body: {
+          id: event.id,
+          organization_id: event.organizationId ?? null,
+          location_id: event.locationId ?? null,
+          provider: event.provider,
+          provider_reference: event.providerReference ?? null,
+          provider_transaction_id: event.providerTransactionId ?? null,
+          event_type: event.eventType,
+          event_fingerprint: event.eventFingerprint,
+          raw_body_hash: event.rawBodyHash,
+          received_at: event.receivedAt,
+          processing_status: event.processingStatus,
+          normalized_status: event.normalizedStatus ?? null,
+          payment_id: event.paymentId ?? null,
+          transaction_id: event.transactionId ?? null,
+        },
+      });
+      if (result.status === 201) {
+        return "inserted";
+      }
+      if (result.status === 200 || result.status === 409) {
+        return "duplicate";
+      }
+      throw new Error("durable checkout store rejected provider event");
+    },
+
+    async getProviderEvent(provider, fingerprint) {
+      const row = await getOne(
+        `pos_provider_payment_events?provider=eq.${encodeURIComponent(provider)}&event_fingerprint=eq.${encodeURIComponent(fingerprint)}&select=id,organization_id,location_id,provider,provider_reference,provider_transaction_id,event_type,event_fingerprint,raw_body_hash,received_at,processing_status,normalized_status,payment_id,transaction_id`,
+      );
+      return row ? mapProviderEvent(row) : undefined;
     },
 
     async getReceipt(transactionId) {
@@ -694,40 +750,124 @@ function mapCashMovement(row: RestRow): StoredCashMovement | undefined {
   };
 }
 
+function asPaymentTender(value: unknown): StoredPayment["tender"] | undefined {
+  if (value === "cash" || value === "mobile_money" || value === "card" || value === "external_electronic") {
+    return value;
+  }
+  return undefined;
+}
+
+function asPaymentStatus(value: unknown): StoredPayment["status"] | undefined {
+  if (
+    value === "initializing" ||
+    value === "awaiting_customer" ||
+    value === "pending" ||
+    value === "cancelled" ||
+    value === "failed" ||
+    value === "reconciling" ||
+    value === "requires_attention" ||
+    value === "verified"
+  ) {
+    return value;
+  }
+  return undefined;
+}
+
+function asVerificationSource(value: unknown): StoredPayment["verificationSource"] | undefined {
+  if (
+    value === "cash_ledger" ||
+    value === "provider_server_verification" ||
+    value === "approved_external_attestation"
+  ) {
+    return value;
+  }
+  return undefined;
+}
+
+function asInitializeStatus(value: unknown): StoredPayment["initializeStatus"] | undefined {
+  if (value === "pending_remote" || value === "initialized" || value === "lost_response") {
+    return value;
+  }
+  return undefined;
+}
+
 function mapPayment(row: RestRow): StoredPayment | undefined {
+  const tender = asPaymentTender(row.tender);
+  const status = asPaymentStatus(row.status);
   if (
     typeof row.payment_id !== "string" ||
     typeof row.transaction_id !== "string" ||
     typeof row.sale_id !== "string" ||
-    typeof row.evidence_id !== "string" ||
     typeof row.amount_minor !== "number" ||
     typeof row.amount_currency !== "string" ||
-    typeof row.cash_received_minor !== "number" ||
-    typeof row.cash_received_currency !== "string" ||
-    typeof row.verified_at !== "string" ||
-    typeof row.actor_id !== "string"
+    typeof row.actor_id !== "string" ||
+    !tender ||
+    !status
   ) {
     return undefined;
   }
-  const verifiedAt = toContractTimestamp(row.verified_at);
-  if (!verifiedAt) {
-    return undefined;
-  }
+  const verifiedAt = typeof row.verified_at === "string" ? toContractTimestamp(row.verified_at) : undefined;
+  const lastVerifiedAt =
+    typeof row.last_verified_at === "string" ? toContractTimestamp(row.last_verified_at) : undefined;
   return {
     paymentId: row.payment_id,
     transactionId: row.transaction_id,
     saleId: row.sale_id,
-    evidenceId: row.evidence_id,
-    tender: "cash",
-    status: "verified",
+    evidenceId: typeof row.evidence_id === "string" ? row.evidence_id : undefined,
+    tender,
+    status,
     amount: { minor: row.amount_minor, currency: row.amount_currency as StoredPayment["amount"]["currency"] },
-    cashReceived: {
-      minor: row.cash_received_minor,
-      currency: row.cash_received_currency as StoredPayment["amount"]["currency"],
-    },
-    verifiedAt,
-    verificationSource: "cash_ledger",
+    cashReceived:
+      typeof row.cash_received_minor === "number" && typeof row.cash_received_currency === "string"
+        ? {
+            minor: row.cash_received_minor,
+            currency: row.cash_received_currency as StoredPayment["amount"]["currency"],
+          }
+        : undefined,
+    verifiedAt: verifiedAt ?? undefined,
+    verificationSource: asVerificationSource(row.verification_source),
     actorId: row.actor_id,
+    provider: typeof row.provider === "string" ? row.provider : undefined,
+    providerReference: typeof row.provider_reference === "string" ? row.provider_reference : undefined,
+    providerTransactionId: typeof row.provider_transaction_id === "string" ? row.provider_transaction_id : undefined,
+    displayReference: typeof row.display_reference === "string" ? row.display_reference : undefined,
+    accessCode: typeof row.access_code === "string" ? row.access_code : undefined,
+    initializeStatus: asInitializeStatus(row.initialize_status),
+    lastVerifiedAt: lastVerifiedAt ?? undefined,
+    attentionReason: typeof row.attention_reason === "string" ? row.attention_reason : undefined,
+  };
+}
+
+function mapProviderEvent(row: RestRow): StoredProviderEvent | undefined {
+  if (
+    typeof row.id !== "string" ||
+    typeof row.provider !== "string" ||
+    typeof row.event_type !== "string" ||
+    typeof row.event_fingerprint !== "string" ||
+    typeof row.raw_body_hash !== "string" ||
+    typeof row.received_at !== "string" ||
+    (row.processing_status !== "ingested" &&
+      row.processing_status !== "processed" &&
+      row.processing_status !== "ignored" &&
+      row.processing_status !== "requires_attention")
+  ) {
+    return undefined;
+  }
+  return {
+    id: row.id,
+    organizationId: typeof row.organization_id === "string" ? row.organization_id : undefined,
+    locationId: typeof row.location_id === "string" ? row.location_id : undefined,
+    provider: row.provider,
+    providerReference: typeof row.provider_reference === "string" ? row.provider_reference : undefined,
+    providerTransactionId: typeof row.provider_transaction_id === "string" ? row.provider_transaction_id : undefined,
+    eventType: row.event_type,
+    eventFingerprint: row.event_fingerprint,
+    rawBodyHash: row.raw_body_hash,
+    receivedAt: toContractTimestamp(row.received_at) ?? row.received_at,
+    processingStatus: row.processing_status,
+    normalizedStatus: typeof row.normalized_status === "string" ? row.normalized_status : undefined,
+    paymentId: typeof row.payment_id === "string" ? row.payment_id : undefined,
+    transactionId: typeof row.transaction_id === "string" ? row.transaction_id : undefined,
   };
 }
 

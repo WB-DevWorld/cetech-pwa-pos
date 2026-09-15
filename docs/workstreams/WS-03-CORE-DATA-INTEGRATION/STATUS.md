@@ -1,21 +1,21 @@
 # WS3 current status
 
-Snapshot 2026-09-15. R5 remains APPROVED / MERGED. `main` `bc606a690f0c167b7057e3ae9143337404275882`.
+Snapshot 2026-09-15. R6 is APPROVED / MERGED. `main` `bd79c2901ce33c3177141d4244cc196be0a719d2`. Post-merge CI `34966689340` SUCCESS.
 
 ## R6
 
-Draft PR #55 / `batch/r6-first-real-cash-sale`. Do not merge. Do not start R7. Production promotion is not authorized. Issue #4 remains OPEN.
+PR #55 merged. CORE-06 / #25, R6-00 / #54, and CORE-HARDEN-07 / #56 are closed completed. Woo `49439` retained as historical evidence. No second training sale. Production promotion is not authorized. Issue #4 remains OPEN.
 
-R6-REM-02 imported. Combined automated gate PASS. Exact-head CI PASS on freeze candidate `3f702f2353a3b9911dd0571e59e8cc2fbeefa535`. Replacement **FRESH_2** recorded in `docs/integration/evidence/R6-REM-02-FRESHNESS.md`. Historical `FRESH_2` on `f6f57cc…` remains valid only for the pre-remediation reviewed head.
+## R7
+
+Active. Integration issue **#57**. Implementation **PAY-01 / #26**. Neutral branch `batch/r7-electronic-payment-reconciliation`. Owner `@wbdevworld` / WS3. Mode: INTEGRATE. PR **#58** is draft; do not mark ready.
+
+Control-plane review remediation imported: Paystack is ready only for `PAYSTACK_MODE=test` plus `sk_test_…`. Sandbox gate remains a separate credential check.
 
 | Role | SHA |
 | --- | --- |
-| Reviewed head | `f6f57cc39b77dd576734a5b8fb5f89be3027c44c` |
-| Authority | `922720ccbc9e12c535c765c44f1dfea887b19ccc` |
-| Source | `edafe1e64c869528f57eb8e4bba8b317b33a46c4` |
-| Import | `82a85f4082f461a2709ccfece9a73e4e8872d3d3` |
-| Freeze candidate (pre-freshness docs) | `3f702f2353a3b9911dd0571e59e8cc2fbeefa535` |
-
-Ben blocker resolved. Emmanuel blockers 1 and 2 resolved. No FE-05 source change. No BR-07 source change. No second staging sale. Woo `49439` retained.
-
-The freshness evidence commit produces a later exact head that must have its own green required workflows.
+| Post-R6 `main` | `bd79c2901ce33c3177141d4244cc196be0a719d2` |
+| R7_ACTIVATION_SHA | `0c34694882e69282b9e3df66104197394c55294e` |
+| Prior combined head | `dd6c91c27035e0387938d819f880b71b515b338e` |
+| REMEDIATION_SOURCE_SHA | `ac3340cf63eec771b194dd2c0d2eb54b2bf1b457` |
+| REMEDIATION_IMPORT_SHA | `cc5666fd3b31fa45f7da0a9045002ad3c5c72741` |

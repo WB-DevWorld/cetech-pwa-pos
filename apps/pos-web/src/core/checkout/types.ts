@@ -3,6 +3,7 @@ import type {
   CustomerContext,
   Id,
   Money,
+  PaymentTender,
   PendingOperation,
   PreparedSale,
   ReceiptLine,
@@ -39,18 +40,58 @@ export type StoredCashMovement = CashMovement & {
   readonly organizationId: Id;
 };
 
+export type StoredPaymentStatus =
+  | "initializing"
+  | "awaiting_customer"
+  | "pending"
+  | "cancelled"
+  | "failed"
+  | "reconciling"
+  | "requires_attention"
+  | "verified";
+
+export type PaymentVerificationSource =
+  | "cash_ledger"
+  | "provider_server_verification"
+  | "approved_external_attestation";
+
 export type StoredPayment = {
   readonly paymentId: Uuid;
   readonly transactionId: Uuid;
   readonly saleId: Id;
-  readonly evidenceId: Uuid;
-  readonly tender: "cash";
-  readonly status: "verified";
+  readonly evidenceId?: Uuid;
+  readonly tender: PaymentTender;
+  readonly status: StoredPaymentStatus;
   readonly amount: Money;
-  readonly cashReceived: Money;
-  readonly verifiedAt: Timestamp;
-  readonly verificationSource: "cash_ledger";
+  readonly cashReceived?: Money;
+  readonly verifiedAt?: Timestamp;
+  readonly verificationSource?: PaymentVerificationSource;
   readonly actorId: Id;
+  readonly provider?: string;
+  readonly providerReference?: string;
+  readonly providerTransactionId?: string;
+  readonly displayReference?: string;
+  readonly accessCode?: string;
+  readonly initializeStatus?: "pending_remote" | "initialized" | "lost_response";
+  readonly lastVerifiedAt?: Timestamp;
+  readonly attentionReason?: string;
+};
+
+export type StoredProviderEvent = {
+  readonly id: Uuid;
+  readonly organizationId?: Id;
+  readonly locationId?: Id;
+  readonly provider: string;
+  readonly providerReference?: string;
+  readonly providerTransactionId?: string;
+  readonly eventType: string;
+  readonly eventFingerprint: string;
+  readonly rawBodyHash: string;
+  readonly receivedAt: Timestamp;
+  readonly processingStatus: "ingested" | "processed" | "ignored" | "requires_attention";
+  readonly normalizedStatus?: string;
+  readonly paymentId?: Uuid;
+  readonly transactionId?: Uuid;
 };
 
 export type PosSaleRecord = {
@@ -146,7 +187,10 @@ export interface CheckoutStore {
   saveSale(sale: PosSaleRecord): Promise<void>;
   getPayment(paymentId: Uuid): Promise<StoredPayment | undefined>;
   getPaymentForTransaction(transactionId: Uuid): Promise<StoredPayment | undefined>;
+  getPaymentByProviderReference(provider: string, reference: string): Promise<StoredPayment | undefined>;
   savePayment(payment: StoredPayment): Promise<void>;
+  saveProviderEvent(event: StoredProviderEvent): Promise<"inserted" | "duplicate">;
+  getProviderEvent(provider: string, fingerprint: string): Promise<StoredProviderEvent | undefined>;
   getReceipt(transactionId: Uuid): Promise<ReceiptSnapshot | undefined>;
   saveReceipt(receipt: ReceiptSnapshot): Promise<"ok" | "duplicate">;
   enqueueOutbox(event: OutboxEvent): Promise<void>;
@@ -198,15 +242,23 @@ export interface FaultInjectingCheckoutStore extends CheckoutStore {
 }
 
 export function evidenceFromPayment(payment: StoredPayment): VerifiedPaymentEvidence {
+  if (
+    payment.status !== "verified" ||
+    !payment.evidenceId ||
+    !payment.verifiedAt ||
+    !payment.verificationSource
+  ) {
+    throw new Error("payment evidence is not verified");
+  }
   return {
     evidenceId: payment.evidenceId,
     transactionId: payment.transactionId,
     paymentId: payment.paymentId,
     saleId: payment.saleId,
     amount: payment.amount,
-    tender: "cash",
+    tender: payment.tender,
     verifiedAt: payment.verifiedAt,
-    verificationSource: "cash_ledger",
+    verificationSource: payment.verificationSource,
   };
 }
 

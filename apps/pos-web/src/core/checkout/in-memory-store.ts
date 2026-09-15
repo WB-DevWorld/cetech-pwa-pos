@@ -7,6 +7,7 @@ import type {
   StoredCashMovement,
   StoredDevice,
   StoredPayment,
+  StoredProviderEvent,
   StoredRegister,
   StoredShift,
 } from "./types";
@@ -42,6 +43,8 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
   const sales = new Map<Uuid, PosSaleRecord>();
   const payments = new Map<Uuid, StoredPayment>();
   const paymentsByTx = new Map<Uuid, Uuid>();
+  const paymentsByProviderRef = new Map<string, Uuid>();
+  const providerEvents = new Map<string, StoredProviderEvent>();
   const receipts = new Map<Uuid, ReceiptSnapshot>();
   const outbox: OutboxEvent[] = [];
   const idempotency = new Map<string, IdempotencyRow>();
@@ -186,13 +189,43 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
       return paymentId ? payments.get(paymentId) : undefined;
     },
 
+    async getPaymentByProviderReference(provider, reference) {
+      const paymentId = paymentsByProviderRef.get(`${provider}\0${reference}`);
+      return paymentId ? payments.get(paymentId) : undefined;
+    },
+
     async savePayment(payment) {
       if (store.failNextPaymentWrite) {
         store.failNextPaymentWrite = false;
         throw new Error("injected POS payment persistence failure");
       }
+      const existingTx = paymentsByTx.get(payment.transactionId);
+      if (existingTx && existingTx !== payment.paymentId) {
+        throw new Error("one payment intent per transaction");
+      }
+      if (payment.provider && payment.providerReference) {
+        const refKey = `${payment.provider}\0${payment.providerReference}`;
+        const existingRef = paymentsByProviderRef.get(refKey);
+        if (existingRef && existingRef !== payment.paymentId) {
+          throw new Error("provider reference already exists");
+        }
+        paymentsByProviderRef.set(refKey, payment.paymentId);
+      }
       payments.set(payment.paymentId, payment);
       paymentsByTx.set(payment.transactionId, payment.paymentId);
+    },
+
+    async saveProviderEvent(event) {
+      const key = `${event.provider}\0${event.eventFingerprint}`;
+      if (providerEvents.has(key)) {
+        return "duplicate";
+      }
+      providerEvents.set(key, event);
+      return "inserted";
+    },
+
+    async getProviderEvent(provider, fingerprint) {
+      return providerEvents.get(`${provider}\0${fingerprint}`);
     },
 
     async getReceipt(transactionId) {
