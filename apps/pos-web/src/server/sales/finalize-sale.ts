@@ -2,7 +2,6 @@ import type { ApiResult, SalesPort } from "../../../../../docs/contracts/ports";
 import type {
   CommandContext,
   FinalizeSaleRequest,
-  Money,
   ReceiptSnapshot,
   SaleResolution,
 } from "../../../../../docs/contracts/domain.generated";
@@ -238,7 +237,7 @@ async function persistReceiptOrAttention(input: {
     return successResolution(sale, request.paymentId, context.correlationId, existing.id);
   }
 
-  const receipt = buildReceipt(sale, payment.cashReceived, now);
+  const receipt = buildReceipt(sale, payment, now);
   if (!validateCanonicalDef("ReceiptSnapshot", receipt)) {
     sale = { ...sale, status: "requires_attention" };
     await store.saveSale(sale);
@@ -279,8 +278,8 @@ async function persistReceiptOrAttention(input: {
   return successResolution(sale, request.paymentId, context.correlationId, receipt.id);
 }
 
-function buildReceipt(sale: PosSaleRecord, cashReceived: Money, now: Date): ReceiptSnapshot {
-  return {
+function buildReceipt(sale: PosSaleRecord, payment: StoredPayment, now: Date): ReceiptSnapshot {
+  const snapshot: ReceiptSnapshot = {
     id: `rcpt-${sale.prepared.transactionId.slice(0, 8)}`,
     transactionId: sale.prepared.transactionId,
     receiptNumber: `POS-${sale.prepared.orderReference}`,
@@ -295,14 +294,20 @@ function buildReceipt(sale: PosSaleRecord, cashReceived: Money, now: Date): Rece
     discount: sale.discount,
     tax: sale.tax,
     total: sale.prepared.total,
-    tender: "cash",
-    cashReceived,
-    changeDue: {
-      minor: cashReceived.minor - sale.prepared.total.minor,
-      currency: cashReceived.currency,
-    },
+    tender: payment.tender,
     documentKind: "operational_pos_receipt",
   };
+  if (payment.tender === "cash" && payment.cashReceived) {
+    return {
+      ...snapshot,
+      cashReceived: payment.cashReceived,
+      changeDue: {
+        minor: payment.cashReceived.minor - sale.prepared.total.minor,
+        currency: payment.cashReceived.currency,
+      },
+    };
+  }
+  return snapshot;
 }
 
 function successResolution(

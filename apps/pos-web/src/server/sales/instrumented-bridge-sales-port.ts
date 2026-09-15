@@ -30,6 +30,7 @@ export type InstrumentedBridgeSalesPort = Pick<SalesPort, "prepare" | "resolve" 
   dropNextPrepareResponse: boolean;
   dropNextFinalizeResponse: boolean;
   readonly quotes: Map<string, Quote>;
+  seedPrepared(sale: PreparedSale): void;
 };
 
 export function createInstrumentedBridgeSalesPort(
@@ -50,6 +51,13 @@ export function createInstrumentedBridgeSalesPort(
     dropNextPrepareResponse: false,
     dropNextFinalizeResponse: false,
     quotes: quoteById,
+    seedPrepared(sale: PreparedSale) {
+      prepared.set(sale.transactionId, {
+        requestHash: "seeded-for-electronic-finalize",
+        prepareKey: "seeded-for-electronic-finalize",
+        prepared: sale,
+      });
+    },
     async prepare(input: PrepareSaleRequest, context: CommandContext): Promise<ApiResult<PreparedSale>> {
       const hash = await sha256Hex(canonicalJson(input));
       const keyed = prepareByKey.get(context.idempotencyKey);

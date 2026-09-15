@@ -1,6 +1,7 @@
 import type {
   CashPaymentRequest,
   FinalizeSaleRequest,
+  InitializePaymentRequest,
   OpenShiftRequest,
   PaymentLookup,
   PaymentState,
@@ -18,6 +19,10 @@ export function isPrepareSaleRequest(value: unknown): value is PrepareSaleReques
 
 export function isPreparedSale(value: unknown): value is PreparedSale {
   return validateCanonicalDef("PreparedSale", value);
+}
+
+export function isInitializePaymentRequest(value: unknown): value is InitializePaymentRequest {
+  return validateCanonicalDef("InitializePaymentRequest", value);
 }
 
 export function isPaymentLookup(value: unknown): value is PaymentLookup {

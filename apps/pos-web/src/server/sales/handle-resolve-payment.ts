@@ -5,7 +5,10 @@ import { authFailure } from "../auth/errors";
 import { apiFailure } from "../http/api-failure";
 import type { StaffSessionStore } from "../auth/session-store";
 import { httpStatusFor } from "../http/status";
-import type { CheckoutStore, StoredPayment } from "../../core/checkout/types";
+import type { CheckoutStore } from "../../core/checkout/types";
+import { toPaymentState } from "../payments/payment-state";
+import type { ElectronicPaymentProvider } from "../payments/provider";
+import { resolveElectronicPayment } from "../payments/resolve-electronic";
 import { authorizeCheckoutMutation, mutationProtectionFrom } from "./authorize-checkout";
 import { guardStaffCommand, type CommandHttpHeaders } from "./guard-staff-command";
 import { isPaymentLookup, isPaymentState } from "./schema";
@@ -22,6 +25,7 @@ export type HandleResolvePaymentInput = {
   readonly allowedOrigins: readonly string[];
   readonly checkoutStore: CheckoutStore;
   readonly assignments: StaffAssignmentDirectory;
+  readonly provider?: ElectronicPaymentProvider;
 };
 
 export type HandleResolvePaymentResponse = {
@@ -76,24 +80,35 @@ export async function handleResolvePayment(input: HandleResolvePaymentInput): Pr
     const body = apiFailure("PAYMENT_NOT_VERIFIED", "payment is not verified for this sale", guard.correlationId);
     return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
   }
-  const state = payment ? verifiedState(payment) : missingCashState(input.body.transactionId);
+  if (!payment) {
+    const state = missingCashState(input.body.transactionId);
+    return { status: 200, body: { ok: true, data: state, correlationId: guard.correlationId }, headers: guard.headers };
+  }
+  if (payment.tender !== "cash") {
+    if (!input.provider) {
+      const state = toPaymentState(payment);
+      return { status: 200, body: { ok: true, data: state, correlationId: guard.correlationId }, headers: guard.headers };
+    }
+    const resolved = await resolveElectronicPayment({
+      store: input.checkoutStore,
+      provider: input.provider,
+      actor: guard.session,
+      request: input.body,
+      context: { correlationId: guard.correlationId },
+      now: input.now,
+    });
+    return {
+      status: resolved.ok ? 200 : httpStatusFor(resolved.error.code),
+      body: resolved,
+      headers: guard.headers,
+    };
+  }
+  const state = toPaymentState(payment);
   if (!isPaymentState(state)) {
     const body = apiFailure("INTEGRATION_UNAVAILABLE", "stored payment is not a valid PaymentState", guard.correlationId);
     return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
   }
   return { status: 200, body: { ok: true, data: state, correlationId: guard.correlationId }, headers: guard.headers };
-}
-
-function verifiedState(payment: StoredPayment): PaymentState {
-  return {
-    transactionId: payment.transactionId,
-    paymentId: payment.paymentId,
-    tender: "cash",
-    status: "verified",
-    amount: payment.amount,
-    verifiedAt: payment.verifiedAt,
-    nextAction: "none",
-  };
 }
 
 function missingCashState(transactionId: PaymentState["transactionId"]): PaymentState {
