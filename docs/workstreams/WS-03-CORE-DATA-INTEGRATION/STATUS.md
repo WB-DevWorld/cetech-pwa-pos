@@ -16,6 +16,7 @@ Provider: Paystack test mode behind `ElectronicPaymentProvider`. No live electro
 | --- | --- |
 | Post-R6 `main` | `bd79c2901ce33c3177141d4244cc196be0a719d2` |
 | R7_ACTIVATION_SHA | `0c34694882e69282b9e3df66104197394c55294e` |
-| PAY-01 source | recorded after the contributor implementation commit |
+| PAY-01 implementation | `f79544e7fd815917cbc2d7688d6a8e67f485f998` |
+| PAY-01 freshness evidence | recorded after this FRESH_2 commit |
 
-PAY-01 implementation is complete on the contributor branch pending ADR-012 Pass 1/Pass 2. Cash R6 invariants remain mandatory. Sandbox provider evidence is a separate gate.
+PAY-01 source is **READY_FOR_INTEGRATION** (`FRESH_2`). Sandbox provider evidence remains a separate gate. Cash R6 invariants remain mandatory.
