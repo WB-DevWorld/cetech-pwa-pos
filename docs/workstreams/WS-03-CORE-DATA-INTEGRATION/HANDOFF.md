@@ -1,6 +1,6 @@
 # WS3 current handoff — RT-01 contract freeze candidate
 
-Kind: TASK_COMPLETION (contract-freeze only). Date: 2026-09-15.
+Kind: TASK_COMPLETION (contract-freeze only). Date: 2026-09-15T15:30:39Z.
 
 Task / batch / workstream: RT-01 / #27 / WS3 contract refinement.
 Owner / integration editor: `@wbdevworld` / WS3.
@@ -9,6 +9,7 @@ Requested human reviewers: WS1 consumer `@Ben-001-sys`; WS2 producer `@Emmanuel-
 
 Branch: `ws3/rt-01-freeze-refund-wire-refinement-and-implement-s`
 Starting/base SHA: `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091`
+Pre-freshness pushed implementation SHA: `7a2227de8432729816bb6cb65440be94e1023872`
 PAY-01 / R7 classification: PROVISIONAL_TEST (not merged, not live accepted).
 BR-07 / R6: ACCEPTED / MERGED through `bd79c2901ce33c3177141d4244cc196be0a719d2`.
 Contracts: v1.0.0 coordinated freeze candidate; ADR-015.
@@ -35,8 +36,29 @@ Tests executed:
 
 Remote effects: none.
 
+Freshness protocol:
+START_FRESHNESS_SNAPSHOT UTC: 2026-09-15T14:55:00Z (assignment start; branch created from `9ab7e5b7`)
+Start main SHA: `bd79c2901ce33c3177141d4244cc196be0a719d2`
+Declared provisional R7 baseline: `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091`
+Applicable contracts / ADRs: v1.0.0 + ADR-015 candidate; ADR-012; ADR-014
+
+Pass 1 fetch UTC: 2026-09-15T15:29:58Z (success)
+Pass 1 main SHA: `bd79c2901ce33c3177141d4244cc196be0a719d2`
+Pass 1 provisional R7 SHA: `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091` (PR #58 draft, unchanged)
+Classification: no relevant upstream movement
+Actions: none; no rebase
+
+Pass 2 fetch UTC: 2026-09-15T15:30:39Z (success)
+Pass 2 main SHA: `bd79c2901ce33c3177141d4244cc196be0a719d2`
+Pass 2 provisional R7 SHA: `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091`
+Classification: no relevant upstream movement
+Actions: none; no rebase
+
+Final freshness status: FRESH_2
+Pass 3: NOT PERMITTED
+Delivery status: READY_FOR_INTEGRATION of the contract candidate only after required WS1+WS2 reviews. Not implementation-complete.
+
 Next exact action: ChatGPT inspects this candidate and obtains WS1+WS2 reviews. No dependent implementation from this branch.
 
-Pass 3: NOT PERMITTED.
 Production promotion: NOT AUTHORIZED.
 R7: NOT MERGED; sandbox deferred.
