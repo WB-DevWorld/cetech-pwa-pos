@@ -51,7 +51,10 @@ export async function authorizeCheckoutMutation(input: {
   readonly organizationId: string;
   readonly locationId: string;
   readonly registerId: string;
-  readonly permission: Extract<StaffPermission, "shift.open" | "payment.cash" | "sale.finalize">;
+  readonly permission: Extract<
+    StaffPermission,
+    "shift.open" | "payment.cash" | "payment.resolve" | "sale.prepare" | "sale.finalize" | "sale.cancel"
+  >;
   readonly protection: MutationProtectionInput;
 }): Promise<ApiResult<AuthorizedStaffContext>> {
   return authorizeStaffMutation(

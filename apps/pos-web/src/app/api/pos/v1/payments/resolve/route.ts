@@ -1,0 +1,60 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { staffAllowedOrigins } from "../../../../../../config/env";
+import { STAFF_CSRF_HEADER } from "../../../../../../config/auth";
+import { composeStaffSessionStore } from "../../../../../../server/auth/compose-session-store";
+import { authFailure } from "../../../../../../server/auth/errors";
+import { createServerRestFetch } from "../../../../../../server/http/server-fetch";
+import { resolveCorrelationId } from "../../../../../../server/http/correlation";
+import { httpStatusFor } from "../../../../../../server/http/status";
+import { composeCheckoutRuntime } from "../../../../../../server/sales/compose-checkout-runtime";
+import { composeStaffAssignmentDirectory } from "../../../../../../server/sales/compose-assignment-directory";
+import { handleResolvePayment } from "../../../../../../server/sales/handle-resolve-payment";
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const composed = composeHandlers(request);
+  if (!composed.ok) return composed.response;
+  let body: unknown = null;
+  try {
+    body = await request.json();
+  } catch {
+    body = null;
+  }
+  const result = await handleResolvePayment({
+    correlationIdHeader: request.headers.get("x-correlation-id") ?? undefined,
+    origin: request.headers.get("origin"),
+    referer: request.headers.get("referer"),
+    cookieHeader: request.headers.get("cookie") ?? undefined,
+    csrfHeader: request.headers.get(STAFF_CSRF_HEADER),
+    body,
+    now: new Date(),
+    sessionStore: composed.sessionStore,
+    allowedOrigins: staffAllowedOrigins(),
+    checkoutStore: composed.runtime.store,
+    assignments: composed.assignments,
+  });
+  return NextResponse.json(result.body, { status: result.status, headers: result.headers });
+}
+
+function composeHandlers(request: NextRequest) {
+  try {
+    const fetchImpl = createServerRestFetch();
+    const sessionStore = composeStaffSessionStore(process.env, fetchImpl);
+    const runtime = composeCheckoutRuntime(process.env, fetchImpl);
+    const assignments = composeStaffAssignmentDirectory(process.env);
+    return { ok: true as const, sessionStore, runtime, assignments };
+  } catch {
+    const correlation = resolveCorrelationId(request.headers.get("x-correlation-id") ?? undefined);
+    const body = authFailure(
+      "INTEGRATION_UNAVAILABLE",
+      "durable staff session and checkout store are required",
+      correlation.correlationId,
+    );
+    return {
+      ok: false as const,
+      response: NextResponse.json(body, {
+        status: httpStatusFor(body.error.code),
+        headers: { "Cache-Control": "no-store", "X-Correlation-ID": body.correlationId },
+      }),
+    };
+  }
+}
