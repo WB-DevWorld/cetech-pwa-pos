@@ -123,6 +123,14 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
           return "duplicate_sale";
         }
       }
+      if (movement.kind === "cash_refund" && movement.refundId) {
+        const duplicate = movements.some(
+          (row) => row.kind === "cash_refund" && row.refundId === movement.refundId,
+        );
+        if (duplicate) {
+          return "duplicate_refund";
+        }
+      }
       if (movement.kind !== "opening_float") {
         const next = (shift.expectedCash?.minor ?? 0) + movement.signedAmount.minor;
         if (next < 0) {
@@ -139,6 +147,10 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
 
     async listCashSales(transactionId) {
       return movements.filter((row) => row.kind === "cash_sale" && row.transactionId === transactionId);
+    },
+
+    async listCashRefunds(refundId) {
+      return movements.filter((row) => row.kind === "cash_refund" && row.refundId === refundId);
     },
 
     async expectedCash(shiftId) {
@@ -166,6 +178,15 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
     async getSale(transactionId) {
       const row = sales.get(transactionId);
       return row ? { ...row } : undefined;
+    },
+
+    async getSaleBySaleId(organizationId, saleId) {
+      for (const row of sales.values()) {
+        if (row.organizationId === organizationId && row.prepared.saleId === saleId) {
+          return { ...row };
+        }
+      }
+      return undefined;
     },
 
     async saveSale(sale) {

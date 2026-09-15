@@ -216,6 +216,7 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
           actor_id: movement.actorId,
           transaction_id: movement.transactionId ?? null,
           reason: movement.reason ?? null,
+          refund_id: movement.refundId ?? null,
         },
       });
       if (result.status === 201 || result.status === 200) {
@@ -223,6 +224,9 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
       }
       const constraint = constraintName(result.body);
       const message = errorMessage(result.body);
+      if (constraint.includes("pos_cash_one_refund_per_refund_id")) {
+        return "duplicate_refund";
+      }
       if (result.status === 409 || constraint.includes("pos_cash_one_sale_per_transaction")) {
         return "duplicate_sale";
       }
@@ -240,7 +244,14 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
 
     async listCashSales(transactionId) {
       const rows = await getRows(
-        `pos_cash_movements?kind=eq.cash_sale&transaction_id=eq.${encodeURIComponent(transactionId)}&select=id,organization_id,shift_id,kind,signed_amount_minor,currency,actor_id,created_at,transaction_id,reason`,
+        `pos_cash_movements?kind=eq.cash_sale&transaction_id=eq.${encodeURIComponent(transactionId)}&select=id,organization_id,shift_id,kind,signed_amount_minor,currency,actor_id,created_at,transaction_id,reason,refund_id`,
+      );
+      return rows.map(mapCashMovement).filter((row): row is StoredCashMovement => row !== undefined);
+    },
+
+    async listCashRefunds(refundId) {
+      const rows = await getRows(
+        `pos_cash_movements?kind=eq.cash_refund&refund_id=eq.${encodeURIComponent(refundId)}&select=id,organization_id,shift_id,kind,signed_amount_minor,currency,actor_id,created_at,transaction_id,reason,refund_id`,
       );
       return rows.map(mapCashMovement).filter((row): row is StoredCashMovement => row !== undefined);
     },
@@ -288,6 +299,13 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
     async getSale(transactionId) {
       const row = await getOne(
         `pos_checkout_sales?transaction_id=eq.${encodeURIComponent(transactionId)}&select=record`,
+      );
+      return row ? asSale(row.record) : undefined;
+    },
+
+    async getSaleBySaleId(organizationId, saleId) {
+      const row = await getOne(
+        `pos_checkout_sales?organization_id=eq.${encodeURIComponent(organizationId)}&sale_id=eq.${encodeURIComponent(saleId)}&select=record`,
       );
       return row ? asSale(row.record) : undefined;
     },
@@ -747,6 +765,7 @@ function mapCashMovement(row: RestRow): StoredCashMovement | undefined {
     createdAt: toContractTimestamp(row.created_at) ?? row.created_at,
     transactionId: typeof row.transaction_id === "string" ? row.transaction_id : undefined,
     reason: typeof row.reason === "string" ? row.reason : undefined,
+    refundId: typeof row.refund_id === "string" ? row.refund_id : undefined,
   };
 }
 

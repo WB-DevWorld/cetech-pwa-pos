@@ -4,6 +4,7 @@ import {
   authorizeStaffMutation,
   authorizeStaffRead,
   type AuthorizedStaffContext,
+  type ClientScopeClaim,
 } from "../auth/authorize";
 import type { StaffAssignmentDirectory } from "../auth/assignments";
 import { parseCookieHeader } from "../auth/cookies";
@@ -53,9 +54,21 @@ export async function authorizeCheckoutMutation(input: {
   readonly registerId: string;
   readonly permission: Extract<
       StaffPermission,
-      "shift.open" | "payment.cash" | "payment.initialize" | "sale.finalize" | "sale.prepare" | "payment.resolve"
+      | "shift.open"
+      | "payment.cash"
+      | "payment.initialize"
+      | "sale.finalize"
+      | "sale.prepare"
+      | "payment.resolve"
+      | "payment.refund"
+      | "refund.resolve"
+      | "return.preview"
+      | "return.execute"
+      | "return.resolve"
+      | "return.approve"
     >;
   readonly protection: MutationProtectionInput;
+  readonly client?: ClientScopeClaim;
 }): Promise<ApiResult<AuthorizedStaffContext>> {
   return authorizeStaffMutation(
     {
@@ -68,6 +81,7 @@ export async function authorizeCheckoutMutation(input: {
         registerId: input.registerId,
         permission: input.permission,
       },
+      client: input.client,
     },
     input.protection,
   );

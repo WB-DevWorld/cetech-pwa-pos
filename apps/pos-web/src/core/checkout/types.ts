@@ -6,6 +6,7 @@ import type {
   PaymentTender,
   PendingOperation,
   PreparedSale,
+  Quantity,
   ReceiptLine,
   ReceiptSnapshot,
   Register,
@@ -38,6 +39,7 @@ export type StoredShift = Shift & {
 
 export type StoredCashMovement = CashMovement & {
   readonly organizationId: Id;
+  readonly refundId?: Uuid;
 };
 
 export type StoredPaymentStatus =
@@ -94,6 +96,15 @@ export type StoredProviderEvent = {
   readonly transactionId?: Uuid;
 };
 
+export type StoredSaleOrderLine = {
+  readonly orderLineId: Id;
+  readonly quantity: Quantity;
+  readonly subtotal: Money;
+  readonly discount: Money;
+  readonly tax: Money;
+  readonly total: Money;
+};
+
 export type PosSaleRecord = {
   readonly organizationId: Id;
   readonly locationId: Id;
@@ -108,6 +119,8 @@ export type PosSaleRecord = {
   readonly customerLabel: string;
   readonly prepared: PreparedSale;
   readonly lines: readonly ReceiptLine[];
+  readonly orderLines?: readonly StoredSaleOrderLine[];
+  readonly quoteId?: Id;
   readonly subtotal: Money;
   readonly discount: Money;
   readonly tax: Money;
@@ -164,6 +177,8 @@ export type SeedPreparedSaleInput = {
   readonly customerLabel: string;
   readonly prepared: PreparedSale;
   readonly lines: readonly ReceiptLine[];
+  readonly orderLines?: readonly StoredSaleOrderLine[];
+  readonly quoteId?: Id;
   readonly subtotal: Money;
   readonly discount: Money;
   readonly tax: Money;
@@ -177,13 +192,15 @@ export interface CheckoutStore {
   getActiveShift(registerId: Id): Promise<StoredShift | undefined>;
   getShift(id: Uuid): Promise<StoredShift | undefined>;
   insertOpenShift(shift: StoredShift): Promise<"ok" | "conflict">;
-  appendCashMovement(movement: StoredCashMovement): Promise<"ok" | "duplicate_sale" | "shift_required" | "negative_expected">;
+  appendCashMovement(movement: StoredCashMovement): Promise<"ok" | "duplicate_sale" | "duplicate_refund" | "shift_required" | "negative_expected">;
   listCashSales(transactionId: Uuid): Promise<readonly StoredCashMovement[]>;
+  listCashRefunds(refundId: Uuid): Promise<readonly StoredCashMovement[]>;
   expectedCash(shiftId: Uuid): Promise<Money | undefined>;
   saveQuote(quote: Quote): Promise<void>;
   getQuote(quoteId: Id): Promise<Quote | undefined>;
   seedPreparedSale(input: SeedPreparedSaleInput): Promise<PosSaleRecord>;
   getSale(transactionId: Uuid): Promise<PosSaleRecord | undefined>;
+  getSaleBySaleId(organizationId: Id, saleId: Id): Promise<PosSaleRecord | undefined>;
   saveSale(sale: PosSaleRecord): Promise<void>;
   getPayment(paymentId: Uuid): Promise<StoredPayment | undefined>;
   getPaymentForTransaction(transactionId: Uuid): Promise<StoredPayment | undefined>;
