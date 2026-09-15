@@ -159,9 +159,9 @@ SELECT lives_ok(
 
 SELECT throws_ok(
   $$ UPDATE pos_return_historic_lines SET historical_total_minor = 1 $$,
-  '55000',
+  '42501',
   NULL,
-  'historic line economics are immutable'
+  'historic line economics deny UPDATE (privilege plus immutable trigger)'
 );
 
 SELECT lives_ok(
@@ -269,9 +269,9 @@ SELECT lives_ok(
 );
 SELECT throws_ok(
   $$ UPDATE pos_return_audit SET event_type = 'tamper' $$,
-  '55000',
+  '42501',
   NULL,
-  'return audit cannot be updated'
+  'return audit denies UPDATE (privilege plus append-only trigger)'
 );
 
 SELECT lives_ok(
