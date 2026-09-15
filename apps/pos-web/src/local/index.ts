@@ -20,6 +20,16 @@ export {
 } from "./catalog-repository";
 export { createLocalCustomerPort, replaceLocalCustomers } from "./customer-store";
 export { rebuildableCatalogClear, recordLocalSchema } from "./pwa-upgrade";
+export {
+  acquireLifecycleLease,
+  assessUpdateActivation,
+  compareBuildIds,
+  releaseLifecycleLease,
+  renewLifecycleLease,
+  type UpdateActivationDecision,
+  type UpdateBlockReason,
+  type UpdateSafetySnapshot,
+} from "./pwa-lifecycle";
 export { assertJournalPayloadHasNoSecrets, journalPayloadContainsSecrets } from "./secrets-guard";
 export { clearActiveCartId, recallActiveCartId, rememberActiveCartId } from "./active-cart";
 export {
