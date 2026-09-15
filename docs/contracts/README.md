@@ -12,6 +12,6 @@ Design freeze: 2026-09-11 under the current bootstrap authorization. Implementat
 
 No standalone P0 InventoryPort. No UI authority for sale finalization. No print effect on ReceiptPort. Quantity strings and opaque provider mappings intentionally correct prototype shortcuts; see PROTOTYPE-MAPPING.md.
 
-M1 contracts are frozen. M2 ReturnPort shapes are also defined, but refund authorization, provider refund adapter and bridge commercial refund/restock wire endpoints require RT-01's refinement before execution. No unrestricted backend implementation based on an undefined endpoint.
+M1 contracts are frozen. M2 ReturnPort / PaymentPort.refund shapes remain v1.0.0. RT-01 contract refinement candidate adds independent commercial-refund and stock-disposition bridge wires plus historic-economics snapshots; it is not accepted until required WS1 consumer and WS2 producer reviews. No unrestricted backend or WordPress implementation from this candidate alone.
 
 Foundation validation checks generated artifacts, schema references and selected examples. It does not implement a full JSON Schema validator or prove runtime correctness. CP-05/CORE-06 must add a maintained runtime validator and contract test runner with pinned dependencies.

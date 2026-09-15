@@ -18,7 +18,7 @@ export interface PaymentPort {
   initialize(input: D.InitializePaymentRequest, context: D.CommandContext): Promise<ApiResult<D.PaymentState>>;
   confirmCash(input: D.CashPaymentRequest, context: D.CommandContext): Promise<ApiResult<D.PaymentState>>;
   resolve(input: D.PaymentLookup): Promise<ApiResult<D.PaymentState>>;
-  /** Server-only; approved commercial refund amount, never client-invented. */
+  /** Server-only; amount/channel derived from historic snapshot, never client-invented. */
   refund(input: D.RefundRequest, context: D.CommandContext): Promise<ApiResult<D.RefundState>>;
 }
 export interface CheckoutUseCases {
@@ -39,6 +39,14 @@ export interface ReturnPort {
   preview(input: D.ReturnPreviewRequest): Promise<ApiResult<D.ReturnPreview>>;
   execute(input: D.ReturnExecuteRequest, context: D.CommandContext): Promise<ApiResult<D.ReturnResolution>>;
   resolve(returnId: D.Uuid): Promise<ApiResult<D.ReturnResolution>>;
+}
+/** Server-only commerce-bridge effects. Distinct from ReturnPort and PaymentPort.refund. */
+export interface BridgeReturnEffectsPort {
+  preview(input: D.ReturnPreviewRequest): Promise<ApiResult<D.ReturnPreview>>;
+  applyCommercialRefund(input: D.BridgeCommercialRefundRequest, context: D.CommandContext): Promise<ApiResult<D.BridgeCommercialRefundState>>;
+  resolveCommercialRefund(commercialRefundId: D.Uuid): Promise<ApiResult<D.BridgeCommercialRefundState>>;
+  applyStockDisposition(input: D.BridgeStockDispositionRequest, context: D.CommandContext): Promise<ApiResult<D.BridgeStockDispositionState>>;
+  resolveStockDisposition(stockDispositionId: D.Uuid): Promise<ApiResult<D.BridgeStockDispositionState>>;
 }
 export interface IdentityPort {
   getSession(): Promise<ApiResult<D.Session>>;
