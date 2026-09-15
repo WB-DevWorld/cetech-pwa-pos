@@ -1,6 +1,6 @@
 # Current work ledger
 
-Updated 2026-09-14. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
+Updated 2026-09-15. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
 
 ## Current authority
 
@@ -13,13 +13,13 @@ Updated 2026-09-14. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical sche
 ## Active assignment — R6 first real cash sale
 
 - Integration issue: **#54 R6-00**.
-- Milestone PR: **#55** — `[R6] First real cash sale vertical slice` (draft integration surface).
+- Milestone PR: **#55** — `[R6] First real cash sale vertical slice` (**draft**; not review-ready).
 - Neutral branch: `batch/r6-first-real-cash-sale`.
 - Integration editor: `@wbdevworld` / WS3.
 - Activation baseline: `main` `bc606a690f0c167b7057e3ae9143337404275882`.
 - Tested combined pre-CORE06 handoff: **`R6_INTEGRATION_SHA=ef7660ddca607ca748cb9eb71487b856004d0817`**.
-- Exact combined CI `34908900786`: **SUCCESS** on Linux + Windows.
-- Milestone state: **CORE-06 ACTIVE FROM TESTED COMBINED SHA**.
+- CORE-06 imported **tested combined implementation** SHA: **`e64b0fa94bddb40ccf2e13b3ffb289a995b49c92`** (GitHub Actions `34919556401` / `34919562334` SUCCESS). A later scheduler/docs commit on this branch records the runtime-gate classification and does not change implementation.
+- Milestone state: **R6 BLOCKED — isolated staging real-sale gate (`BLOCKED_RUNTIME_EVIDENCE`)**.
 
 ### R6 contributions
 
@@ -27,18 +27,24 @@ Updated 2026-09-14. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical sche
 | --- | --- | --- | --- |
 | FE-05 / #10 | `@Ben-001-sys` / WS1 | source `79708d67b655eb46f8aba77712a83508e095f758`; import `8dabbde2af91b3aa31f00ae159b5f8cd7a3280a9`; CI `34890381897` | **ACCEPTED / IMPORTED / VERIFIED** |
 | BR-07 / #19 | `@Emmanuel-coder-prog` / WS2 | source `fe97acfe0b5530d7eb861ccc0a9aea391e3daca3`; import `2ef938c4f9e89e50537804e2511ac9b7e0b596da`; combined handoff `ef7660dd…`; CI `34908900786` | **ACCEPTED / IMPORTED / VERIFIED** |
-| CORE-06 / #25 | `@wbdevworld` / WS3 | branch `ws3/core-06-integrate-real-cash-sale-and-contract-e2e-har` from exact `ef7660dd…` | **ACTIVE — OWNER IMPLEMENTATION** |
+| CORE-06 / #25 | `@wbdevworld` / WS3 | source `9e7bae589ccd8df818ded67d59dca37683837204`; implementation `0162e408d10e22eb9806aa5c5d61ca74a91a2192`; import `212374d8…` + `e64b0fa9…`; combined CI `34919556401` | **IMPORTED / AUTOMATED COMBINED GATE PASS / STAGING REAL-SALE BLOCKED** |
 
 FE-05 retains prepared-sale lockout, stable cash attempt identity, payment resolution instead of duplicate tender, ReceiptPort truth and print isolation.
 
 BR-07 retains durable finalize/cancel command claims, exact prepared-sale/payment/economic binding, one commercial payment/stock effect, and fail-closed cancellation when money is unresolved. Live HPOS finalize/cancel rehearsal and real DB concurrency remain pending evidence and are not claimed.
 
-## CORE-06 execution gate
+CORE-06 automated/in-process/Playwright proof is green on the imported tree. That is **not** isolated staging Woo acceptance. Instrumented `woo-1` is not a live training order.
 
-CORE-06 must use the branch already created from exact tested `R6_INTEGRATION_SHA=ef7660ddca607ca748cb9eb71487b856004d0817`. Do not rebase it onto `main` or the later scheduler-only neutral-branch commits.
+## R6 remaining gate
 
-CORE-06 owns the real cash-sale integration/contract/E2E harness in issue #25 allowed paths. It must not call mocks a real pass: isolated staging/runtime evidence remains required by #25. Frozen v1.0.0 contracts remain authoritative unless a genuine contract blocker is separately recorded.
+```text
+CODE / CONTRACT / AUTOMATED COMBINED GATE: PASS
+ISOLATED STAGING REAL-SALE GATE: BLOCKED
+R6 FINAL ACCEPTANCE: BLOCKED_RUNTIME_EVIDENCE
+```
 
-After CORE-06 owner handoff, WS3 integration imports its exact accepted source into the neutral branch, runs full combined verification, freezes the final R6 head, performs exactly two ADR-012 freshness observations, and requests independent competent-human review before merge. No Pass 3; no self-approval; no automatic merge.
+Training `GET /wp-json/cetech-pos/v1/health` now returns authenticated-required JSON (401 `AUTH_REQUIRED`); the plugin route exists. CP-04 write-safety remains OPEN: isolation not proven, MailPoet/email previously UNSAFE, no recorded authorization for order/stock/tender writes. Do not invent a live sale.
+
+Do not start R7. Do not merge PR #55. Do not self-approve. Do not run ADR-012 final FRESH_2 as if R6 acceptance were complete. Preserve this green combined candidate until the staging gate is explicitly authorized and executed.
 
 No R7+, returns/refunds, electronic payment-provider execution, or production promotion is authorized by this R6 session.
