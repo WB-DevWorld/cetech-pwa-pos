@@ -1,0 +1,190 @@
+import type {
+  CommandContext,
+  Money,
+  Shift,
+  ShiftReport,
+  Uuid,
+} from "../../../../../docs/contracts/domain.generated";
+import type { PosRestFetch } from "../http/server-fetch";
+
+export type OperationalCloseResult =
+  | { readonly kind: "closed"; readonly shift: Shift; readonly report: ShiftReport }
+  | { readonly kind: "not_found" }
+  | { readonly kind: "forbidden" }
+  | { readonly kind: "conflict" }
+  | { readonly kind: "unavailable" };
+
+export interface OperationalCloseStore {
+  close(input: {
+    readonly organizationId: string;
+    readonly shiftId: Uuid;
+    readonly countedCash: Money;
+    readonly context: CommandContext;
+    readonly requestHash: string;
+  }): Promise<OperationalCloseResult>;
+}
+
+export type SupabaseOperationalCloseStoreOptions = {
+  readonly url: string;
+  readonly serviceRoleKey: string;
+  readonly fetchImpl: PosRestFetch;
+  readonly timeoutMs?: number;
+};
+
+const DEFAULT_TIMEOUT_MS = 8_000;
+
+export function createSupabaseOperationalCloseStore(
+  options: SupabaseOperationalCloseStoreOptions,
+): OperationalCloseStore {
+  const root = options.url.replace(/\/+$/, "");
+  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const headers = {
+    apikey: options.serviceRoleKey,
+    Authorization: `Bearer ${options.serviceRoleKey}`,
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  };
+
+  return {
+    async close(input): Promise<OperationalCloseResult> {
+      let response: Awaited<ReturnType<PosRestFetch>>;
+      try {
+        response = await options.fetchImpl(`${root}/rest/v1/rpc/pos_close_shift_blind`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            p_organization_id: input.organizationId,
+            p_shift_id: input.shiftId,
+            p_counted_cash_minor: input.countedCash.minor,
+            p_currency: input.countedCash.currency,
+            p_idempotency_key: input.context.idempotencyKey,
+            p_correlation_id: input.context.correlationId,
+            p_request_hash: input.requestHash,
+          }),
+          signal: AbortSignal.timeout(timeoutMs),
+        });
+      } catch {
+        return { kind: "unavailable" };
+      }
+
+      let body: unknown = null;
+      try {
+        body = await response.json();
+      } catch {
+        body = null;
+      }
+
+      if (!response.ok) {
+        return mapFailure(response.status, body);
+      }
+
+      const mapped = mapCloseOutcome(body);
+      return mapped ?? { kind: "unavailable" };
+    },
+  };
+}
+
+function mapFailure(status: number, body: unknown): OperationalCloseResult {
+  const error = asRecord(body);
+  const code = typeof error?.code === "string" ? error.code : "";
+  const message = typeof error?.message === "string" ? error.message : "";
+
+  if (status === 404 || code === "P0002" || message.includes("shift not found")) {
+    return { kind: "not_found" };
+  }
+  if (status === 401 || status === 403 || code === "42501") {
+    return { kind: "forbidden" };
+  }
+  if (status === 409 || code === "23505" || message.includes("idempotency conflict")) {
+    return { kind: "conflict" };
+  }
+  return { kind: "unavailable" };
+}
+
+function mapCloseOutcome(body: unknown): Extract<OperationalCloseResult, { kind: "closed" }> | null {
+  const root = asRecord(body);
+  const shiftRow = asRecord(root?.shift);
+  const reportRow = asRecord(root?.report);
+  if (!shiftRow || !reportRow) {
+    return null;
+  }
+
+  const shift = mapShift(shiftRow);
+  const report = mapReport(reportRow);
+  if (!shift || !report || report.shiftId !== shift.id || shift.zReportId !== report.id) {
+    return null;
+  }
+  return { kind: "closed", shift, report };
+}
+
+function mapShift(row: Record<string, unknown>): Shift | null {
+  if (
+    typeof row.id !== "string" ||
+    typeof row.register_id !== "string" ||
+    typeof row.device_id !== "string" ||
+    typeof row.cashier_id !== "string" ||
+    row.status !== "closed" ||
+    typeof row.opening_float_minor !== "number" ||
+    typeof row.opening_float_currency !== "string" ||
+    typeof row.expected_cash_minor !== "number" ||
+    typeof row.expected_cash_currency !== "string" ||
+    typeof row.counted_cash_minor !== "number" ||
+    typeof row.counted_cash_currency !== "string" ||
+    typeof row.variance_minor !== "number" ||
+    typeof row.variance_currency !== "string" ||
+    typeof row.opened_at !== "string" ||
+    typeof row.closed_at !== "string" ||
+    typeof row.z_report_id !== "string"
+  ) {
+    return null;
+  }
+  return {
+    id: row.id,
+    registerId: row.register_id,
+    deviceId: row.device_id,
+    cashierId: row.cashier_id,
+    status: "closed",
+    openingFloat: { minor: row.opening_float_minor, currency: row.opening_float_currency },
+    expectedCash: { minor: row.expected_cash_minor, currency: row.expected_cash_currency },
+    countedCash: { minor: row.counted_cash_minor, currency: row.counted_cash_currency },
+    variance: { minor: row.variance_minor, currency: row.variance_currency },
+    openedAt: normalizeTimestamp(row.opened_at),
+    closedAt: normalizeTimestamp(row.closed_at),
+    zReportId: row.z_report_id,
+  };
+}
+
+function mapReport(row: Record<string, unknown>): ShiftReport | null {
+  if (
+    typeof row.id !== "string" ||
+    typeof row.shift_id !== "string" ||
+    row.kind !== "Z" ||
+    typeof row.expected_cash_minor !== "number" ||
+    typeof row.counted_cash_minor !== "number" ||
+    typeof row.variance_minor !== "number" ||
+    typeof row.currency !== "string" ||
+    typeof row.created_at !== "string"
+  ) {
+    return null;
+  }
+  return {
+    id: row.id,
+    shiftId: row.shift_id,
+    kind: "Z",
+    expectedCash: { minor: row.expected_cash_minor, currency: row.currency },
+    countedCash: { minor: row.counted_cash_minor, currency: row.currency },
+    variance: { minor: row.variance_minor, currency: row.currency },
+    createdAt: normalizeTimestamp(row.created_at),
+  };
+}
+
+function normalizeTimestamp(value: string): string {
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? value : new Date(parsed).toISOString();
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
