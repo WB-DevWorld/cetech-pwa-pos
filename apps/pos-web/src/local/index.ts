@@ -31,6 +31,11 @@ export {
   type UpdateSafetySnapshot,
 } from "./pwa-lifecycle";
 export {
+  createServiceWorkerLifecycle,
+  type ServiceWorkerLifecycleController,
+  type ServiceWorkerLifecycleOptions,
+} from "./service-worker-lifecycle";
+export {
   inspectLocalRecoveryState,
   type LocalRecoveryDiagnostics,
 } from "./recovery-diagnostics";
