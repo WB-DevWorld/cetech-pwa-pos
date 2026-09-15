@@ -17,10 +17,26 @@ describe("CORE-07 service worker safety invariants", () => {
     expect(installBlock).not.toContain("self.skipWaiting()");
   });
 
-  test("API/business responses are excluded from service-worker caching", () => {
-    expect(workerSource).toContain('url.pathname.startsWith("/api/")');
-    expect(workerSource).toContain('url.pathname.startsWith("/_next/static/")');
-    expect(workerSource).not.toContain("cache.put(request, response.clone());\n        return response;\n      }),\n    );\n    return;\n  }\n\n  if (request.mode");
+  test("API/business and navigation responses are excluded from persistent caching", () => {
+    const apiGuard = 'if (url.pathname.startsWith("/api/")) return;';
+    const staticBranch = 'if (url.pathname.startsWith("/_next/static/")) {';
+    const navigationBranch = 'if (request.mode === "navigate") {';
+
+    const apiGuardIndex = workerSource.indexOf(apiGuard);
+    const staticBranchIndex = workerSource.indexOf(staticBranch);
+    const navigationBranchIndex = workerSource.indexOf(navigationBranch);
+
+    expect(apiGuardIndex).toBeGreaterThanOrEqual(0);
+    expect(staticBranchIndex).toBeGreaterThan(apiGuardIndex);
+    expect(navigationBranchIndex).toBeGreaterThan(staticBranchIndex);
+
+    const staticCacheBlock = workerSource.slice(staticBranchIndex, navigationBranchIndex);
+    expect(staticCacheBlock).toContain("cache.put(request, response.clone())");
+
+    const navigationBlock = workerSource.slice(navigationBranchIndex);
+    expect(navigationBlock).not.toContain("cache.put(request");
+    expect(navigationBlock).toContain("fetch(request).catch");
+    expect(navigationBlock).toContain("cache.match(OFFLINE_URL)");
   });
 
   test("manifest is standalone and uses the controlled root scope", () => {
