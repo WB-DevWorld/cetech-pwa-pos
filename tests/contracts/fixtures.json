@@ -785,6 +785,54 @@
     }
   },
   {
+    "name": "completed return with all required effects completed",
+    "schema": "ReturnResolution",
+    "valid": true,
+    "value": {
+      "returnId": "33333333-3333-4333-8333-333333333333",
+      "status": "completed",
+      "providerRefund": {
+        "effectId": "44444444-4444-4444-8444-444444444444",
+        "status": "completed"
+      },
+      "cashRefund": {
+        "status": "not_required"
+      },
+      "commercialRefund": {
+        "effectId": "55555555-5555-4555-8555-555555555555",
+        "status": "completed"
+      },
+      "stockDisposition": {
+        "effectId": "66666666-6666-4666-8666-666666666666",
+        "status": "completed"
+      }
+    }
+  },
+  {
+    "name": "completed return with pending stock denied",
+    "schema": "ReturnResolution",
+    "valid": false,
+    "value": {
+      "returnId": "33333333-3333-4333-8333-333333333333",
+      "status": "completed",
+      "providerRefund": {
+        "effectId": "44444444-4444-4444-8444-444444444444",
+        "status": "completed"
+      },
+      "cashRefund": {
+        "status": "not_required"
+      },
+      "commercialRefund": {
+        "effectId": "55555555-5555-4555-8555-555555555555",
+        "status": "completed"
+      },
+      "stockDisposition": {
+        "effectId": "66666666-6666-4666-8666-666666666666",
+        "status": "pending"
+      }
+    }
+  },
+  {
     "name": "server refund request binds return and channel",
     "schema": "RefundRequest",
     "valid": true,

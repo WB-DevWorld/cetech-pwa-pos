@@ -1611,6 +1611,25 @@
       ],
       "additionalProperties": false
     },
+    "SettledIndependentEffectSummary": {
+      "type": "object",
+      "properties": {
+        "effectId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "completed",
+            "not_required"
+          ]
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    },
     "ReturnLineRequest": {
       "type": "object",
       "properties": {
@@ -1788,47 +1807,85 @@
       "additionalProperties": false
     },
     "ReturnResolution": {
-      "type": "object",
-      "properties": {
-        "returnId": {
-          "$ref": "#/$defs/Uuid"
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "returnId": {
+              "$ref": "#/$defs/Uuid"
+            },
+            "status": {
+              "const": "completed"
+            },
+            "message": {
+              "type": "string"
+            },
+            "providerRefund": {
+              "$ref": "#/$defs/SettledIndependentEffectSummary"
+            },
+            "cashRefund": {
+              "$ref": "#/$defs/SettledIndependentEffectSummary"
+            },
+            "commercialRefund": {
+              "$ref": "#/$defs/SettledIndependentEffectSummary"
+            },
+            "stockDisposition": {
+              "$ref": "#/$defs/SettledIndependentEffectSummary"
+            }
+          },
+          "required": [
+            "returnId",
+            "status",
+            "providerRefund",
+            "cashRefund",
+            "commercialRefund",
+            "stockDisposition"
+          ],
+          "additionalProperties": false
         },
-        "status": {
-          "type": "string",
-          "enum": [
-            "previewed",
-            "approval_required",
-            "refund_pending",
-            "in_progress",
-            "completed",
-            "requires_attention"
-          ]
-        },
-        "message": {
-          "type": "string"
-        },
-        "providerRefund": {
-          "$ref": "#/$defs/IndependentEffectSummary"
-        },
-        "cashRefund": {
-          "$ref": "#/$defs/IndependentEffectSummary"
-        },
-        "commercialRefund": {
-          "$ref": "#/$defs/IndependentEffectSummary"
-        },
-        "stockDisposition": {
-          "$ref": "#/$defs/IndependentEffectSummary"
+        {
+          "type": "object",
+          "properties": {
+            "returnId": {
+              "$ref": "#/$defs/Uuid"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "previewed",
+                "approval_required",
+                "refund_pending",
+                "in_progress",
+                "requires_attention"
+              ]
+            },
+            "message": {
+              "type": "string"
+            },
+            "providerRefund": {
+              "$ref": "#/$defs/IndependentEffectSummary"
+            },
+            "cashRefund": {
+              "$ref": "#/$defs/IndependentEffectSummary"
+            },
+            "commercialRefund": {
+              "$ref": "#/$defs/IndependentEffectSummary"
+            },
+            "stockDisposition": {
+              "$ref": "#/$defs/IndependentEffectSummary"
+            }
+          },
+          "required": [
+            "returnId",
+            "status",
+            "providerRefund",
+            "cashRefund",
+            "commercialRefund",
+            "stockDisposition"
+          ],
+          "additionalProperties": false
         }
-      },
-      "required": [
-        "returnId",
-        "status",
-        "providerRefund",
-        "cashRefund",
-        "commercialRefund",
-        "stockDisposition"
-      ],
-      "additionalProperties": false
+      ]
     },
     "RefundRequest": {
       "type": "object",

@@ -38,21 +38,6 @@ function remainingReturnableAllowed(
   return Number(requested) > 0 && Number(requested) <= cap + 1e-9;
 }
 
-function completedWouldLie(resolution: ReturnResolution): boolean {
-  if (resolution.status !== "completed") {
-    return false;
-  }
-  const effects = [
-    resolution.providerRefund,
-    resolution.cashRefund,
-    resolution.commercialRefund,
-    resolution.stockDisposition,
-  ];
-  return effects.some(
-    (effect) => effect.status !== "completed" && effect.status !== "not_required",
-  );
-}
-
 const previewRequest: ReturnPreviewRequest = {
   saleId: "sale-1",
   lines: [{ orderLineId: "line-1", quantity: "1", reason: "customer return", condition: "resellable" }],
@@ -224,12 +209,10 @@ describe("RT-01 return/refund/stock contract freeze", () => {
     };
     expect(validateCanonicalDef("ReturnResolution", moneyDoneStockPending)).toBe(true);
     expect(validateCanonicalDef("ReturnResolution", stockDoneMoneyAttention)).toBe(true);
-    expect(completedWouldLie(moneyDoneStockPending)).toBe(false);
-    expect(completedWouldLie(stockDoneMoneyAttention)).toBe(false);
   });
 
   test("global completed cannot lie about unresolved required effects; no-restock does not block", () => {
-    const lying: ReturnResolution = {
+    const lying = {
       returnId: RETURN,
       status: "completed",
       providerRefund: { effectId: REFUND, status: "completed" },
@@ -245,10 +228,17 @@ describe("RT-01 return/refund/stock contract freeze", () => {
       commercialRefund: { effectId: COMMERCIAL, status: "completed" },
       stockDisposition: { status: "not_required" },
     };
-    expect(validateCanonicalDef("ReturnResolution", lying)).toBe(true);
-    expect(completedWouldLie(lying)).toBe(true);
+    const allCompleted: ReturnResolution = {
+      returnId: RETURN,
+      status: "completed",
+      providerRefund: { effectId: REFUND, status: "completed" },
+      cashRefund: { status: "not_required" },
+      commercialRefund: { effectId: COMMERCIAL, status: "completed" },
+      stockDisposition: { effectId: STOCK, status: "completed" },
+    };
+    expect(validateCanonicalDef("ReturnResolution", lying)).toBe(false);
     expect(validateCanonicalDef("ReturnResolution", honestNoRestock)).toBe(true);
-    expect(completedWouldLie(honestNoRestock)).toBe(false);
+    expect(validateCanonicalDef("ReturnResolution", allCompleted)).toBe(true);
   });
 
   test("authorization identity stays on the session, not return request fields", () => {
