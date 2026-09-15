@@ -1,3 +1,75 @@
+# WS1 current handoff — FE-06 outstanding-return identity lock (TASK_COMPLETION FRESH_2)
+
+Kind / UTC: TASK_COMPLETION / 2026-09-15T19:33:28Z
+Handoff kind: REVIEW_FIX_RETURN
+Task / batch / workstream: FE-06 / issue #11 / WS1 HIGH outstanding-return identity lock
+Owner / integration editor / requested human reviewer: Ben / @Ben-001-sys owns WS1; WS3 independently reviews/imports the replacement FE-06 source into `batch/rt01-safe-returns-ws3-integrated`. Do not self-approve. Do not merge.
+Branch: `ws1/fe-06-implement-payment-returns-and-register-states`
+Starting/base SHA: `58d385300bfba784435448029e88f07742048cde`
+Prior published head (superseded): `91641f4f9ab242f3026cc47dcc5a8cc78d5b9c39`
+Prior implementation under review (superseded): `bb2010b260a78d3741186df48462b22f7ece3861`
+Remediation source SHA: `d3ddf0a7592845c710fe768b3645b9a9109693cb`
+Pre-handoff implementation SHA: `d3ddf0a7592845c710fe768b3645b9a9109693cb`
+Commit(s) / contributor source SHAs: `bb2010b260a78d3741186df48462b22f7ece3861`, `d3ddf0a7592845c710fe768b3645b9a9109693cb`
+Allowed / forbidden paths and central leases: `apps/pos-web/src/features/**`; `apps/pos-web/src/ui/**`; `tests/frontend/**`; this workstream STATUS/HANDOFF. No `src/app`, core/server/local/config, contracts, CURRENT-WORK, R7/RT-01/BR-08 branches, or provider adapters. Do not modify `batch/rt01-safe-returns-ws3-integrated`.
+Files changed this remediation: `returnView.ts` (`identityLocked` / `returnIdentityLocked`); `returnController.ts` (selectSale/updateLine/invalidatePreview/execute/reset no-op while locked; resolve API failure with outstanding `returnId` stays `requires_attention`); `ReturnFlow.tsx` / `ReturnsScreen.tsx` (disable lookup, sale selection, qty/reason/condition; Check return status only); 12 outstanding-identity regressions in `tests/frontend/returns-flow.test.ts`.
+Contracts changed: none. Frozen v1.0.0 consumed.
+Database migrations: none
+Architecture decisions: none authored. ADR-015 identity-preserving resolve/reconciliation is followed, not rewritten.
+Completed/current/remaining tasks: FE-06 HIGH outstanding-return abandonment remediated. WS3 still must mount `/returns` and `/register` screens and inject runtime ports. Do not start FE-07/R8.
+Dependencies (accepted / provisional SHA / prep-only / blocked): RT-01 contract freeze accepted at `58d3853`. Actual FE-06 integration receiver is `origin/batch/rt01-safe-returns-ws3-integrated` at `4650a0fa18c909743e9fbab4be0b6067bd1eff18` (classified COMPATIBLE / WS3-OWNED / DO_NOT_CONSUME). PAY-01 remains **PROVISIONAL_TEST**. BR-08 / RT-01 runtime producers not consumed as live acceptance.
+Tests executed:
+- `python3 scripts/verify_control_plane.py` → PASS (exit 0)
+- `pnpm --dir apps/pos-web lint` → exit 0
+- `pnpm --dir apps/pos-web typecheck` → exit 0
+- `pnpm --dir apps/pos-web test` → 64 files, 615 passed, exit 0
+- `pnpm --dir apps/pos-web test:e2e` → 7 passed, exit 0 (`next build` included)
+- `git diff --check` → clean
+- Pass 1/2 affected FE-06 files: `returns-flow` 25, `electronic-payment` + `register-close` combined 42 passed
+Runtime verification and tested combined SHA/environment: frontend spies/fakes only on remediation SHA `d3ddf0a`. Not live Paystack, refund, restock, or register accounting acceptance. `src/app` still owned by WS3; Returns/Register screens are exported seams, not mounted by this task.
+Remote effects performed: none (no production; no real refund/restock/electronic charge). Contributor branch push only after this handoff.
+Assumptions / limitations / unresolved risks: historic sale lookup remains an injected frontend seam; manager approval is injected and never fabricated; `PaymentPort.refund` is not called from the browser. PAY-01 is still PROVISIONAL_TEST. No live refund/restock/provider acceptance. WS3 RT-01 runtime on the receiver was inspected and not imported.
+Next exact action: WS3 independently reviews/imports the replacement FE-06 source into `batch/rt01-safe-returns-ws3-integrated`. Reassignment: NONE.
+
+Freshness protocol:
+START_FRESHNESS_SNAPSHOT UTC: 2026-09-15T19:25:32Z
+Start main SHA: `bd79c2901ce33c3177141d4244cc196be0a719d2`
+Start batch refs/SHAs: `origin/batch/r7-electronic-payment-reconciliation` `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091`; `origin/batch/rt01-safe-returns-ws3-integrated` `4650a0fa18c909743e9fbab4be0b6067bd1eff18`
+Historical contract provenance (not the current receiver): `origin/batch/rt01-safe-returns` `58d385300bfba784435448029e88f07742048cde`
+Prior FRESH_2 observing `batch/rt01-safe-returns` as the FE-06 receiver is superseded.
+Applicable contracts / ADRs / ownership / queue revision: v1.0.0; ADR-012; ADR-014; ADR-015; issue #11 ACTIVE for Ben/WS1
+
+Pass 1 fetch UTC / success evidence: 2026-09-15T19:32:12Z `git fetch origin --prune` succeeded
+Pass 1 main SHA: `bd79c2901ce33c3177141d4244cc196be0a719d2`
+Pass 1 R7 SHA: `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091`
+Pass 1 RT-01 WS3-integrated receiver SHA: `4650a0fa18c909743e9fbab4be0b6067bd1eff18`
+Relevant upstream paths and dependency/authority effects: main and R7 unchanged vs start snapshot. Receiver vs contract freeze `58d3853` contains 7 WS3 RT-01 runtime commits (`a701262`…`4650a0f`): `apps/pos-web/src/core/returns/**`, `src/server/returns/**`, refund server paths, `supabase/migrations/20260915200000_pos_returns.sql`, `tests/integration/returns/**`, WS3 STATUS/HANDOFF. Contracts/ADRs: no diff. FE-06 payment/returns/register-close files are absent on the receiver.
+Classification per change: main — IRRELEVANT (no arrivals). R7 — IRRELEVANT (no arrivals). WS3 receiver runtime — COMPATIBLE / WS3-OWNED / DO_NOT_CONSUME. Historical `batch/rt01-safe-returns` remains `58d3853` (contract provenance only).
+Actions taken / reconciliation commits: none. Did not merge or cherry-pick the WS3 receiver.
+Tests rerun / tested combined SHA: FE-06 frontend files 42 passed on `d3ddf0a7592845c710fe768b3645b9a9109693cb`
+
+Pass 2 fetch UTC / success evidence: 2026-09-15T19:33:28Z `git fetch origin --prune` succeeded
+Pass 2 main SHA: `bd79c2901ce33c3177141d4244cc196be0a719d2`
+Pass 2 R7 SHA: `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091`
+Pass 2 RT-01 WS3-integrated receiver SHA: `4650a0fa18c909743e9fbab4be0b6067bd1eff18`
+Relevant upstream paths and dependency/authority effects: none since Pass 1
+Classification per change: no arrivals — IRRELEVANT
+Actions taken / reconciliation commits: none
+Tests rerun / tested combined SHA: FE-06 frontend files 42 passed on `d3ddf0a7592845c710fe768b3645b9a9109693cb`
+
+Final freshness status: FRESH_2
+Delivery status: READY_FOR_INTEGRATION
+Pass 3: NOT PERMITTED for this assignment.
+Review/merge/release status and limitations: not merged; WS3 integration branch not modified; R7 remains DRAFT/sandbox-pending; no production promotion; no live refund/restock/provider acceptance.
+Metrics delta for CURRENT-WORK: not edited (forbidden this assignment).
+
+Review finding / severity / owning task / fix source/import SHAs: HIGH outstanding executed return can be abandoned; FE-06; fix `d3ddf0a7592845c710fe768b3645b9a9109693cb`; import SHA none (WS3 import pending).
+Explicit senior reassignment authority / scope / expiry: NONE
+Remote effects allowed (not inferred from this handoff): none
+Other independently authorized same-owner work: WAITING_FOR_OWNER (FE-07 not started)
+
+## Previous current handoff — FE-06 payment, returns, and register states (TASK_COMPLETION FRESH_2; superseded receiver target)
+
 # WS1 current handoff — FE-06 payment, returns, and register states (TASK_COMPLETION FRESH_2)
 
 Kind / UTC: TASK_COMPLETION / 2026-09-15T19:17:13Z
