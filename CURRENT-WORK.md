@@ -18,7 +18,7 @@ Ben and Emmanuel REQUEST_CHANGES on `f6f57cc…`. This lease does **not** rewrit
 | Task | `R6-REM-02 — final review security/correctness remediation` |
 | Original owner | `@wbdevworld` / WS3 |
 | Remediation owner | `@wbdevworld` / WS3 (same human/workstream; scope expansion, not a transfer) |
-| Evidence | `docs/integration/evidence/R6-REM-02-AUTHORITY.md`, `R6-REM-02-SOURCE.md`, `R6-REM-02-IMPORT.md` |
+| Evidence | `docs/integration/evidence/R6-REM-02-AUTHORITY.md`, `R6-REM-02-SOURCE.md`, `R6-REM-02-IMPORT.md`, `R6-REM-02-FRESHNESS.md` |
 | Expiry | when R6-REM-02 is imported/tested and the replacement candidate frozen, **or** PR #55 closed/merged, whichever first |
 
 | Role | SHA |
@@ -32,7 +32,7 @@ Authorized paths (use only when necessary): `CURRENT-WORK.md`; `apps/pos-web/src
 
 Forbidden: WS1 `apps/pos-web/src/features/**` and `src/ui/**`. WS2 plugin/tests as source. Frozen v1 contracts unless an unavoidable blocker follows the contract process. No second training sale.
 
-After this checkpoint: WS3 remediation branch `ws3/r6-rem-02-final-review-security` was created from the published authority SHA. Tested source `edafe1e…` was imported onto `batch/r6-first-real-cash-sale` as `82a85f4…`. Replacement FRESH_2 remains required on the frozen candidate.
+After this checkpoint: WS3 remediation branch `ws3/r6-rem-02-final-review-security` was created from the published authority SHA. Tested source `edafe1e…` was imported onto `batch/r6-first-real-cash-sale` as `82a85f4…`. Replacement FRESH_2 is recorded in `docs/integration/evidence/R6-REM-02-FRESHNESS.md` against freeze candidate `3f702f2…`.
 
 ## Temporary R6-REM-01 lease (ADR-014) — not retroactive
 
@@ -69,10 +69,10 @@ After this checkpoint: WS3 remediation branch `ws3/r6-rem-01-durable-runtime` fr
 - Production / Paystack / MoMo / card / returns / R7 remain unauthorized. Do not merge PR #55 from this lease.
 
 ```text
-CODE / CONTRACT / AUTOMATED COMBINED GATE: PASS (R6-REM-02 imported; replacement FRESH_2 pending)
+CODE / CONTRACT / AUTOMATED COMBINED GATE: PASS (R6-REM-02 imported; replacement FRESH_2 recorded)
 DURABLE POS RUNTIME GATE: PASS
 ISOLATED STAGING REAL-SALE GATE: PASS (order 49439 retained; no second sale)
-R6 FINAL REVIEW REMEDIATION: IMPORTED / COMBINED GATE PASS (R6-REM-02)
+R6 FINAL REVIEW REMEDIATION: IMPORTED / COMBINED GATE PASS / FRESH_2 (R6-REM-02)
 BEN BLOCKER: RESOLVED (durable prepare-scope binding)
 EMMANUEL BLOCKER 1: RESOLVED (completed-only commercial confirmation)
 EMMANUEL BLOCKER 2: RESOLVED (pre-effect cash validation)
