@@ -1,23 +1,42 @@
-# WS3 current handoff — R7 test-key hardening imported
+# WS3 current handoff — RT-01 contract freeze candidate
 
-Kind: PROGRESS_CHECKPOINT. Date: 2026-09-15T14:33:00Z.
+Kind: TASK_COMPLETION (contract-freeze only). Date: 2026-09-15.
 
-Task / batch / workstream: R7 / PAY-01 / #26 / issue #57 / WS3.
+Task / batch / workstream: RT-01 / #27 / WS3 contract refinement.
 Owner / integration editor: `@wbdevworld` / WS3.
-Mode: INTEGRATE.
-PR: #58 draft. Do not mark ready. Do not request reviewers.
+Mode: IMPLEMENT.
+Requested human reviewers: WS1 consumer `@Ben-001-sys`; WS2 producer `@Emmanuel-coder-prog`. Do not ping from this branch; ChatGPT review control requests them.
 
-Branch: `batch/r7-electronic-payment-reconciliation`
-Prior combined SHA: `dd6c91c27035e0387938d819f880b71b515b338e`
-REMEDIATION_SOURCE_SHA: `ac3340cf63eec771b194dd2c0d2eb54b2bf1b457`
-REMEDIATION_IMPORT_SHA: `cc5666fd3b31fa45f7da0a9045002ad3c5c72741`
+Branch: `ws3/rt-01-freeze-refund-wire-refinement-and-implement-s`
+Starting/base SHA: `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091`
+PAY-01 / R7 classification: PROVISIONAL_TEST (not merged, not live accepted).
+BR-07 / R6: ACCEPTED / MERGED through `bd79c2901ce33c3177141d4244cc196be0a719d2`.
+Contracts: v1.0.0 coordinated freeze candidate; ADR-015.
+Database migrations: none.
+Architecture decisions: ADR-015 candidate.
 
-Completed: positive `sk_test_` config + adapter defense imported.
-Current: push exact head, wait for CI, recheck approved TEST credentials.
-Remaining: sandbox gate; ChatGPT control. Milestone final freshness withheld unless sandbox PASSES.
+Allowed: `docs/contracts/**`; `docs/decisions/**`; WS3 STATUS/HANDOFF; `tests/contracts/**` (contract process).
+Forbidden / not done: `apps/pos-web/src/features/**`; `apps/pos-web/src/ui/**`; `wordpress/**`; `tests/bridge/**` as implementation; CURRENT-WORK; R8 PR; dependent RT-01 server/supabase engine; FE-06.
+
+Tests executed:
+- `python scripts/verify_control_plane.py` → PASS (30 tasks, 28 reference files, 79 schemas, 53 fixtures)
+- `python -m unittest discover -s tests/tooling -v` → 48 tests OK
+- `python scripts/generate_contract_types.py --check` → Generated TypeScript matches schema
+- `git diff --check` → clean
+- `pnpm install --frozen-lockfile` → ok
+- `pnpm --dir apps/pos-web lint` → ok
+- `pnpm --dir apps/pos-web typecheck` → ok
+- `pnpm --dir apps/pos-web test` → 61 files / 548 tests PASS
+- `pnpm --dir apps/pos-web build` → ok
+- `pnpm --dir apps/pos-web exec playwright test --workers=1` → 7 passed
+- Default parallel E2E once hit 3 goto timeouts during `next start` warmup; serial rerun passed. Not a contract defect.
+- Supabase reset/pgTAP: not run (no DB schema change in this freeze)
+- Bridge PHP: not modified; existing producer tests not required to implement new routes yet
+
+Remote effects: none.
+
+Next exact action: ChatGPT inspects this candidate and obtains WS1+WS2 reviews. No dependent implementation from this branch.
+
 Pass 3: NOT PERMITTED.
-
 Production promotion: NOT AUTHORIZED.
-Live electronic payment: NOT AUTHORIZED.
-R8: NOT STARTED.
-R7: NOT MERGED.
+R7: NOT MERGED; sandbox deferred.

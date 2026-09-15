@@ -1,21 +1,21 @@
 # WS3 current status
 
-Snapshot 2026-09-15. R6 is APPROVED / MERGED. `main` `bd79c2901ce33c3177141d4244cc196be0a719d2`. Post-merge CI `34966689340` SUCCESS.
+Snapshot 2026-09-15. Contributor branch `ws3/rt-01-freeze-refund-wire-refinement-and-implement-s` for RT-01 / #27 contract freeze.
 
-## R6
+## Starting truth
 
-PR #55 merged. CORE-06 / #25, R6-00 / #54, and CORE-HARDEN-07 / #56 are closed completed. Woo `49439` retained as historical evidence. No second training sale. Production promotion is not authorized. Issue #4 remains OPEN.
-
-## R7
-
-Active. Integration issue **#57**. Implementation **PAY-01 / #26**. Neutral branch `batch/r7-electronic-payment-reconciliation`. Owner `@wbdevworld` / WS3. Mode: INTEGRATE. PR **#58** is draft; do not mark ready.
-
-Control-plane review remediation imported: Paystack is ready only for `PAYSTACK_MODE=test` plus `sk_test_…`. Sandbox gate remains a separate credential check.
-
-| Role | SHA |
+| Role | SHA / classification |
 | --- | --- |
-| Post-R6 `main` | `bd79c2901ce33c3177141d4244cc196be0a719d2` |
-| R7_ACTIVATION_SHA | `0c34694882e69282b9e3df66104197394c55294e` |
-| Prior combined head | `dd6c91c27035e0387938d819f880b71b515b338e` |
-| REMEDIATION_SOURCE_SHA | `ac3340cf63eec771b194dd2c0d2eb54b2bf1b457` |
-| REMEDIATION_IMPORT_SHA | `cc5666fd3b31fa45f7da0a9045002ad3c5c72741` |
+| Post-R6 `main` | `bd79c2901ce33c3177141d4244cc196be0a719d2` ACCEPTED / MERGED |
+| PAY-01 / R7 code-ready head | `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091` PROVISIONAL_TEST |
+| RT-01 branch start | same as R7 head |
+
+R7 PR #58 remains draft. Sandbox credentials deferred. Do not classify R7 as MERGED / LIVE_ACCEPTED / PRODUCTION_READY / R7_COMPLETE. Issue #4 remains OPEN. `pricingParityVerified=false`. Production promotion is NOT AUTHORIZED.
+
+## RT-01
+
+Active contract-freeze batch. Owner `@wbdevworld` / WS3. Mode: IMPLEMENT. Task: RT-01 contract refinement only.
+
+Do not edit CURRENT-WORK from this branch. Do not open an R8 milestone PR. Do not implement WordPress refunds, real refunds/restocks, or dependent RT-01 server/supabase execution.
+
+Required later reviews (not requested from this branch): WS1 `@Ben-001-sys`, WS2 `@Emmanuel-coder-prog`.
