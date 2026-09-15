@@ -2,7 +2,7 @@
 
 BEGIN;
 
-SELECT plan(13);
+SELECT plan(14);
 
 SET ROLE anon;
 SELECT throws_ok(
