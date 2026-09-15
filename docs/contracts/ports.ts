@@ -20,6 +20,8 @@ export interface PaymentPort {
   resolve(input: D.PaymentLookup): Promise<ApiResult<D.PaymentState>>;
   /** Server-only; amount/channel derived from historic snapshot, never client-invented. */
   refund(input: D.RefundRequest, context: D.CommandContext): Promise<ApiResult<D.RefundState>>;
+  /** Server-only read/reconciliation of an existing refundId. Journal: refund.resolve. Not a new money effect. */
+  resolveRefund(input: D.RefundLookup): Promise<ApiResult<D.RefundState>>;
 }
 export interface CheckoutUseCases {
   prepare(input: D.PrepareSaleRequest, context: D.CommandContext): Promise<ApiResult<D.PreparedSale>>;

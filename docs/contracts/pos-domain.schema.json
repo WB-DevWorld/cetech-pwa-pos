@@ -1597,38 +1597,84 @@
       ]
     },
     "IndependentEffectSummary": {
-      "type": "object",
-      "properties": {
-        "effectId": {
-          "$ref": "#/$defs/Uuid"
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "effectId": {
+              "$ref": "#/$defs/Uuid"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "not_started",
+                "not_required"
+              ]
+            }
+          },
+          "required": [
+            "status"
+          ],
+          "additionalProperties": false
         },
-        "status": {
-          "$ref": "#/$defs/IndependentEffectStatus"
+        {
+          "type": "object",
+          "properties": {
+            "effectId": {
+              "$ref": "#/$defs/Uuid"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "not_found",
+                "completed",
+                "requires_attention"
+              ]
+            }
+          },
+          "required": [
+            "effectId",
+            "status"
+          ],
+          "additionalProperties": false
         }
-      },
-      "required": [
-        "status"
-      ],
-      "additionalProperties": false
+      ]
     },
     "SettledIndependentEffectSummary": {
-      "type": "object",
-      "properties": {
-        "effectId": {
-          "$ref": "#/$defs/Uuid"
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "effectId": {
+              "$ref": "#/$defs/Uuid"
+            },
+            "status": {
+              "const": "completed"
+            }
+          },
+          "required": [
+            "effectId",
+            "status"
+          ],
+          "additionalProperties": false
         },
-        "status": {
-          "type": "string",
-          "enum": [
-            "completed",
-            "not_required"
-          ]
+        {
+          "type": "object",
+          "properties": {
+            "effectId": {
+              "$ref": "#/$defs/Uuid"
+            },
+            "status": {
+              "const": "not_required"
+            }
+          },
+          "required": [
+            "status"
+          ],
+          "additionalProperties": false
         }
-      },
-      "required": [
-        "status"
-      ],
-      "additionalProperties": false
+      ]
     },
     "ReturnLineRequest": {
       "type": "object",
@@ -1953,6 +1999,18 @@
         "channel",
         "status",
         "amount"
+      ],
+      "additionalProperties": false
+    },
+    "RefundLookup": {
+      "type": "object",
+      "properties": {
+        "refundId": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "refundId"
       ],
       "additionalProperties": false
     },

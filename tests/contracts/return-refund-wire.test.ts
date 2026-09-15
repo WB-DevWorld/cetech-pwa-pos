@@ -20,6 +20,7 @@ const TX = "11111111-1111-4111-8111-111111111111";
 const PAYMENT = "22222222-2222-4222-8222-222222222222";
 const RETURN = "33333333-3333-4333-8333-333333333333";
 const REFUND = "44444444-4444-4444-8444-444444444444";
+const REFUND_B = "44444444-4444-4444-8444-444444444445";
 const COMMERCIAL = "55555555-5555-4555-8555-555555555555";
 const STOCK = "66666666-6666-4666-8666-666666666666";
 const ACTOR = "cashier-a";
@@ -297,19 +298,32 @@ describe("RT-01 return/refund/stock contract freeze", () => {
     expect(posPaths).toEqual(expect.arrayContaining(["/returns/preview", "/returns/execute", "/returns/{returnId}"]));
     expect(posPaths.some((path) => path.includes("commercial-refund"))).toBe(false);
     expect(posPaths.some((path) => path.includes("stock-disposition"))).toBe(false);
+    expect(JSON.stringify(posApi)).not.toContain("RefundLookup");
+    expect(JSON.stringify(posApi)).not.toContain("resolveRefund");
+    expect(JSON.stringify(bridgeApi)).not.toContain("RefundLookup");
+    expect(JSON.stringify(bridgeApi)).not.toContain("resolveRefund");
     const executeBody = posApi.paths["/returns/execute"].post.requestBody.content["application/json"].schema.$ref;
     expect(executeBody).toBe("./pos-domain.schema.json#/$defs/ReturnExecuteRequest");
   });
 
-  test("ports keep ReturnPort, PaymentPort.refund, and server-only BridgeReturnEffectsPort separate", () => {
+  test("ports keep ReturnPort, PaymentPort.refund, PaymentPort.resolveRefund, and server-only BridgeReturnEffectsPort separate", () => {
     expect(typeof ports).toBe("object");
     const source = readFileSync(new URL("../../docs/contracts/ports.ts", import.meta.url), "utf8");
     expect(source).toContain("export interface ReturnPort");
     expect(source).toContain("export interface BridgeReturnEffectsPort");
     expect(source).toContain("applyCommercialRefund");
     expect(source).toContain("applyStockDisposition");
+    expect(source).toMatch(
+      /refund\(input: D\.RefundRequest, context: D\.CommandContext\): Promise<ApiResult<D\.RefundState>>/,
+    );
+    expect(source).toMatch(/resolveRefund\(input: D\.RefundLookup\): Promise<ApiResult<D\.RefundState>>/);
+    expect(source).toMatch(/Journal: refund\.resolve/);
+    expect(source).not.toMatch(/resolveRefund\([^)]*CommandContext/);
+    expect(source).toMatch(/resolve\(input: D\.PaymentLookup\): Promise<ApiResult<D\.PaymentState>>/);
     expect(source).not.toMatch(/Paystack|Stripe|WooCommerce|MoMo/);
     expect(source).not.toContain("applyCommercialRefund(input: D.ReturnExecuteRequest");
+    expect(source).not.toContain("PaystackRefundLookup");
+    expect(source).not.toContain("WooRefundLookup");
   });
 
   test("cash and provider refund channels are distinct from commercial refund", () => {
@@ -336,6 +350,152 @@ describe("RT-01 return/refund/stock contract freeze", () => {
     expect(validateCanonicalDef("RefundRequest", { refundId: REFUND, paymentId: PAYMENT, transactionId: TX, amount: money })).toBe(
       false,
     );
+  });
+
+  test("RefundLookup is closed refundId-only and does not collapse by paymentId", () => {
+    expect(validateCanonicalDef("RefundLookup", { refundId: REFUND })).toBe(true);
+    expect(validateCanonicalDef("RefundLookup", { refundId: REFUND_B })).toBe(true);
+    expect(validateCanonicalDef("RefundLookup", { refundId: REFUND, amount: { minor: 500, currency: "GHS" } })).toBe(
+      false,
+    );
+    expect(validateCanonicalDef("RefundLookup", { refundId: REFUND, currency: "GHS" })).toBe(false);
+    expect(validateCanonicalDef("RefundLookup", { refundId: REFUND, paymentId: PAYMENT })).toBe(false);
+    expect(validateCanonicalDef("RefundLookup", { refundId: REFUND, providerReference: "pay_ref_1" })).toBe(false);
+    expect(validateCanonicalDef("RefundLookup", { refundId: REFUND, provider: "paystack" })).toBe(false);
+    expect(validateCanonicalDef("RefundLookup", { refundId: REFUND, status: "verified" })).toBe(false);
+    expect(validateCanonicalDef("RefundLookup", { refundId: REFUND, idempotencyKey: REFUND_B })).toBe(false);
+    expect(validateCanonicalDef("RefundLookup", { refundId: REFUND, organizationId: "org_a" })).toBe(false);
+    expect(validateCanonicalDef("RefundLookup", { refundId: REFUND, locationId: "loc_a1" })).toBe(false);
+    expect(validateCanonicalDef("RefundLookup", { refundId: REFUND, newRefundId: REFUND_B })).toBe(false);
+    expect(validateCanonicalDef("RefundLookup", { paymentId: PAYMENT })).toBe(false);
+    expect(domainSchema.$defs.RefundLookup.required).toEqual(["refundId"]);
+    expect(domainSchema.$defs.RefundLookup.additionalProperties).toBe(false);
+    expect(Object.keys(domainSchema.$defs.RefundLookup.properties)).toEqual(["refundId"]);
+  });
+
+  test("two partial refunds on one payment keep distinct refundIds; lookup of R1 cannot mean R2", () => {
+    const first = {
+      refundId: REFUND,
+      returnId: RETURN,
+      paymentId: PAYMENT,
+      transactionId: TX,
+      channel: "provider_electronic" as const,
+      amount: { minor: 500, currency: "GHS" as const },
+    };
+    const second = {
+      refundId: REFUND_B,
+      returnId: RETURN,
+      paymentId: PAYMENT,
+      transactionId: TX,
+      channel: "provider_electronic" as const,
+      amount: { minor: 300, currency: "GHS" as const },
+    };
+    expect(first.paymentId).toBe(second.paymentId);
+    expect(first.transactionId).toBe(second.transactionId);
+    expect(first.refundId).not.toBe(second.refundId);
+    expect(validateCanonicalDef("RefundRequest", first)).toBe(true);
+    expect(validateCanonicalDef("RefundRequest", second)).toBe(true);
+    const stateR1 = {
+      refundId: REFUND,
+      returnId: RETURN,
+      channel: "provider_electronic",
+      status: "verified",
+      amount: first.amount,
+    };
+    const stateR2 = {
+      refundId: REFUND_B,
+      returnId: RETURN,
+      channel: "provider_electronic",
+      status: "pending",
+      amount: second.amount,
+    };
+    expect(validateCanonicalDef("RefundState", stateR1)).toBe(true);
+    expect(validateCanonicalDef("RefundState", stateR2)).toBe(true);
+    expect(validateCanonicalDef("RefundLookup", { refundId: REFUND })).toBe(true);
+    expect(validateCanonicalDef("RefundLookup", { refundId: REFUND_B })).toBe(true);
+    expect(stateR1.refundId).not.toBe(stateR2.refundId);
+    expect(domainSchema.$defs.PaymentLookup.properties.paymentId).toBeDefined();
+    expect(domainSchema.$defs.RefundLookup.properties.paymentId).toBeUndefined();
+    expect(domainSchema.$defs.RefundLookup.properties.transactionId).toBeUndefined();
+  });
+
+  test("unknown payment.refund result resolves the same refundId and does not mint a replacement", () => {
+    const source = readFileSync(new URL("../../docs/contracts/ports.ts", import.meta.url), "utf8");
+    const operations = domainSchema.$defs.PendingOperation.properties.operation.enum as PendingOperation["operation"][];
+    expect(operations).toContain("payment.refund");
+    expect(operations).toContain("refund.resolve");
+    expect(source).toMatch(/refund\(input: D\.RefundRequest, context: D\.CommandContext\)/);
+    expect(source).toMatch(/resolveRefund\(input: D\.RefundLookup\): Promise<ApiResult<D\.RefundState>>/);
+    expect(source).toMatch(/Journal: refund\.resolve/);
+    expect(source).not.toMatch(/resolveRefund\([^)]*CommandContext/);
+    expect(source).not.toMatch(/resolveRefund\([^)]*Idempotency/);
+    expect(validateCanonicalDef("RefundLookup", { refundId: REFUND })).toBe(true);
+    expect(validateCanonicalDef("RefundLookup", { refundId: REFUND, newRefundId: REFUND_B })).toBe(false);
+    expect(
+      validateCanonicalDef("PendingOperation", {
+        id: "88888888-8888-4888-8888-888888888888",
+        transactionId: TX,
+        operation: "refund.resolve",
+        idempotencyKey: "99999999-9999-4999-8999-999999999999",
+        requestHash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        payloadVersion: "1.0.0",
+        status: "response_unknown",
+        attempts: 1,
+        createdAt: TS,
+      }),
+    ).toBe(true);
+  });
+
+  test("allocated independent effects require effectId; unallocated statuses may omit it", () => {
+    expect(validateCanonicalDef("IndependentEffectSummary", { status: "not_required" })).toBe(true);
+    expect(validateCanonicalDef("IndependentEffectSummary", { status: "not_started" })).toBe(true);
+    expect(validateCanonicalDef("IndependentEffectSummary", { effectId: REFUND, status: "not_started" })).toBe(true);
+    expect(validateCanonicalDef("IndependentEffectSummary", { status: "pending" })).toBe(false);
+    expect(validateCanonicalDef("IndependentEffectSummary", { status: "not_found" })).toBe(false);
+    expect(validateCanonicalDef("IndependentEffectSummary", { status: "completed" })).toBe(false);
+    expect(validateCanonicalDef("IndependentEffectSummary", { status: "requires_attention" })).toBe(false);
+    expect(validateCanonicalDef("IndependentEffectSummary", { effectId: REFUND, status: "pending" })).toBe(true);
+    expect(validateCanonicalDef("IndependentEffectSummary", { effectId: REFUND, status: "not_found" })).toBe(true);
+    expect(validateCanonicalDef("IndependentEffectSummary", { effectId: REFUND, status: "completed" })).toBe(true);
+    expect(validateCanonicalDef("IndependentEffectSummary", { effectId: REFUND, status: "requires_attention" })).toBe(
+      true,
+    );
+    expect(validateCanonicalDef("SettledIndependentEffectSummary", { status: "not_required" })).toBe(true);
+    expect(validateCanonicalDef("SettledIndependentEffectSummary", { status: "completed" })).toBe(false);
+    expect(validateCanonicalDef("SettledIndependentEffectSummary", { effectId: REFUND, status: "completed" })).toBe(
+      true,
+    );
+    expect(validateCanonicalDef("SettledIndependentEffectSummary", { status: "pending" })).toBe(false);
+  });
+
+  test("completed ReturnResolution still requires settled effects and completed effectIds", () => {
+    const completedMissingEffectId = {
+      returnId: RETURN,
+      status: "completed",
+      providerRefund: { status: "completed" },
+      cashRefund: { status: "not_required" },
+      commercialRefund: { effectId: COMMERCIAL, status: "completed" },
+      stockDisposition: { status: "not_required" },
+    };
+    const completedSettled = {
+      returnId: RETURN,
+      status: "completed",
+      providerRefund: { effectId: REFUND, status: "completed" },
+      cashRefund: { status: "not_required" },
+      commercialRefund: { effectId: COMMERCIAL, status: "completed" },
+      stockDisposition: { effectId: STOCK, status: "completed" },
+    };
+    const completedUnresolved = {
+      returnId: RETURN,
+      status: "completed",
+      providerRefund: { effectId: REFUND, status: "completed" },
+      cashRefund: { status: "not_required" },
+      commercialRefund: { effectId: COMMERCIAL, status: "completed" },
+      stockDisposition: { effectId: STOCK, status: "pending" },
+    };
+    expect(validateCanonicalDef("ReturnResolution", completedMissingEffectId)).toBe(false);
+    expect(validateCanonicalDef("ReturnResolution", completedSettled)).toBe(true);
+    expect(validateCanonicalDef("ReturnResolution", completedUnresolved)).toBe(false);
   });
 
   test("approval binding covers preview fingerprint, actor, and return identity", () => {
