@@ -43,7 +43,7 @@ INSERT INTO pos_cash_movements (
 );
 
 SELECT is(
-  (SELECT expected_cash_minor FROM pos_shifts WHERE id = current_setting('pos_test.close_shift')::uuid),
+  (SELECT expected_cash_minor::bigint FROM pos_shifts WHERE id = current_setting('pos_test.close_shift')::uuid),
   7500::bigint,
   'server-owned expected cash includes the cash movement before close'
 );
@@ -68,13 +68,13 @@ SELECT is(
 );
 
 SELECT is(
-  (SELECT counted_cash_minor FROM pos_shifts WHERE id = current_setting('pos_test.close_shift')::uuid),
+  (SELECT counted_cash_minor::bigint FROM pos_shifts WHERE id = current_setting('pos_test.close_shift')::uuid),
   7300::bigint,
   'counted cash is retained'
 );
 
 SELECT is(
-  (SELECT variance_minor FROM pos_shifts WHERE id = current_setting('pos_test.close_shift')::uuid),
+  (SELECT variance_minor::bigint FROM pos_shifts WHERE id = current_setting('pos_test.close_shift')::uuid),
   (-200)::bigint,
   'variance is derived from server-owned expected cash'
 );
@@ -87,7 +87,7 @@ SELECT is(
 );
 
 SELECT is(
-  (SELECT expected_cash_minor FROM pos_shift_reports
+  (SELECT expected_cash_minor::bigint FROM pos_shift_reports
     WHERE shift_id = current_setting('pos_test.close_shift')::uuid AND kind = 'Z'),
   7500::bigint,
   'Z report snapshots the authoritative expected cash'
