@@ -19,6 +19,7 @@ Current baseline established 2026-09-11 under explicit bootstrap authorization. 
 | [ADR-013](ADR/013.md) | Provider-neutral cart-level commercial discounts in Quote v1 | CURRENT; accepted through reviewed R3/#44 merge `516d6a49…` | 2026-09-13 | Negative Woo cart-level fees may occupy Quote.discount only when proven commercial; largest-remainder integer allocation | Undocumented last-line remainder stuffing on R3 `0.2.6-br02` | Quote, QuoteLine, Money; v1.0.0 structure unchanged | WS1/2/3 |
 
 | [ADR-014](ADR/014.md) | Ownership-preserving milestone execution and cross-owner provisional-SHA handoff | CURRENT human direction; repository adoption pending correction review/merge | 2026-09-13 | Prevent integration queue from becoming cross-owner implementation authority | ADR-012 unqualified continuation / R5+ contributor-PR reuse only | Workflow/handoff only; v1 unchanged | WS1/2/3 |
+| [ADR-015](ADR/015.md) | Independent return money and stock-disposition wires | CONTRACT REFINEMENT CANDIDATE / AWAITING REQUIRED CONSUMER+PRODUCER REVIEW | 2026-09-15 | Preview-only bridge cannot execute safe independent refund and restock effects | Decision Register UNRESOLVED refund bridge execution wires | ReturnPort, PaymentPort.refund, BridgeReturnEffectsPort, historic snapshot, bridge commercial-refund/stock-disposition | WS1/2/3 |
 
 | Fact/proposal | Status | Controlling treatment |
 | --- | --- | --- |
@@ -29,7 +30,7 @@ Current baseline established 2026-09-11 under explicit bootstrap authorization. 
 | Staging runtime versions / URL | User-reported evidence, 2026-09-12 | CP-04/live facts preserve provenance; no independent runtime test implied |
 | Stock mode, payment execution/settlement, tax, hardware | UNVERIFIED | CP-04/live facts; payment methods user-confirmed in use |
 | Repository visibility and developer access | CURRENT operational fact, 2026-09-12 | User made repo public; GitHub confirms public visibility and both developer write permissions; supersedes private bootstrap default |
-| Refund bridge execution wire endpoints | UNRESOLVED for M2 execution | RT-01 explicit refinement before implementation |
+| Refund bridge execution wire endpoints | CONTRACT REFINEMENT CANDIDATE / AWAITING REQUIRED CONSUMER+PRODUCER REVIEW | ADR-015; issue #27. Not implementation-complete. WS1 consumer review `@Ben-001-sys` and WS2 producer review `@Emmanuel-coder-prog` required before dependent RT-01/WS2 code. |
 | Multi-stock/fully offline/split tender scope | PROPOSED future capabilities | Disabled/deferred unless new approved decision |
 
 New ADRs require rationale, date, status, supersedes, affected contracts/owners and compatibility/evidence. Preserve history; do not overwrite accepted decisions to hide changes.
