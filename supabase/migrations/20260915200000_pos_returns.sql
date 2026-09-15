@@ -6,15 +6,17 @@ DO $$
 DECLARE
   r record;
 BEGIN
+  -- Inline CHECKs are stored as `= ANY (ARRAY[...])`, not `IN (...)`.
   FOR r IN
     SELECT c.conname
     FROM pg_constraint c
     JOIN pg_class t ON t.oid = c.conrelid
     JOIN pg_namespace n ON n.oid = t.relnamespace
+    JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = ANY (c.conkey)
     WHERE n.nspname = 'public'
       AND t.relname = 'pos_pending_operations'
       AND c.contype = 'c'
-      AND pg_get_constraintdef(c.oid) ILIKE '%operation IN%'
+      AND a.attname = 'operation'
   LOOP
     EXECUTE format('ALTER TABLE public.pos_pending_operations DROP CONSTRAINT %I', r.conname);
   END LOOP;
