@@ -2,7 +2,7 @@
 
 BEGIN;
 
-SELECT plan(12);
+SELECT plan(13);
 
 SET ROLE anon;
 SELECT throws_ok(
@@ -55,6 +55,7 @@ SELECT lives_ok(
        7300,
        'GHS',
        '77777777-7777-4777-8777-777777777701',
+       '88888888-8888-4888-8888-888888888801',
        repeat('a', 64)
      ) $$,
   'blind close succeeds without a client-supplied expected-cash value'
@@ -92,6 +93,16 @@ SELECT is(
   'Z report snapshots the authoritative expected cash'
 );
 
+SELECT is(
+  (SELECT correlation_id FROM pos_outbox_events
+    WHERE aggregate_type = 'shift'
+      AND aggregate_id = current_setting('pos_test.close_shift')
+      AND event_type = 'shift.closed'
+    LIMIT 1),
+  '88888888-8888-4888-8888-888888888801'::uuid,
+  'close outbox preserves the command correlation id'
+);
+
 SELECT lives_ok(
   $$ SELECT pos_close_shift_blind(
        'org_a',
@@ -99,6 +110,7 @@ SELECT lives_ok(
        7300,
        'GHS',
        '77777777-7777-4777-8777-777777777701',
+       '99999999-9999-4999-8999-999999999901',
        repeat('a', 64)
      ) $$,
   'same-key same-body close replay returns the existing closed outcome'
@@ -118,6 +130,7 @@ SELECT throws_ok(
        7200,
        'GHS',
        '77777777-7777-4777-8777-777777777701',
+       'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',
        repeat('b', 64)
      ) $$,
   '23505',
