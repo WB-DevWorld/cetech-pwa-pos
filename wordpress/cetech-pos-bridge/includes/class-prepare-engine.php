@@ -17,6 +17,8 @@ final class Cetech_Pos_Bridge_Prepare_Engine {
 	private $quote_store;
 	/** @var Cetech_Pos_Bridge_Claim_Store */
 	private $claims;
+	/** @var Cetech_Pos_Bridge_Command_Store */
+	private $commands;
 
 	/** @var callable|null test seam after claim insert, before lock/create */
 	public $after_claim = null;
@@ -27,12 +29,16 @@ final class Cetech_Pos_Bridge_Prepare_Engine {
 		Cetech_Pos_Bridge_Woo_Runtime $runtime,
 		Cetech_Pos_Bridge_Quote_Engine $quotes,
 		Cetech_Pos_Bridge_Quote_Store $quote_store,
-		Cetech_Pos_Bridge_Claim_Store $claims
+		Cetech_Pos_Bridge_Claim_Store $claims,
+		$commands = null
 	) {
 		$this->runtime     = $runtime;
 		$this->quotes      = $quotes;
 		$this->quote_store = $quote_store;
 		$this->claims      = $claims;
+		$this->commands    = $commands instanceof Cetech_Pos_Bridge_Command_Store
+			? $commands
+			: new Cetech_Pos_Bridge_Command_Store();
 	}
 
 	/**
@@ -84,17 +90,26 @@ final class Cetech_Pos_Bridge_Prepare_Engine {
 			$prepared = $this->decode_prepared( $claim );
 			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $prepared ) ) {
 				$this->mark_attention( $claim, 'Stored PreparedSale could not be decoded.' );
-				return $this->resolution( $transaction_id, 'requires_attention', null, null, 'Stored PreparedSale could not be decoded.' );
+				return $this->overlay_command_resolution(
+					$transaction_id,
+					$this->resolution( $transaction_id, 'requires_attention', null, null, 'Stored PreparedSale could not be decoded.' )
+				);
 			}
-			return $this->resolution(
+			return $this->overlay_command_resolution(
 				$transaction_id,
-				'prepared',
-				isset( $prepared['saleId'] ) ? $prepared['saleId'] : null,
-				isset( $prepared['orderReference'] ) ? $prepared['orderReference'] : null
+				$this->resolution(
+					$transaction_id,
+					'prepared',
+					isset( $prepared['saleId'] ) ? $prepared['saleId'] : null,
+					isset( $prepared['orderReference'] ) ? $prepared['orderReference'] : null
+				)
 			);
 		}
 		if ( $claim['internal_status'] === Cetech_Pos_Bridge_Claim_Store::STATUS_REQUIRES_ATTENTION ) {
-			return $this->resolution( $transaction_id, 'requires_attention', null, null, $claim['error_message'] );
+			return $this->overlay_command_resolution(
+				$transaction_id,
+				$this->resolution( $transaction_id, 'requires_attention', null, null, $claim['error_message'] )
+			);
 		}
 		if ( $claim['internal_status'] === Cetech_Pos_Bridge_Claim_Store::STATUS_TERMINAL_FAILURE ) {
 			return $this->resolution( $transaction_id, 'not_found', null, null, $claim['error_message'] );
@@ -102,28 +117,37 @@ final class Cetech_Pos_Bridge_Prepare_Engine {
 		$inspected = $this->inspect_recoverable_order( $claim );
 		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $inspected ) ) {
 			$message = method_exists( $inspected, 'get_error_message' ) ? $inspected->get_error_message() : 'Prepared sale requires attention.';
-			return $this->resolution( $transaction_id, 'requires_attention', null, null, $message );
+			return $this->overlay_command_resolution(
+				$transaction_id,
+				$this->resolution( $transaction_id, 'requires_attention', null, null, $message )
+			);
 		}
 		if ( is_array( $inspected ) ) {
-			return $this->resolution(
+			return $this->overlay_command_resolution(
 				$transaction_id,
-				'prepared',
-				isset( $inspected['saleId'] ) ? $inspected['saleId'] : null,
-				isset( $inspected['orderReference'] ) ? $inspected['orderReference'] : null
+				$this->resolution(
+					$transaction_id,
+					'prepared',
+					isset( $inspected['saleId'] ) ? $inspected['saleId'] : null,
+					isset( $inspected['orderReference'] ) ? $inspected['orderReference'] : null
+				)
 			);
 		}
 		if ( ! empty( $claim['woo_create_entered'] ) ) {
 			$located = $this->lookup_recoverable_order( $claim, false );
 			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $located ) ) {
 				$message = method_exists( $located, 'get_error_message' ) ? $located->get_error_message() : 'Prepared sale requires attention.';
-				return $this->resolution( $transaction_id, 'requires_attention', null, null, $message );
+				return $this->overlay_command_resolution( $transaction_id, $this->resolution( $transaction_id, 'requires_attention', null, null, $message ) );
 			}
 			if ( is_array( $located ) && count( $located ) === 1 ) {
-				return $this->resolution( $transaction_id, 'preparing' );
+				return $this->overlay_command_resolution( $transaction_id, $this->resolution( $transaction_id, 'preparing' ) );
 			}
-			return $this->resolution( $transaction_id, 'requires_attention', null, null, 'Woo order create was entered and no matching order could be reconciled.' );
+			return $this->overlay_command_resolution(
+				$transaction_id,
+				$this->resolution( $transaction_id, 'requires_attention', null, null, 'Woo order create was entered and no matching order could be reconciled.' )
+			);
 		}
-		return $this->resolution( $transaction_id, 'preparing' );
+		return $this->overlay_command_resolution( $transaction_id, $this->resolution( $transaction_id, 'preparing' ) );
 	}
 
 	private function create_with_lock( array $raw, $idempotency_key, $hash ) {
@@ -534,7 +558,86 @@ final class Cetech_Pos_Bridge_Prepare_Engine {
 		$this->claims->save( $claim );
 	}
 
-	private function resolution( $transaction_id, $status, $sale_id = null, $order_reference = null, $message = null ) {
+	private function overlay_command_resolution( $transaction_id, $base ) {
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $base ) || ! is_array( $base ) ) {
+			return $base;
+		}
+		$finalize = $this->commands->get_by_transaction_operation( $transaction_id, Cetech_Pos_Bridge_Constants::OPERATION_FINALIZE );
+		$cancel   = $this->commands->get_by_transaction_operation( $transaction_id, Cetech_Pos_Bridge_Constants::OPERATION_CANCEL );
+		$claim    = $this->claims->get_by_transaction( $transaction_id );
+		$snap     = null;
+		if ( is_array( $claim ) && isset( $claim['woo_order_id'] ) && $claim['woo_order_id'] !== '' && $claim['woo_order_id'] !== null ) {
+			$snap = $this->runtime->inspect_commercial_snapshot( $claim['woo_order_id'] );
+		}
+		$sale_id = isset( $base['saleId'] ) ? $base['saleId'] : null;
+		$order   = isset( $base['orderReference'] ) ? $base['orderReference'] : null;
+		if ( is_array( $snap ) ) {
+			if ( $sale_id === null && isset( $snap['saleId'] ) && $snap['saleId'] !== '' ) {
+				$sale_id = $snap['saleId'];
+			}
+			if ( $order === null && isset( $snap['orderReference'] ) && $snap['orderReference'] !== '' ) {
+				$order = $snap['orderReference'];
+			}
+		}
+		if ( is_array( $snap ) && ! empty( $snap['paid'] ) && ! empty( $snap['cancelled'] ) ) {
+			return $this->resolution( $transaction_id, 'requires_attention', $sale_id, $order, 'Woo paid and cancelled state is contradictory.', isset( $snap['paymentId'] ) ? $snap['paymentId'] : null );
+		}
+		if ( is_array( $finalize ) && $finalize['internal_status'] === Cetech_Pos_Bridge_Command_Store::STATUS_REQUIRES_ATTENTION ) {
+			$outcome = $this->decode_command_outcome( $finalize );
+			if ( is_array( $outcome ) ) {
+				return $outcome;
+			}
+			return $this->resolution( $transaction_id, 'requires_attention', $sale_id, $order, $finalize['error_message'] );
+		}
+		if ( is_array( $snap ) && ! empty( $snap['paid'] ) ) {
+			$payment_id = isset( $snap['paymentId'] ) ? $snap['paymentId'] : null;
+			if ( is_array( $finalize ) && isset( $finalize['payment_id'] ) && $finalize['payment_id'] !== '' && $payment_id !== null && (string) $finalize['payment_id'] !== (string) $payment_id ) {
+				return $this->resolution( $transaction_id, 'requires_attention', $sale_id, $order, 'Woo payment identity contradicts the finalize claim.' );
+			}
+			if ( $payment_id === null ) {
+				return $this->resolution( $transaction_id, 'requires_attention', $sale_id, $order, 'Woo order is paid but payment identity cannot be proven.' );
+			}
+			return $this->resolution( $transaction_id, 'completed', $sale_id, $order, null, $payment_id );
+		}
+		if ( is_array( $finalize ) && $finalize['internal_status'] === Cetech_Pos_Bridge_Command_Store::STATUS_COMPLETED ) {
+			$outcome = $this->decode_command_outcome( $finalize );
+			if ( is_array( $outcome ) ) {
+				return $outcome;
+			}
+		}
+		if ( is_array( $snap ) && ! empty( $snap['cancelled'] ) ) {
+			return $this->resolution( $transaction_id, 'cancelled', $sale_id, $order );
+		}
+		if ( is_array( $cancel ) && $cancel['internal_status'] === Cetech_Pos_Bridge_Command_Store::STATUS_COMPLETED ) {
+			$outcome = $this->decode_command_outcome( $cancel );
+			if ( is_array( $outcome ) ) {
+				return $outcome;
+			}
+			return $this->resolution( $transaction_id, 'cancelled', $sale_id, $order );
+		}
+		if ( is_array( $finalize ) && in_array( $finalize['internal_status'], array( Cetech_Pos_Bridge_Command_Store::STATUS_PENDING, Cetech_Pos_Bridge_Command_Store::STATUS_IN_PROGRESS ), true ) ) {
+			return $this->resolution( $transaction_id, 'finalizing', $sale_id, $order );
+		}
+		return $base;
+	}
+
+	/**
+	 * @param array<string,mixed> $claim
+	 * @return array<string,mixed>|null
+	 */
+	private function decode_command_outcome( array $claim ) {
+		if ( ! isset( $claim['outcome_json'] ) || ! is_string( $claim['outcome_json'] ) || $claim['outcome_json'] === '' ) {
+			return null;
+		}
+		$decoded = json_decode( $claim['outcome_json'], true );
+		if ( ! is_array( $decoded ) ) {
+			return null;
+		}
+		$violation = Cetech_Pos_Bridge_Schema::instance()->validate( $decoded, 'SaleResolution' );
+		return $violation === null ? $decoded : null;
+	}
+
+	private function resolution( $transaction_id, $status, $sale_id = null, $order_reference = null, $message = null, $payment_id = null ) {
 		$payload = array(
 			'transactionId' => $transaction_id,
 			'status'        => $status,
@@ -544,6 +647,9 @@ final class Cetech_Pos_Bridge_Prepare_Engine {
 		}
 		if ( is_string( $order_reference ) && $order_reference !== '' ) {
 			$payload['orderReference'] = $order_reference;
+		}
+		if ( is_string( $payment_id ) && $payment_id !== '' ) {
+			$payload['paymentId'] = $payment_id;
 		}
 		if ( is_string( $message ) && $message !== '' ) {
 			$payload['message'] = $message;

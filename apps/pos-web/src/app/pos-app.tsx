@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SellRuntimeScreen, type SellSessionPorts } from "../features/sell";
 import { createBrowserPricingPort } from "../features/sell/runtime/pricingClient";
+import { createBrowserCashCheckoutPorts, LOCAL_CHECKOUT_SCOPE } from "./checkout-client";
 import { AppShell, POS_ROUTE_HREFS, type PosRoute } from "../ui/shell";
 import {
   CASHIER_SEED_LOCATION_ID,
@@ -38,6 +39,7 @@ export function PosApp({ route }: { route: PosRoute }) {
     void (async () => {
       await ensureCashierLocalSeed();
       const db = openPosLocalDatabase();
+      const checkout = createBrowserCashCheckoutPorts({ scope: LOCAL_CHECKOUT_SCOPE });
       setPorts({
         catalog: createLocalCatalogPort({ db }),
         customers: createLocalCustomerPort({ db }),
@@ -47,6 +49,12 @@ export function PosApp({ route }: { route: PosRoute }) {
         locationId: CASHIER_SEED_LOCATION_ID,
         pricing: createBrowserPricingPort(),
         shiftOpen: true,
+        checkout: checkout.checkout,
+        payments: checkout.payments,
+        sales: checkout.sales,
+        receipts: checkout.receipts,
+        printer: checkout.printer,
+        checkoutScope: checkout.scope,
       });
     })();
   }, []);

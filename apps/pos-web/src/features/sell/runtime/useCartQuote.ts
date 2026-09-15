@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { QuoteRequest, QuoteState } from "../../../../../../docs/contracts/domain.generated";
+import type { Quote, QuoteRequest, QuoteState } from "../../../../../../docs/contracts/domain.generated";
 import type { PricingPort } from "../../../../../../docs/contracts/ports";
 import type { CheckoutEligibilityView, QuoteDisplayState } from "../state/quotePresentation";
 import type { CartLineView, CustomerSearchResultView, SellWorkspaceState } from "../state/sellView";
@@ -20,6 +20,7 @@ export type UseCartQuoteInput = {
 export type UseCartQuoteResult = {
   readonly quote?: QuoteDisplayState;
   readonly eligibility?: CheckoutEligibilityView;
+  readonly confirmedQuote?: Quote;
 };
 
 export type StoredRemoteQuote = {
@@ -201,5 +202,6 @@ export function useCartQuote(input: UseCartQuoteInput): UseCartQuoteResult {
   return {
     quote: quoteStateToDisplay(quote),
     eligibility,
+    confirmedQuote: quote.status === "confirmed" ? quote.quote : undefined,
   };
 }

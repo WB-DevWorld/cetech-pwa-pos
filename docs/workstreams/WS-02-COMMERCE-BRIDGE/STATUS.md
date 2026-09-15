@@ -1,16 +1,19 @@
 # WS2 current status
 
-Snapshot 2026-09-14. Issue #18 WS3 re-review remediation (comment 5664357878). Owner and actual implementer: Developer 2 / @Emmanuel-coder-prog. Current task **BR-06 / issue #18 GET-READONLY AND SNAPSHOT-SAFE REMEDIATION** on `ws2/br-06-implement-hpos-safe-idempotent-prepare-and-re`. Prior published head `312dcc3cebd644d5b6ea206210be437e3f001869`. Implementation SHA `fc89e5f03e822224bb8c9c4f2c4e2f663eccce9b`. This continuation does **not** start CORE-05 or BR-07 and does **not** modify `batch/r5-idempotent-prepare-cash`. Contract changes NONE. Bridge DB schema/version unchanged (v3). ADR changes NONE. Supabase changes NONE. Pricing formulas copied NONE. `pricingParityVerified` remains **false**. Issue #4 stays OPEN. Live HPOS write rehearsal PENDING. Real DB concurrency PENDING.
+Snapshot 2026-09-14. Issue #19 uncertain-money cancel safety remediation. Owner and actual implementer: Developer 2 / @Emmanuel-coder-prog / WS2. Current task **BR-07 / issue #19** on `ws2/br-07-implement-verified-commercial-finalization-an`. Prior published head `e15fbe09af261ecf6647ac8c6e778b42c08d96f3`. Remediation SHA `af9fab2f19e496481d3dd627a64419f880282cd6`. Durable `PENDING`/`IN_PROGRESS` finalize claims now block cancel with `PAYMENT_PENDING` before reservation release. DB version remains **4**. Contracts NONE. ADRs NONE. Supabase NONE. FE-05 NOT TOUCHED. CORE-06 NOT STARTED. Neutral R6 branch not modified. `pricingParityVerified` remains **false**. Issue #4 OPEN. Live HPOS PENDING. Real DB concurrency PENDING.
 
-Blocker 3: GET `/sales/{transactionId}` is Woo-read-only. Inspection (`inspect_recovered_order`) is separated from POST lock-held repair (`repair_recovered_order`). Mutation counters and a deep Woo snapshot stay unchanged across repeated/interleaved GET. POST retry under the existing creator lock owns snapshot repair, reservation, and PreparedSale persist.
+Canonical GNU Make: ephemeral `php:8.5-cli` (PHP **8.5.10**, GNU Make **4.4.1**). `check` PASS (42 files); `test` **1297 passed / 0 failed**; `parity` **138 passed / 0 failed / 19 skipped**. Host: `python scripts/verify_control_plane.py` PASS; derive `--check` PASS; `git diff --check` clean.
 
-Blocker 4: seam A is `after_initial_order_save` (token-only, zero Quote lines). Seam B is `after_quote_line` (mid-snapshot). Quote lines carry bridge-private `_cetech_pos_quote_line_id` from frozen `QuoteLine.lineId` on first durable item save. POST reconciles expected lines exactly; duplicate/unexpected/unidentifiable/wrong-product states are `REQUIRES_ATTENTION` without a second order or blind deletion.
+Routes: `POST /sales/finalize`, `POST /sales/cancel`. Durable command claims are separate from BR-06 prepare uniqueness. Shared transaction mutation lock `GET_LOCK('cetech_pos_tx_' . md5(site_scope|transactionId), 0)`. Official Woo: `WC_Order::payment_complete($paymentId)` and `wc_release_stock_for_order` + `update_status('cancelled')`. GET resolve remains observational. Frozen `CancelSaleRequest` has no PaymentState; bridge fail-closes on locally visible money uncertainty.
 
-Canonical GNU Make: ephemeral `php:8.5-cli` (PHP **8.5.10**, GNU Make **4.4.1**). `check` PASS (37 files); `test` **1020 passed / 0 failed**; `parity` **138 passed / 0 failed / 19 skipped**. Host: `python scripts/verify_control_plane.py` PASS; derive `--check` PASS; `git diff --check` clean.
+Canonical GNU Make: ephemeral `php:8.5-cli` (PHP **8.5.10**, GNU Make **4.4.1**). `check` PASS (42 files); `test` **1230 passed / 0 failed**; `parity` **138 passed / 0 failed / 19 skipped**. Host: `python scripts/verify_control_plane.py` PASS; derive `--check` PASS; `git diff --check` clean.
+
+BR-06 GET-readonly / snapshot-safe guarantees remain in force on this branch. Historical BR-06 blocker notes stay below.
 
 | Task | State | Branch / evidence |
 | --- | --- | --- |
-| BR-06 | WS3 BLOCKERS 3+4 REMEDIATED / CANONICAL MAKE VERIFIED; awaiting WS3 import | Issue #18. Not R5 complete. CORE-05 not started by WS2. BR-07 not started. |
+| BR-07 | UNCERTAIN-MONEY REMEDIATED / awaiting WS3 independent review/import | Issue #19. Prior head `e15fbe0`. Remediation `af9fab2`. |
+| BR-06 | INTEGRATED on main via R5 PR #53 | Historical. `bc606a690f0c167b7057e3ae9143337404275882`. |
 | HARDEN-03 | INTEGRATED on main via PRE-R5 PR #51 | Historical. |
 
 ## Previous snapshot (BR-06 WS3 blockers 1+2 — historical; current section above controls)

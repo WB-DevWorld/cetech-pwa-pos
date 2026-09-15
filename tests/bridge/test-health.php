@@ -43,7 +43,7 @@ function br01_authorized_env() {
 $plugin = new Cetech_Pos_Bridge_Plugin( new Cetech_Pos_Bridge_Test_Environment() );
 $plugin->register_routes();
 $routes = $plugin->get_registered_routes();
-br01_assert( count( $routes ) === 4, 'registers health, quote, prepare and resolve routes' );
+br01_assert( count( $routes ) === 6, 'registers health, quote, prepare, resolve, finalize and cancel routes' );
 br01_assert_eq( 'cetech-pos/v1', $routes[0]['namespace'], 'route namespace' );
 br01_assert_eq( '/health', $routes[0]['route'], 'health route path' );
 br01_assert_eq( 'GET', $routes[0]['args']['methods'], 'health route method' );
@@ -54,6 +54,10 @@ br01_assert_eq( '/sales/prepare', $routes[2]['route'], 'prepare route path' );
 br01_assert_eq( 'POST', $routes[2]['args']['methods'], 'prepare route method' );
 br01_assert_eq( Cetech_Pos_Bridge_Constants::RESOLVE_ROUTE, $routes[3]['route'], 'resolve route path' );
 br01_assert_eq( 'GET', $routes[3]['args']['methods'], 'resolve route method' );
+br01_assert_eq( '/sales/finalize', $routes[4]['route'], 'finalize route path' );
+br01_assert_eq( 'POST', $routes[4]['args']['methods'], 'finalize route method' );
+br01_assert_eq( '/sales/cancel', $routes[5]['route'], 'cancel route path' );
+br01_assert_eq( 'POST', $routes[5]['args']['methods'], 'cancel route method' );
 br01_assert( isset( $GLOBALS['cetech_pos_registered_routes'][0] ), 'register_rest_route invoked' );
 br01_assert_eq( 'cetech-pos/v1', $GLOBALS['cetech_pos_registered_routes'][0]['namespace'], 'captured namespace' );
 

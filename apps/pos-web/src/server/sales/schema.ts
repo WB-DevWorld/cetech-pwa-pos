@@ -2,12 +2,27 @@ import type {
   CashPaymentRequest,
   FinalizeSaleRequest,
   OpenShiftRequest,
+  PaymentLookup,
   PaymentState,
+  PreparedSale,
+  PrepareSaleRequest,
   ReceiptSnapshot,
   SaleResolution,
   Shift,
 } from "../../../../../docs/contracts/domain.generated";
 import { validateCanonicalDef } from "../quotes/canonical-schema";
+
+export function isPrepareSaleRequest(value: unknown): value is PrepareSaleRequest {
+  return validateCanonicalDef("PrepareSaleRequest", value);
+}
+
+export function isPreparedSale(value: unknown): value is PreparedSale {
+  return validateCanonicalDef("PreparedSale", value);
+}
+
+export function isPaymentLookup(value: unknown): value is PaymentLookup {
+  return validateCanonicalDef("PaymentLookup", value);
+}
 
 export function isCashPaymentRequest(value: unknown): value is CashPaymentRequest {
   return validateCanonicalDef("CashPaymentRequest", value);

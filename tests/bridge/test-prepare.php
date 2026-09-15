@@ -215,7 +215,7 @@ br01_assert( strpos( $sql, 'UNIQUE KEY uniq_transaction (site_scope, transaction
 br01_assert( strpos( $sql, 'woo_create_entered tinyint(1) NOT NULL DEFAULT 0' ) !== false, 'claim table persists woo_create_entered before wc_create_order' );
 br01_assert( strpos( $sql, 'woo_recovery_token char(64) NULL' ) !== false, 'claim table persists opaque Woo recovery token' );
 br01_assert( strpos( $sql, 'UNIQUE KEY uniq_recovery_token (site_scope, woo_recovery_token)' ) !== false, 'recovery token uniqueness is bridge-owned' );
-br01_assert_eq( '3', Cetech_Pos_Bridge_Constants::DB_VERSION, 'claim schema version includes woo_recovery_token' );
+br01_assert_eq( '4', Cetech_Pos_Bridge_Constants::DB_VERSION, 'claim schema version includes command claims' );
 br01_assert_eq( $sql, Cetech_Pos_Bridge_Schema_Install::create_table_sql( 'wp_cetech_pos_prepare_claims' ), 'CREATE TABLE SQL is deterministic across calls' );
 br01_assert_eq( 'wp_cetech_pos_prepare_claims', Cetech_Pos_Bridge_Schema_Install::table_name( (object) array( 'prefix' => 'wp_' ) ), 'bridge-owned table name' );
 

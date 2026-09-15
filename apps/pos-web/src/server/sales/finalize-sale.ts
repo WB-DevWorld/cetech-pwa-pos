@@ -18,6 +18,7 @@ import {
   type StoredPayment,
 } from "../../core/checkout/types";
 import { validateCanonicalDef } from "../quotes/canonical-schema";
+import { isSaleResolution } from "./schema";
 
 export async function finalizeSale(input: {
   readonly store: CheckoutStore;
@@ -29,8 +30,15 @@ export async function finalizeSale(input: {
 }): Promise<ApiResult<SaleResolution>> {
   const { store, salesPort, actor, request, context, now } = input;
   return store.withLock(`finalize:${request.transactionId}`, async () => {
+    const saleForClaim = await store.getSale(request.transactionId);
     const hash = await sha256Hex(canonicalJson(request));
-    const claim = await store.claimIdempotency(actor.organizationId, "sale.finalize", context.idempotencyKey, hash);
+    const claim = await store.claimIdempotency(
+      actor.organizationId,
+      "sale.finalize",
+      context.idempotencyKey,
+      hash,
+      saleForClaim?.locationId ?? actor.locationIds[0],
+    );
     if (claim.kind === "conflict") {
       return apiFailure(
         "IDEMPOTENCY_CONFLICT",
@@ -145,7 +153,10 @@ async function completeFinalize(input: {
     { transactionId: request.transactionId, payment: evidence },
     context,
   );
-  if (!commercial.ok && !sale.commercialConfirmed) {
+  if (sale.commercialConfirmed) {
+    return persistReceiptOrAttention({ store, sale, payment, request, context, now });
+  }
+  if (!commercial.ok) {
     sale = { ...sale, status: "requires_attention" };
     await store.saveSale(sale);
     await store.enqueueOutbox({
@@ -164,28 +175,48 @@ async function completeFinalize(input: {
       "commercial finalization failed; repair without creating a second sale",
     );
   }
-  if (commercial.ok || sale.commercialConfirmed) {
-    const confirmed = { ...sale, commercialConfirmed: true, status: "finalizing" as const };
-    try {
-      await store.saveSale(confirmed);
-      sale = confirmed;
-    } catch {
-      await store.enqueueOutbox({
-        id: crypto.randomUUID(),
-        organizationId: sale.organizationId,
-        aggregateType: "sale",
-        aggregateId: request.transactionId,
-        eventType: "sale.commercial_persist_repair",
-        payload: { transactionId: request.transactionId, paymentId: request.paymentId },
-        createdAt: toIsoTimestamp(now),
-      });
-      return attentionResolution(
-        sale,
-        request.paymentId,
-        context.correlationId,
-        "POS sale persistence failed after commercial finalization; retry without creating a second sale",
-      );
-    }
+  if (!isSaleResolution(commercial.data)) {
+    sale = { ...sale, status: "requires_attention", commercialConfirmed: false };
+    await store.saveSale(sale);
+    return attentionResolution(
+      sale,
+      request.paymentId,
+      context.correlationId,
+      "commercial finalizer returned an invalid SaleResolution",
+    );
+  }
+  if (commercial.data.status !== "completed") {
+    sale = { ...sale, status: "requires_attention", commercialConfirmed: false };
+    await store.saveSale(sale);
+    return attentionResolution(
+      sale,
+      request.paymentId,
+      context.correlationId,
+      commercial.data.status === "requires_attention"
+        ? (commercial.data.message ?? "commercial sale requires attention; do not complete locally")
+        : "commercial sale is not completed; do not fabricate a receipt",
+    );
+  }
+  const confirmed = { ...sale, commercialConfirmed: true, status: "finalizing" as const };
+  try {
+    await store.saveSale(confirmed);
+    sale = confirmed;
+  } catch {
+    await store.enqueueOutbox({
+      id: crypto.randomUUID(),
+      organizationId: sale.organizationId,
+      aggregateType: "sale",
+      aggregateId: request.transactionId,
+      eventType: "sale.commercial_persist_repair",
+      payload: { transactionId: request.transactionId, paymentId: request.paymentId },
+      createdAt: toIsoTimestamp(now),
+    });
+    return attentionResolution(
+      sale,
+      request.paymentId,
+      context.correlationId,
+      "POS sale persistence failed after commercial finalization; retry without creating a second sale",
+    );
   }
   return persistReceiptOrAttention({ store, sale, payment, request, context, now });
 }

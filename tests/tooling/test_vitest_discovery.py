@@ -19,6 +19,8 @@ REQUIRED_INCLUDE_AREAS = (
     'tests/integration/auth/',
     'tests/integration/health/',
     'tests/integration/sync/',
+    'tests/integration/sales/',
+    'tests/contracts/',
 )
 
 REQUIRED_EXCLUDE_MARKERS = (
@@ -45,6 +47,8 @@ SHOULD_MATCH = (
     '../../tests/integration/auth/staff-authorization.test.ts',
     '../../tests/integration/health/store-health.test.ts',
     '../../tests/integration/sync/catalog-projection.test.ts',
+    '../../tests/integration/sales/durable-checkout-store.test.ts',
+    '../../tests/contracts/producer-consumer.test.ts',
 )
 
 SHOULD_NOT_MATCH = (

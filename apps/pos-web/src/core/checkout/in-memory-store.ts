@@ -1,6 +1,7 @@
-import type { Id, PendingOperation, ReceiptSnapshot, Uuid } from "../../../../../docs/contracts/domain.generated";
+import type { Id, PendingOperation, Quote, ReceiptSnapshot, Uuid } from "../../../../../docs/contracts/domain.generated";
 import type {
-  CheckoutStore,
+  CommandScopeBinding,
+  FaultInjectingCheckoutStore,
   OutboxEvent,
   PosSaleRecord,
   StoredCashMovement,
@@ -17,27 +18,37 @@ type IdempotencyRow = {
   requestHash: string;
   status: PendingOperation["status"];
   outcome?: unknown;
+  locationId?: Id;
+  registerId?: Id;
+  shiftId?: Uuid;
+  transactionId?: Uuid;
 };
 
 function idempKey(organizationId: Id, operation: PendingOperation["operation"], key: Uuid): string {
   return `${organizationId}\0${operation}\0${key}`;
 }
 
-export function createInMemoryCheckoutStore(): CheckoutStore {
+function scopeKey(operation: PendingOperation["operation"], transactionId: Uuid): string {
+  return `${operation}\0${transactionId}`;
+}
+
+export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
   const registers = new Map<Id, StoredRegister>();
   const devices = new Map<Uuid, StoredDevice>();
   const shifts = new Map<Uuid, StoredShift>();
   const activeByRegister = new Map<Id, Uuid>();
   const movements: StoredCashMovement[] = [];
+  const quotes = new Map<Id, Quote>();
   const sales = new Map<Uuid, PosSaleRecord>();
   const payments = new Map<Uuid, StoredPayment>();
   const paymentsByTx = new Map<Uuid, Uuid>();
   const receipts = new Map<Uuid, ReceiptSnapshot>();
   const outbox: OutboxEvent[] = [];
   const idempotency = new Map<string, IdempotencyRow>();
+  const scopeByTransaction = new Map<string, CommandScopeBinding>();
   const chains = new Map<string, Promise<void>>();
 
-  const store: CheckoutStore = {
+  const store: FaultInjectingCheckoutStore = {
     failNextReceiptWrite: false,
     failNextPaymentWrite: false,
     failNextSaleWrite: false,
@@ -131,6 +142,14 @@ export function createInMemoryCheckoutStore(): CheckoutStore {
       return shifts.get(shiftId)?.expectedCash;
     },
 
+    async saveQuote(quote) {
+      quotes.set(quote.id, quote);
+    },
+
+    async getQuote(quoteId) {
+      return quotes.get(quoteId);
+    },
+
     async seedPreparedSale(input) {
       const record: PosSaleRecord = {
         ...input,
@@ -202,17 +221,39 @@ export function createInMemoryCheckoutStore(): CheckoutStore {
       return outbox.filter((event) => event.aggregateId === aggregateId);
     },
 
-    async claimIdempotency(organizationId, operation, idempotencyKey, requestHash) {
+    async lookupCommandScope(input) {
+      return scopeByTransaction.get(scopeKey(input.operation, input.transactionId));
+    },
+
+    async claimIdempotency(organizationId, operation, idempotencyKey, requestHash, locationId, scope) {
       const key = idempKey(organizationId, operation, idempotencyKey);
       const row = idempotency.get(key);
       if (!row) {
-        idempotency.set(key, {
+        const created: IdempotencyRow = {
           organizationId,
           operation,
           idempotencyKey,
           requestHash,
           status: "pending",
-        });
+          locationId,
+          registerId: scope?.registerId,
+          shiftId: scope?.shiftId,
+          transactionId: scope?.transactionId,
+        };
+        idempotency.set(key, created);
+        if (scope?.transactionId && locationId) {
+          const boundKey = scopeKey(operation, scope.transactionId);
+          if (!scopeByTransaction.has(boundKey)) {
+            scopeByTransaction.set(boundKey, {
+              organizationId,
+              locationId,
+              registerId: scope.registerId,
+              shiftId: scope.shiftId,
+              transactionId: scope.transactionId,
+              operation,
+            });
+          }
+        }
         return { kind: "acquired" };
       }
       if (row.requestHash !== requestHash) {

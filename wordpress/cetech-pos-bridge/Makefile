@@ -25,9 +25,13 @@ PHP_SOURCES := \
 	includes/class-request-hash.php \
 	includes/class-schema-install.php \
 	includes/class-claim-store.php \
+	includes/class-command-store.php \
 	includes/class-prepare-engine.php \
 	includes/class-prepare-controller.php \
 	includes/class-resolve-controller.php \
+	includes/class-command-engine.php \
+	includes/class-finalize-controller.php \
+	includes/class-cancel-controller.php \
 	includes/class-pricing-rules.php \
 	includes/class-plugin.php \
 	tools/derive-quote-contract.php
@@ -43,6 +47,7 @@ TEST_SOURCES := \
 	$(TEST_DIR)/test-pricing-rules.php \
 	$(TEST_DIR)/test-cart-discount.php \
 	$(TEST_DIR)/test-prepare.php \
+	$(TEST_DIR)/test-finalize-cancel.php \
 	$(TEST_DIR)/parity.php
 
 .PHONY: check test parity

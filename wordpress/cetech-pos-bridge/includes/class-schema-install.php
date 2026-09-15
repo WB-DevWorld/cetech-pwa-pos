@@ -54,14 +54,57 @@ final class Cetech_Pos_Bridge_Schema_Install {
 		) $charset;";
 	}
 
+	public static function command_table_name( $wpdb = null ) {
+		if ( $wpdb === null && isset( $GLOBALS['wpdb'] ) ) {
+			$wpdb = $GLOBALS['wpdb'];
+		}
+		$prefix = ( is_object( $wpdb ) && isset( $wpdb->prefix ) ) ? (string) $wpdb->prefix : 'wp_';
+		return $prefix . 'cetech_pos_command_claims';
+	}
+
+	/**
+	 * Durable finalize/cancel command claims. Separate from prepare claims so
+	 * UNIQUE(site_scope, transaction_id) on prepare is not overloaded.
+	 */
+	public static function create_command_table_sql( $table ) {
+		$charset = 'DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci';
+		if ( isset( $GLOBALS['wpdb'] ) && is_object( $GLOBALS['wpdb'] ) && method_exists( $GLOBALS['wpdb'], 'get_charset_collate' ) ) {
+			$charset = $GLOBALS['wpdb']->get_charset_collate();
+		}
+		return 'CREATE TABLE ' . $table . " (
+			claim_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			site_scope varchar(64) NOT NULL,
+			operation_type varchar(32) NOT NULL,
+			idempotency_key char(36) NOT NULL,
+			transaction_id char(36) NOT NULL,
+			request_hash char(64) NOT NULL,
+			payment_id char(36) NULL,
+			evidence_id char(36) NULL,
+			internal_status varchar(32) NOT NULL,
+			outcome_json longtext NULL,
+			error_code varchar(64) NULL,
+			error_message varchar(255) NULL,
+			error_details_json text NULL,
+			created_at datetime NOT NULL,
+			updated_at datetime NOT NULL,
+			PRIMARY KEY  (claim_id),
+			UNIQUE KEY uniq_idempotency (site_scope, operation_type, idempotency_key),
+			UNIQUE KEY uniq_command (site_scope, transaction_id, operation_type),
+			UNIQUE KEY uniq_payment (site_scope, payment_id),
+			UNIQUE KEY uniq_evidence (site_scope, evidence_id)
+		) $charset;";
+	}
+
 	public static function activate() {
 		global $wpdb;
-		$table = self::table_name( $wpdb );
-		$sql   = self::create_table_sql( $table );
+		$prepare_sql = self::create_table_sql( self::table_name( $wpdb ) );
+		$command_sql = self::create_command_table_sql( self::command_table_name( $wpdb ) );
 		if ( function_exists( 'dbDelta' ) ) {
-			dbDelta( $sql );
+			dbDelta( $prepare_sql );
+			dbDelta( $command_sql );
 		} elseif ( is_object( $wpdb ) && method_exists( $wpdb, 'query' ) ) {
-			$wpdb->query( $sql );
+			$wpdb->query( $prepare_sql );
+			$wpdb->query( $command_sql );
 		}
 		if ( function_exists( 'update_option' ) ) {
 			update_option( Cetech_Pos_Bridge_Constants::DB_VERSION_OPTION, Cetech_Pos_Bridge_Constants::DB_VERSION, true );

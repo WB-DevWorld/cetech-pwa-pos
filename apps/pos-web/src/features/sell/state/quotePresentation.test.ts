@@ -178,4 +178,17 @@ describe("FE-04 checkout eligibility presentation", () => {
     expect(pay.eligibilityAllowed).toBe(true);
     expect(pay.reason).toMatch(/Payment is not available/i);
   });
+
+  test("Pay becomes actionable only when eligibility is allowed and checkout runtime is ready", () => {
+    const pay = describePayButton({ allowed: true }, { checkoutReady: true });
+    expect(pay.disabled).toBe(false);
+    expect(pay.eligibilityAllowed).toBe(true);
+    expect(pay.reason).toBe("");
+  });
+
+  test("Pay stays disabled while a checkout command is in flight", () => {
+    const pay = describePayButton({ allowed: true }, { checkoutReady: true, inFlight: true });
+    expect(pay.disabled).toBe(true);
+    expect(pay.reason).toMatch(/in progress/i);
+  });
 });

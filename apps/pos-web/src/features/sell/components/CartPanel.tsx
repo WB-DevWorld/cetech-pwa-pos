@@ -133,6 +133,10 @@ export function CartPanel({
   onCloseMobile,
   quote,
   eligibility,
+  checkoutReady = false,
+  checkoutInFlight = false,
+  newSaleDisabled = false,
+  onPay,
 }: {
   revision: number;
   lines: readonly CartLineView[];
@@ -147,8 +151,12 @@ export function CartPanel({
   onCloseMobile: () => void;
   quote?: QuoteDisplayState;
   eligibility?: CheckoutEligibilityView;
+  checkoutReady?: boolean;
+  checkoutInFlight?: boolean;
+  newSaleDisabled?: boolean;
+  onPay?: () => void;
 }) {
-  const pay = describePayButton(eligibility);
+  const pay = describePayButton(eligibility, { checkoutReady, inFlight: checkoutInFlight });
   return (
     <aside className={mobileOpen ? "cart-panel mobile-open" : "cart-panel"} aria-label="Current cart">
       <div className="cart-head">
@@ -161,7 +169,7 @@ export function CartPanel({
             <button type="button" className="btn cart-back" onClick={onCloseMobile}>
               Back
             </button>
-            <button type="button" className="btn" onClick={onNewSale}>
+            <button type="button" className="btn" onClick={onNewSale} disabled={newSaleDisabled}>
               New sale
             </button>
           </div>
@@ -204,7 +212,15 @@ export function CartPanel({
         )}
       </div>
       <div className="cart-footer">
-        <button className="btn primary block pay-btn" type="button" disabled>
+        <button
+          className="btn primary block pay-btn"
+          type="button"
+          disabled={pay.disabled}
+          onClick={() => {
+            if (pay.disabled) return;
+            onPay?.();
+          }}
+        >
           Pay
         </button>
         {eligibility ? (

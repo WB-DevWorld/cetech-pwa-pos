@@ -8,10 +8,13 @@ export type DecimalParseResult =
 
 const DECIMAL_PATTERN = /^(0|[1-9]\d*)(?:\.(\d{0,2}))?$/;
 
-export function parseDecimalToMinorUnits(raw: string): DecimalParseResult {
+export function parseDecimalToMinorUnits(
+  raw: string,
+  options?: { readonly emptyMessage?: string },
+): DecimalParseResult {
   const cleaned = raw.trim();
   if (!cleaned) {
-    return { ok: false, message: "Enter an opening amount." };
+    return { ok: false, message: options?.emptyMessage ?? "Enter an opening amount." };
   }
   const match = DECIMAL_PATTERN.exec(cleaned);
   if (!match) {

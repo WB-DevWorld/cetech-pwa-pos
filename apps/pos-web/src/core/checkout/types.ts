@@ -9,6 +9,7 @@ import type {
   ReceiptSnapshot,
   Register,
   SaleStatus,
+  Quote,
   Session,
   Shift,
   Timestamp,
@@ -93,6 +94,21 @@ export type IdempotencyClaim =
   | { readonly kind: "replay"; readonly outcome: unknown }
   | { readonly kind: "repair"; readonly outcome: unknown };
 
+export type CommandScopeBinding = {
+  readonly organizationId: Id;
+  readonly locationId: Id;
+  readonly registerId?: Id;
+  readonly shiftId?: Uuid;
+  readonly transactionId: Uuid;
+  readonly operation: PendingOperation["operation"];
+};
+
+export type CommandScopeFields = {
+  readonly registerId?: Id;
+  readonly shiftId?: Uuid;
+  readonly transactionId?: Uuid;
+};
+
 export type SeedPreparedSaleInput = {
   readonly organizationId: Id;
   readonly locationId: Id;
@@ -123,6 +139,8 @@ export interface CheckoutStore {
   appendCashMovement(movement: StoredCashMovement): Promise<"ok" | "duplicate_sale" | "shift_required" | "negative_expected">;
   listCashSales(transactionId: Uuid): Promise<readonly StoredCashMovement[]>;
   expectedCash(shiftId: Uuid): Promise<Money | undefined>;
+  saveQuote(quote: Quote): Promise<void>;
+  getQuote(quoteId: Id): Promise<Quote | undefined>;
   seedPreparedSale(input: SeedPreparedSaleInput): Promise<PosSaleRecord>;
   getSale(transactionId: Uuid): Promise<PosSaleRecord | undefined>;
   saveSale(sale: PosSaleRecord): Promise<void>;
@@ -133,11 +151,17 @@ export interface CheckoutStore {
   saveReceipt(receipt: ReceiptSnapshot): Promise<"ok" | "duplicate">;
   enqueueOutbox(event: OutboxEvent): Promise<void>;
   listOutbox(aggregateId: string): Promise<readonly OutboxEvent[]>;
+  lookupCommandScope(input: {
+    readonly transactionId: Uuid;
+    readonly operation: PendingOperation["operation"];
+  }): Promise<CommandScopeBinding | undefined>;
   claimIdempotency(
     organizationId: Id,
     operation: PendingOperation["operation"],
     idempotencyKey: Uuid,
     requestHash: string,
+    locationId?: Id,
+    scope?: CommandScopeFields,
   ): Promise<IdempotencyClaim>;
   markIdempotencySent(organizationId: Id, operation: PendingOperation["operation"], idempotencyKey: Uuid): Promise<void>;
   acknowledgeIdempotency(
@@ -159,6 +183,13 @@ export interface CheckoutStore {
     operation: PendingOperation["operation"],
     idempotencyKey: Uuid,
   ): Promise<PendingOperation["status"] | undefined>;
+}
+
+/**
+ * Test-only persistence faults. Durable adapters must not carry process-local
+ * fault switches as business semantics.
+ */
+export interface FaultInjectingCheckoutStore extends CheckoutStore {
   failNextReceiptWrite: boolean;
   failNextPaymentWrite: boolean;
   failNextSaleWrite: boolean;

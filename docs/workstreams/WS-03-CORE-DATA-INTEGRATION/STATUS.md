@@ -1,17 +1,21 @@
 # WS3 current status
 
-Snapshot 2026-09-14. PRE-R5 hardening remains **APPROVED / MERGED / POST-MERGE VERIFIED** on `main` `da86434cc471703b8309cea77cda88b7845c299b`.
+Snapshot 2026-09-15. R5 remains APPROVED / MERGED. `main` `bc606a690f0c167b7057e3ae9143337404275882`.
 
-## R5
+## R6
 
-R5 is **REMEDIATED / AWAITING FINAL EXACT-HEAD CI + FRESH_2 + BEN RE-REVIEW** on issue #52 and PR #53 / `batch/r5-idempotent-prepare-cash`.
+Draft PR #55 / `batch/r6-first-real-cash-sale`. Do not merge. Do not start R7. Production promotion is not authorized. Issue #4 remains OPEN.
 
-- BR-06 / #18 — `@Emmanuel-coder-prog` / WS2: accepted source `a0fa00d452c3a672d97c5a3cb253a5ca6f11cf8f`; import `30af336925fd29dc43e7315d81919ae2a7bd5bfc`; tested `BR06_INTEGRATION_SHA=15baab1b47a35902b8a3ddde989df55cc4b25436`; CI `34855313462` SUCCESS. **UNCHANGED / ACCEPTED.**
-- CORE-05 / #24 — `@wbdevworld` / WS3: initial remediated source `5c5c93f523ac9a5218cc916a8a6b6503cca4df75` was imported as `53b3982772b35886b3ac0fa0d50e374e9e359752`; Ben then requested one narrow fresh-idempotency-key cash-evidence fix on R5 head `f0ddc31f1ee1d9cd69768049ec33da839ab8185a`.
-- Ben-review CORE-05 fix: source `80414c6396832b9f9ec209cdec6e73ab19cd160a`; source CI `34870285209` SUCCESS; source handoff FRESH_2; imported as `bc14b1e860a992ba432ff752f3ab15e4ad5c1001`; combined CI `34870882712` SUCCESS.
+R6-REM-02 imported. Combined automated gate PASS. Exact-head CI PASS on freeze candidate `3f702f2353a3b9911dd0571e59e8cc2fbeefa535`. Replacement **FRESH_2** recorded in `docs/integration/evidence/R6-REM-02-FRESHNESS.md`. Historical `FRESH_2` on `f6f57cc…` remains valid only for the pre-remediation reviewed head.
 
-The fresh-key cash blocker is closed: sale/org/location/economic invariants are checked before existing-payment reuse, and a fresh key can reuse recorded cash evidence only when `saleId`, amount and exact `cashReceived` match. Wrong currency, underpayment and materially different cash received fail closed without a second cash ledger effect.
+| Role | SHA |
+| --- | --- |
+| Reviewed head | `f6f57cc39b77dd576734a5b8fb5f89be3027c44c` |
+| Authority | `922720ccbc9e12c535c765c44f1dfea887b19ccc` |
+| Source | `edafe1e64c869528f57eb8e4bba8b317b33a46c4` |
+| Import | `82a85f4082f461a2709ccfece9a73e4e8872d3d3` |
+| Freeze candidate (pre-freshness docs) | `3f702f2353a3b9911dd0571e59e8cc2fbeefa535` |
 
-Frozen contracts v1.0.0 and ADRs remain unchanged. Issue #4 remains OPEN. `pricingParityVerified=false`. BR-07 remains future R6 work; CORE-05 still uses the authorized mock boundary. No production promotion is authorized.
+Ben blocker resolved. Emmanuel blockers 1 and 2 resolved. No FE-05 source change. No BR-07 source change. No second staging sale. Woo `49439` retained.
 
-Next exact action: freeze the final integration-control head, require exact-head CI, perform exactly two final ADR-012 freshness observations, and re-request `@Ben-001-sys` on that exact head. No Pass 3. No self-approval. R6 remains NOT STARTED.
+The freshness evidence commit produces a later exact head that must have its own green required workflows.
