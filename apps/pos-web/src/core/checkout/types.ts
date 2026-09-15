@@ -94,6 +94,21 @@ export type IdempotencyClaim =
   | { readonly kind: "replay"; readonly outcome: unknown }
   | { readonly kind: "repair"; readonly outcome: unknown };
 
+export type CommandScopeBinding = {
+  readonly organizationId: Id;
+  readonly locationId: Id;
+  readonly registerId?: Id;
+  readonly shiftId?: Uuid;
+  readonly transactionId: Uuid;
+  readonly operation: PendingOperation["operation"];
+};
+
+export type CommandScopeFields = {
+  readonly registerId?: Id;
+  readonly shiftId?: Uuid;
+  readonly transactionId?: Uuid;
+};
+
 export type SeedPreparedSaleInput = {
   readonly organizationId: Id;
   readonly locationId: Id;
@@ -136,12 +151,17 @@ export interface CheckoutStore {
   saveReceipt(receipt: ReceiptSnapshot): Promise<"ok" | "duplicate">;
   enqueueOutbox(event: OutboxEvent): Promise<void>;
   listOutbox(aggregateId: string): Promise<readonly OutboxEvent[]>;
+  lookupCommandScope(input: {
+    readonly transactionId: Uuid;
+    readonly operation: PendingOperation["operation"];
+  }): Promise<CommandScopeBinding | undefined>;
   claimIdempotency(
     organizationId: Id,
     operation: PendingOperation["operation"],
     idempotencyKey: Uuid,
     requestHash: string,
     locationId?: Id,
+    scope?: CommandScopeFields,
   ): Promise<IdempotencyClaim>;
   markIdempotencySent(organizationId: Id, operation: PendingOperation["operation"], idempotencyKey: Uuid): Promise<void>;
   acknowledgeIdempotency(

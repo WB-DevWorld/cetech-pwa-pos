@@ -3,6 +3,7 @@ import type { SaleResolution, Uuid } from "../../../../../docs/contracts/domain.
 import { apiFailure } from "../http/api-failure";
 import type { CheckoutStore, PosSaleRecord, StaffActor } from "../../core/checkout/types";
 import { isSaleResolution } from "./schema";
+import { assertActorCanAccessSale, assertBindingMatchesActor } from "./transaction-scope";
 
 export async function resolveSale(input: {
   readonly store: CheckoutStore;
@@ -13,13 +14,31 @@ export async function resolveSale(input: {
 }): Promise<ApiResult<SaleResolution>> {
   const local = await input.store.getSale(input.transactionId);
   if (local) {
-    if (local.organizationId !== input.actor.organizationId) {
-      return apiFailure("FORBIDDEN", "sale organization is out of staff scope", input.correlationId);
-    }
-    if (!input.actor.locationIds.includes(local.locationId)) {
-      return apiFailure("FORBIDDEN", "sale location is out of staff scope", input.correlationId);
+    const access = assertActorCanAccessSale({
+      sale: local,
+      actor: input.actor,
+      correlationId: input.correlationId,
+    });
+    if (!access.ok) {
+      return access;
     }
     return { ok: true, data: resolutionFromRecord(local), correlationId: input.correlationId };
+  }
+
+  const binding = await input.store.lookupCommandScope({
+    transactionId: input.transactionId,
+    operation: "sale.prepare",
+  });
+  if (!binding) {
+    return apiFailure("NOT_FOUND", "sale was not found", input.correlationId);
+  }
+  const allowed = assertBindingMatchesActor({
+    binding,
+    actor: input.actor,
+    correlationId: input.correlationId,
+  });
+  if (!allowed.ok) {
+    return allowed;
   }
 
   const remote = await input.salesPort.resolve(input.transactionId);

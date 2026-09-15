@@ -11,6 +11,7 @@ import { toIsoTimestamp } from "../auth/ids";
 import { apiFailure } from "../http/api-failure";
 import { moneyEqual, type CheckoutStore, type StaffActor } from "../../core/checkout/types";
 import { isPreparedSale } from "./schema";
+import { assertBindingMatchesPrepareRequest, assertSaleMatchesPrepareRequest } from "./transaction-scope";
 
 export async function prepareSale(input: {
   readonly store: CheckoutStore;
@@ -22,7 +23,47 @@ export async function prepareSale(input: {
 }): Promise<ApiResult<PreparedSale>> {
   const { store, salesPort, actor, request, context, now } = input;
   return store.withLock(`prepare:${request.transactionId}`, async () => {
-    const registerForClaim = await store.getRegister(request.registerId);
+    const existing = await store.getSale(request.transactionId);
+    if (existing) {
+      const matched = assertSaleMatchesPrepareRequest({
+        sale: existing,
+        actor,
+        request,
+        correlationId: context.correlationId,
+      });
+      if (!matched.ok) {
+        return matched;
+      }
+      if (existing.prepared.quoteFingerprint !== request.quoteFingerprint) {
+        return apiFailure(
+          "REQUIRES_ATTENTION",
+          "This transaction already has a prepared sale with a different quote",
+          context.correlationId,
+        );
+      }
+    } else {
+      const scoped = await assertPrepareScope({ store, actor, request, context, now });
+      if (!scoped.ok) {
+        return scoped;
+      }
+      const foreign = await store.lookupCommandScope({
+        transactionId: request.transactionId,
+        operation: "sale.prepare",
+      });
+      if (foreign) {
+        const bound = assertBindingMatchesPrepareRequest({
+          binding: foreign,
+          actor,
+          request,
+          correlationId: context.correlationId,
+        });
+        if (!bound.ok) {
+          return bound;
+        }
+      }
+    }
+
+    const registerForClaim = existing ?? (await store.getRegister(request.registerId));
     const hash = await sha256Hex(canonicalJson(request));
     const claim = await store.claimIdempotency(
       actor.organizationId,
@@ -30,6 +71,11 @@ export async function prepareSale(input: {
       context.idempotencyKey,
       hash,
       registerForClaim?.locationId ?? actor.locationIds[0],
+      {
+        registerId: existing?.registerId ?? request.registerId,
+        shiftId: existing?.shiftId ?? request.shiftId,
+        ...(existing ? {} : { transactionId: request.transactionId }),
+      },
     );
     if (claim.kind === "conflict") {
       return apiFailure(
@@ -94,6 +140,15 @@ async function completePrepare(input: {
 }): Promise<ApiResult<PreparedSale>> {
   const existing = await input.store.getSale(input.request.transactionId);
   if (existing) {
+    const matched = assertSaleMatchesPrepareRequest({
+      sale: existing,
+      actor: input.actor,
+      request: input.request,
+      correlationId: input.context.correlationId,
+    });
+    if (!matched.ok) {
+      return matched;
+    }
     if (existing.prepared.quoteFingerprint !== input.request.quoteFingerprint) {
       return apiFailure(
         "REQUIRES_ATTENTION",
@@ -144,7 +199,32 @@ async function recoverPrepared(input: {
 }): Promise<ApiResult<PreparedSale>> {
   const local = await input.store.getSale(input.request.transactionId);
   if (local) {
+    const matched = assertSaleMatchesPrepareRequest({
+      sale: local,
+      actor: input.actor,
+      request: input.request,
+      correlationId: input.context.correlationId,
+    });
+    if (!matched.ok) {
+      return matched;
+    }
     return { ok: true, data: local.prepared, correlationId: input.context.correlationId };
+  }
+  const binding = await input.store.lookupCommandScope({
+    transactionId: input.request.transactionId,
+    operation: "sale.prepare",
+  });
+  if (!binding) {
+    return apiFailure("NOT_FOUND", "prepared sale was not found", input.context.correlationId);
+  }
+  const bound = assertBindingMatchesPrepareRequest({
+    binding,
+    actor: input.actor,
+    request: input.request,
+    correlationId: input.context.correlationId,
+  });
+  if (!bound.ok) {
+    return bound;
   }
   const resolved = await input.salesPort.resolve(input.request.transactionId);
   if (!resolved.ok) {
@@ -240,6 +320,15 @@ async function persistPrepared(input: {
 }): Promise<ApiResult<PreparedSale>> {
   const existing = await input.store.getSale(input.request.transactionId);
   if (existing) {
+    const matched = assertSaleMatchesPrepareRequest({
+      sale: existing,
+      actor: input.actor,
+      request: input.request,
+      correlationId: input.context.correlationId,
+    });
+    if (!matched.ok) {
+      return matched;
+    }
     return { ok: true, data: existing.prepared, correlationId: input.context.correlationId };
   }
   const register = await input.store.getRegister(input.request.registerId);

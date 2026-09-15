@@ -1,5 +1,6 @@
 import type { Id, PendingOperation, Quote, ReceiptSnapshot, Uuid } from "../../../../../docs/contracts/domain.generated";
 import type {
+  CommandScopeBinding,
   FaultInjectingCheckoutStore,
   OutboxEvent,
   PosSaleRecord,
@@ -17,10 +18,18 @@ type IdempotencyRow = {
   requestHash: string;
   status: PendingOperation["status"];
   outcome?: unknown;
+  locationId?: Id;
+  registerId?: Id;
+  shiftId?: Uuid;
+  transactionId?: Uuid;
 };
 
 function idempKey(organizationId: Id, operation: PendingOperation["operation"], key: Uuid): string {
   return `${organizationId}\0${operation}\0${key}`;
+}
+
+function scopeKey(operation: PendingOperation["operation"], transactionId: Uuid): string {
+  return `${operation}\0${transactionId}`;
 }
 
 export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
@@ -36,6 +45,7 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
   const receipts = new Map<Uuid, ReceiptSnapshot>();
   const outbox: OutboxEvent[] = [];
   const idempotency = new Map<string, IdempotencyRow>();
+  const scopeByTransaction = new Map<string, CommandScopeBinding>();
   const chains = new Map<string, Promise<void>>();
 
   const store: FaultInjectingCheckoutStore = {
@@ -211,17 +221,39 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
       return outbox.filter((event) => event.aggregateId === aggregateId);
     },
 
-    async claimIdempotency(organizationId, operation, idempotencyKey, requestHash) {
+    async lookupCommandScope(input) {
+      return scopeByTransaction.get(scopeKey(input.operation, input.transactionId));
+    },
+
+    async claimIdempotency(organizationId, operation, idempotencyKey, requestHash, locationId, scope) {
       const key = idempKey(organizationId, operation, idempotencyKey);
       const row = idempotency.get(key);
       if (!row) {
-        idempotency.set(key, {
+        const created: IdempotencyRow = {
           organizationId,
           operation,
           idempotencyKey,
           requestHash,
           status: "pending",
-        });
+          locationId,
+          registerId: scope?.registerId,
+          shiftId: scope?.shiftId,
+          transactionId: scope?.transactionId,
+        };
+        idempotency.set(key, created);
+        if (scope?.transactionId && locationId) {
+          const boundKey = scopeKey(operation, scope.transactionId);
+          if (!scopeByTransaction.has(boundKey)) {
+            scopeByTransaction.set(boundKey, {
+              organizationId,
+              locationId,
+              registerId: scope.registerId,
+              shiftId: scope.shiftId,
+              transactionId: scope.transactionId,
+              operation,
+            });
+          }
+        }
         return { kind: "acquired" };
       }
       if (row.requestHash !== requestHash) {
