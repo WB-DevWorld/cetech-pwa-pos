@@ -30,6 +30,10 @@ export {
   type UpdateBlockReason,
   type UpdateSafetySnapshot,
 } from "./pwa-lifecycle";
+export {
+  inspectLocalRecoveryState,
+  type LocalRecoveryDiagnostics,
+} from "./recovery-diagnostics";
 export { assertJournalPayloadHasNoSecrets, journalPayloadContainsSecrets } from "./secrets-guard";
 export { clearActiveCartId, recallActiveCartId, rememberActiveCartId } from "./active-cart";
 export {
