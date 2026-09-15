@@ -12,7 +12,9 @@ import type { ApiResult, ReturnPort } from "../../../../../docs/contracts/ports"
 import { parseQuantityInput } from "../sell/state/quantity";
 import {
   idleReturnSession,
+  OUTSTANDING_RETURN_COPY,
   presentsAutomaticSellableRestock,
+  returnIdentityLocked,
   type HistoricReturnSaleView,
   type IndependentEffectView,
   type ReturnLineDraftView,
@@ -123,12 +125,16 @@ export function createReturnController(ports: ReturnControllerPorts) {
   }
 
   function setSession(next: ReturnSessionView): void {
-    session = next;
+    session = { ...next, identityLocked: returnIdentityLocked(next) };
     notify();
   }
 
   function commandContext(): CommandContext {
     return { idempotencyKey: createUuid(), correlationId: createUuid() };
+  }
+
+  function identityIsLocked(): boolean {
+    return returnIdentityLocked(session);
   }
 
   function executeContextFor(request: ReturnExecuteRequest): CommandContext {
@@ -151,6 +157,9 @@ export function createReturnController(ports: ReturnControllerPorts) {
   }
 
   function invalidatePreview(partial: Partial<ReturnSessionView> = {}): void {
+    if (identityIsLocked()) {
+      return;
+    }
     executeContext = null;
     executeBinding = null;
     setSession({
@@ -230,6 +239,17 @@ export function createReturnController(ports: ReturnControllerPorts) {
       return;
     }
     if (outcome.kind === "result" && !outcome.value.ok) {
+      const returnId = session.returnId;
+      if (returnId) {
+        setSession({
+          ...session,
+          returnId,
+          stage: "requires_attention",
+          complete: false,
+          message: `${outcome.value.error.message} Keep return ${returnId}. ${OUTSTANDING_RETURN_COPY}`,
+        });
+        return;
+      }
       setSession({
         ...session,
         stage: "failed",
@@ -253,7 +273,7 @@ export function createReturnController(ports: ReturnControllerPorts) {
       return commandLock;
     },
     selectSale(sale: HistoricReturnSaleView): void {
-      if (commandLock) {
+      if (commandLock || identityIsLocked()) {
         return;
       }
       executeContext = null;
@@ -270,14 +290,14 @@ export function createReturnController(ports: ReturnControllerPorts) {
       orderLineId: string,
       patch: Partial<Pick<ReturnLineDraftView, "quantity" | "reason" | "condition">>,
     ): void {
-      if (commandLock) {
+      if (commandLock || identityIsLocked()) {
         return;
       }
       const lines = session.lines.map((line) => (line.orderLineId === orderLineId ? { ...line, ...patch } : line));
       invalidatePreview({ lines, inputError: undefined });
     },
     bindApproval(binding: ReturnApprovalBindingView): void {
-      if (commandLock) {
+      if (commandLock || identityIsLocked()) {
         return;
       }
       if (!session.returnId || !session.fingerprint) {
@@ -297,7 +317,7 @@ export function createReturnController(ports: ReturnControllerPorts) {
       });
     },
     async preview(): Promise<void> {
-      if (commandLock || !session.saleId) {
+      if (commandLock || identityIsLocked() || !session.saleId) {
         return;
       }
       const chosen = selectedLines();
@@ -385,7 +405,7 @@ export function createReturnController(ports: ReturnControllerPorts) {
       }
     },
     async execute(): Promise<void> {
-      if (commandLock || !session.returnId || !session.fingerprint) {
+      if (commandLock || identityIsLocked() || !session.returnId || !session.fingerprint) {
         return;
       }
       if (session.approvalRequired && !session.approvalId) {
@@ -445,7 +465,7 @@ export function createReturnController(ports: ReturnControllerPorts) {
       }
     },
     reset(): void {
-      if (commandLock) {
+      if (commandLock || identityIsLocked()) {
         return;
       }
       executeContext = null;

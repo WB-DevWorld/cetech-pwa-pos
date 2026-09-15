@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { ReturnFlow } from "./ReturnFlow";
-import type { HistoricReturnSaleView, ReturnConditionView, ReturnSessionView } from "./returnView";
+import { OUTSTANDING_RETURN_COPY, type HistoricReturnSaleView, type ReturnConditionView, type ReturnSessionView } from "./returnView";
 
 export type HistoricSaleLookup = {
   search(query: string): Promise<readonly HistoricReturnSaleView[]>;
@@ -31,10 +31,12 @@ export function ReturnsScreen({
   const [matches, setMatches] = useState<readonly HistoricReturnSaleView[]>([]);
   const [lookupError, setLookupError] = useState<string | undefined>();
   const [searching, setSearching] = useState(false);
+  const locked = session.identityLocked;
+  const lookupDisabled = searching || inFlight || locked || !lookup;
 
   async function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!lookup || searching) {
+    if (!lookup || searching || locked) {
       return;
     }
     setSearching(true);
@@ -53,7 +55,7 @@ export function ReturnsScreen({
   }
 
   return (
-    <div className="returns-screen">
+    <div className="returns-screen" data-return-identity-locked={locked ? "true" : "false"}>
       <div className="page-head">
         <div>
           <h1>Returns</h1>
@@ -68,16 +70,21 @@ export function ReturnsScreen({
               id="return-sale-query"
               className="input"
               value={query}
-              disabled={searching || inFlight || !lookup}
+              disabled={lookupDisabled}
               onChange={(event) => setQuery(event.target.value)}
             />
           </div>
-          <button className="btn primary" type="submit" disabled={searching || inFlight || !lookup}>
+          <button className="btn primary" type="submit" disabled={lookupDisabled}>
             {searching ? "Looking up…" : "Look up sale"}
           </button>
           {!lookup ? (
             <div className="banner warning" role="status">
               Historical sale lookup is not mounted. WS3 must inject a sale lookup seam.
+            </div>
+          ) : null}
+          {locked ? (
+            <div className="banner warning" role="alert" data-outstanding-return="">
+              {OUTSTANDING_RETURN_COPY}
             </div>
           ) : null}
         </form>
@@ -91,8 +98,13 @@ export function ReturnsScreen({
             key={sale.saleId}
             type="button"
             className="btn"
-            disabled={inFlight}
-            onClick={() => onSelectSale(sale)}
+            disabled={inFlight || locked}
+            onClick={() => {
+              if (locked) {
+                return;
+              }
+              onSelectSale(sale);
+            }}
           >
             {sale.orderReference}
           </button>

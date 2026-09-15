@@ -93,6 +93,7 @@ export type ReturnSessionView = {
   readonly message: string;
   readonly inputError?: string;
   readonly complete: boolean;
+  readonly identityLocked: boolean;
 };
 
 export const NEVER_AUTOMATIC_SELLABLE: readonly ReturnConditionView[] = [
@@ -110,7 +111,27 @@ export function idleReturnSession(): ReturnSessionView {
     refundIdentities: [],
     message: "Look up a historical sale. Refund amounts come from the return preview, not today's catalog.",
     complete: false,
+    identityLocked: false,
   };
+}
+
+export const OUTSTANDING_RETURN_COPY =
+  "This return must be resolved before starting another return.";
+
+const LOCKED_RETURN_STAGES: ReadonlySet<ReturnStageView> = new Set([
+  "executing",
+  "resolving",
+  "refund_pending",
+  "in_progress",
+  "requires_attention",
+]);
+
+/** An executed return whose effects may still exist stays bound to its returnId. */
+export function returnIdentityLocked(session: Pick<ReturnSessionView, "stage" | "complete">): boolean {
+  if (session.complete && session.stage === "completed") {
+    return false;
+  }
+  return LOCKED_RETURN_STAGES.has(session.stage);
 }
 
 export function conditionLabel(condition: ReturnConditionView): string {
@@ -194,17 +215,17 @@ export function describeReturnStage(stage: ReturnStageView): { readonly title: s
     case "approval_required":
       return { title: "Approval required", status: "This return needs a manager approval. Do not invent an approval." };
     case "executing":
-      return { title: "Executing return", status: "Submitting the accepted return identity. Do not start another return." };
+      return { title: "Executing return", status: OUTSTANDING_RETURN_COPY };
     case "resolving":
-      return { title: "Checking return", status: "Return status is uncertain. Resolve the same return identity." };
+      return { title: "Checking return", status: `${OUTSTANDING_RETURN_COPY} Resolve the same return identity.` };
     case "completed":
       return { title: "Return complete", status: "The server marked every required return effect complete." };
     case "in_progress":
-      return { title: "Return in progress", status: "Independent return effects are still running." };
+      return { title: "Return in progress", status: `${OUTSTANDING_RETURN_COPY} Independent return effects are still running.` };
     case "refund_pending":
-      return { title: "Refund pending", status: "A refund effect is still pending. Do not issue another refund." };
+      return { title: "Refund pending", status: `${OUTSTANDING_RETURN_COPY} A refund effect is still pending.` };
     case "requires_attention":
-      return { title: "Return needs attention", status: "Escalate this return. Do not start a replacement return." };
+      return { title: "Return needs attention", status: `${OUTSTANDING_RETURN_COPY} Escalate this return. Do not start a replacement return.` };
     case "failed":
       return { title: "Return failed", status: "The return could not be previewed or executed. The sale is unchanged." };
   }

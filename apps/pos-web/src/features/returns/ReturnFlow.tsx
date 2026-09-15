@@ -8,6 +8,7 @@ import {
   describeReturnStage,
   dispositionLabel,
   dispositionPolicyLabel,
+  OUTSTANDING_RETURN_COPY,
   unresolvedEffectLabels,
   type ReturnConditionView,
   type ReturnSessionView,
@@ -55,6 +56,8 @@ export function ReturnFlow({
   const copy = describeReturnStage(session.stage);
   const complete = canPresentReturnComplete(session);
   const unresolved = unresolvedEffectLabels(session);
+  const locked = session.identityLocked;
+  const fieldsDisabled = inFlight || locked;
 
   return (
     <section
@@ -62,6 +65,7 @@ export function ReturnFlow({
       data-return-stage={session.stage}
       data-return-id={session.returnId ?? ""}
       data-return-complete={complete ? "true" : "false"}
+      data-return-identity-locked={locked ? "true" : "false"}
       data-approval-required={session.approvalRequired ? "true" : "false"}
       data-approval-id={session.approvalId ?? ""}
     >
@@ -69,6 +73,11 @@ export function ReturnFlow({
       <p className="muted" role="status" aria-live="polite">
         {session.message || copy.status}
       </p>
+      {locked ? (
+        <div className="banner warning" role="alert" data-outstanding-return="">
+          {OUTSTANDING_RETURN_COPY}
+        </div>
+      ) : null}
       {session.inputError ? (
         <div className="banner danger" role="alert">
           {session.inputError}
@@ -92,7 +101,7 @@ export function ReturnFlow({
                   id={`return-qty-${line.orderLineId}`}
                   className="input"
                   value={line.quantity}
-                  disabled={inFlight}
+                  disabled={fieldsDisabled}
                   onChange={(event) => onUpdateLine(line.orderLineId, { quantity: event.target.value })}
                 />
               </div>
@@ -102,7 +111,7 @@ export function ReturnFlow({
                   id={`return-reason-${line.orderLineId}`}
                   className="input"
                   value={line.reason}
-                  disabled={inFlight}
+                  disabled={fieldsDisabled}
                   onChange={(event) => onUpdateLine(line.orderLineId, { reason: event.target.value })}
                 />
               </div>
@@ -112,7 +121,7 @@ export function ReturnFlow({
                   id={`return-condition-${line.orderLineId}`}
                   className="select"
                   value={line.condition}
-                  disabled={inFlight}
+                  disabled={fieldsDisabled}
                   onChange={(event) =>
                     onUpdateLine(line.orderLineId, { condition: event.target.value as ReturnConditionView })
                   }
@@ -200,17 +209,17 @@ export function ReturnFlow({
         </div>
       ) : null}
       <div className="dialog-actions">
-        {session.stage === "selecting" || session.stage === "failed" || session.stage === "previewed" || session.stage === "approval_required" ? (
+        {!locked && (session.stage === "selecting" || session.stage === "failed" || session.stage === "previewed" || session.stage === "approval_required") ? (
           <button type="button" className="btn" disabled={inFlight} onClick={onPreview}>
             Preview return
           </button>
         ) : null}
-        {(session.stage === "previewed" || (session.stage === "approval_required" && session.approvalId)) && session.returnId ? (
+        {!locked && (session.stage === "previewed" || (session.stage === "approval_required" && session.approvalId)) && session.returnId ? (
           <button type="button" className="btn primary" disabled={inFlight} onClick={onExecute}>
             Execute return
           </button>
         ) : null}
-        {session.stage === "resolving" || session.stage === "in_progress" || session.stage === "refund_pending" || session.stage === "requires_attention" ? (
+        {locked || session.stage === "resolving" || session.stage === "in_progress" || session.stage === "refund_pending" || session.stage === "requires_attention" ? (
           <button type="button" className="btn primary" disabled={inFlight} onClick={onResolve}>
             Check return status
           </button>
