@@ -8,6 +8,6 @@ Draft PR #55 / `batch/r6-first-real-cash-sale`. R6-REM-01 authority checkpoint `
 
 Ben COMMENTED on `eac32cd…` (not approval): CORE-06 path-scope breach; missing durable runtime. Authority is **not retroactive**.
 
-**R6-REM-01 durable runtime** is implemented on `ws3/r6-rem-01-durable-runtime`. Evidence: `docs/integration/evidence/R6-REM-01-DURABLE-RUNTIME.md`.
+**R6-REM-01 durable runtime** imported. Authority `f547542…`. Source `29f2da1…`. Combined `3b30b29d3859539662be7896d3782667cc841732`.
 
-Next: import exact tested remediation commits onto `batch/r6-first-real-cash-sale`, combined gate, then authorized training sale. Do not merge PR #55. Do not start R7.
+Next: authorized training BR-07 deploy + one synthetic cash sale. Do not merge PR #55. Do not start R7.

@@ -56,4 +56,7 @@ BFF routes pass `createServerRestFetch()` into session, assignment, and checkout
 
 ## Limits
 
-This evidence is the remediation **source** gate. Neutral R6 import, exact-head CI, BR-07 training deploy, and the isolated staging sale are not claimed here.
+Remediation source SHA: `29f2da19311c8f7d9442aaa2ee0ab9f3b46ac254` on `ws3/r6-rem-01-durable-runtime`.
+Imported SHA / tested combined SHA: `3b30b29d3859539662be7896d3782667cc841732` on `batch/r6-first-real-cash-sale`.
+
+BR-07 training deploy and the isolated staging sale are not claimed here.

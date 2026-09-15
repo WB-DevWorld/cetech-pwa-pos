@@ -27,7 +27,14 @@ Authorized paths (use only when necessary): `CURRENT-WORK.md`; `apps/pos-web/src
 
 Forbidden: WS1 `apps/pos-web/src/features/**` and `src/ui/**`. WS2 plugin/tests as source. Frozen v1 contracts unless an unavoidable blocker follows the contract process.
 
-After this checkpoint: WS3 remediation branch `ws3/r6-rem-01-durable-runtime` from the published authority SHA. Durable assignment + checkout adapters are implemented on that branch; import onto `batch/r6-first-real-cash-sale` is the next integration step.
+After this checkpoint: WS3 remediation branch `ws3/r6-rem-01-durable-runtime` from the published authority SHA. Durable assignment + checkout adapters were implemented and imported onto `batch/r6-first-real-cash-sale`.
+
+| Role | SHA |
+| --- | --- |
+| Authority checkpoint | `f547542ca23efaf61243909c320d7dd900709188` |
+| Remediation source | `29f2da19311c8f7d9442aaa2ee0ab9f3b46ac254` |
+| Imported (cherry-pick) | `3b30b29d3859539662be7896d3782667cc841732` |
+| Tested combined | `3b30b29d3859539662be7896d3782667cc841732` |
 
 ## Active assignment — R6 first real cash sale
 
@@ -37,6 +44,6 @@ After this checkpoint: WS3 remediation branch `ws3/r6-rem-01-durable-runtime` fr
 
 ```text
 CODE / CONTRACT / AUTOMATED COMBINED GATE: PASS
-DURABLE POS RUNTIME GATE: IMPLEMENTED_ON_WS3_BRANCH (import pending)
-ISOLATED STAGING REAL-SALE GATE: BLOCKED (await import + training)
+DURABLE POS RUNTIME GATE: PASS (imported; training sale pending)
+ISOLATED STAGING REAL-SALE GATE: BLOCKED (await BR-07 deploy + sale)
 ```
