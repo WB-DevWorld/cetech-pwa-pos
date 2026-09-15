@@ -73,8 +73,6 @@ export async function closeShift(input: {
       "INTEGRATION_UNAVAILABLE",
       "shift close outcome is unavailable; resolve before retrying with a new key",
       context.correlationId,
-      true,
-      "resolve",
     );
   }
 
@@ -95,8 +93,6 @@ export async function closeShift(input: {
       "REQUIRES_ATTENTION",
       "closed shift and Z report do not agree",
       context.correlationId,
-      false,
-      "contact_manager",
     );
   }
 
