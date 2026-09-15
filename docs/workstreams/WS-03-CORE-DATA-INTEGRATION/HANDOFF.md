@@ -1,71 +1,52 @@
-# WS3 current handoff — RT-01 contract freeze candidate (refund-resolve rem-02)
+# WS3 current handoff — RT-01 safe-returns runtime
 
-Kind: TASK_COMPLETION (contract-freeze review remediation). Date: 2026-09-15T17:25:55Z.
+Kind: TASK_COMPLETION. Date: 2026-09-15T18:31:00Z (pre-push; exact final SHA recorded after push).
 
-Task / batch / workstream: RT01-CONTRACT-REM-02 / #27 / WS3. PR #59.
+Task / batch / workstream: RT-01 WS3 SAFE RETURNS RUNTIME / #27 / WS3.
 Owner / integration editor: `@wbdevworld` / WS3.
 Mode: IMPLEMENT.
-Requested human reviewers: WS1 consumer `@Ben-001-sys`; WS2 producer `@Emmanuel-coder-prog`. Do not ping from this branch; ChatGPT review control re-requests them.
+Requested human reviewer: ChatGPT integration control. Do not open a PR from this branch.
 
-Branch: `ws3/rt-01-freeze-refund-wire-refinement-and-implement-s`
-Starting/base SHA: `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091`
-REVIEWED_HEAD: `cc7a83913c2a9a3abb9b97ca3452fb4e0e3dabd5` (`CHANGES_REQUESTED` by Ben + Emmanuel)
-REMEDIATION_SHA: `eeafbf8716a1ba999964a89a4f043c1a8dab308a`
-PAY-01 / R7 classification: PROVISIONAL_TEST (not merged, not live accepted).
-BR-07 / R6: ACCEPTED / MERGED through `bd79c2901ce33c3177141d4244cc196be0a719d2`.
-Contracts: v1.0.0; ADR-015 review-driven refinement. Closed `RefundLookup { refundId }`; `PaymentPort.resolveRefund` bound to journal `refund.resolve`; allocated `effectId` `oneOf`.
-Database migrations: none.
+Branch: `ws3/rt-01-implement-safe-returns-runtime`
+START_SHA: `58d385300bfba784435448029e88f07742048cde`
+PAY-01 / R7: `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091` PROVISIONAL_TEST, PR #58 draft, sandbox-deferred, NOT MERGED.
+Post-R6 main: `bd79c2901ce33c3177141d4244cc196be0a719d2`.
+Neutral RT-01: `batch/rt01-safe-returns` @ `58d3853…` (not implemented on).
 
-Reviewed state:
-- reviewed head `cc7a83913c2a9a3abb9b97ca3452fb4e0e3dabd5`
-- Ben = CHANGES_REQUESTED
-- Emmanuel = CHANGES_REQUESTED
+Allowed: `apps/pos-web/src/core/**`, `apps/pos-web/src/server/**`, `supabase/**`, `tests/integration/returns/**`, WS3 STATUS/HANDOFF, vitest discovery for the new suite.
+Forbidden preserved: `apps/pos-web/src/features/**`, `apps/pos-web/src/ui/**`, `wordpress/**`, `tests/bridge/**` as implementation, `docs/contracts/**`, `apps/pos-web/src/app/api/**`, CURRENT-WORK.
 
-Remediation tests:
+Contracts: v1.0.0 unchanged. ADR-015 consumed, not reopened.
+Database: `supabase/migrations/20260915200000_pos_returns.sql` additive after `20260915180000_pos_electronic_payment.sql`.
+
+## What shipped
+
+Trusted preview from historic sale economics → fingerprint/expiry → optional approval binding → atomic execute claim (quantity + tender caps) → independent cash or provider refund, commercial refund, and stock disposition identities allocated before remote effects → truthful `ReturnResolution` → `ReturnPort.resolve` reconciling the same IDs after restart.
+
+## Remaining runtime blockers
+
+- Paystack refund sandbox / credentials / provider idempotency: fail-closed. Not mocked as Paystack acceptance.
+- Issue #27 does not grant `apps/pos-web/src/app/api/**`. Handlers exist for tests; HTTP mounting not done.
+- WS2 #60 Woo producer not imported. WS3 uses a deterministic `BridgeReturnEffectsPort` fake.
+- WS1 #11 UI not imported.
+
+Terminal intent: `RT01_WS3_READY_FOR_INTEGRATION_PROVIDER_SANDBOX_DEFERRED` after exact-head CI on the pushed SHA.
+
+## Tests executed (pre-push)
+
 - `python scripts/verify_control_plane.py` → PASS (30 tasks, 28 reference files, 81 schemas, 63 fixtures)
-- `python -m unittest discover -s tests/tooling -v` → 48 tests OK
-- `python scripts/generate_contract_types.py --check` → Generated TypeScript matches schema
-- `git diff --check` → clean
-- `pnpm install --frozen-lockfile` → ok
+- `python -m unittest discover -s tests/tooling -v` → 48 OK
 - `pnpm --dir apps/pos-web lint` → ok
 - `pnpm --dir apps/pos-web typecheck` → ok
-- focused `return-refund-wire.test.ts` → 1 file / 22 tests PASS
-- `pnpm --dir apps/pos-web test` → 61 files / 573 tests PASS
+- `pnpm --dir apps/pos-web test` → 63 files / 599 tests PASS
+- focused `tests/integration/returns/**` → 26 tests PASS
 - `pnpm --dir apps/pos-web build` → ok
 - `pnpm --dir apps/pos-web exec playwright test --workers=1` → 7 passed
+- `git diff --check` → clean
+- Local Supabase reset/pgTAP: NOT RUN on this workstation. CI Linux job must apply `pos_returns.sql` (plan 41).
+- Bridge `make -C wordpress/cetech-pos-bridge check/test/parity`: not required for WS3 source; no WordPress edits. If old suite fails only because BR-08 is absent: `EXPECTED_CROSS_OWNER_PENDING`.
 
-Exact-head CI on `eeafbf8716a1ba999964a89a4f043c1a8dab308a`:
-- push workflow `35000776307` SUCCESS
-- PR workflow `35000779968` SUCCESS
-- `control-plane` job `104488329125` (push) SUCCESS; `104488340707` (PR) SUCCESS
-- `control-plane-windows` job `104488328758` (push) SUCCESS; `104488340517` (PR) SUCCESS
-- Linux E2E: 7 passed
+Remote effects: none. No real refund, restock, or production mutation.
 
-Remote effects: none.
-
-Freshness protocol (replacement after rem-02; prior FRESH_2 on `cc7a839` is historical):
-START_FRESHNESS_SNAPSHOT UTC: 2026-09-15T17:21:41Z (remediation push)
-Start main SHA: `bd79c2901ce33c3177141d4244cc196be0a719d2`
-Declared provisional R7 baseline: `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091`
-
-Pass 1 fetch UTC: 2026-09-15T17:25:40Z (success)
-Pass 1 main SHA: `bd79c2901ce33c3177141d4244cc196be0a719d2`
-Pass 1 provisional R7 SHA: `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091` (PR #58 draft, unchanged)
-Pass 1 RT-01 SHA: `eeafbf8716a1ba999964a89a4f043c1a8dab308a`
-Classification: no relevant upstream movement (`SAME`)
-Actions: none; no rebase
-
-Pass 2 fetch UTC: 2026-09-15T17:25:55Z (success)
-Pass 2 main SHA: `bd79c2901ce33c3177141d4244cc196be0a719d2`
-Pass 2 provisional R7 SHA: `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091`
-Pass 2 RT-01 SHA: `eeafbf8716a1ba999964a89a4f043c1a8dab308a`
-Classification: no relevant upstream movement (`SAME`)
-Actions: none; no rebase
-
-Final freshness status: FRESH_2
-Pass 3: NOT PERMITTED
-Delivery status: READY_FOR_INTEGRATION of the contract candidate only after required WS1+WS2 re-review. Not implementation-complete.
-
-Explicitly not done: No WordPress implementation. No dependent RT-01 runtime. No FE-06. No real refund. No real restock. No R7 merge. PR #59 NOT MERGED. Production promotion NOT AUTHORIZED.
-
-Next exact action: ChatGPT inspects this replacement candidate and re-requests WS1+WS2 reviews. No dependent implementation from this branch.
+Pass 3: NOT PERMITTED.
+Production promotion NOT AUTHORIZED.
