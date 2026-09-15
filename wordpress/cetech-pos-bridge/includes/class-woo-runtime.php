@@ -48,7 +48,26 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		'stock_reductions'      => 0,
 		'reservation_releases'  => 0,
 		'order_cancels'         => 0,
+		'commercial_refunds'    => 0,
+		'stock_increases'       => 0,
+		'payment_provider_refunds' => 0,
 	);
+	/** @var callable|null after durable commercial-refund claim, before Woo refund create */
+	public $after_commercial_claim = null;
+	/** @var callable|null after woo_effect_entered persist, before wc_create_refund */
+	public $before_refund_create = null;
+	/** @var callable|null after native Woo refund exists, before claim outcome persist */
+	public $after_refund_native = null;
+	/** @var callable|null after durable stock-disposition claim, before any line APPLYING */
+	public $after_stock_claim = null;
+	/** @var callable|null after a stock line is persisted APPLYING, before stock API */
+	public $after_stock_line_armed = null;
+	/** @var callable|null after official stock increase, before line COMPLETED persist */
+	public $after_stock_line_mutated = null;
+	/** @var array<string,mixed>|null identity armed for woocommerce_before_order_object_save on WC_Order_Refund */
+	protected $armed_commercial_refund = null;
+	/** @var int */
+	public $payment_provider_refund_calls = 0;
 	/** @var callable|null after bridge-private payment binding persist, before payment_complete */
 	public $after_payment_binding = null;
 	/** @var callable|null after payment_complete / stock commit, before command outcome persist */
@@ -2536,6 +2555,322 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		}
 		$this->record_woo_mutation( 'order_cancels' );
 		$this->fire_seam( $this->after_order_cancelled );
+		return true;
+	}
+
+	/**
+	 * Immutable CETECH Quote line snapshot from the original Woo order.
+	 * Does not invoke Quote runtime, WoodMart, or B2BKing pricing.
+	 *
+	 * @param string $order_id
+	 * @return array<int,array<string,mixed>>|WP_Error
+	 */
+	public function inspect_historic_order_lines( $order_id ) {
+		if ( ! $this->environment->function_exists( 'wc_get_order' ) ) {
+			return $this->unavailable( 'wc_get_order is not available to inspect historic sale lines.' );
+		}
+		$order = wc_get_order( $order_id );
+		if ( ! is_object( $order ) ) {
+			return $this->unavailable( 'Woo order could not be loaded to inspect historic sale lines.' );
+		}
+		$records = $this->extract_product_line_records( $order );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $records ) ) {
+			return $records;
+		}
+		return $records;
+	}
+
+	/**
+	 * Order-level commercial refund. Never refunds payment. Never restocks.
+	 *
+	 * @param string $order_id
+	 * @param int    $amount_minor
+	 * @param string $currency
+	 * @param string $commercial_refund_id
+	 * @param string $transaction_id
+	 * @param string $request_hash
+	 * @param string $reason
+	 * @return array<string,mixed>|WP_Error
+	 */
+	public function create_commercial_refund( $order_id, $amount_minor, $currency, $commercial_refund_id, $transaction_id, $request_hash, $reason ) {
+		$found = $this->find_commercial_refunds( $order_id, $commercial_refund_id );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $found ) ) {
+			return $found;
+		}
+		if ( count( $found ) > 1 ) {
+			return $this->attention_recovery( 'Multiple native Woo refunds carry this commercialRefundId.' );
+		}
+		if ( count( $found ) === 1 ) {
+			$match = $found[0];
+			if ( ! $this->commercial_refund_matches( $match, $order_id, $amount_minor, $transaction_id, $request_hash ) ) {
+				return $this->attention_recovery( 'Native Woo refund identity contradicts the commercial refund claim.' );
+			}
+			return $match;
+		}
+		if ( ! $this->environment->function_exists( 'wc_create_refund' ) ) {
+			return $this->unavailable( 'wc_create_refund is not available for commercial refund.' );
+		}
+		$amount = Cetech_Pos_Bridge_Money::to_decimal_string( $amount_minor );
+		if ( $amount === null ) {
+			return $this->unavailable( 'Commercial refund amount could not be represented as a Woo decimal.' );
+		}
+		$this->armed_commercial_refund = array(
+			'commercialRefundId' => (string) $commercial_refund_id,
+			'transactionId'      => (string) $transaction_id,
+			'requestHash'        => (string) $request_hash,
+			'orderId'            => (string) $order_id,
+			'amountMinor'        => (int) $amount_minor,
+			'currency'           => strtoupper( (string) $currency ),
+		);
+		$binder = function ( $order ) {
+			$this->attach_commercial_refund_identity( $order );
+		};
+		if ( $this->environment->function_exists( 'add_action' ) ) {
+			add_action( 'woocommerce_before_order_object_save', $binder, 0, 1 );
+		}
+		$this->fire_seam( $this->before_refund_create );
+		try {
+			$refund = wc_create_refund(
+				array(
+					'amount'         => $amount,
+					'reason'         => is_string( $reason ) ? $reason : '',
+					'order_id'       => $order_id,
+					'refund_payment' => false,
+					'restock_items'  => false,
+				)
+			);
+		} catch ( \Throwable $e ) {
+			unset( $e );
+			$this->disarm_commercial_refund( $binder );
+			$after = $this->find_commercial_refunds( $order_id, $commercial_refund_id );
+			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $after ) ) {
+				return $after;
+			}
+			if ( count( $after ) === 1 ) {
+				return $after[0];
+			}
+			return $this->attention_recovery( 'Woo commercial refund outcome could not be proven after an exception.' );
+		}
+		$this->disarm_commercial_refund( $binder );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $refund ) ) {
+			return $refund;
+		}
+		if ( ! is_object( $refund ) ) {
+			$after = $this->find_commercial_refunds( $order_id, $commercial_refund_id );
+			if ( is_array( $after ) && count( $after ) === 1 ) {
+				return $after[0];
+			}
+			return $this->attention_recovery( 'Woo commercial refund create did not return a recoverable refund object.' );
+		}
+		$meta_id = method_exists( $refund, 'get_meta' ) ? (string) $refund->get_meta( Cetech_Pos_Bridge_Constants::ORDER_META_COMMERCIAL_REFUND ) : '';
+		if ( $meta_id !== (string) $commercial_refund_id ) {
+			return $this->attention_recovery( 'Native Woo refund was not bound to commercialRefundId during its initial save.' );
+		}
+		$this->record_woo_mutation( 'commercial_refunds' );
+		return array(
+			'refundId'           => method_exists( $refund, 'get_id' ) ? (string) $refund->get_id() : '',
+			'parentOrderId'      => (string) $order_id,
+			'amountMinor'        => (int) $amount_minor,
+			'commercialRefundId' => (string) $commercial_refund_id,
+			'transactionId'      => (string) $transaction_id,
+			'requestHash'        => (string) $request_hash,
+			'refundPayment'      => false,
+			'restockItems'       => false,
+		);
+	}
+
+	/**
+	 * @param string $order_id
+	 * @param string $commercial_refund_id
+	 * @return array<int,array<string,mixed>>|WP_Error
+	 */
+	public function find_commercial_refunds( $order_id, $commercial_refund_id ) {
+		if ( ! $this->environment->function_exists( 'wc_get_orders' ) && ! $this->environment->function_exists( 'wc_get_order' ) ) {
+			return $this->unavailable( 'Woo refund query APIs are not available.' );
+		}
+		$out = array();
+		if ( $this->environment->function_exists( 'wc_get_orders' ) ) {
+			$orders = wc_get_orders(
+				array(
+					'type'       => 'shop_order_refund',
+					'parent'     => $order_id,
+					'limit'      => 50,
+					'return'     => 'objects',
+					'meta_key'   => Cetech_Pos_Bridge_Constants::ORDER_META_COMMERCIAL_REFUND,
+					'meta_value' => (string) $commercial_refund_id,
+				)
+			);
+			if ( is_array( $orders ) ) {
+				foreach ( $orders as $refund ) {
+					$described = $this->describe_commercial_refund( $refund, $order_id );
+					if ( is_array( $described ) ) {
+						$out[] = $described;
+					}
+				}
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Official sellable-stock increase. Does not write _stock or HPOS SQL.
+	 *
+	 * @param string     $owner_id
+	 * @param int|string $quantity
+	 * @return true|WP_Error
+	 */
+	public function increase_sellable_stock( $owner_id, $quantity ) {
+		$qty = (int) $quantity;
+		if ( $qty <= 0 ) {
+			return $this->unavailable( 'Sellable restock quantity must be a positive integer for the supported Woo stock API.' );
+		}
+		if ( ! $this->environment->function_exists( 'wc_update_product_stock' ) ) {
+			return $this->unavailable( 'wc_update_product_stock is not available for sellable restock.' );
+		}
+		$product = null;
+		if ( $this->environment->function_exists( 'wc_get_product' ) ) {
+			$product = wc_get_product( $owner_id );
+		}
+		if ( ! is_object( $product ) ) {
+			$product = $owner_id;
+		}
+		$result = wc_update_product_stock( $product, $qty, 'increase' );
+		if ( $result === false || $result === null ) {
+			return $this->unavailable( 'Woo sellable stock increase could not be proven.' );
+		}
+		$this->record_woo_mutation( 'stock_increases' );
+		++$this->side_effects['stock'];
+		return true;
+	}
+
+	/**
+	 * @param string      $product_id
+	 * @param string|null $variation_id
+	 * @return string
+	 */
+	public function stock_managed_owner_id( $product_id, $variation_id = null ) {
+		$candidate = ( is_string( $variation_id ) && $variation_id !== '' ) ? $variation_id : (string) $product_id;
+		if ( $this->environment->function_exists( 'wc_get_product' ) ) {
+			$product = wc_get_product( $candidate );
+			if ( is_object( $product ) && method_exists( $product, 'get_stock_managed_by_id' ) ) {
+				$owner = $product->get_stock_managed_by_id();
+				if ( $owner !== null && (string) $owner !== '' ) {
+					return (string) $owner;
+				}
+			}
+			if ( is_object( $product ) && method_exists( $product, 'get_id' ) ) {
+				return (string) $product->get_id();
+			}
+		}
+		return (string) $candidate;
+	}
+
+	public function notify_after_commercial_claim() {
+		$this->fire_seam( $this->after_commercial_claim );
+	}
+
+	public function notify_after_refund_native() {
+		$this->fire_seam( $this->after_refund_native );
+	}
+
+	public function notify_after_stock_claim() {
+		$this->fire_seam( $this->after_stock_claim );
+	}
+
+	public function notify_after_stock_line_armed() {
+		$this->fire_seam( $this->after_stock_line_armed );
+	}
+
+	public function notify_after_stock_line_mutated() {
+		$this->fire_seam( $this->after_stock_line_mutated );
+	}
+
+	/**
+	 * @param mixed $order
+	 */
+	protected function attach_commercial_refund_identity( $order ) {
+		$armed = $this->armed_commercial_refund;
+		if ( ! is_array( $armed ) || ! is_object( $order ) ) {
+			return;
+		}
+		$type = '';
+		if ( method_exists( $order, 'get_type' ) ) {
+			$type = (string) $order->get_type();
+		}
+		$class = get_class( $order );
+		if ( $type !== 'shop_order_refund' && strpos( $class, 'Refund' ) === false ) {
+			return;
+		}
+		if ( method_exists( $order, 'update_meta_data' ) ) {
+			$order->update_meta_data( Cetech_Pos_Bridge_Constants::ORDER_META_COMMERCIAL_REFUND, $armed['commercialRefundId'] );
+			$order->update_meta_data( Cetech_Pos_Bridge_Constants::ORDER_META_COMMERCIAL_REFUND_TX, $armed['transactionId'] );
+			$order->update_meta_data( Cetech_Pos_Bridge_Constants::ORDER_META_COMMERCIAL_REFUND_HASH, $armed['requestHash'] );
+		}
+	}
+
+	/**
+	 * @param callable $binder
+	 */
+	protected function disarm_commercial_refund( $binder ) {
+		$this->armed_commercial_refund = null;
+		if ( $this->environment->function_exists( 'remove_action' ) ) {
+			remove_action( 'woocommerce_before_order_object_save', $binder, 0 );
+		}
+	}
+
+	/**
+	 * @param object $refund
+	 * @param string $order_id
+	 * @return array<string,mixed>|null
+	 */
+	protected function describe_commercial_refund( $refund, $order_id ) {
+		if ( ! is_object( $refund ) ) {
+			return null;
+		}
+		$id     = method_exists( $refund, 'get_id' ) ? (string) $refund->get_id() : '';
+		$parent = '';
+		if ( method_exists( $refund, 'get_parent_id' ) ) {
+			$parent = (string) $refund->get_parent_id();
+		}
+		$amount_dec = method_exists( $refund, 'get_amount' ) ? (string) $refund->get_amount() : '';
+		$currency   = method_exists( $refund, 'get_currency' ) ? strtoupper( (string) $refund->get_currency() ) : Cetech_Pos_Bridge_Constants::SETTLEMENT_CURRENCY;
+		$minor      = $amount_dec !== '' ? Cetech_Pos_Bridge_Money::from_decimal_string( $amount_dec, $currency ) : null;
+		$cid        = method_exists( $refund, 'get_meta' ) ? (string) $refund->get_meta( Cetech_Pos_Bridge_Constants::ORDER_META_COMMERCIAL_REFUND ) : '';
+		$tx         = method_exists( $refund, 'get_meta' ) ? (string) $refund->get_meta( Cetech_Pos_Bridge_Constants::ORDER_META_COMMERCIAL_REFUND_TX ) : '';
+		$hash       = method_exists( $refund, 'get_meta' ) ? (string) $refund->get_meta( Cetech_Pos_Bridge_Constants::ORDER_META_COMMERCIAL_REFUND_HASH ) : '';
+		return array(
+			'refundId'           => $id,
+			'parentOrderId'      => $parent !== '' ? $parent : (string) $order_id,
+			'amountMinor'        => is_int( $minor ) ? $minor : 0,
+			'commercialRefundId' => $cid,
+			'transactionId'      => $tx,
+			'requestHash'        => $hash,
+			'refundPayment'      => false,
+			'restockItems'       => false,
+		);
+	}
+
+	/**
+	 * @param array<string,mixed> $match
+	 * @param string              $order_id
+	 * @param int                 $amount_minor
+	 * @param string              $transaction_id
+	 * @param string              $request_hash
+	 * @return bool
+	 */
+	protected function commercial_refund_matches( array $match, $order_id, $amount_minor, $transaction_id, $request_hash ) {
+		if ( (string) $match['parentOrderId'] !== (string) $order_id ) {
+			return false;
+		}
+		if ( (int) $match['amountMinor'] !== (int) $amount_minor ) {
+			return false;
+		}
+		if ( (string) $match['transactionId'] !== (string) $transaction_id ) {
+			return false;
+		}
+		if ( (string) $match['requestHash'] !== (string) $request_hash ) {
+			return false;
+		}
 		return true;
 	}
 }

@@ -1,4 +1,46 @@
-# WS2 current handoff — BR-07 / #19 uncertain-money cancel safety (TASK_COMPLETION)
+# WS2 current handoff — BR-08 / #60 independent return commerce effects (TASK_COMPLETION)
+
+Kind / UTC: TASK_COMPLETION / 2026-09-15 (new bounded ADR-012 two-pass for this owner task; not Pass 3 of BR-07)
+Task / batch / workstream: BR-08 / issue #60 IMPLEMENT COMMERCIAL REFUND + STOCK-DISPOSITION BRIDGE EFFECTS — RT-01; WS2
+Owner / actual implementer: @Emmanuel-coder-prog / @Emmanuel-coder-prog
+Integration destination: WS3 import into `batch/rt01-safe-returns` (later comment also named `batch/rt01-safe-returns-ws3-integrated`). Do not edit those branches from WS2.
+Branch: `ws2/br-08-implement-return-refund-stock-effects`
+Accepted starting SHA: `58d385300bfba784435448029e88f07742048cde`
+Observed RT-01 neutral starting SHA: `58d385300bfba784435448029e88f07742048cde`
+Implementation SHA: `6a8f30dcb50564b97d7fcc3eab8fd0a9d7317ec4`
+Evidence SHA: `4c7f0b5ef29b09e9ed5b3afd30b5a668f0f4569f`
+Allowed paths: `wordpress/cetech-pos-bridge/**`; `tests/bridge/**`; `tests/fixtures/commerce/**`; WS2 STATUS/HANDOFF/evidence
+Forbidden untouched: `apps/**`; `supabase/**`; `docs/contracts/**`; `docs/decisions/**`; `.github/**`; `reference/**`; FE-06; RT-01 orchestration; R7; main; shared `CURRENT-WORK.md`
+Contracts changed: **NONE**. Bridge DB version: **4 → 5**. ADRs: **NONE**. Supabase: **NONE**. Pricing formulas copied: **NONE**.
+`pricingParityVerified`: **false**. Issue #4 OPEN. Live Woo refund/restock PENDING. Real DB concurrency PENDING.
+
+## Commercial refund
+
+Exact historic binding via prepare/PreparedSale/`woo_order_id` + Quote line identity. Cumulative qty/money caps under `cetech_pos_cr_` lock. Woo `wc_create_refund` with `refund_payment=false` and `restock_items=false`. `commercialRefundId` bound on `woocommerce_before_order_object_save`. Same-key replay / same-effect different-key recover one native refund. Crash R1 safe retry; R3/R4 recover; ambiguous → `requires_attention` without a second create. Native refund ≤ 1 per id (except injected ambiguous pair). Payment-provider calls = 0. Stock mutations from this path = 0.
+
+## Stock
+
+`stockDispositionId` durable before any line enters the stock API. Per-line `not_started`/`applying`/`completed`. Cumulative cap consumes both `restock_sellable` and `no_automatic_restock`. Official `wc_update_product_stock` increase. Parent stock-managed owner for variations. APPLYING after process loss → `requires_attention`, no second increment. Multi-line A completed / B ambiguous: A never re-applied.
+
+## GET
+
+Read-only. Mutation counters unchanged. Unknown effect: HTTP 404 `NOT_FOUND`.
+
+## Verification
+
+Docker `php:8.5-cli`; PHP **8.5.10** NTS; GNU Make **4.4.1**.
+
+- `make -C wordpress/cetech-pos-bridge check` PASS, 47 files
+- `make -C wordpress/cetech-pos-bridge test` **1525 passed, 0 failed**
+- `make -C wordpress/cetech-pos-bridge parity` **138 passed, 0 failed, 19 skipped**
+- derive `--check` PASS; `python scripts/verify_control_plane.py` PASS; `git diff --check` clean
+
+## Delivery
+
+**READY_FOR_INTEGRATION** pending exact-head CI and two-pass freshness recorded below / on issue #60. Receiver: @wbdevworld / WS3.
+
+## Previous current handoff — BR-07 / #19 uncertain-money cancel safety (TASK_COMPLETION)
+
 
 Kind / UTC: TASK_COMPLETION / 2026-09-14 (new bounded ADR-012 two-pass for this owner remediation; not Pass 3 of the prior BR-07 cycle)
 Task / batch / workstream: BR-07 / issue #19 UNCERTAIN-MONEY CANCEL SAFETY REMEDIATION — R6; WS2

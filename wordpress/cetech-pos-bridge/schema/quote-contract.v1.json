@@ -1,5 +1,122 @@
 {
     "$defs": {
+        "BridgeCommercialRefundLine": {
+            "type": "object",
+            "properties": {
+                "orderLineId": {
+                    "$ref": "#/$defs/Id"
+                },
+                "quantity": {
+                    "$ref": "#/$defs/Quantity"
+                },
+                "historicAmount": {
+                    "$ref": "#/$defs/Money"
+                }
+            },
+            "required": [
+                "orderLineId",
+                "quantity",
+                "historicAmount"
+            ],
+            "additionalProperties": false
+        },
+        "BridgeCommercialRefundRequest": {
+            "type": "object",
+            "properties": {
+                "commercialRefundId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "returnId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "transactionId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "saleId": {
+                    "$ref": "#/$defs/Id"
+                },
+                "amount": {
+                    "$ref": "#/$defs/Money"
+                },
+                "economicsVersion": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                },
+                "fingerprint": {
+                    "type": "string",
+                    "minLength": 32,
+                    "maxLength": 128
+                },
+                "reason": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "lineAllocations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/BridgeCommercialRefundLine"
+                    },
+                    "minItems": 1
+                },
+                "approvalId": {
+                    "$ref": "#/$defs/Uuid"
+                }
+            },
+            "required": [
+                "commercialRefundId",
+                "returnId",
+                "transactionId",
+                "saleId",
+                "amount",
+                "economicsVersion",
+                "fingerprint",
+                "reason",
+                "lineAllocations"
+            ],
+            "additionalProperties": false
+        },
+        "BridgeCommercialRefundState": {
+            "type": "object",
+            "properties": {
+                "commercialRefundId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "returnId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "transactionId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "saleId": {
+                    "$ref": "#/$defs/Id"
+                },
+                "status": {
+                    "$ref": "#/$defs/IndependentEffectStatus"
+                },
+                "amount": {
+                    "$ref": "#/$defs/Money"
+                },
+                "economicsVersion": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                },
+                "message": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "commercialRefundId",
+                "returnId",
+                "transactionId",
+                "saleId",
+                "status",
+                "amount",
+                "economicsVersion"
+            ],
+            "additionalProperties": false
+        },
         "BridgeFinalizeRequest": {
             "type": "object",
             "properties": {
@@ -13,6 +130,90 @@
             "required": [
                 "transactionId",
                 "payment"
+            ],
+            "additionalProperties": false
+        },
+        "BridgeStockDispositionRequest": {
+            "type": "object",
+            "properties": {
+                "stockDispositionId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "returnId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "transactionId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "saleId": {
+                    "$ref": "#/$defs/Id"
+                },
+                "economicsVersion": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                },
+                "fingerprint": {
+                    "type": "string",
+                    "minLength": 32,
+                    "maxLength": 128
+                },
+                "lines": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/StockDispositionCommandLine"
+                    },
+                    "minItems": 1
+                },
+                "approvalId": {
+                    "$ref": "#/$defs/Uuid"
+                }
+            },
+            "required": [
+                "stockDispositionId",
+                "returnId",
+                "transactionId",
+                "saleId",
+                "economicsVersion",
+                "fingerprint",
+                "lines"
+            ],
+            "additionalProperties": false
+        },
+        "BridgeStockDispositionState": {
+            "type": "object",
+            "properties": {
+                "stockDispositionId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "returnId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "transactionId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "saleId": {
+                    "$ref": "#/$defs/Id"
+                },
+                "status": {
+                    "$ref": "#/$defs/IndependentEffectStatus"
+                },
+                "economicsVersion": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                },
+                "message": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "stockDispositionId",
+                "returnId",
+                "transactionId",
+                "saleId",
+                "status",
+                "economicsVersion"
             ],
             "additionalProperties": false
         },
@@ -79,6 +280,17 @@
             "minLength": 1,
             "maxLength": 128,
             "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+        },
+        "IndependentEffectStatus": {
+            "type": "string",
+            "enum": [
+                "not_started",
+                "not_required",
+                "not_found",
+                "pending",
+                "completed",
+                "requires_attention"
+            ]
         },
         "Money": {
             "type": "object",
@@ -459,6 +671,81 @@
                 "requires_attention"
             ]
         },
+        "StockDisposition": {
+            "type": "string",
+            "enum": [
+                "restock_sellable",
+                "no_automatic_restock"
+            ]
+        },
+        "StockDispositionCommandLine": {
+            "oneOf": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "orderLineId": {
+                            "$ref": "#/$defs/Id"
+                        },
+                        "quantity": {
+                            "$ref": "#/$defs/Quantity"
+                        },
+                        "condition": {
+                            "type": "string",
+                            "enum": [
+                                "damaged",
+                                "quarantine",
+                                "not_physically_returned"
+                            ]
+                        },
+                        "disposition": {
+                            "const": "no_automatic_restock"
+                        },
+                        "locationId": {
+                            "$ref": "#/$defs/Id"
+                        }
+                    },
+                    "required": [
+                        "orderLineId",
+                        "quantity",
+                        "condition",
+                        "disposition"
+                    ],
+                    "additionalProperties": false
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "orderLineId": {
+                            "$ref": "#/$defs/Id"
+                        },
+                        "quantity": {
+                            "$ref": "#/$defs/Quantity"
+                        },
+                        "condition": {
+                            "type": "string",
+                            "enum": [
+                                "resellable",
+                                "opened_resellable",
+                                "defective"
+                            ]
+                        },
+                        "disposition": {
+                            "$ref": "#/$defs/StockDisposition"
+                        },
+                        "locationId": {
+                            "$ref": "#/$defs/Id"
+                        }
+                    },
+                    "required": [
+                        "orderLineId",
+                        "quantity",
+                        "condition",
+                        "disposition"
+                    ],
+                    "additionalProperties": false
+                }
+            ]
+        },
         "StockStatus": {
             "type": "string",
             "enum": [
@@ -524,7 +811,11 @@
         }
     },
     "roots": [
+        "BridgeCommercialRefundRequest",
+        "BridgeCommercialRefundState",
         "BridgeFinalizeRequest",
+        "BridgeStockDispositionRequest",
+        "BridgeStockDispositionState",
         "CancelSaleRequest",
         "PrepareSaleRequest",
         "PreparedSale",
