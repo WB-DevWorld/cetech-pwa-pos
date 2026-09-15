@@ -1,6 +1,10 @@
 import { describe, expect, test } from "vitest";
 import { handleInitializePayment } from "../../../apps/pos-web/src/server/payments/handle-initialize-payment";
-import { createPaystackElectronicPaymentProvider } from "../../../apps/pos-web/src/server/payments/paystack-provider";
+import { composeElectronicPaymentProvider } from "../../../apps/pos-web/src/server/payments/compose-payment-provider";
+import {
+  createPaystackElectronicPaymentProvider,
+  type PaystackFetch,
+} from "../../../apps/pos-web/src/server/payments/paystack-provider";
 import { handleFinalizeSale } from "../../../apps/pos-web/src/server/sales/handle-finalize-sale";
 import { handleGetReceipt } from "../../../apps/pos-web/src/server/sales/handle-get-receipt";
 import { handleResolvePayment } from "../../../apps/pos-web/src/server/sales/handle-resolve-payment";
@@ -234,6 +238,26 @@ describe("PAY-01 electronic initialize", () => {
       appEnv: "local",
       sandboxPayerEmail: SANDBOX_EMAIL,
       env: { PAYMENT_PROVIDER: "paystack", PAYSTACK_MODE: "live", PAYSTACK_SECRET_KEY: "sk_live_not_used" },
+    });
+    expect(result.body.ok).toBe(false);
+    if (!result.body.ok) {
+      expect(result.body.error.code).toBe("INTEGRATION_UNAVAILABLE");
+    }
+    expect(runtime.provider.initializeCount).toBe(0);
+  });
+
+  test("public or unknown secrets fail closed without initialize", async () => {
+    const runtime = await createPay01Runtime();
+    const result = await handleInitializePayment({
+      ...commandBase(runtime.sessions.cookieHeader),
+      idempotencyKeyHeader: INIT_KEY,
+      body: { transactionId: TX_A, tender: "card" },
+      sessionStore: runtime.sessions.store,
+      checkoutStore: runtime.checkoutStore,
+      provider: runtime.provider,
+      appEnv: "local",
+      sandboxPayerEmail: SANDBOX_EMAIL,
+      env: { PAYMENT_PROVIDER: "paystack", PAYSTACK_MODE: "test", PAYSTACK_SECRET_KEY: "pk_test_fixture" },
     });
     expect(result.body.ok).toBe(false);
     if (!result.body.ok) {
@@ -603,6 +627,20 @@ describe("PAY-01 commercial finalization and cash regression", () => {
 });
 
 describe("PAY-01 provider config and Paystack adapter", () => {
+  const testEnv = {
+    PAYMENT_PROVIDER: "paystack",
+    PAYSTACK_MODE: "test",
+    PAYSTACK_SECRET_KEY: "sk_test_fixture",
+  };
+
+  test("valid test key is classified paystack_test", () => {
+    expect(readPaymentProviderConfig(testEnv)).toMatchObject({
+      kind: "paystack_test",
+      secretKey: "sk_test_fixture",
+    });
+    expect(composeElectronicPaymentProvider(testEnv).kind).toBe("ready");
+  });
+
   test("NEXT_PUBLIC Paystack secrets fail closed", () => {
     expect(() =>
       readPaymentProviderConfig({
@@ -616,9 +654,120 @@ describe("PAY-01 provider config and Paystack adapter", () => {
       readPaymentProviderConfig({
         PAYMENT_PROVIDER: "paystack",
         PAYSTACK_MODE: "test",
-        PAYSTACK_SECRET_KEY: "sk_live_should_block",
+        PAYSTACK_SECRET_KEY: "sk_live_fixture",
       }),
     ).toEqual({ kind: "blocked_live" });
+  });
+
+  test("public test keys and unknown secrets are blocked unsafe", () => {
+    for (const secret of ["pk_test_fixture", "pk_live_fixture", "some-secret", "sk_other_fixture", "foo"]) {
+      expect(
+        readPaymentProviderConfig({
+          PAYMENT_PROVIDER: "paystack",
+          PAYSTACK_MODE: "test",
+          PAYSTACK_SECRET_KEY: secret,
+        }),
+      ).toEqual({ kind: "blocked_unsafe" });
+      expect(
+        composeElectronicPaymentProvider({
+          PAYMENT_PROVIDER: "paystack",
+          PAYSTACK_MODE: "test",
+          PAYSTACK_SECRET_KEY: secret,
+        }).kind,
+      ).toBe("blocked_unsafe");
+    }
+  });
+
+  test("explicit live mode blocks even a test key", () => {
+    expect(
+      readPaymentProviderConfig({
+        PAYMENT_PROVIDER: "paystack",
+        PAYSTACK_MODE: "live",
+        PAYSTACK_SECRET_KEY: "sk_test_fixture",
+      }),
+    ).toEqual({ kind: "blocked_live" });
+  });
+
+  test("empty and placeholder secrets stay disabled", () => {
+    expect(
+      readPaymentProviderConfig({
+        PAYMENT_PROVIDER: "paystack",
+        PAYSTACK_MODE: "test",
+        PAYSTACK_SECRET_KEY: "",
+      }),
+    ).toEqual({ kind: "disabled" });
+    expect(
+      readPaymentProviderConfig({
+        PAYMENT_PROVIDER: "paystack",
+        PAYSTACK_MODE: "test",
+        PAYSTACK_SECRET_KEY: "REPLACE_WITH_SERVER_ONLY_SANDBOX_KEY",
+      }),
+    ).toEqual({ kind: "disabled" });
+  });
+
+  test("unsafe adapter secrets never call the network", async () => {
+    let calls = 0;
+    const fetchImpl: PaystackFetch = async () => {
+      calls += 1;
+      throw new Error("unsafe Paystack key must not call the network");
+    };
+    const init = {
+      reference: "pos_abc",
+      amount: ghs(2900),
+      email: SANDBOX_EMAIL,
+      tender: "card" as const,
+      metadata: {
+        transactionId: TX_A,
+        paymentId: "22222222-2222-4222-8222-222222222299",
+        saleId: "woo-pay01",
+        organizationId: "org_a",
+        locationId: "loc_a1",
+      },
+    };
+    for (const secret of ["sk_live_fixture", "pk_test_fixture", "some-secret", "sk_other_fixture"]) {
+      const provider = createPaystackElectronicPaymentProvider({ secretKey: secret, fetchImpl });
+      expect(await provider.initialize(init)).toEqual({ kind: "live_mode_blocked" });
+      const verified = await provider.verify("pos_abc");
+      expect(verified.kind).toBe("unavailable");
+      if (verified.kind === "unavailable") {
+        expect(verified.retryable).toBe(false);
+      }
+      expect(provider.authenticateWebhook("{}", "sig")).toBe(false);
+      expect(calls).toBe(0);
+    }
+  });
+
+  test("valid test key may execute against a mocked transport", async () => {
+    let calls = 0;
+    const provider = createPaystackElectronicPaymentProvider({
+      secretKey: "sk_test_fixture",
+      fetchImpl: async () => {
+        calls += 1;
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            status: true,
+            data: { access_code: "acc_test", reference: "pos_abc" },
+          }),
+        };
+      },
+    });
+    const initialized = await provider.initialize({
+      reference: "pos_abc",
+      amount: ghs(2900),
+      email: SANDBOX_EMAIL,
+      tender: "card",
+      metadata: {
+        transactionId: TX_A,
+        paymentId: "22222222-2222-4222-8222-222222222299",
+        saleId: "woo-pay01",
+        organizationId: "org_a",
+        locationId: "loc_a1",
+      },
+    });
+    expect(initialized.kind).toBe("initialized");
+    expect(calls).toBe(1);
   });
 
   test("Paystack adapter uses transaction status not the envelope flag", async () => {

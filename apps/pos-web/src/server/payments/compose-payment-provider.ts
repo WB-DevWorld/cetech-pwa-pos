@@ -5,6 +5,7 @@ import type { ElectronicPaymentProvider } from "./provider";
 export type ComposedPaymentProvider =
   | { readonly kind: "disabled"; readonly provider?: undefined }
   | { readonly kind: "blocked_live"; readonly provider?: undefined }
+  | { readonly kind: "blocked_unsafe"; readonly provider?: undefined }
   | { readonly kind: "ready"; readonly provider: ElectronicPaymentProvider; readonly sandboxPayerEmail?: string };
 
 export function composeElectronicPaymentProvider(
@@ -13,6 +14,9 @@ export function composeElectronicPaymentProvider(
   const config = readPaymentProviderConfig(env);
   if (config.kind === "blocked_live") {
     return { kind: "blocked_live" };
+  }
+  if (config.kind === "blocked_unsafe") {
+    return { kind: "blocked_unsafe" };
   }
   if (config.kind === "disabled") {
     return { kind: "disabled" };
