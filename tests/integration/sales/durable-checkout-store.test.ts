@@ -217,6 +217,11 @@ describe("R6-REM-01 durable checkout store", () => {
     expect(recoveredSale?.prepared.saleId).toBe("woo-49111");
     expect(recoveredSale?.commercialConfirmed).toBe(true);
     await expect(restarted.getPaymentForTransaction(TX)).resolves.toMatchObject({ paymentId: PAYMENT_ID });
+    fake.tables.pos_checkout_payments[0]!.verified_at = "2026-09-15T12:02:00+00:00";
+    await expect(restarted.getPayment(PAYMENT_ID)).resolves.toMatchObject({
+      paymentId: PAYMENT_ID,
+      verifiedAt: "2026-09-15T12:02:00.000Z",
+    });
     await expect(restarted.getReceipt(TX)).resolves.toMatchObject({ id: "receipt-r6-1" });
     await expect(restarted.listCashSales(TX)).resolves.toHaveLength(1);
     await expect(restarted.expectedCash(SHIFT_ID)).resolves.toEqual({ minor: 12900, currency: "GHS" });
