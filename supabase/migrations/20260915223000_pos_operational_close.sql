@@ -53,6 +53,7 @@ CREATE OR REPLACE FUNCTION pos_close_shift_blind(
   p_counted_cash_minor bigint,
   p_currency char(3),
   p_idempotency_key uuid,
+  p_correlation_id uuid,
   p_request_hash text
 )
 RETURNS jsonb
@@ -115,7 +116,7 @@ BEGIN
 
     outcome := jsonb_build_object('shift', to_jsonb(sh), 'report', to_jsonb(report_row));
 
-    IF NOT FOUND OR existing_claim.id IS NULL THEN
+    IF existing_claim.id IS NULL THEN
       INSERT INTO pos_pending_operations (
         organization_id, location_id, register_id, shift_id,
         operation, idempotency_key, request_hash, status, attempts,
@@ -198,17 +199,17 @@ BEGIN
     sh.organization_id, sh.location_id, 'shift', sh.id::text,
     'shift.closed',
     jsonb_build_object('shiftId', sh.id::text, 'zReportId', report_row.id::text),
-    p_idempotency_key
+    p_correlation_id
   );
 
   RETURN outcome;
 END;
 $$;
 
-REVOKE ALL ON FUNCTION pos_close_shift_blind(text, uuid, bigint, char(3), uuid, text)
+REVOKE ALL ON FUNCTION pos_close_shift_blind(text, uuid, bigint, char(3), uuid, uuid, text)
   FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION pos_close_shift_blind(text, uuid, bigint, char(3), uuid, text)
+GRANT EXECUTE ON FUNCTION pos_close_shift_blind(text, uuid, bigint, char(3), uuid, uuid, text)
   TO service_role;
 
-COMMENT ON FUNCTION pos_close_shift_blind(text, uuid, bigint, char(3), uuid, text) IS
+COMMENT ON FUNCTION pos_close_shift_blind(text, uuid, bigint, char(3), uuid, uuid, text) IS
   'Atomic server-only blind close: locks the shift, derives variance from server-owned expected cash, closes once, creates one immutable Z report, and acknowledges shift.close idempotency in the same transaction.';
