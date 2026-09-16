@@ -120,7 +120,6 @@ jobs:
           set -euo pipefail
           npm exec --yes --package=vercel@59.17.0 -- vercel curl "/" \
             --deployment "${{ steps.deploy.outputs.url }}" \
-            --token="$VERCEL_TOKEN" \
             --fail \
             --show-error \
             > /dev/null
@@ -140,7 +139,6 @@ jobs:
           set -euo pipefail
           npm exec --yes --package=vercel@59.17.0 -- vercel curl "/" \
             --deployment "https://${VERCEL_STAGING_ALIAS}" \
-            --token="$VERCEL_TOKEN" \
             --fail \
             --show-error \
             > /dev/null
