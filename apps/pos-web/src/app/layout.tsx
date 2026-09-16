@@ -4,6 +4,9 @@ import "@/features/sell/sell.css";
 import "@/features/health/health.css";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { readServerEnv } from "../config/env";
+import { readReleasePolicy } from "../config/release-policy";
+import { PwaLifecycleRuntime } from "./pwa-lifecycle-runtime";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,9 +15,15 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
+  const env = readServerEnv();
+  const initialReleasePolicy = readReleasePolicy(process.env, env.buildId);
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <PwaLifecycleRuntime appBuild={env.buildId} initialReleasePolicy={initialReleasePolicy}>
+          {children}
+        </PwaLifecycleRuntime>
+      </body>
     </html>
   );
 }

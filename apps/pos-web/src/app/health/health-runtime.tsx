@@ -1,19 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { ReleasePolicy, StoreHealth } from "../../../../../docs/contracts/domain.generated";
+import { useMemo } from "react";
+import type { StoreHealth } from "../../../../../docs/contracts/domain.generated";
 import type { ApiResult, HealthPort } from "../../../../../docs/contracts/ports";
 import {
   StoreHealthScreen,
   useStoreHealth,
   type StoreHealthPorts,
 } from "../../features/health";
-import {
-  createServiceWorkerLifecycle,
-  hasActiveTender,
-  inspectLocalRecoveryState,
-  openPosLocalDatabase,
-} from "../../local";
+import { inspectLocalRecoveryState } from "../../local";
+import { usePwaLifecycle } from "../pwa-lifecycle-runtime";
 
 function createBrowserHealthPort(): HealthPort {
   return {
@@ -43,77 +39,29 @@ function createBrowserHealthPort(): HealthPort {
   };
 }
 
-async function buildSafetySnapshot(buildId: string, releasePolicy: ReleasePolicy) {
-  const db = openPosLocalDatabase();
-  const [diagnostics, activeTender] = await Promise.all([
-    inspectLocalRecoveryState(db),
-    hasActiveTender(db),
-  ]);
-
-  return {
-    activeTender,
-    criticalOperationCount: diagnostics.pendingOperationCount,
-    syncMutationInProgress: false,
-    localMigrationInProgress: !diagnostics.schemaCompatible,
-    activeWindow: typeof document !== "undefined" && document.visibilityState === "visible",
-    appBuild: buildId,
-    releasePolicy,
-  } as const;
-}
-
-export function HealthRuntime({
-  buildId,
-  releasePolicy,
-}: {
-  buildId: string;
-  releasePolicy: ReleasePolicy;
-}) {
-  const [updateReady, setUpdateReady] = useState(false);
-  const ownerId = useMemo(() => `health-${crypto.randomUUID()}`, []);
+export function HealthRuntime() {
+  const lifecycle = usePwaLifecycle();
   const health = useMemo(() => createBrowserHealthPort(), []);
-  const workerUrl = useMemo(() => `/sw.js?build=${encodeURIComponent(buildId)}`, [buildId]);
-  const lifecycle = useMemo(
-    () =>
-      createServiceWorkerLifecycle({
-        ownerId,
-        workerUrl,
-        getSafetySnapshot: () => buildSafetySnapshot(buildId, releasePolicy),
-        onUpdateReady: () => setUpdateReady(true),
-      }),
-    [buildId, ownerId, releasePolicy, workerUrl],
-  );
 
-  useEffect(() => {
-    void lifecycle.start();
-    return () => lifecycle.stop();
-  }, [lifecycle]);
-
-  const ports = useMemo<StoreHealthPorts>(
-    () => ({
+  const ports = useMemo<StoreHealthPorts | undefined>(() => {
+    if (!lifecycle) {
+      return undefined;
+    }
+    return {
       health,
       getRecoveryDiagnostics: () => inspectLocalRecoveryState(),
-      getLifecycleSnapshot: async () => {
-        const diagnostics = await inspectLocalRecoveryState();
-        return {
-          connectivity: navigator.onLine ? "online" : "offline",
-          leadership: document.visibilityState === "visible" ? "active" : "passive",
-          updateReady,
-          releasePolicy,
-          unknownOperationPresent: diagnostics.attentionOperationCount > 0,
-        };
-      },
+      getLifecycleSnapshot: () => lifecycle.getLifecycleSnapshot(),
       activationDecision: () => lifecycle.activationDecision(),
-      activateWaitingUpdate: async () => {
-        const decision = await lifecycle.activateWaitingUpdate();
-        if (decision.safe) setUpdateReady(false);
-        return decision;
-      },
-      checkForUpdate: () => lifecycle.checkForUpdate(true),
-    }),
-    [health, lifecycle, releasePolicy, updateReady],
-  );
+      activateWaitingUpdate: () => lifecycle.activateWaitingUpdate(),
+      checkForUpdate: () => lifecycle.checkForUpdate(),
+    };
+  }, [health, lifecycle]);
 
   const state = useStoreHealth(ports);
+
+  if (!lifecycle || !ports) {
+    return <p className="muted">Shared lifecycle runtime is unavailable. Update activation is disabled.</p>;
+  }
 
   return (
     <StoreHealthScreen

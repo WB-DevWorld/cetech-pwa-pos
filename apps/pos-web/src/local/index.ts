@@ -35,6 +35,13 @@ export {
   type ServiceWorkerLifecycleController,
   type ServiceWorkerLifecycleOptions,
 } from "./service-worker-lifecycle";
+export { buildMountedSafetySnapshot } from "./mounted-update-safety";
+export {
+  fetchReleasePolicy,
+  RELEASE_POLICY_PATH,
+  sameWorkerUrl,
+  serviceWorkerUrlForBuild,
+} from "./release-policy-client";
 export {
   createTenderActivityPort,
   hasActiveTender,

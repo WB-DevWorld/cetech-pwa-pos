@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { ReleasePolicy } from "../../../../docs/contracts/domain.generated";
 import { SellRuntimeScreen, type SellSessionPorts } from "../features/sell";
 import { createBrowserPricingPort } from "../features/sell/runtime/pricingClient";
 import { createBrowserCashCheckoutPorts, LOCAL_CHECKOUT_SCOPE } from "./checkout-client";
@@ -20,15 +19,7 @@ import {
   rememberActiveCartId,
 } from "../local";
 
-export function PosApp({
-  route,
-  buildId,
-  releasePolicy,
-}: {
-  route: PosRoute;
-  buildId?: string;
-  releasePolicy?: ReleasePolicy;
-}) {
+export function PosApp({ route }: { route: PosRoute }) {
   const router = useRouter();
   const [online, setOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
   const [ports, setPorts] = useState<SellSessionPorts | null>(null);
@@ -89,11 +80,7 @@ export function PosApp({
           <p className="muted">Loading catalog…</p>
         )
       ) : route === "health" ? (
-        buildId && releasePolicy ? (
-          <HealthRuntime buildId={buildId} releasePolicy={releasePolicy} />
-        ) : (
-          <p className="muted">Release policy is unavailable. Update activation is disabled.</p>
-        )
+        <HealthRuntime />
       ) : (
         <section>
           <h1>{labelFor(route)}</h1>

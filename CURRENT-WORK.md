@@ -87,3 +87,14 @@ R7 Paystack sandbox acceptance remains a separate human/secret boundary. Do not 
 RT-01 code may later be combined at the milestone integration layer, but this contributor branch starts from accepted `main` to keep CORE-07 independent of provisional R7/returns branches.
 
 Production promotion remains **NOT AUTHORIZED**.
+
+## R9 PR #63 review remediation (this checkout)
+
+- Milestone PR: **#63 draft** — `[R9] PWA recovery, operational close and Store Health`.
+- Integration branch: `batch/r9-pwa-recovery-operational-close`.
+- Reviewed replacement head before this remediation: `92be3f358222d1fd7af90b0502797a1d4ab1d099`.
+- Base `main`: `bd79c2901ce33c3177141d4244cc196be0a719d2`.
+- Mode: **IMPLEMENT** remaining HIGH lifecycle findings only. Do not merge. Do not mark ready. Do not claim R9 accepted.
+- Emmanuel re-review of `92be3f3`: CHANGES_REQUESTED. Prior tender-marker and ReleasePolicy wiring remain in force.
+- Old FRESH_2 on the pre-remediation head is superseded once this replacement SHA exists. Do not run FRESH_2 until this candidate is frozen.
+- Frozen v1.0.0 contracts are not widened. `GET /api/pos/v1/release-policy` serves the existing `ReleasePolicy` type for installed-client discovery.
