@@ -87,9 +87,10 @@ jobs:
 
       - name: Build Vercel artifact
         working-directory: apps/pos-web
+        env:
+          BUILD_ID: ${{ github.event.workflow_run.head_sha }}
         run: >-
           npm exec --yes --package=vercel@59.17.0 -- vercel build
-          --build-env BUILD_ID="$CI_TESTED_SHA"
           --token="$VERCEL_TOKEN"
 
       - name: Deploy exact prebuilt artifact
