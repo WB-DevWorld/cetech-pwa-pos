@@ -12,7 +12,6 @@ import {
   createServiceWorkerLifecycle,
   inspectLocalRecoveryState,
   openPosLocalDatabase,
-  type ServiceWorkerLifecycleController,
 } from "../../local";
 
 function createBrowserHealthPort(): HealthPort {
@@ -65,24 +64,25 @@ async function buildSafetySnapshot() {
 
 export function HealthRuntime() {
   const [updateReady, setUpdateReady] = useState(false);
-  const [lifecycle, setLifecycle] = useState<ServiceWorkerLifecycleController | null>(null);
   const ownerId = useMemo(() => `health-${crypto.randomUUID()}`, []);
   const health = useMemo(() => createBrowserHealthPort(), []);
+  const lifecycle = useMemo(
+    () =>
+      createServiceWorkerLifecycle({
+        ownerId,
+        getSafetySnapshot: buildSafetySnapshot,
+        onUpdateReady: () => setUpdateReady(true),
+      }),
+    [ownerId],
+  );
 
   useEffect(() => {
-    const controller = createServiceWorkerLifecycle({
-      ownerId,
-      getSafetySnapshot: buildSafetySnapshot,
-      onUpdateReady: () => setUpdateReady(true),
-    });
-    setLifecycle(controller);
-    void controller.start();
-    return () => controller.stop();
-  }, [ownerId]);
+    void lifecycle.start();
+    return () => lifecycle.stop();
+  }, [lifecycle]);
 
-  const ports = useMemo<StoreHealthPorts | undefined>(() => {
-    if (!lifecycle) return undefined;
-    return {
+  const ports = useMemo<StoreHealthPorts>(
+    () => ({
       health,
       getRecoveryDiagnostics: () => inspectLocalRecoveryState(),
       getLifecycleSnapshot: async () => {
@@ -101,13 +101,11 @@ export function HealthRuntime() {
         return decision;
       },
       checkForUpdate: () => lifecycle.checkForUpdate(true),
-    };
-  }, [health, lifecycle, updateReady]);
+    }),
+    [health, lifecycle, updateReady],
+  );
 
   const state = useStoreHealth(ports);
-  if (!state.ready) {
-    return <p className="muted">Starting Store Health…</p>;
-  }
 
   return (
     <StoreHealthScreen
