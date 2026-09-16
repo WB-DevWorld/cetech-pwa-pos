@@ -1,4 +1,5 @@
 import type { Id, PendingOperation, Quote, ReceiptSnapshot, Uuid } from "../../../../../docs/contracts/domain.generated";
+import { mergeStoredPayment, mergeStoredSale } from "./monotonic";
 import type {
   CommandScopeBinding,
   FaultInjectingCheckoutStore,
@@ -198,7 +199,10 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
         store.failNextCommercialConfirmedWrite = false;
         throw new Error("injected POS commercial-confirmed persistence failure");
       }
-      sales.set(sale.prepared.transactionId, { ...sale });
+      sales.set(
+        sale.prepared.transactionId,
+        mergeStoredSale(sales.get(sale.prepared.transactionId), { ...sale }),
+      );
     },
 
     async getPayment(paymentId) {
@@ -232,8 +236,9 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
         }
         paymentsByProviderRef.set(refKey, payment.paymentId);
       }
-      payments.set(payment.paymentId, payment);
-      paymentsByTx.set(payment.transactionId, payment.paymentId);
+      const merged = mergeStoredPayment(payments.get(payment.paymentId), payment);
+      payments.set(merged.paymentId, merged);
+      paymentsByTx.set(merged.transactionId, merged.paymentId);
     },
 
     async saveProviderEvent(event) {

@@ -1,53 +1,36 @@
 # WS3 current status
 
-Snapshot 2026-09-15. RT-01 / #27 combined safe-returns integration on `batch/rt01-safe-returns-ws3-integrated`.
+Snapshot 2026-09-16. Protected `main` `1feb78db36f33e0254c0170396f30112d71577ea` is accepted/merged R7 PR #58. Post-merge CI `35136321143` SUCCESS. R8 is the active reconciliation/review milestone on `batch/r8-safe-returns-reconciliation` / PR #69.
 
-## Current truth
+## R6 (historical)
+
+PR #55 merged as `bd79c2901ce33c3177141d4244cc196be0a719d2`. CORE-06 / #25, R6-00 / #54, and CORE-HARDEN-07 / #56 closed completed. Woo `49439` retained as historical cash evidence. Production promotion is not authorized. Issue #4 remains OPEN.
+
+## R7 (merged)
+
+PR #58 squash-merged. PAY-01 / #26 and #57 are accepted on `main`. Historical provisional R7 head `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091` is not current authority; it is used only to identify the R8-only delta.
+
+Paystack TEST sandbox evidence remains `docs/integration/evidence/R7-PAY-01-SANDBOX.md` (Woo **49449**). Monotonic concurrency evidence remains `docs/integration/evidence/R7-PAY-01-CONCURRENCY.md`. Live Paystack is still not authorized.
+
+## R8 (active)
+
+Mode: INTEGRATE. Owner `@wbdevworld` / WS3. Branch `batch/r8-safe-returns-reconciliation`. Milestone PR **#69** draft; do not self-approve; do not merge.
+
+Accepted downstream R8 head `5fa875eb43c0b2f62b59b80a3dfa3812c2d1e190` (`batch/rt01-safe-returns-ws3-integrated`) is being reconciled onto current `main` without redesign and without importing R9.
 
 | Role | SHA / classification |
 | --- | --- |
-| Post-R6 `main` | `bd79c2901ce33c3177141d4244cc196be0a719d2` ACCEPTED / MERGED |
-| PAY-01 / R7 code-ready head | `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091` PROVISIONAL_TEST / sandbox-deferred |
-| Accepted RT-01 contract | `58d385300bfba784435448029e88f07742048cde` |
+| Current `main` / accepted R7 | `1feb78db36f33e0254c0170396f30112d71577ea` ACCEPTED / MERGED |
+| Historical provisional R7 (R8 delta base only) | `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091` |
+| Accepted RT-01 contract / ADR-015 | `58d385300bfba784435448029e88f07742048cde` |
 | Accepted WS3 RT-01 runtime | `4650a0fa18c909743e9fbab4be0b6067bd1eff18` |
-| Accepted BR-08 / WS2 source | `dcf9098a331f878647e067fc78b3c05778f8f668` |
-| Accepted FE-06 / WS1 source | `0ddde7c727337c4005e9878071817bbf826d41a2` |
-| Combined RT-01 receiver | `d54a916946a6dcf0dfbc636d93528ac58a77ca1b` |
+| Accepted BR-08 / WS2 source | `dcf9098a331f878647e067fc78b3c05778f8f668` CLOSED / COMPLETED |
+| Accepted FE-06 / WS1 source | `0ddde7c727337c4005e9878071817bbf826d41a2` CLOSED / COMPLETED |
+| Combined downstream receiver | `d54a916946a6dcf0dfbc636d93528ac58a77ca1b` |
+| Accepted downstream R8 head | `5fa875eb43c0b2f62b59b80a3dfa3812c2d1e190` |
 
-R7 PR #58 remains draft / sandbox-deferred / NOT MERGED. Issue #4 remains OPEN. `pricingParityVerified=false`. Production promotion is NOT AUTHORIZED.
-
-## RT-01 combined integration
-
-ADR-015 is accepted and frozen. The three owner lanes are now combined without transferring implementation ownership:
-
-- WS3: return preview/orchestration/storage/reconciliation runtime.
-- WS2 / BR-08: commercial refund and physical stock-disposition Woo bridge effects.
-- WS1 / FE-06: payment-return/register-state cashier UX.
-
-PR #62 imported only the accepted WS2 and WS1 owner contributions onto the already-accepted WS3 receiver. The resulting receiver commit is `d54a916946a6dcf0dfbc636d93528ac58a77ca1b`.
-
-## Verification
-
-- WS3 source CI `35008724817`: Linux + Windows SUCCESS.
-- PR #62 exact combined CI `35017127991`: Linux + Windows SUCCESS.
-- Post-integration receiver CI `35017460256`: Linux + Windows SUCCESS.
-- Post-integration receiver gate includes fresh Supabase reset, pgTAP, lint, typecheck, unit tests, production build and E2E.
-- BR-08 / #60: CLOSED / COMPLETED.
-- FE-06 / #11: CLOSED / COMPLETED.
+R9 is not started. Production, live Paystack, live refund/restock, and VitePOS deactivation remain NOT AUTHORIZED.
 
 ## Remaining disposition
 
-RT-01 implementation is combined and automated acceptance evidence is green. Remaining work is control-plane closure/reconciliation only; no new RT-01 feature implementation is currently justified by the accepted scope.
-
-Provider/runtime safety gates remain deliberately deferred and are **not** RT-01 completion claims:
-
-- No approved Paystack TEST sandbox credential is present for R7 milestone acceptance.
-- No real provider refund is authorized.
-- No real Woo refund/restock is authorized.
-- No production mutation/promotion is authorized.
-- `opened_resellable` / `defective` remain fail-closed without an approved tenant restock policy.
-- Concrete Paystack refund create remains fail-closed where provider idempotency/recovery cannot satisfy ADR-015.
-
-## Next boundary
-
-Do not open an R8 milestone PR while R7 PR #58 remains the active milestone review surface. R7 must complete its Paystack TEST sandbox acceptance, final freshness, independent review and authorized merge before the next protected-main milestone integration.
+Independent review of PR #69 after exact-head CI. Ben reviews WS2/WS3 integration portions; Emmanuel reviews WS1/WS3 integration portions. Controlled real training refund/restock remains an unexecuted remaining gate.

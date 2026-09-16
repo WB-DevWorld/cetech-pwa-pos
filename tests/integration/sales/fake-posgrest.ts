@@ -67,7 +67,7 @@ export function createFakePosgrest(options?: {
       const body = init.body ? (JSON.parse(String(init.body)) as Row) : {};
       for (const row of tables[table]) {
         if (matches(row, filters)) {
-          Object.assign(row, body);
+          applyMonotonicAssign(table, row, body);
         }
       }
       return jsonResponse(204, null);
@@ -77,7 +77,7 @@ export function createFakePosgrest(options?: {
       const conflict = findConflict(table, tables, body, onConflict);
       if (conflict) {
         if (merge && onConflict) {
-          Object.assign(conflict, body);
+          applyMonotonicAssign(table, conflict, body);
           return jsonResponse(200, [conflict]);
         }
         return jsonResponse(409, {
@@ -317,4 +317,58 @@ function insertCash(
   };
   tables.pos_cash_movements.push(row);
   return { kind: "ok", row };
+}
+
+function saleRank(status: unknown): number {
+  switch (status) {
+    case "not_found":
+      return 0;
+    case "preparing":
+      return 1;
+    case "prepared":
+      return 2;
+    case "payment_pending":
+    case "requires_attention":
+      return 3;
+    case "finalizing":
+      return 4;
+    case "completed":
+    case "cancelled":
+      return 5;
+    default:
+      return 0;
+  }
+}
+
+function applyMonotonicAssign(table: string, existing: Row, incoming: Row): void {
+  if (table === "pos_checkout_payments" && existing.status === "verified" && incoming.status !== "verified") {
+    Object.assign(existing, incoming, {
+      status: "verified",
+      evidence_id: existing.evidence_id ?? incoming.evidence_id,
+      verified_at: existing.verified_at ?? incoming.verified_at,
+      verification_source: existing.verification_source ?? incoming.verification_source,
+      provider_transaction_id: existing.provider_transaction_id ?? incoming.provider_transaction_id,
+      attention_reason: existing.attention_reason,
+    });
+    return;
+  }
+  if (table === "pos_checkout_sales" && saleRank(existing.status) >= 4 && saleRank(incoming.status) < saleRank(existing.status)) {
+    const record =
+      incoming.record && typeof incoming.record === "object"
+        ? {
+            ...(incoming.record as Record<string, unknown>),
+            status: existing.status,
+            assignedPaymentId: existing.assigned_payment_id ?? incoming.assigned_payment_id,
+            commercialConfirmed: Boolean(existing.commercial_confirmed) || Boolean(incoming.commercial_confirmed),
+          }
+        : incoming.record;
+    Object.assign(existing, incoming, {
+      status: existing.status,
+      assigned_payment_id: existing.assigned_payment_id ?? incoming.assigned_payment_id,
+      commercial_confirmed: Boolean(existing.commercial_confirmed) || Boolean(incoming.commercial_confirmed),
+      record,
+    });
+    return;
+  }
+  Object.assign(existing, incoming);
 }

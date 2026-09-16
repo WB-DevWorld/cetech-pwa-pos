@@ -1,68 +1,85 @@
 # Current work ledger
 
-Updated 2026-09-15. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
+Updated 2026-09-16. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
 
 ## Current authority
 
-- `main`: `bd79c2901ce33c3177141d4244cc196be0a719d2` — R6 PR #55 merge; protected.
+- `main`: `1feb78db36f33e0254c0170396f30112d71577ea` — squash-merged `[R7] Verified electronic payment and reconciliation (#58)`. Protected. Post-merge CI run `35136321143` SUCCESS.
+- CD-01 chain remains in history: `#65` `a9db7ad…`, `#66` `97f6436…`, `#67` `6548906…`, `#68` `b85c5da…`. R6 remains `bd79c2901ce33c3177141d4244cc196be0a719d2`.
 - ADR-012, ADR-014 and accepted ADR-015 are active; ownership-preserving milestone execution remains required.
 - Issue #4 remains **OPEN**. `pricingParityVerified=false`. Production promotion is not authorized.
-- Live electronic payment is not authorized. Live refund/restock is not authorized.
-- R7 is not merged. R8 milestone review is not started.
-
-## R7 — electronic payment and reconciliation — PROVISIONAL_TEST / SANDBOX DEFERRED
-
-- Integration issue: **#57**.
-- Implementation task: **PAY-01 / #26**.
-- Neutral branch: `batch/r7-electronic-payment-reconciliation`.
-- Milestone PR: **#58 draft**.
-- Exact code-ready head: `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091`.
-- Automated code/contract gate is green.
-- Sandbox milestone gate remains blocked because no approved Paystack TEST secret (`sk_test_...`) is present through the authorized server/local secret mechanism.
-- Do not mark #58 ready, request final review, merge, run live electronic payment, or promote production until the sandbox gate is completed.
+- Live Paystack / live electronic payment is not authorized. Live refund/restock is not authorized. VitePOS remains active.
+- R9 is **not** imported. CORE-07, FE-07, Store Health, new PWA lifecycle, and operational-close/Z-report work stay downstream.
 
 ```text
-PAYMENT PROVIDER SANDBOX GATE: BLOCKED_SANDBOX_CREDENTIALS
+human: @wbdevworld
+workstream: WS3
+mode: INTEGRATE
+task: R8-00 / RT-01 + FE-06 + BR-08 reconciliation onto accepted R7 main
 ```
 
-## RT-01 safe returns preparation — COMBINED INTEGRATION ACCEPTED
+## R6 closure (historical)
 
-The senior/user explicitly authorized continuing safe-return preparation while R7's provider sandbox gate is deferred. This is preparation/provisional work only; it does not imply R7 acceptance or start an R8 milestone review.
+R6 PR #55 was squash-merged to `main` as `bd79c2901ce33c3177141d4244cc196be0a719d2`. Post-merge CI run `34966689340`: `control-plane` SUCCESS; `control-plane-windows` SUCCESS. Woo order `49439` is historical R6 training evidence. No second training commercial sale is authorized.
+
+## R7 — merged to protected main
+
+PAY-01 / #26 and integration issue #57 closed by squash merge of PR #58 as `1feb78db36f33e0254c0170396f30112d71577ea`.
+
+Historical provisional R7 head used only as the R8 delta base (not current authority): `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091`.
+
+Preserved R7 evidence (no secrets):
+
+- `docs/integration/evidence/R7-PAY-01-SANDBOX.md` — Paystack TEST sandbox PASS on `https://training.cetechbpa.com`; Woo **49449**.
+- `docs/integration/evidence/R7-PAY-01-CONCURRENCY.md` — monotonic payment/sale transitions.
+- `docs/integration/evidence/R7-PAY-01-MILESTONE-FRESHNESS.md`.
+
+R7 fail-closed rules remain in force on `main` and must not regress on the R8 candidate: browser callback is not payment truth; server verification binds reference / POS transaction / order / amount / currency; Paystack execution only when `PAYMENT_PROVIDER=paystack`, `PAYSTACK_MODE=test`, `sk_test_` present; refuse `sk_live_` and `NEXT_PUBLIC_PAYSTACK_SECRET`; verified payments and `finalizing`/`completed` sales are monotonic.
+
+## Active assignment — R8 safe returns and payment/register states
+
+- Milestone PR: **#69 draft** — `[R8] Safe returns and payment/register states`. Do not self-approve. Do not merge from this ledger.
+- Recovery/integration branch: `batch/r8-safe-returns-reconciliation`.
+- Accepted downstream combined head (pre-reconciliation): `5fa875eb43c0b2f62b59b80a3dfa3812c2d1e190` on `batch/rt01-safe-returns-ws3-integrated`.
+- This assignment reconciles that accepted R8 delta onto current accepted R7 `main`. It is not a redesign of RT-01, FE-06, PAY-01, BR-08, or R7. It does not start R9/R10.
 
 Accepted contract:
+
 - ADR-015 / return-refund contract exact head `58d385300bfba784435448029e88f07742048cde`.
 - Required cross-owner contract reviews: Ben / WS1 APPROVED; Emmanuel / WS2 APPROVED.
 
-Accepted owner implementations:
-- WS3 RT-01 runtime source `4650a0fa18c909743e9fbab4be0b6067bd1eff18` — accepted for neutral integration after exact-head Linux + Windows CI.
-- BR-08 / #60 WS2 source `dcf9098a331f878647e067fc78b3c05778f8f668` — completed and integrated.
-- FE-06 / #11 WS1 source `0ddde7c727337c4005e9878071817bbf826d41a2` — completed and integrated; remediation source includes `d3ddf0a7592845c710fe768b3645b9a9109693cb`.
+Accepted owner implementations (historical provenance):
 
-Combined receiver:
+- WS3 RT-01 runtime source `4650a0fa18c909743e9fbab4be0b6067bd1eff18`.
+- BR-08 / #60 WS2 source `dcf9098a331f878647e067fc78b3c05778f8f668` — CLOSED / COMPLETED.
+- FE-06 / #11 WS1 source `0ddde7c727337c4005e9878071817bbf826d41a2`; remediation includes `d3ddf0a7592845c710fe768b3645b9a9109693cb` — CLOSED / COMPLETED.
+
+Combined downstream receiver (pre-final-R7 rebase/reconcile):
+
 - branch: `batch/rt01-safe-returns-ws3-integrated`
-- receiver before owner imports: `4650a0fa18c909743e9fbab4be0b6067bd1eff18`
 - BR-08 import: `79d9270a418ec958ffd716b7a20a8d1c213b5e8d`
 - FE-06 import: `bc521c598b834930d2fd6b56c8225b2b08a3ec2a`
 - exact integrated receiver: `d54a916946a6dcf0dfbc636d93528ac58a77ca1b`
+- accepted downstream head: `5fa875eb43c0b2f62b59b80a3dfa3812c2d1e190`
 - PR #62 combined CI `35017127991`: Linux + Windows SUCCESS.
-- post-integration receiver CI `35017460256`: Linux + Windows SUCCESS, including Supabase reset, pgTAP, lint, typecheck, unit tests, production build and E2E.
+- post-integration receiver CI `35017460256`: Linux + Windows SUCCESS.
 
-Owner task disposition:
-- BR-08 / #60: **CLOSED / COMPLETED**.
-- FE-06 / #11: **CLOSED / COMPLETED**.
-- RT-01 / #27: combined implementation is integrated and automated acceptance evidence is green; final control-plane closure/reconciliation is the remaining repository action.
+Reconciliation evidence: `docs/integration/evidence/R8-FINAL-R7-RECONCILIATION.md`.
 
-## RT-01 safety boundaries retained
+Recommended independent review coverage (do not self-approve): Ben reviews WS2/WS3 integration portions, not his own FE-06 as independent coverage; Emmanuel reviews WS1/WS3 integration portions, not his own BR-08 as independent coverage.
 
-- No real Woo refund or real stock disposition is authorized.
-- No live Paystack/provider refund is authorized.
-- No production mutation or promotion is authorized.
-- Historic sale economics remain authoritative for returns/refunds; do not reprice from current catalog state.
+## R8 safety boundaries retained
+
+- No real Woo refund or real stock disposition is authorized by this milestone.
+- No live Paystack/provider refund or live electronic payment is authorized.
+- No production mutation, promotion, or VitePOS deactivation is authorized.
+- Historic sale economics remain authoritative for returns/refunds.
 - Tender refund, Woo commercial refund accounting and physical stock disposition remain independent effects with independent durable identities/idempotency and resolve paths.
 - Damaged, quarantine and not-physically-returned goods must not auto-restock sellable stock.
+- Unknown provider refund results use the existing refund/effect identity (`resolve`), not a second money effect.
 - `opened_resellable` / `defective` remain fail-closed without an approved tenant restock policy.
 - Concrete Paystack refund create remains fail-closed where the provider cannot satisfy the accepted durable idempotency/recovery contract.
 
 ## Next milestone boundary
 
-Do not open or merge an R8 milestone PR while R7 PR #58 remains the active milestone review surface. Work that can proceed safely against accepted contracts/mocks may continue only within explicit ownership/path authority. The next merge to protected `main` remains R7 after its provider sandbox acceptance, final freshness, independent review and authorized merge.
+R9 (`batch/r9-pwa-recovery-operational-close`) remains downstream and is not part of this reconciliation. Do not merge PR #69 from this ledger. Controlled training refund/restock rehearsal remains a remaining gate if independently authorized later; it is not executed here.
