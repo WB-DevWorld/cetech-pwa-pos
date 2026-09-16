@@ -80,7 +80,7 @@ jobs:
       - name: Pull Vercel Preview environment
         working-directory: apps/pos-web
         run: >-
-          pnpm dlx vercel@59.17.0 pull
+          npm exec --yes --package=vercel@59.17.0 -- vercel pull
           --yes
           --environment=preview
           --token="$VERCEL_TOKEN"
@@ -88,7 +88,7 @@ jobs:
       - name: Build Vercel artifact
         working-directory: apps/pos-web
         run: >-
-          pnpm dlx vercel@59.17.0 build
+          npm exec --yes --package=vercel@59.17.0 -- vercel build
           --build-env BUILD_ID="$CI_TESTED_SHA"
           --token="$VERCEL_TOKEN"
 
@@ -98,7 +98,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          deployment_url="$(pnpm dlx vercel@59.17.0 deploy --prebuilt --yes --env BUILD_ID="$CI_TESTED_SHA" --token="$VERCEL_TOKEN" | tail -n 1)"
+          deployment_url="$(npm exec --yes --package=vercel@59.17.0 -- vercel deploy --prebuilt --yes --env BUILD_ID="$CI_TESTED_SHA" --token="$VERCEL_TOKEN" | tail -n 1)"
           if [[ ! "$deployment_url" =~ ^https:// ]]; then
             echo "Unexpected Vercel deployment output: $deployment_url" >&2
             exit 1
@@ -108,7 +108,7 @@ jobs:
       - name: Move stable staging alias
         working-directory: apps/pos-web
         run: >-
-          pnpm dlx vercel@59.17.0 alias set
+          npm exec --yes --package=vercel@59.17.0 -- vercel alias set
           "${{ steps.deploy.outputs.url }}"
           "$VERCEL_STAGING_ALIAS"
           --token="$VERCEL_TOKEN"
