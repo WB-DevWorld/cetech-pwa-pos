@@ -78,15 +78,24 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Pull Vercel Preview environment
-        working-directory: apps/pos-web
         run: >-
           npm exec --yes --package=vercel@59.17.0 -- vercel pull
           --yes
           --environment=preview
           --token="$VERCEL_TOKEN"
 
+      - name: Verify Vercel monorepo root contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f .vercel/project.json
+          project_root="$(node -e "const fs=require('node:fs');const p=JSON.parse(fs.readFileSync('.vercel/project.json','utf8'));process.stdout.write(p.projectSettings?.rootDirectory ?? '')")"
+          if [[ "$project_root" != "apps/pos-web" ]]; then
+            echo "Unexpected Vercel rootDirectory: '${project_root:-<empty>}'" >&2
+            exit 1
+          fi
+
       - name: Build Vercel artifact
-        working-directory: apps/pos-web
         env:
           BUILD_ID: ${{ github.event.workflow_run.head_sha }}
         run: >-
@@ -95,7 +104,6 @@ jobs:
 
       - name: Deploy exact prebuilt artifact
         id: deploy
-        working-directory: apps/pos-web
         shell: bash
         run: |
           set -euo pipefail
@@ -107,7 +115,6 @@ jobs:
           echo "url=$deployment_url" >> "$GITHUB_OUTPUT"
 
       - name: Smoke immutable staging deployment
-        working-directory: apps/pos-web
         shell: bash
         run: |
           set -euo pipefail
@@ -120,7 +127,6 @@ jobs:
 
       - name: Move optional stable staging alias
         if: env.VERCEL_STAGING_ALIAS != ''
-        working-directory: apps/pos-web
         run: >-
           npm exec --yes --package=vercel@59.17.0 -- vercel alias set
           "${{ steps.deploy.outputs.url }}"
@@ -129,7 +135,6 @@ jobs:
 
       - name: Smoke optional stable staging alias
         if: env.VERCEL_STAGING_ALIAS != ''
-        working-directory: apps/pos-web
         shell: bash
         run: |
           set -euo pipefail
