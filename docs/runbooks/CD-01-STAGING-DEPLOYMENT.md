@@ -48,16 +48,27 @@ The current transitional architecture selected Vercel for the Next.js POS web ap
 
 CD-01 uses the Vercel CLI sequence:
 
-1. `vercel pull --environment=preview`
-2. set `BUILD_ID` in the build process environment and run `vercel build`
-3. `vercel deploy --prebuilt --env BUILD_ID=<exact-tested-sha>`
-4. smoke-test the immutable deployment URL
-5. optionally `vercel alias set` when `VERCEL_STAGING_ALIAS` is configured
-6. if an alias is configured, smoke-test the alias
+1. run `vercel pull --environment=preview` from the repository root;
+2. verify the linked Vercel project declares `rootDirectory=apps/pos-web`;
+3. set `BUILD_ID` in the build process environment and run `vercel build` from the repository root;
+4. run `vercel deploy --prebuilt --env BUILD_ID=<exact-tested-sha>` from the repository root;
+5. smoke-test the immutable deployment URL;
+6. optionally `vercel alias set` when `VERCEL_STAGING_ALIAS` is configured;
+7. if an alias is configured, smoke-test the alias.
 
 The workflow pins Vercel CLI `59.17.0` rather than using an unbounded `latest` install. It invokes that transient CLI through pinned `npm exec` rather than `pnpm dlx`: pnpm 12's strict dependency-build policy blocks the transient Vercel CLI's `esbuild` install script unless separately approved. This avoids weakening the repository's workspace `allowBuilds` policy merely to run a deployment utility.
 
-`vercel build` in CLI `59.17.0` does **not** accept `--build-env`. The exact CI-tested SHA is therefore supplied to the local build through the step's `BUILD_ID` process environment. The `--env BUILD_ID=...` flag remains on `vercel deploy --prebuilt` so the same exact SHA is available to the deployed runtime. The first post-merge CD-01 attempt established this compatibility boundary by failing before deployment on the unsupported `vercel build --build-env` option; no Vercel deployment or business-system write occurred in that failed attempt.
+`vercel build` in CLI `59.17.0` does **not** accept `--build-env`. The exact CI-tested SHA is therefore supplied to the local build through the step's `BUILD_ID` process environment. The `--env BUILD_ID=...` flag remains on `vercel deploy --prebuilt` so the same exact SHA is available to the deployed runtime.
+
+### Monorepo root invocation rule
+
+The Vercel project owns the application subdirectory through `rootDirectory=apps/pos-web`. Therefore **all Vercel CLI commands in CD-01 run from the repository root**. Do not also set the GitHub Actions working directory to `apps/pos-web`, because that would cause Vercel to compose the configured project root a second time and resolve `apps/pos-web/apps/pos-web`.
+
+The workflow now verifies `.vercel/project.json` after `vercel pull` and fails if the downloaded project settings do not report `apps/pos-web` as the configured root directory.
+
+### Runtime evidence from the first two CD attempts
+
+The first post-merge CD-01 attempt failed before deployment because `vercel build --build-env` is unsupported by CLI `59.17.0`. The second attempt confirmed the build-process environment fix worked: `vercel build` completed successfully, but `vercel deploy --prebuilt` then failed because the workflow was running inside `apps/pos-web` while the Vercel project also declared `rootDirectory=apps/pos-web`. Vercel therefore tried to resolve a nonexistent `apps/pos-web/apps/pos-web` path. No deployment, smoke test, alias change, production promotion, or business-system write occurred in either failed attempt.
 
 ## Origin protection without a custom staging domain
 
@@ -84,7 +95,8 @@ Use one Vercel project for staging:
 
 - project: `cetech-pos-staging`
 - owner/team: the intended CETECH deployment account/team
-- root directory: `apps/pos-web`
+- repository root used by the CLI: repository root
+- project Root Directory in Vercel: `apps/pos-web`
 - framework preset: Next.js
 - Node.js: 24.x
 - install/build/output commands: framework/project defaults unless a verified blocker requires an override
@@ -129,7 +141,7 @@ BRIDGE_APPLICATION_PASSWORD=<server-only staging application password>
 PAYMENT_PROVIDER=disabled
 ```
 
-During the generated-URL phase, **do not set `APP_ORIGIN` or `ALLOWED_ORIGINS` merely to a guessed Vercel URL**. The application will use the exact runtime `VERCEL_URL`. If a stable custom domain is added later, set `APP_ORIGIN=https://<stable-hostname>` and optionally add other explicitly trusted origins through `ALLOWED_ORIGINS`.
+During the generated-URL phase, **do not set `APP_ORIGIN` or `ALLOWED_ORIGINS` merely to a guessed Vercel URL**. The application will use the exact runtime `VERCEL_URL`. If a stable custom domain is added later, set `APP_ORIGIN=https://<hostname>` and optionally add other explicitly trusted origins through `ALLOWED_ORIGINS`.
 
 Do not configure a live Paystack key for CD-01. R7 retains its own sandbox/runtime acceptance gate. If a later milestone authorizes sandbox payment testing, that is a separate explicit change to the staging environment and must not silently become production authority.
 
@@ -159,7 +171,7 @@ When CD-01 lands on `main`:
 4. it verifies the required deployment credentials/project configuration;
 5. it checks out the exact SHA that CI tested;
 6. it performs a frozen workspace install;
-7. it pulls Vercel Preview configuration;
+7. from the repository root, it pulls Vercel Preview project settings and verifies `rootDirectory=apps/pos-web`;
 8. it sets `BUILD_ID` to the exact CI-tested SHA in the local build process and creates the Vercel prebuilt artifact;
 9. it deploys that prebuilt artifact and also supplies the exact SHA to runtime as `BUILD_ID`;
 10. it captures the immutable Vercel deployment URL;
