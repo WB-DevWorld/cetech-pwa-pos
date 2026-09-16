@@ -1,3 +1,76 @@
+# WS1 current handoff — FE-07 Store Health and PWA recovery UX (TASK_COMPLETION FRESH_2)
+
+Kind / UTC: TASK_COMPLETION / 2026-09-16T10:55:07Z
+Handoff kind: DEPENDENCY_READY
+Task / batch / workstream: FE-07 / issue #12 / R9 / WS1
+Owner / integration editor / requested human reviewer: Ben / @Ben-001-sys owns WS1; R9 integration owner independently reviews/imports with CORE-07. Do not self-approve. Do not merge.
+Branch: `ws1/fe-07-finish-store-health-and-responsive-pwa-recove`
+Starting/base SHA: `c9337edd326e5e5f29cb6134a0b87c1da0f1f3ca`
+CORE-07 dependency exact SHA: `c9337edd326e5e5f29cb6134a0b87c1da0f1f3ca` (CI `35031587437` SUCCESS; CORE-07 final acceptance still pending installed-client evidence + independent review)
+Pre-handoff implementation SHA: `960c9e00d86c1355a2c61e0ac522abe173bb2447`
+Commit(s) / contributor source SHAs: `960c9e00d86c1355a2c61e0ac522abe173bb2447`
+Allowed / forbidden paths and central leases: `apps/pos-web/src/features/**`; `apps/pos-web/src/ui/**`; `tests/frontend/**`; this workstream STATUS/HANDOFF. No `src/app`, core/server/local/config, contracts, CURRENT-WORK, CORE-07 branch, or provider adapters.
+Files changed: `apps/pos-web/src/features/health/**` (view, controller, screen, hook, CSS, exports); `tests/frontend/store-health.test.ts`; visual harness + `tests/frontend/evidence/health-*.html`.
+Contracts changed: none. Frozen v1.0.0 consumed (`HealthPort.getStoreHealth`, `StoreHealth`, `ReleasePolicy`). CORE-07 `UpdateActivationDecision` / `LocalRecoveryDiagnostics` consumed via injected FE-safe seams; `assessUpdateActivation` is not duplicated.
+Database migrations: none
+Architecture decisions: none authored
+Completed/current/remaining tasks: FE-07 owner contribution complete for automated frontend work. WS3 still must mount `/health` and inject runtime HealthPort + lifecycle/recovery adapters. Installed-device evidence remains missing. Do not start QA-01/R10.
+Dependencies (accepted / provisional SHA / prep-only / blocked): CORE-07 tested provisional `c9337ed`. FE-05 cash checkout present on this base. PAY-01 not consumed. No live payment/refund/restock.
+Tests executed:
+- `python3 scripts/verify_control_plane.py` → PASS (exit 0)
+- `pnpm --dir apps/pos-web lint` → exit 0
+- `pnpm --dir apps/pos-web typecheck` → exit 0
+- `pnpm --dir apps/pos-web test` → 63 files, 496 passed, exit 0
+- `pnpm --dir apps/pos-web test:e2e` → 7 passed, exit 0 (`next build` included)
+- `git diff --check` → clean
+- Focused FE-07 store-health tests: 35 passed
+- Pass 1/2 affected files: 65 passed
+Runtime verification and tested combined SHA/environment: frontend spies/fakes only on `960c9e0`. Not live PWA install, Paystack, refund, restock, or service-worker activation acceptance. `src/app` still owned by WS3; Store Health is an exported seam, not mounted by this task.
+DEVICE_EVIDENCE: MISSING / UNVERIFIED. No production deployment was performed to obtain it.
+Remote effects performed: none (no production; no real payment/refund/restock). Contributor branch push only after this handoff.
+Assumptions / limitations / unresolved risks: HealthPort, recovery diagnostics, activation decision, and online/offline/leadership snapshots are injected. FE-07 does not acquire lifecycle leases or activate service workers itself. Unknown operation outcomes are never labeled failed. CORE-07 final task acceptance is not claimed by this consumption.
+Next exact action: R9 integration owner independently reviews/imports the accepted FE-07 source with CORE-07. Reassignment: NONE.
+
+Freshness protocol:
+START_FRESHNESS_SNAPSHOT UTC: 2026-09-16T10:36:45Z
+Start main SHA: `bd79c2901ce33c3177141d4244cc196be0a719d2`
+Start CORE-07 SHA: `c9337edd326e5e5f29cb6134a0b87c1da0f1f3ca`
+Start FE-07 SHA: `c9337edd326e5e5f29cb6134a0b87c1da0f1f3ca`
+Start R9 integration branch: none existed
+Applicable contracts / ADRs / ownership / queue revision: v1.0.0; ADR-012; ADR-014; issue #12 ACTIVE for Ben/WS1
+
+Pass 1 fetch UTC / success evidence: 2026-09-16T10:54:28Z `git fetch origin --prune` succeeded
+Pass 1 main SHA: `bd79c2901ce33c3177141d4244cc196be0a719d2`
+Pass 1 CORE-07 SHA: `c9337edd326e5e5f29cb6134a0b87c1da0f1f3ca`
+Pass 1 FE-07 remote SHA: `c9337edd326e5e5f29cb6134a0b87c1da0f1f3ca` (local implementation `960c9e0` not yet pushed)
+Pass 1 R9 SHA: NOT_APPLICABLE (no `batch/r9-*`)
+Relevant upstream paths and dependency/authority effects: none
+Classification per change: main — IRRELEVANT (no arrivals). CORE-07 — IRRELEVANT (no arrivals). No R9 branch. Did not rebase onto older main.
+Actions taken / reconciliation commits: none
+Tests rerun / tested combined SHA: affected FE-07/FE-05/register files 65 passed on `960c9e00d86c1355a2c61e0ac522abe173bb2447`
+
+Pass 2 fetch UTC / success evidence: 2026-09-16T10:55:07Z `git fetch origin --prune` succeeded
+Pass 2 main SHA: `bd79c2901ce33c3177141d4244cc196be0a719d2`
+Pass 2 CORE-07 SHA: `c9337edd326e5e5f29cb6134a0b87c1da0f1f3ca`
+Pass 2 FE-07 remote SHA: `c9337edd326e5e5f29cb6134a0b87c1da0f1f3ca`
+Pass 2 R9 SHA: NOT_APPLICABLE
+Relevant upstream paths and dependency/authority effects: none since Pass 1
+Classification per change: no arrivals — IRRELEVANT
+Actions taken / reconciliation commits: none
+Tests rerun / tested combined SHA: affected files 65 passed on `960c9e00d86c1355a2c61e0ac522abe173bb2447`
+
+Final freshness status: FRESH_2
+Delivery status: READY_FOR_INTEGRATION
+Pass 3: NOT PERMITTED for this assignment.
+Review/merge/release status and limitations: not merged; CORE-07 branch not modified; no R9 milestone PR created; no production promotion; DEVICE_EVIDENCE MISSING / UNVERIFIED.
+Metrics delta for CURRENT-WORK: not edited (forbidden this assignment).
+
+Explicit senior reassignment authority / scope / expiry: NONE
+Remote effects allowed (not inferred from this handoff): none
+Other independently authorized same-owner work: WAITING_FOR_OWNER (QA-01/R10 not started)
+
+## Previous current handoff — FE-05 prepared-sale lock remediation (TASK_COMPLETION FRESH_2)
+
 # WS1 current handoff — FE-05 prepared-sale lock remediation (TASK_COMPLETION FRESH_2)
 
 Kind / UTC: TASK_COMPLETION / 2026-09-14T19:30:17Z

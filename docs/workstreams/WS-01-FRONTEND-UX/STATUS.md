@@ -1,5 +1,11 @@
 # WS1 current status
 
+Snapshot 2026-09-16. FE-07 / issue #12 Store Health and responsive PWA recovery UX implemented on `ws1/fe-07-finish-store-health-and-responsive-pwa-recove`. Pre-handoff implementation SHA `960c9e00d86c1355a2c61e0ac522abe173bb2447` on tested CORE-07 provisional SHA `c9337edd326e5e5f29cb6134a0b87c1da0f1f3ca`. Feature-local controller consumes frozen v1.0.0 `HealthPort` and injected CORE-07 lifecycle/recovery seams; it does not duplicate `assessUpdateActivation`. Unverified checks are not rendered healthy. Waiting updates activate only through the lifecycle controller after a fresh safe decision. Active tender, critical operations, sync, migration, passive tab, and unsupported build block updates with no force-update path. Recovery diagnostics preserve drafts/journal and never offer destructive reset. `DEVICE_EVIDENCE: MISSING / UNVERIFIED`. CORE-07 final acceptance is not claimed. R9 is not complete. Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION**. Reassignment NONE. Do not merge; do not start QA-01/R10.
+
+## Previous snapshot (historical; current section above controls)
+
+# WS1 current status
+
 Snapshot 2026-09-14. FE-05 / issue #10 HIGH prepared-sale abandonment blocker remediated. Replacement implementation SHA `57574fe5e8b4aceaf94773aea9bc04ee801d0980` supersedes `f6607cda70176b51be0dc8b8a6e40ae0f64d9e24` / prior FRESH_2 `cd2c9c1`. Prepared `cash` / `cash_failed` cannot dismiss to an editable cart; New Sale stays blocked while a prepared transaction is outstanding; cash retry reuses the same idempotency identity; `payment_pending` resolves the existing tender instead of a second `confirmCash`. Contracts v1.0.0 unchanged. CORE-06 not started. Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION**. Reassignment NONE. Do not merge; PR #55 is the R6 review surface.
 
 ## Previous snapshot (historical; current section above controls)
