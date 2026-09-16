@@ -52,23 +52,35 @@ CD-01 uses the Vercel CLI sequence:
 2. verify the linked Vercel project declares `rootDirectory=apps/pos-web`;
 3. set `BUILD_ID` in the build process environment and run `vercel build` from the repository root;
 4. run `vercel deploy --prebuilt --env BUILD_ID=<exact-tested-sha>` from the repository root;
-5. smoke-test the immutable deployment URL;
+5. smoke-test the immutable deployment URL with authenticated `vercel curl`;
 6. optionally `vercel alias set` when `VERCEL_STAGING_ALIAS` is configured;
-7. if an alias is configured, smoke-test the alias.
+7. if an alias is configured, smoke-test the alias with authenticated `vercel curl`.
 
 The workflow pins Vercel CLI `59.17.0` rather than using an unbounded `latest` install. It invokes that transient CLI through pinned `npm exec` rather than `pnpm dlx`: pnpm 12's strict dependency-build policy blocks the transient Vercel CLI's `esbuild` install script unless separately approved. This avoids weakening the repository's workspace `allowBuilds` policy merely to run a deployment utility.
 
 `vercel build` in CLI `59.17.0` does **not** accept `--build-env`. The exact CI-tested SHA is therefore supplied to the local build through the step's `BUILD_ID` process environment. The `--env BUILD_ID=...` flag remains on `vercel deploy --prebuilt` so the same exact SHA is available to the deployed runtime.
 
+### `vercel curl` authentication rule
+
+The GitHub `staging` job already exports `VERCEL_TOKEN`, which is a supported Vercel CLI authentication mechanism. The smoke commands therefore use `vercel curl / --deployment <url>` without appending a command-level `--token` argument. With `vercel curl`, native curl arguments such as `--fail` and `--show-error` are forwarded to curl; placing `--token` after the `curl` subcommand caused CLI `59.17.0` to forward it to native curl as well, which fails because native curl has no `--token` option.
+
+Keep `VERCEL_TOKEN` in the job environment and retain `--fail --show-error` so protected Preview authentication is handled by Vercel while HTTP 4xx/5xx responses still fail the workflow.
+
 ### Monorepo root invocation rule
 
 The Vercel project owns the application subdirectory through `rootDirectory=apps/pos-web`. Therefore **all Vercel CLI commands in CD-01 run from the repository root**. Do not also set the GitHub Actions working directory to `apps/pos-web`, because that would cause Vercel to compose the configured project root a second time and resolve `apps/pos-web/apps/pos-web`.
 
-The workflow now verifies `.vercel/project.json` after `vercel pull` and fails if the downloaded project settings do not report `apps/pos-web` as the configured root directory.
+The workflow verifies `.vercel/project.json` after `vercel pull` and fails if the downloaded project settings do not report `apps/pos-web` as the configured root directory. `settings.rootDirectory` is the canonical current Vercel CLI field; `projectSettings.rootDirectory` is accepted only as a defensive compatibility fallback.
 
-### Runtime evidence from the first two CD attempts
+### Runtime evidence from the first three CD attempts
 
-The first post-merge CD-01 attempt failed before deployment because `vercel build --build-env` is unsupported by CLI `59.17.0`. The second attempt confirmed the build-process environment fix worked: `vercel build` completed successfully, but `vercel deploy --prebuilt` then failed because the workflow was running inside `apps/pos-web` while the Vercel project also declared `rootDirectory=apps/pos-web`. Vercel therefore tried to resolve a nonexistent `apps/pos-web/apps/pos-web` path. No deployment, smoke test, alias change, production promotion, or business-system write occurred in either failed attempt.
+The first post-merge CD-01 attempt failed before deployment because `vercel build --build-env` is unsupported by CLI `59.17.0`.
+
+The second attempt confirmed the build-process environment fix worked: `vercel build` completed successfully, but `vercel deploy --prebuilt` then failed because the workflow was running inside `apps/pos-web` while the Vercel project also declared `rootDirectory=apps/pos-web`. Vercel therefore tried to resolve a nonexistent `apps/pos-web/apps/pos-web` path.
+
+The third attempt, Staging CD run `35128628092` for exact main SHA `65489066db752fb619b5b6933ead38e6d843fc41`, passed configuration validation, exact-SHA checkout, frozen install, Vercel Preview pull, root-directory verification, local Vercel build, and **successfully created a real Vercel Preview deployment** at `https://cetech-pos-staging-c4cgnym0c-wbdevworlds-projects.vercel.app`. The subsequent smoke step failed only because `--token="$VERCEL_TOKEN"` was placed after the `vercel curl` subcommand and was forwarded to native curl, which reported `curl: option --token=***: is unknown`. Vercel had already successfully generated a deployment-protection bypass token before that native-curl argument error.
+
+The third attempt therefore proves deployment creation now works, but CD-01 runtime acceptance remains pending until the protected immutable smoke probe succeeds and deployment evidence is recorded. No stable alias, production promotion, payment execution, refund/restock effect, or VitePOS cutover was performed.
 
 ## Origin protection without a custom staging domain
 
@@ -175,7 +187,7 @@ When CD-01 lands on `main`:
 8. it sets `BUILD_ID` to the exact CI-tested SHA in the local build process and creates the Vercel prebuilt artifact;
 9. it deploys that prebuilt artifact and also supplies the exact SHA to runtime as `BUILD_ID`;
 10. it captures the immutable Vercel deployment URL;
-11. it smoke-probes the immutable deployment URL and fails on HTTP 4xx/5xx;
+11. it smoke-probes the immutable deployment URL through authenticated `vercel curl` and fails on HTTP 4xx/5xx;
 12. only after that smoke passes, if `VERCEL_STAGING_ALIAS` exists, it moves the alias to the deployment;
 13. if an alias exists, it smoke-probes the alias and fails on HTTP 4xx/5xx;
 14. it records the CI SHA and deployment URL, plus alias when present, in the workflow summary.
