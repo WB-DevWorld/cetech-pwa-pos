@@ -89,7 +89,7 @@ jobs:
         run: |
           set -euo pipefail
           test -f .vercel/project.json
-          project_root="$(node -e "const fs=require('node:fs');const p=JSON.parse(fs.readFileSync('.vercel/project.json','utf8'));process.stdout.write(p.projectSettings?.rootDirectory ?? '')")"
+          project_root="$(node -e "const fs=require('node:fs');const p=JSON.parse(fs.readFileSync('.vercel/project.json','utf8'));process.stdout.write(p.settings?.rootDirectory ?? p.projectSettings?.rootDirectory ?? '')")"
           if [[ "$project_root" != "apps/pos-web" ]]; then
             echo "Unexpected Vercel rootDirectory: '${project_root:-<empty>}'" >&2
             exit 1
