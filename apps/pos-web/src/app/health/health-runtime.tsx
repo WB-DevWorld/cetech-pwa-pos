@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { StoreHealth } from "../../../../../docs/contracts/domain.generated";
+import type { ReleasePolicy, StoreHealth } from "../../../../../docs/contracts/domain.generated";
 import type { ApiResult, HealthPort } from "../../../../../docs/contracts/ports";
 import {
   StoreHealthScreen,
@@ -10,6 +10,7 @@ import {
 } from "../../features/health";
 import {
   createServiceWorkerLifecycle,
+  hasActiveTender,
   inspectLocalRecoveryState,
   openPosLocalDatabase,
 } from "../../local";
@@ -42,15 +43,12 @@ function createBrowserHealthPort(): HealthPort {
   };
 }
 
-async function buildSafetySnapshot() {
+async function buildSafetySnapshot(buildId: string, releasePolicy: ReleasePolicy) {
   const db = openPosLocalDatabase();
-  const [diagnostics, journalRows, schemaRow] = await Promise.all([
+  const [diagnostics, activeTender] = await Promise.all([
     inspectLocalRecoveryState(db),
-    db.journal.toArray(),
-    db.schemaMeta.get("schema"),
+    hasActiveTender(db),
   ]);
-  const unresolved = journalRows.filter((row) => row.status !== "acknowledged");
-  const activeTender = unresolved.some((row) => String(row.operation).startsWith("payment."));
 
   return {
     activeTender,
@@ -58,22 +56,31 @@ async function buildSafetySnapshot() {
     syncMutationInProgress: false,
     localMigrationInProgress: !diagnostics.schemaCompatible,
     activeWindow: typeof document !== "undefined" && document.visibilityState === "visible",
-    appBuild: schemaRow?.appBuild ?? "0",
+    appBuild: buildId,
+    releasePolicy,
   } as const;
 }
 
-export function HealthRuntime() {
+export function HealthRuntime({
+  buildId,
+  releasePolicy,
+}: {
+  buildId: string;
+  releasePolicy: ReleasePolicy;
+}) {
   const [updateReady, setUpdateReady] = useState(false);
   const ownerId = useMemo(() => `health-${crypto.randomUUID()}`, []);
   const health = useMemo(() => createBrowserHealthPort(), []);
+  const workerUrl = useMemo(() => `/sw.js?build=${encodeURIComponent(buildId)}`, [buildId]);
   const lifecycle = useMemo(
     () =>
       createServiceWorkerLifecycle({
         ownerId,
-        getSafetySnapshot: buildSafetySnapshot,
+        workerUrl,
+        getSafetySnapshot: () => buildSafetySnapshot(buildId, releasePolicy),
         onUpdateReady: () => setUpdateReady(true),
       }),
-    [ownerId],
+    [buildId, ownerId, releasePolicy, workerUrl],
   );
 
   useEffect(() => {
@@ -91,6 +98,7 @@ export function HealthRuntime() {
           connectivity: navigator.onLine ? "online" : "offline",
           leadership: document.visibilityState === "visible" ? "active" : "passive",
           updateReady,
+          releasePolicy,
           unknownOperationPresent: diagnostics.attentionOperationCount > 0,
         };
       },
@@ -102,7 +110,7 @@ export function HealthRuntime() {
       },
       checkForUpdate: () => lifecycle.checkForUpdate(true),
     }),
-    [health, lifecycle, updateReady],
+    [health, lifecycle, releasePolicy, updateReady],
   );
 
   const state = useStoreHealth(ports);
