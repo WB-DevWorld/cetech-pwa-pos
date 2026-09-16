@@ -4,9 +4,9 @@ Status: proposed repository delivery control for issue #64. This runbook does **
 
 ## Purpose
 
-The repository already performs continuous integration on `main` and contributor/milestone branches. CD-01 adds the missing continuous-delivery step for accepted work: after the existing `CI` workflow succeeds for a push to `main`, the exact CI-tested commit is deployed to one stable CETECH POS staging origin.
+The repository already performs continuous integration on `main` and contributor/milestone branches. CD-01 adds the missing continuous-delivery step for accepted work: after the existing `CI` workflow succeeds for a push to `main`, the exact CI-tested commit is deployed to Vercel Preview for ongoing runtime, browser, device and integration testing while later milestones continue in parallel.
 
-The staging deployment is for ongoing runtime, browser, device and integration testing while later milestones continue in parallel. It is deliberately separate from production activation.
+A custom staging domain is optional. Until one is configured, the immutable Vercel Preview deployment URL returned by the deployment command is the staging URL.
 
 ## Delivery model
 
@@ -32,8 +32,9 @@ contributor branch / milestone PR
             v
  Vercel preview deployment
             |
-            v
- stable staging alias
+            +--> immutable Vercel URL (required)
+            |
+            +--> stable custom alias (optional later)
             |
             v
  runtime/device testing
@@ -43,16 +44,31 @@ A failed CI run does not deploy. A successful CI run for anything other than a `
 
 ## Why Vercel Preview is used for this transitional staging deployment
 
-The current transitional architecture selected Vercel for the Next.js POS web application. Vercel Preview deployments provide an isolated non-production target, while the stable alias gives the POS a consistent origin for authentication/origin checks and installed-PWA testing.
+The current transitional architecture selected Vercel for the Next.js POS web application. Vercel Preview deployments provide a non-production target while keeping production promotion separate.
 
-CD-01 uses the Vercel CLI sequence supported by the current Vercel deployment model:
+CD-01 uses the Vercel CLI sequence:
 
 1. `vercel pull --environment=preview`
 2. `vercel build`
 3. `vercel deploy --prebuilt`
-4. `vercel alias set` to the stable staging hostname
+4. optionally `vercel alias set` when `VERCEL_STAGING_ALIAS` is configured
 
 The workflow pins Vercel CLI `59.17.0` rather than using an unbounded `latest` install. It invokes that transient CLI through pinned `npm exec` rather than `pnpm dlx`: pnpm 12's strict dependency-build policy blocks the transient Vercel CLI's `esbuild` install script unless separately approved. This avoids weakening the repository's workspace `allowBuilds` policy merely to run a deployment utility.
+
+## Origin protection without a custom staging domain
+
+The POS mutation guard requires the request origin to exactly match one of the server's allowed origins; wildcard origin trust is not allowed.
+
+A Vercel CLI Preview deployment receives a unique deployment URL. For this no-custom-domain phase, `apps/pos-web/src/config/env.ts` resolves the application origin in this order:
+
+1. explicit `APP_ORIGIN`;
+2. explicit `NEXT_PUBLIC_APP_ORIGIN` for compatibility;
+3. exact HTTPS origin derived from Vercel's runtime `VERCEL_URL` system value;
+4. `http://localhost:3000` for local development.
+
+`VERCEL_URL` is platform-provided deployment metadata, not a secret. It is accepted only as HTTPS and is normalized to an origin; malformed or non-HTTPS values are not trusted.
+
+Vercel system environment variables must therefore be available to the deployment. New Vercel projects normally expose them by default; verify the project setting if runtime `VERCEL_URL` is absent.
 
 ## One-time external setup
 
@@ -60,31 +76,28 @@ The repository cannot create or recover hosting-account credentials. Complete th
 
 ### 1. Create/link the Vercel project
 
-Create one Vercel project for the POS web application.
+Use one Vercel project for staging:
 
-Recommended project settings:
-
-- repository: `WB-DevWorld/cetech-pwa-pos`
-- application/root directory: `apps/pos-web`
+- project: `cetech-pos-staging`
+- owner/team: the intended CETECH deployment account/team
+- root directory: `apps/pos-web`
 - framework preset: Next.js
-- install/build/output commands: use the framework/project defaults unless a verified blocker requires an override
-- production deployment remains unused by CD-01
+- Node.js: 24.x
+- install/build/output commands: framework/project defaults unless a verified blocker requires an override
+- Vercel Git auto-deployment may remain disconnected while GitHub Actions controls shared staging
+- production deployment remains outside CD-01
 
 Record the Vercel organization/team ID and project ID.
 
 ### 2. Configure GitHub staging deployment identity
 
-Configure the GitHub `staging` environment (preferred) or repository-level secrets:
+Create GitHub environment `staging` and configure these environment secrets:
 
 - `VERCEL_TOKEN`
 - `VERCEL_ORG_ID`
 - `VERCEL_PROJECT_ID`
 
-Configure GitHub variable:
-
-- `VERCEL_STAGING_ALIAS`
-
-`VERCEL_STAGING_ALIAS` must be a hostname without a scheme, for example:
+`VERCEL_STAGING_ALIAS` is **optional**. Do not create it until a stable custom hostname is ready. When used, it must be a hostname without a scheme, for example:
 
 ```text
 pos-staging.example.com
@@ -100,16 +113,10 @@ At minimum configure the current server/runtime variables required by the applic
 
 ```text
 APP_ENV=staging
-APP_ORIGIN=https://<VERCEL_STAGING_ALIAS>
-ALLOWED_ORIGINS=https://<VERCEL_STAGING_ALIAS>
 
 SUPABASE_URL=<staging Supabase URL>
 SUPABASE_PUBLISHABLE_KEY=<staging browser-safe publishable key>
 SUPABASE_SERVICE_ROLE_KEY=<staging server-only service key>
-
-WOO_BASE_URL=<training/staging WooCommerce origin>
-WOO_CONSUMER_KEY=<server-only staging key>
-WOO_CONSUMER_SECRET=<server-only staging secret>
 
 BRIDGE_BASE_URL=<training/staging /wp-json/cetech-pos/v1 origin>
 BRIDGE_USERNAME=<dedicated staging bridge service user>
@@ -118,15 +125,25 @@ BRIDGE_APPLICATION_PASSWORD=<server-only staging application password>
 PAYMENT_PROVIDER=disabled
 ```
 
+During the generated-URL phase, **do not set `APP_ORIGIN` or `ALLOWED_ORIGINS` merely to a guessed Vercel URL**. The application will use the exact runtime `VERCEL_URL`. If a stable custom domain is added later, set `APP_ORIGIN=https://<stable-hostname>` and optionally add other explicitly trusted origins through `ALLOWED_ORIGINS`.
+
 Do not configure a live Paystack key for CD-01. R7 retains its own sandbox/runtime acceptance gate. If a later milestone authorizes sandbox payment testing, that is a separate explicit change to the staging environment and must not silently become production authority.
 
 The current app rejects public exposure of server-only configuration names. Keep privileged variables out of `NEXT_PUBLIC_*`.
 
-### 4. Configure the staging hostname
+### 4. Optional custom hostname later
 
-The hostname in `VERCEL_STAGING_ALIAS` must be available to the Vercel project. Its DNS must ultimately resolve according to Vercel's domain instructions.
+A stable custom hostname is not required for the first staging deployment.
 
-`APP_ORIGIN` must equal the stable HTTPS staging origin. This is important because the POS server uses the configured origin for mutation/origin protection.
+When one is added successfully later:
+
+1. configure the hostname in Vercel;
+2. configure GitHub variable `VERCEL_STAGING_ALIAS` with the hostname only;
+3. configure Vercel Preview `APP_ORIGIN=https://<hostname>`;
+4. redeploy;
+5. verify both the immutable deployment URL and stable alias.
+
+The alias step in CD-01 automatically activates only when `VERCEL_STAGING_ALIAS` is non-empty.
 
 ## What happens after merge
 
@@ -135,16 +152,18 @@ When CD-01 lands on `main`:
 1. the normal `CI` workflow runs on that merge commit;
 2. if CI fails, no staging deployment occurs;
 3. if CI succeeds, `Staging CD` receives that completed run;
-4. it verifies required deployment configuration;
+4. it verifies the required deployment credentials/project configuration;
 5. it checks out the exact SHA that CI tested;
 6. it performs a frozen workspace install;
 7. it pulls Vercel Preview configuration;
 8. it builds and deploys a non-production prebuilt artifact;
-9. it moves the stable staging alias to the new deployment;
-10. it probes the stable root URL;
-11. it records the CI SHA, deployment URL and stable alias in the workflow summary.
+9. it captures the immutable Vercel deployment URL;
+10. if `VERCEL_STAGING_ALIAS` exists, it moves that alias to the deployment;
+11. it smoke-probes the immutable deployment URL;
+12. if an alias exists, it smoke-probes the alias too;
+13. it records the CI SHA and deployment URL, plus alias when present, in the workflow summary.
 
-If Vercel credentials/project/alias configuration is missing, the workflow records `BLOCKED_CONFIGURATION` and performs no deployment. A skipped deployment must never be reported as deployed.
+If Vercel token/org/project configuration is missing, the workflow records `BLOCKED_CONFIGURATION` and performs no deployment. A skipped deployment must never be reported as deployed.
 
 ## Staging safety rules
 
@@ -163,16 +182,9 @@ Feature/capability availability must continue to fail closed where its runtime a
 
 ## PR previews
 
-Do **not** expose repository/Vercel deployment secrets to arbitrary PR workflow code merely to obtain previews.
+CD-01 deploys only accepted `main`. Do not expose GitHub/Vercel deployment credentials to arbitrary PR workflow code merely to obtain previews.
 
-Preferred preview model:
-
-- connect the GitHub repository to Vercel using Vercel's Git integration;
-- let Vercel create provider-managed PR preview deployments;
-- configure preview deployments to use only safe staging/training dependencies;
-- never attach production Woo/payment credentials to PR previews.
-
-CD-01 itself deploys only accepted `main` to the shared staging alias.
+Provider-managed PR previews may be reconsidered later with an explicit safe-credentials model; they are not required for the shared staging deployment.
 
 ## Production remains separate
 
@@ -194,14 +206,16 @@ Until that release control exists and its acceptance gates pass, `main -> stagin
 Record evidence for:
 
 - exact Git SHA shown by deployment/build diagnostics;
-- root URL returns successfully through the stable alias;
-- login/session origin behavior works through the alias;
+- generated Vercel Preview root URL returns successfully;
+- `VERCEL_URL` is present at runtime and origin-protected session/mutation requests work from that exact deployment origin;
 - Supabase health is staging-only;
 - bridge/Woo health points at training/staging only;
 - no privileged browser secrets are present;
 - electronic payment remains disabled unless separately authorized;
 - one installed desktop/mobile PWA can load the deployed staging build;
-- a subsequent accepted `main` merge advances the staging alias only after CI is green.
+- a subsequent accepted `main` merge creates a new immutable staging deployment only after CI is green.
+
+If a custom alias is added later, verify the alias separately.
 
 Do not claim CD-01 runtime acceptance until a real Vercel deployment has produced this evidence.
 
@@ -209,11 +223,12 @@ Do not claim CD-01 runtime acceptance until a real Vercel deployment has produce
 
 Application rollback is deployment-level and does not undo external commerce/payment/stock effects.
 
-For an application-only staging regression:
+Without a stable alias, rollback means reopening/retesting the last known-good immutable Vercel deployment while the fix is prepared. With a stable alias configured later, move the alias back to the last known-good deployment.
 
-1. identify the last known-good Vercel deployment associated with an accepted `main` SHA;
-2. move the staging alias back to that deployment;
-3. record the rollback SHA/deployment in issue #64 or release evidence;
-4. reconcile any external effects separately rather than assuming code rollback reversed them.
+In either case:
+
+1. identify the last known-good deployment associated with an accepted `main` SHA;
+2. record the rollback/fallback SHA and deployment in issue #64 or release evidence;
+3. reconcile any external effects separately rather than assuming code rollback reversed them.
 
 Never clear IndexedDB or cashier durable state as a routine deployment rollback mechanism.
