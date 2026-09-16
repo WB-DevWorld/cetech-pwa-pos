@@ -33,7 +33,7 @@ function createBrowserHealthPort(): HealthPort {
             code: "INTEGRATION_UNAVAILABLE",
             message: "Store health transport failed.",
             retryable: true,
-            nextAction: "retry",
+            nextAction: "none",
           },
           correlationId,
         };
