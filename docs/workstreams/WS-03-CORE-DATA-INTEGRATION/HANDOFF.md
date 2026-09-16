@@ -1,6 +1,6 @@
-# WS3 current handoff — R7 test-key hardening imported
+# WS3 current handoff — R7 concurrent-verification floor
 
-Kind: PROGRESS_CHECKPOINT. Date: 2026-09-15T14:33:00Z.
+Kind: PROGRESS_CHECKPOINT. Date: 2026-09-16T15:10:00Z.
 
 Task / batch / workstream: R7 / PAY-01 / #26 / issue #57 / WS3.
 Owner / integration editor: `@wbdevworld` / WS3.
@@ -8,13 +8,14 @@ Mode: INTEGRATE.
 PR: #58 draft. Do not mark ready. Do not request reviewers.
 
 Branch: `batch/r7-electronic-payment-reconciliation`
-Prior combined SHA: `dd6c91c27035e0387938d819f880b71b515b338e`
-REMEDIATION_SOURCE_SHA: `ac3340cf63eec771b194dd2c0d2eb54b2bf1b457`
-REMEDIATION_IMPORT_SHA: `cc5666fd3b31fa45f7da0a9045002ad3c5c72741`
+Starting R7 SHA: `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091`
+CONCURRENCY_REMEDIATION_SHA: `3ba954b0ad3ff112a93e4af0c87c4a0a0dc2fa12`
+Push CI: `35113047620` SUCCESS
+PR CI: `35113054540` SUCCESS
 
-Completed: positive `sk_test_` config + adapter defense imported.
-Current: push exact head, wait for CI, recheck approved TEST credentials.
-Remaining: sandbox gate; ChatGPT control. Milestone final freshness withheld unless sandbox PASSES.
+Completed: Ben concurrent-verification finding remediations at the durable persistence boundary (`verified` payment floor; `finalizing`/`completed` sale floor; interleaved regression).
+Remaining: Paystack TEST sandbox PASS. This workstation POS process has `PAYMENT_PROVIDER` unset and no TEST secret in the approved local mechanism. Staging host is `https://training.cetechbpa.com` (TRAINING). Secret was not copied from staging.
+Milestone final freshness: withheld (sandbox not PASS).
 Pass 3: NOT PERMITTED.
 
 Production promotion: NOT AUTHORIZED.

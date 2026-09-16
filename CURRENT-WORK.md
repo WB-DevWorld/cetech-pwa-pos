@@ -1,6 +1,6 @@
 # Current work ledger
 
-Updated 2026-09-15. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
+Updated 2026-09-16. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
 
 ## Current authority
 
@@ -49,16 +49,17 @@ PAY-01 source is imported onto the neutral branch. Control-plane review remediat
 | Prior combined head | `dd6c91c27035e0387938d819f880b71b515b338e` |
 | REMEDIATION_SOURCE_SHA | `ac3340cf63eec771b194dd2c0d2eb54b2bf1b457` |
 | REMEDIATION_IMPORT_SHA | `cc5666fd3b31fa45f7da0a9045002ad3c5c72741` |
+| CONCURRENCY_REMEDIATION_SHA | `3ba954b0ad3ff112a93e4af0c87c4a0a0dc2fa12` |
 
 Allowed PAY-01 paths: `apps/pos-web/src/server/**`; `apps/pos-web/src/core/**`; `apps/pos-web/src/app/api/**`; `supabase/**`; `tests/integration/payments/**`. Bounded WS3 evidence/status/handoff and this ledger may be updated on the neutral branch for scheduler/activation/integration truth.
 
-Forbidden: WS1 `apps/pos-web/src/features/**` and `src/ui/**`; WS2 plugin/tests as implementation work; frozen v1.0.0 contract widening unless a genuine unavoidable blocker is recorded; live Paystack/MoMo/card; production; refunds; a second training Woo sale; opening/merging the R7 PR.
+Forbidden: WS1 `apps/pos-web/src/features/**` and `src/ui/**`; WS2 plugin/tests as implementation work; frozen v1.0.0 contract widening unless a genuine unavoidable blocker is recorded; live Paystack/MoMo/card; production; refunds; opening/merging the R7 PR. A Paystack TEST sandbox on `training.cetechbpa.com` is authorized only when the TEST secret is already present in the POS process through the approved secret mechanism. Do not copy secrets from staging into git, prompts, or evidence.
 
 ### Provider boundary
 
 Repository truth has no newer explicit provider decision. Initial concrete sandbox provider is **Paystack test mode**. Canonical POS payment state remains provider-neutral. Provider-specific concepts stay behind an adapter. Fail closed if configuration appears live (`R7_BLOCKED_LIVE_PROVIDER_CONFIGURATION`).
 
-Authorized only if TEST credentials already exist through an approved local/staging secret mechanism. Do not retrieve, print, rotate, or commit secrets. Do not perform live electronic payments. Do not create another training Woo order.
+Authorized only if TEST credentials already exist through an approved local/staging secret mechanism. Do not retrieve, print, rotate, or commit secrets. Do not perform live electronic payments. Do not copy a staging secret into this workstation in order to run the POS adapter.
 
 ### R7 safety limits
 
@@ -79,4 +80,4 @@ Authorized only if TEST credentials already exist through an approved local/stag
 PAYMENT PROVIDER SANDBOX GATE: BLOCKED_SANDBOX_CREDENTIALS
 ```
 
-No approved local TEST secret was present. Automated PAY-01 proof uses the fake provider. This is not milestone acceptance.
+Ben's concurrent-verification finding is remediations at `3ba954b0ad3ff112a93e4af0c87c4a0a0dc2fa12`. Staging host `https://training.cetechbpa.com` remains TRAINING (`home`/`url` match; public name includes TRAINING). This POS process still has `PAYMENT_PROVIDER` unset and no `PAYSTACK_SECRET_KEY` in the approved local secret mechanism. The secret was not retrieved from staging, printed, or committed. Automated PAY-01 proof uses the fake provider. This is not milestone acceptance. Milestone final freshness remains withheld until a genuine TEST sandbox PASS.
