@@ -111,6 +111,36 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
       return "ok";
     },
 
+    async closeShift(input) {
+      const shift = shifts.get(input.shiftId);
+      if (!shift) {
+        return "missing";
+      }
+      if (shift.status === "closed") {
+        return "already_closed";
+      }
+      if (shift.status !== "open" && shift.status !== "closing" && shift.status !== "requires_attention") {
+        return "not_open";
+      }
+      const expected = shift.expectedCash ?? shift.openingFloat;
+      const next = {
+        ...shift,
+        status: input.status,
+        countedCash: input.countedCash,
+        expectedCash: expected,
+        variance: {
+          minor: input.countedCash.minor - expected.minor,
+          currency: expected.currency,
+        },
+        closedAt: input.status === "closed" ? input.closedAt : undefined,
+      };
+      shifts.set(shift.id, next);
+      if (input.status === "closed") {
+        activeByRegister.delete(shift.registerId);
+      }
+      return "ok";
+    },
+
     async appendCashMovement(movement) {
       const shift = shifts.get(movement.shiftId);
       if (!shift || shift.status !== "open") {

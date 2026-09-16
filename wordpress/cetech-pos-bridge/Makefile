@@ -53,6 +53,7 @@ TEST_SOURCES := \
 	$(TEST_DIR)/test-prepare.php \
 	$(TEST_DIR)/test-finalize-cancel.php \
 	$(TEST_DIR)/test-return-effects.php \
+	$(TEST_DIR)/test-ws3-generated-return-effects.php \
 	$(TEST_DIR)/parity.php
 
 .PHONY: check test parity

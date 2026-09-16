@@ -5,6 +5,7 @@ import { toIsoTimestamp } from "../auth/ids";
 import { apiFailure } from "../http/api-failure";
 import type { CheckoutStore, StaffActor, StoredShift } from "../../core/checkout/types";
 import { validateCanonicalDef } from "../quotes/canonical-schema";
+import { toPublicShift } from "./shift-public";
 
 export async function openShift(input: {
   readonly store: CheckoutStore;
@@ -104,19 +105,6 @@ export async function openShift(input: {
     await store.acknowledgeIdempotency(actor.organizationId, "shift.open", context.idempotencyKey, publicShift);
     return { ok: true, data: publicShift, correlationId: context.correlationId };
   });
-}
-
-function toPublicShift(shift: StoredShift): Shift {
-  return {
-    id: shift.id,
-    registerId: shift.registerId,
-    deviceId: shift.deviceId,
-    cashierId: shift.cashierId,
-    status: shift.status,
-    openingFloat: shift.openingFloat,
-    expectedCash: shift.expectedCash,
-    openedAt: shift.openedAt,
-  };
 }
 
 function replayShift(outcome: unknown, correlationId: CommandContext["correlationId"]): ApiResult<Shift> {

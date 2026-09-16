@@ -14,9 +14,9 @@ Paystack TEST sandbox evidence remains `docs/integration/evidence/R7-PAY-01-SAND
 
 ## R8 (active)
 
-Mode: INTEGRATE. Owner `@wbdevworld` / WS3. Branch `batch/r8-safe-returns-reconciliation`. Milestone PR **#69** draft; do not self-approve; do not merge.
+Mode: INTEGRATE / REMEDIATE. Owner `@wbdevworld` / WS3. Branch `batch/r8-safe-returns-reconciliation`. Milestone PR **#69** draft; do not self-approve; do not merge.
 
-Accepted downstream R8 head `5fa875eb43c0b2f62b59b80a3dfa3812c2d1e190` (`batch/rt01-safe-returns-ws3-integrated`) is being reconciled onto current `main` without redesign and without importing R9.
+Ben reviewed exact head `b6403c5d0df2d6d82d42eba41100b34aa3242cef` (CI `35143511686` SUCCESS) and requested changes. R8-01 remediates those three verified blockers. Evidence: `docs/integration/evidence/R8-REVIEW-REMEDIATION.md`. R9 is not imported.
 
 | Role | SHA / classification |
 | --- | --- |
@@ -33,4 +33,4 @@ R9 is not started. Production, live Paystack, live refund/restock, and VitePOS d
 
 ## Remaining disposition
 
-Independent review of PR #69 after exact-head CI. Ben reviews WS2/WS3 integration portions; Emmanuel reviews WS1/WS3 integration portions. Controlled real training refund/restock remains an unexecuted remaining gate.
+Independent review of PR #69 on the **new** exact remediation head after CI. Ben reviews WS2/WS3 integration portions; Emmanuel reviews WS1/WS3 integration portions. Do not dismiss Ben's `CHANGES_REQUESTED`. Controlled real training refund/restock remains an unexecuted remaining gate.

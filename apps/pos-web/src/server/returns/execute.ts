@@ -9,10 +9,11 @@ import { toIsoTimestamp } from "../auth/ids";
 import { apiFailure } from "../http/api-failure";
 import type { CheckoutStore, StaffActor } from "../../core/checkout/types";
 import { monotonicIndependent } from "../../core/returns/aggregate";
-import { stockCommandLines, stockEffectRequired } from "../../core/returns/disposition";
+import { stockEffectRequired } from "../../core/returns/disposition";
 import type { ReturnStore, StoredReturnRecord } from "../../core/returns/types";
 import { refundTender, resolveTenderRefund } from "../payments/refund";
 import type { ElectronicRefundProvider } from "../payments/refund-provider";
+import { buildCommercialRefundCommand, buildStockDispositionCommand } from "./bridge-commands";
 import { resolutionFromRecord } from "./resolution";
 
 const PREVIEW_STATUSES = new Set(["previewed", "approval_required"]);
@@ -276,21 +277,7 @@ async function runRequiredEffects(input: {
   if (commercial && commercial.status !== "completed") {
     if (input.applyRemote && (commercial.status === "pending" || commercial.status === "not_started")) {
       const applied = await input.bridge.applyCommercialRefund(
-        {
-          commercialRefundId: commercial.commercialRefundId,
-          returnId: commercial.returnId,
-          transactionId: commercial.transactionId,
-          saleId: commercial.saleId,
-          amount: commercial.amount,
-          economicsVersion: commercial.economicsVersion,
-          fingerprint: input.stored.fingerprint,
-          reason: input.stored.requestedLines[0]?.reason ?? "return",
-          lineAllocations: input.stored.requestedLines.map((line) => ({
-            orderLineId: line.orderLineId,
-            quantity: line.quantity,
-            historicAmount: input.stored.historicLines.find((historic) => historic.orderLineId === line.orderLineId)?.historicalTotal ?? input.stored.refundTotal,
-          })),
-        },
+        buildCommercialRefundCommand({ stored: input.stored, commercial }),
         input.context,
       );
       if (applied.ok) {
@@ -324,18 +311,7 @@ async function runRequiredEffects(input: {
   if (stock && stock.status !== "completed") {
     if (input.applyRemote && (stock.status === "pending" || stock.status === "not_started")) {
       const applied = await input.bridge.applyStockDisposition(
-        {
-          stockDispositionId: stock.stockDispositionId,
-          returnId: stock.returnId,
-          transactionId: stock.transactionId,
-          saleId: stock.saleId,
-          economicsVersion: stock.economicsVersion,
-          fingerprint: input.stored.fingerprint,
-          lines: stockCommandLines({
-            locationId: input.stored.locationId,
-            lines: input.stored.requestedLines,
-          }),
-        },
+        buildStockDispositionCommand({ stored: input.stored, stock }),
         input.context,
       );
       if (applied.ok) {

@@ -18,7 +18,7 @@ import {
   parseQuantity,
 } from "../../core/returns/quantities";
 import type { ReturnStore, StoredRequestedReturnLine, StoredReturnRecord } from "../../core/returns/types";
-import { economicsVersionFor, returnFingerprintFor } from "./fingerprint";
+import { economicsVersionFromPreparedSale, returnFingerprintFor } from "./fingerprint";
 
 const PREVIEW_TTL_MS = 30 * 60 * 1000;
 
@@ -116,6 +116,7 @@ export async function previewReturn(input: {
       quantity: requested.quantity,
       reason: requested.reason,
       condition: requested.condition,
+      allocatedHistoricAmount: { minor: lineRefund, currency: payment.amount.currency },
     });
   }
 
@@ -133,13 +134,7 @@ export async function previewReturn(input: {
       remainingRefundableAmount: { minor: remainingRefundable, currency: payment.amount.currency },
     },
   ];
-  const economicsVersion = await economicsVersionFor({
-    saleId: sale.prepared.saleId,
-    transactionId: sale.prepared.transactionId,
-    currency: payment.amount.currency,
-    lines: historicLines,
-    tenders: historicTenders,
-  });
+  const economicsVersion = economicsVersionFromPreparedSale(sale.prepared.quoteFingerprint);
   const approvalRequired = Boolean(input.requireApproval);
   const returnId = crypto.randomUUID();
   const fingerprint = await returnFingerprintFor({

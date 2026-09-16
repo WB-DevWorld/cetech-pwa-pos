@@ -1,4 +1,8 @@
 import type {
+  BridgeCommercialRefundRequest,
+  BridgeCommercialRefundState,
+  BridgeStockDispositionRequest,
+  BridgeStockDispositionState,
   ReturnExecuteRequest,
   ReturnPreviewRequest,
   ReturnResolution,
@@ -15,4 +19,20 @@ export function isReturnExecuteRequest(value: unknown): value is ReturnExecuteRe
 
 export function isReturnResolution(value: unknown): value is ReturnResolution {
   return validateCanonicalDef("ReturnResolution", value);
+}
+
+export function isBridgeCommercialRefundRequest(value: unknown): value is BridgeCommercialRefundRequest {
+  return validateCanonicalDef("BridgeCommercialRefundRequest", value);
+}
+
+export function isBridgeCommercialRefundState(value: unknown): value is BridgeCommercialRefundState {
+  return validateCanonicalDef("BridgeCommercialRefundState", value);
+}
+
+export function isBridgeStockDispositionRequest(value: unknown): value is BridgeStockDispositionRequest {
+  return validateCanonicalDef("BridgeStockDispositionRequest", value);
+}
+
+export function isBridgeStockDispositionState(value: unknown): value is BridgeStockDispositionState {
+  return validateCanonicalDef("BridgeStockDispositionState", value);
 }

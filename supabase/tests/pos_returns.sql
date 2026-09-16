@@ -367,13 +367,15 @@ SELECT lives_ok(
 SELECT lives_ok(
   $$ INSERT INTO pos_return_requested_lines (
        return_id, order_line_id, quantity, reason, condition,
-       intended_disposition, disposition_policy
+       intended_disposition, disposition_policy,
+       allocated_historic_amount_minor, allocated_historic_currency
      ) VALUES (
        '33333333-3333-4333-8333-333333333402',
        'line-1', 1, 'customer changed mind', 'resellable',
-       'restock_sellable', 'automatic_sellable_restock'
+       'restock_sellable', 'automatic_sellable_restock',
+       1500, 'GHS'
      ) $$,
-  'resellable requested line may restock sellable'
+  'resellable requested line persists the exact preview historic allocation'
 );
 
 SELECT is(

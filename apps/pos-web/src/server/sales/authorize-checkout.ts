@@ -55,6 +55,7 @@ export async function authorizeCheckoutMutation(input: {
   readonly permission: Extract<
       StaffPermission,
       | "shift.open"
+      | "shift.close"
       | "payment.cash"
       | "payment.initialize"
       | "sale.finalize"

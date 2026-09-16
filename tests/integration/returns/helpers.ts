@@ -208,7 +208,11 @@ export async function seedCompletedSale(
   return paymentId;
 }
 
-export async function createRt01Runtime(input?: { readonly tender?: "cash" | "card"; readonly quantity?: Quantity }) {
+export async function createRt01Runtime(input?: {
+  readonly tender?: "cash" | "card";
+  readonly quantity?: Quantity;
+  readonly lineTotal?: Money;
+}) {
   const checkoutStore = createInMemoryCheckoutStore();
   const returnStore = createInMemoryReturnStore();
   await seedRegister(checkoutStore);
@@ -219,6 +223,7 @@ export async function createRt01Runtime(input?: { readonly tender?: "cash" | "ca
     shiftId,
     tender: input?.tender ?? "cash",
     quantity: input?.quantity,
+    lineTotal: input?.lineTotal,
   });
   const sessions = await staffCookies();
   const manager = await staffCookies({ actorId: "manager_a", displayName: "Manager A" });

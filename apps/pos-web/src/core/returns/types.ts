@@ -21,6 +21,8 @@ export type StoredRequestedReturnLine = ReturnPreviewLine & {
   readonly quantity: Quantity;
   readonly reason: string;
   readonly condition: ReturnCondition;
+  /** Exact preview allocateHistoricMinor result. Internal durable orchestration data. */
+  readonly allocatedHistoricAmount: Money;
 };
 
 export type StoredTenderRefund = RefundState & {

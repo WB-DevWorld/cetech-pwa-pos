@@ -14,9 +14,11 @@ Updated 2026-09-16. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical sche
 ```text
 human: @wbdevworld
 workstream: WS3
-mode: INTEGRATE
-task: R8-00 / RT-01 + FE-06 + BR-08 reconciliation onto accepted R7 main
+mode: INTEGRATE / REMEDIATE
+task: R8-01 — Ben exact-head review remediation
 ```
+
+Ben reviewed exact head `b6403c5d0df2d6d82d42eba41100b34aa3242cef` (CI `35143511686` SUCCESS) and submitted `CHANGES_REQUESTED`. Those three blockers are fixed on `batch/r8-safe-returns-reconciliation`. Do not dismiss the review. Do not merge PR #69.
 
 ## R6 closure (historical)
 
@@ -36,12 +38,13 @@ Preserved R7 evidence (no secrets):
 
 R7 fail-closed rules remain in force on `main` and must not regress on the R8 candidate: browser callback is not payment truth; server verification binds reference / POS transaction / order / amount / currency; Paystack execution only when `PAYMENT_PROVIDER=paystack`, `PAYSTACK_MODE=test`, `sk_test_` present; refuse `sk_live_` and `NEXT_PUBLIC_PAYSTACK_SECRET`; verified payments and `finalizing`/`completed` sales are monotonic.
 
-## Active assignment — R8 safe returns and payment/register states
+## Active assignment — R8-01 review remediation
 
 - Milestone PR: **#69 draft** — `[R8] Safe returns and payment/register states`. Do not self-approve. Do not merge from this ledger.
 - Recovery/integration branch: `batch/r8-safe-returns-reconciliation`.
-- Accepted downstream combined head (pre-reconciliation): `5fa875eb43c0b2f62b59b80a3dfa3812c2d1e190` on `batch/rt01-safe-returns-ws3-integrated`.
-- This assignment reconciles that accepted R8 delta onto current accepted R7 `main`. It is not a redesign of RT-01, FE-06, PAY-01, BR-08, or R7. It does not start R9/R10.
+- Prior exact head Ben reviewed: `b6403c5d0df2d6d82d42eba41100b34aa3242cef` (`CHANGES_REQUESTED`).
+- Remediation evidence: `docs/integration/evidence/R8-REVIEW-REMEDIATION.md`.
+- This assignment fixes Ben's three verified blockers (economicsVersion token, persisted partial allocations, Returns/Register BFF+app composition) plus true WS3→WS2 cross-layer regressions. It is not a redesign and does not start R9/R10.
 
 Accepted contract:
 

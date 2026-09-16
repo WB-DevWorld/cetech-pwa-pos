@@ -192,6 +192,12 @@ export interface CheckoutStore {
   getActiveShift(registerId: Id): Promise<StoredShift | undefined>;
   getShift(id: Uuid): Promise<StoredShift | undefined>;
   insertOpenShift(shift: StoredShift): Promise<"ok" | "conflict">;
+  closeShift(input: {
+    readonly shiftId: Uuid;
+    readonly countedCash: Money;
+    readonly status: "closed" | "requires_attention";
+    readonly closedAt?: Timestamp;
+  }): Promise<"ok" | "missing" | "not_open" | "already_closed">;
   appendCashMovement(movement: StoredCashMovement): Promise<"ok" | "duplicate_sale" | "duplicate_refund" | "shift_required" | "negative_expected">;
   listCashSales(transactionId: Uuid): Promise<readonly StoredCashMovement[]>;
   listCashRefunds(refundId: Uuid): Promise<readonly StoredCashMovement[]>;
