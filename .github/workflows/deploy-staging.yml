@@ -37,7 +37,7 @@ jobs:
           set -euo pipefail
 
           missing=()
-          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID VERCEL_STAGING_ALIAS; do
+          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
             if [[ -z "${!name:-}" ]]; then
               missing+=("$name")
             fi
@@ -105,7 +105,8 @@ jobs:
           fi
           echo "url=$deployment_url" >> "$GITHUB_OUTPUT"
 
-      - name: Move stable staging alias
+      - name: Move optional stable staging alias
+        if: env.VERCEL_STAGING_ALIAS != ''
         working-directory: apps/pos-web
         run: >-
           npm exec --yes --package=vercel@59.17.0 -- vercel alias set
@@ -113,7 +114,23 @@ jobs:
           "$VERCEL_STAGING_ALIAS"
           --token="$VERCEL_TOKEN"
 
-      - name: Smoke shared staging origin
+      - name: Smoke immutable staging deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --location \
+            --retry 5 \
+            --retry-delay 2 \
+            --retry-all-errors \
+            "${{ steps.deploy.outputs.url }}/" \
+            > /dev/null
+
+      - name: Smoke optional stable staging alias
+        if: env.VERCEL_STAGING_ALIAS != ''
         shell: bash
         run: |
           set -euo pipefail
@@ -138,7 +155,11 @@ jobs:
             echo
             echo "- CI-tested SHA: `${CI_TESTED_SHA}`"
             echo "- Vercel deployment: ${{ steps.deploy.outputs.url }}"
-            echo "- Stable staging origin: https://${VERCEL_STAGING_ALIAS}"
+            if [[ -n "${VERCEL_STAGING_ALIAS:-}" ]]; then
+              echo "- Stable staging origin: https://${VERCEL_STAGING_ALIAS}"
+            else
+              echo "- Stable staging origin: not configured; use the immutable Vercel deployment URL above"
+            fi
             echo "- Source CI run: ${{ github.event.workflow_run.html_url }}"
             echo
             echo "This is a staging deployment only. It does not authorize production promotion, electronic-payment execution, refund/restock effects, or VitePOS cutover."
