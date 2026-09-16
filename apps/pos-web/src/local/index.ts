@@ -36,6 +36,11 @@ export {
   type ServiceWorkerLifecycleOptions,
 } from "./service-worker-lifecycle";
 export {
+  createTenderActivityPort,
+  hasActiveTender,
+  type TenderActivityPort,
+} from "./tender-activity";
+export {
   inspectLocalRecoveryState,
   type LocalRecoveryDiagnostics,
 } from "./recovery-diagnostics";
