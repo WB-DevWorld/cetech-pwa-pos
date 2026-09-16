@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { handleInitializePayment } from "../../../apps/pos-web/src/server/payments/handle-initialize-payment";
+import { applyProviderVerification } from "../../../apps/pos-web/src/server/payments/apply-verification";
 import { composeElectronicPaymentProvider } from "../../../apps/pos-web/src/server/payments/compose-payment-provider";
 import {
   createPaystackElectronicPaymentProvider,
@@ -19,6 +20,7 @@ import {
   INIT_KEY,
   INIT_KEY_2,
   initializeCard,
+  NOW,
   receipt,
   resolvePayment,
   SANDBOX_EMAIL,
@@ -535,6 +537,89 @@ describe("PAY-01 reconciliation", () => {
     expect(stale.status).toBe(200);
     const payment = await runtime.checkoutStore.getPayment(initialized.body.data.paymentId);
     expect(payment?.status).toBe("verified");
+  });
+
+  test("interleaved stale weaker result cannot downgrade verified payment or sale", async () => {
+    const runtime = await createPay01Runtime();
+    const initialized = await initializeCard(runtime);
+    expect(initialized.body.ok).toBe(true);
+    if (!initialized.body.ok) {
+      return;
+    }
+    const paymentId = initialized.body.data.paymentId;
+    const saleSnap = await runtime.checkoutStore.getSale(TX_A);
+    const paymentSnap = await runtime.checkoutStore.getPayment(paymentId);
+    expect(saleSnap?.status).toBe("payment_pending");
+    expect(paymentSnap?.status).not.toBe("verified");
+    if (!saleSnap || !paymentSnap?.providerReference) {
+      return;
+    }
+
+    const success = await applyProviderVerification({
+      store: runtime.checkoutStore,
+      sale: { ...saleSnap },
+      payment: { ...paymentSnap },
+      verification: {
+        kind: "success",
+        domain: "test",
+        providerStatus: "success",
+        amount: paymentSnap.amount,
+        currency: paymentSnap.amount.currency,
+        reference: paymentSnap.providerReference,
+        providerTransactionId: "4242",
+        metadata: {
+          transactionId: paymentSnap.transactionId,
+          paymentId: paymentSnap.paymentId,
+          saleId: paymentSnap.saleId,
+        },
+      },
+      now: NOW,
+    });
+    expect(success.status).toBe("verified");
+
+    const weaker = [
+      {
+        kind: "pending" as const,
+        providerStatus: "pending",
+        reference: paymentSnap.providerReference,
+      },
+      {
+        kind: "failed" as const,
+        providerStatus: "failed",
+        reference: paymentSnap.providerReference,
+      },
+      { kind: "timeout" as const },
+    ];
+    for (const verification of weaker) {
+      const late = await applyProviderVerification({
+        store: runtime.checkoutStore,
+        sale: { ...saleSnap, status: "payment_pending" },
+        payment: { ...paymentSnap },
+        verification,
+        now: new Date("2026-09-15T14:01:00.000Z"),
+      });
+      expect(late.status).toBe("verified");
+    }
+
+    await runtime.checkoutStore.saveSale({ ...saleSnap, status: "payment_pending" });
+    const durablePayment = await runtime.checkoutStore.getPayment(paymentId);
+    const durableSale = await runtime.checkoutStore.getSale(TX_A);
+    expect(durablePayment?.status).toBe("verified");
+    expect(["finalizing", "completed"]).toContain(durableSale?.status);
+
+    runtime.provider.setDefaultVerify("success");
+    const firstFinalize = await finalize(runtime, paymentId);
+    const secondFinalize = await finalize(runtime, paymentId);
+    expect(firstFinalize.body.ok).toBe(true);
+    expect(secondFinalize.body.ok).toBe(true);
+    expect(runtime.salesPort.paymentCompleteCount).toBe(1);
+    const firstReceipt = await receipt(runtime);
+    const secondReceipt = await receipt(runtime);
+    expect(firstReceipt.body.ok).toBe(true);
+    expect(secondReceipt.body.ok).toBe(true);
+    if (firstReceipt.body.ok && secondReceipt.body.ok) {
+      expect(firstReceipt.body.data.id).toBe(secondReceipt.body.data.id);
+    }
   });
 
   test("process restart recovers the same payment, verifies once, finalizes once, and reprints", async () => {

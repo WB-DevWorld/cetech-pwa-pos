@@ -12,9 +12,6 @@ export async function applyProviderVerification(input: {
   readonly now: Date;
 }): Promise<StoredPayment> {
   const { store, sale, payment, verification, now } = input;
-  if (payment.status === "verified") {
-    return payment;
-  }
   const lastVerifiedAt = toIsoTimestamp(now);
   if (verification.kind === "timeout" || verification.kind === "unavailable") {
     return persist(store, sale, {
@@ -98,7 +95,7 @@ export async function applyProviderVerification(input: {
       assignedPaymentId: verified.paymentId,
     });
   }
-  return verified;
+  return (await store.getPayment(verified.paymentId)) ?? verified;
 }
 
 function economicMismatch(
@@ -135,12 +132,16 @@ function economicMismatch(
 
 async function persist(store: CheckoutStore, sale: PosSaleRecord, payment: StoredPayment): Promise<StoredPayment> {
   await store.savePayment(payment);
-  if (payment.status === "requires_attention" && sale.status !== "completed" && sale.status !== "cancelled") {
-    await store.saveSale({ ...sale, status: "requires_attention", assignedPaymentId: payment.paymentId });
-  } else if (payment.status === "pending" || payment.status === "reconciling" || payment.status === "awaiting_customer") {
+  const stored = (await store.getPayment(payment.paymentId)) ?? payment;
+  if (stored.status === "verified") {
+    return stored;
+  }
+  if (stored.status === "requires_attention" && sale.status !== "completed" && sale.status !== "cancelled") {
+    await store.saveSale({ ...sale, status: "requires_attention", assignedPaymentId: stored.paymentId });
+  } else if (stored.status === "pending" || stored.status === "reconciling" || stored.status === "awaiting_customer") {
     if (sale.status === "prepared") {
-      await store.saveSale({ ...sale, status: "payment_pending", assignedPaymentId: payment.paymentId });
+      await store.saveSale({ ...sale, status: "payment_pending", assignedPaymentId: stored.paymentId });
     }
   }
-  return payment;
+  return stored;
 }

@@ -122,4 +122,119 @@ describe("PAY-01 durable electronic payment store", () => {
       paymentId: PAYMENT_ID,
     });
   });
+
+  test("durable store keeps verified payment and finalizing sale against a stale weaker upsert", async () => {
+    const fake = createFakePosgrest();
+    const store = createSupabaseCheckoutStore({
+      url: "https://example.supabase.co",
+      serviceRoleKey: "server-only-infrastructure",
+      fetchImpl: fake.fetchImpl,
+    });
+    const peer = createSupabaseCheckoutStore({
+      url: "https://example.supabase.co",
+      serviceRoleKey: "server-only-infrastructure",
+      fetchImpl: fake.fetchImpl,
+    });
+    await store.seedRegister({
+      id: "reg_a",
+      name: "Register A",
+      locationId: "loc_a1",
+      currency: "GHS",
+      status: "active",
+      organizationId: "org_a",
+    });
+    await store.seedDevice({
+      id: DEVICE_ID,
+      organizationId: "org_a",
+      locationId: "loc_a1",
+      status: "active",
+    });
+    expect(
+      await store.insertOpenShift({
+        id: SHIFT_ID,
+        registerId: "reg_a",
+        deviceId: DEVICE_ID,
+        cashierId: "cashier_a",
+        status: "open",
+        openingFloat: { minor: 5000, currency: "GHS" },
+        openedAt: "2026-09-15T12:00:00.000Z",
+        organizationId: "org_a",
+        locationId: "loc_a1",
+      }),
+    ).toBe("ok");
+    const seeded = await store.seedPreparedSale({
+      organizationId: "org_a",
+      locationId: "loc_a1",
+      locationName: "Location A1",
+      registerId: "reg_a",
+      registerName: "Register A",
+      deviceId: DEVICE_ID,
+      shiftId: SHIFT_ID,
+      cashierId: "cashier_a",
+      cashierName: "Cashier A",
+      customer: { kind: "walkin" },
+      customerLabel: "Walk-in",
+      prepared: {
+        transactionId: TX,
+        saleId: "woo-pay01",
+        orderReference: "woo-pay01",
+        quoteFingerprint: "0123456789abcdef0123456789abcdef",
+        total: { minor: 2900, currency: "GHS" },
+        status: "prepared",
+        stockCommitment: "reserved",
+        preparedAt: "2026-09-15T12:00:00.000Z",
+        expiresAt: "2026-09-15T18:00:00.000Z",
+      },
+      lines: [],
+      subtotal: { minor: 2900, currency: "GHS" },
+      discount: { minor: 0, currency: "GHS" },
+      tax: { minor: 0, currency: "GHS" },
+    });
+    await store.saveSale({ ...seeded, status: "payment_pending" });
+    await store.savePayment({
+      paymentId: PAYMENT_ID,
+      transactionId: TX,
+      saleId: "woo-pay01",
+      tender: "card",
+      status: "pending",
+      amount: { minor: 2900, currency: "GHS" },
+      actorId: "cashier_a",
+      provider: "paystack",
+      providerReference: "pos_pay01durable",
+      initializeStatus: "initialized",
+    });
+
+    await store.savePayment({
+      paymentId: PAYMENT_ID,
+      transactionId: TX,
+      saleId: "woo-pay01",
+      tender: "card",
+      status: "verified",
+      amount: { minor: 2900, currency: "GHS" },
+      actorId: "cashier_a",
+      provider: "paystack",
+      providerReference: "pos_pay01durable",
+      evidenceId: "33333333-3333-4333-8333-333333333301",
+      verifiedAt: "2026-09-15T12:02:00.000Z",
+      verificationSource: "provider_server_verification",
+    });
+    await store.saveSale({ ...seeded, status: "finalizing", assignedPaymentId: PAYMENT_ID });
+
+    await peer.savePayment({
+      paymentId: PAYMENT_ID,
+      transactionId: TX,
+      saleId: "woo-pay01",
+      tender: "card",
+      status: "pending",
+      amount: { minor: 2900, currency: "GHS" },
+      actorId: "cashier_a",
+      provider: "paystack",
+      providerReference: "pos_pay01durable",
+      initializeStatus: "initialized",
+    });
+    await peer.saveSale({ ...seeded, status: "payment_pending" });
+
+    await expect(peer.getPayment(PAYMENT_ID)).resolves.toMatchObject({ status: "verified" });
+    await expect(peer.getSale(TX)).resolves.toMatchObject({ status: "finalizing" });
+  });
 });
