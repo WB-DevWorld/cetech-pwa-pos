@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { SellRuntimeScreen, type SellSessionPorts } from "../features/sell";
 import { createBrowserPricingPort } from "../features/sell/runtime/pricingClient";
 import { createBrowserCashCheckoutPorts, LOCAL_CHECKOUT_SCOPE } from "./checkout-client";
+import { HealthRuntime } from "./health/health-runtime";
 import { AppShell, POS_ROUTE_HREFS, type PosRoute } from "../ui/shell";
 import {
   CASHIER_SEED_LOCATION_ID,
@@ -74,10 +75,12 @@ export function PosApp({ route }: { route: PosRoute }) {
         ) : (
           <p className="muted">Loading catalog…</p>
         )
+      ) : route === "health" ? (
+        <HealthRuntime />
       ) : (
         <section>
           <h1>{labelFor(route)}</h1>
-          <p className="muted">This workspace is not part of the R4 Sell runtime.</p>
+          <p className="muted">This workspace is not part of the active POS runtime.</p>
         </section>
       )}
     </AppShell>
