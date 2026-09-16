@@ -4,7 +4,7 @@ Updated 2026-09-16. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical sche
 
 ## Current authority
 
-- `main`: `bd79c2901ce33c3177141d4244cc196be0a719d2` — R6 PR #55 merge; protected.
+- `main`: `97f64368880ea9838511eb3aacee97e2c2359f6d` — CD-01 PR #66 (Vercel CLI compatibility) on top of PR #65 staging deploy; protected. R6 remains `bd79c2901ce33c3177141d4244cc196be0a719d2` in history.
 - ADR-012 and ADR-014 are active; ownership-preserving milestone execution remains required.
 - Issue #4 remains **OPEN**. `pricingParityVerified=false`. Production promotion is not authorized.
 - Live electronic payment is not authorized. R8 is not started. R7 is not merged.
@@ -50,6 +50,10 @@ PAY-01 source is imported onto the neutral branch. Control-plane review remediat
 | REMEDIATION_SOURCE_SHA | `ac3340cf63eec771b194dd2c0d2eb54b2bf1b457` |
 | REMEDIATION_IMPORT_SHA | `cc5666fd3b31fa45f7da0a9045002ad3c5c72741` |
 | CONCURRENCY_REMEDIATION_SHA | `3ba954b0ad3ff112a93e4af0c87c4a0a0dc2fa12` |
+| CD01_MAIN_SHA (PR #65) | `a9db7adcab8881d905df73b9536ed47a658cf1c9` |
+| CD01_CLI_SHA (PR #66) | `97f64368880ea9838511eb3aacee97e2c2359f6d` |
+| R7_CD01_MERGE_SHA | `3ee0e816170cd322c7666d84edc82de6f86057af` |
+| R7_CD01_CLI_MERGE_SHA | `98aca59cdaa0d7dab99564877a9a6e2471d0522a` |
 
 Allowed PAY-01 paths: `apps/pos-web/src/server/**`; `apps/pos-web/src/core/**`; `apps/pos-web/src/app/api/**`; `supabase/**`; `tests/integration/payments/**`. Bounded WS3 evidence/status/handoff and this ledger may be updated on the neutral branch for scheduler/activation/integration truth.
 
@@ -80,4 +84,4 @@ Authorized only if TEST credentials already exist through an approved local/stag
 PAYMENT PROVIDER SANDBOX GATE: PASS
 ```
 
-Paystack TEST credentials were supplied externally through the approved gitignored Next `.env.local` (sibling `apps/pos-web` checkout). The secret was never committed or documented. TEST sandbox execution used `https://training.cetechbpa.com`. Woo order **49449**, POS transaction `8a9959df-4f82-4a25-9792-b058886ed69a`, sanitized Paystack TEST reference `pos_2f0b5a038deb47c68aa36a7b9551b098`, GHS 29.00, durable payment `verified`, sale `completed`. Evidence: `docs/integration/evidence/R7-PAY-01-SANDBOX.md`. Milestone freshness: `docs/integration/evidence/R7-PAY-01-MILESTONE-FRESHNESS.md` (**FRESH_2**).
+Paystack TEST credentials were supplied externally through the approved gitignored Next `.env.local` (sibling `apps/pos-web` checkout). The secret was never committed or documented. TEST sandbox execution used `https://training.cetechbpa.com`. Woo order **49449**, POS transaction `8a9959df-4f82-4a25-9792-b058886ed69a`, sanitized Paystack TEST reference `pos_2f0b5a038deb47c68aa36a7b9551b098`, GHS 29.00, durable payment `verified`, sale `completed`. Evidence: `docs/integration/evidence/R7-PAY-01-SANDBOX.md` (preserved; no second TEST charge). Milestone freshness: `docs/integration/evidence/R7-PAY-01-MILESTONE-FRESHNESS.md` (**RECONCILED_2**, cutoff `97f6436…`). Combined R7 head contains current `origin/main`. PR **#58** remains draft pending independent review; do not merge from this ledger.
