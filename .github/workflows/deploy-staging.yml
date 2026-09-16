@@ -115,34 +115,24 @@ jobs:
           --token="$VERCEL_TOKEN"
 
       - name: Smoke immutable staging deployment
+        working-directory: apps/pos-web
         shell: bash
         run: |
           set -euo pipefail
-          curl \
-            --fail \
-            --silent \
-            --show-error \
-            --location \
-            --retry 5 \
-            --retry-delay 2 \
-            --retry-all-errors \
-            "${{ steps.deploy.outputs.url }}/" \
+          npm exec --yes --package=vercel@59.17.0 -- vercel curl "/" \
+            --deployment "${{ steps.deploy.outputs.url }}" \
+            --token="$VERCEL_TOKEN" \
             > /dev/null
 
       - name: Smoke optional stable staging alias
         if: env.VERCEL_STAGING_ALIAS != ''
+        working-directory: apps/pos-web
         shell: bash
         run: |
           set -euo pipefail
-          curl \
-            --fail \
-            --silent \
-            --show-error \
-            --location \
-            --retry 5 \
-            --retry-delay 2 \
-            --retry-all-errors \
-            "https://${VERCEL_STAGING_ALIAS}/" \
+          npm exec --yes --package=vercel@59.17.0 -- vercel curl "/" \
+            --deployment "https://${VERCEL_STAGING_ALIAS}" \
+            --token="$VERCEL_TOKEN" \
             > /dev/null
 
       - name: Record deployment result
