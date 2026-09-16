@@ -51,7 +51,9 @@ CD-01 uses the Vercel CLI sequence:
 1. `vercel pull --environment=preview`
 2. `vercel build`
 3. `vercel deploy --prebuilt`
-4. optionally `vercel alias set` when `VERCEL_STAGING_ALIAS` is configured
+4. smoke-test the immutable deployment URL
+5. optionally `vercel alias set` when `VERCEL_STAGING_ALIAS` is configured
+6. if an alias is configured, smoke-test the alias
 
 The workflow pins Vercel CLI `59.17.0` rather than using an unbounded `latest` install. It invokes that transient CLI through pinned `npm exec` rather than `pnpm dlx`: pnpm 12's strict dependency-build policy blocks the transient Vercel CLI's `esbuild` install script unless separately approved. This avoids weakening the repository's workspace `allowBuilds` policy merely to run a deployment utility.
 
@@ -158,10 +160,14 @@ When CD-01 lands on `main`:
 7. it pulls Vercel Preview configuration;
 8. it builds and deploys a non-production prebuilt artifact;
 9. it captures the immutable Vercel deployment URL;
-10. if `VERCEL_STAGING_ALIAS` exists, it moves that alias to the deployment;
-11. it smoke-probes the immutable deployment URL;
-12. if an alias exists, it smoke-probes the alias too;
+10. it smoke-probes the immutable deployment URL and fails on HTTP 4xx/5xx;
+11. only after that smoke passes, if `VERCEL_STAGING_ALIAS` exists, it moves the alias to the deployment;
+12. if an alias exists, it smoke-probes the alias and fails on HTTP 4xx/5xx;
 13. it records the CI SHA and deployment URL, plus alias when present, in the workflow summary.
+
+The required order is therefore:
+
+`deploy immutable URL -> smoke immutable URL -> move optional alias -> smoke alias -> record deployment evidence`.
 
 If Vercel token/org/project configuration is missing, the workflow records `BLOCKED_CONFIGURATION` and performs no deployment. A skipped deployment must never be reported as deployed.
 
