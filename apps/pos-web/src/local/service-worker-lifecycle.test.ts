@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 
 const workerSource = readFileSync(new URL("../../public/sw.js", import.meta.url), "utf8");
+const lifecycleSource = readFileSync(new URL("./service-worker-lifecycle.ts", import.meta.url), "utf8");
 const manifest = JSON.parse(
   readFileSync(new URL("../../public/manifest.webmanifest", import.meta.url), "utf8"),
 ) as Record<string, unknown>;
@@ -15,6 +16,14 @@ describe("CORE-07 service worker safety invariants", () => {
       workerSource.indexOf('self.addEventListener("activate"'),
     );
     expect(installBlock).not.toContain("self.skipWaiting()");
+  });
+
+  test("each release can register a build-specific worker and cache namespace", () => {
+    expect(lifecycleSource).toContain('const workerUrl = options.workerUrl ?? "/sw.js"');
+    expect(lifecycleSource).toContain("navigator.serviceWorker.register(workerUrl");
+    expect(workerSource).toContain('WORKER_URL.searchParams.get("build")');
+    expect(workerSource).toContain('`cetech-pos-shell-${BUILD_ID}`');
+    expect("/sw.js?build=1.0.0").not.toBe("/sw.js?build=1.0.1");
   });
 
   test("API/business and navigation responses are excluded from persistent caching", () => {
