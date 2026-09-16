@@ -71,3 +71,56 @@ R8 / RT-01: NOT STARTED / NOT IMPORTED.
 R7: NOT MERGED.
 VitePOS: remains active.
 Issue #4 / `pricingParityVerified=false`: still blocks production.
+
+---
+
+## Replacement final-review freshness after PR #67 and PR #68
+
+This section supersedes the cutoff above for final independent review currency only. It does not replace or weaken the historical sandbox evidence.
+
+Ben's re-review on `ba23ed79711b2be80c1f9e1cc83f40b74e2bf155` accepted the PAY-01 concurrency and Paystack TEST concerns in substance and requested only repository-currency reconciliation after CD-01 continued to move `main`.
+
+### Arrivals reconciled
+
+- PR #67 / `65489066db752fb619b5b6933ead38e6d843fc41` — Vercel monorepo-root invocation fix; workflow/runbook only.
+  - R7 merge commit: `0c67f781227c66decea01ac4586e9dc082f68750`
+- PR #68 / `b85c5da41aa2c67a9a5232392527b9f84738c47e` — protected Vercel smoke-authentication fix; workflow/runbook only.
+  - R7 merge commit: `d725c1ba10e62086cd8870bb54d14c62ed9a98d0`
+
+Both reconciliations were two-parent merge commits. No rebase or force-push was used. Neither arrival changed application/domain/bridge/schema/payment logic. PAY-01 implementation was not reopened and no second Paystack TEST charge was created.
+
+### Replacement Pass 1
+
+Live GitHub branch read observed protected `main` at:
+
+`b85c5da41aa2c67a9a5232392527b9f84738c47e`
+
+After reconciliation, GitHub compare `b85c5da...` → `d725c1ba...` reported:
+
+- status: `ahead`
+- R7 ahead by 14
+- R7 behind by 0
+- merge base: `b85c5da41aa2c67a9a5232392527b9f84738c47e`
+
+Classification: **COMPATIBLE / CURRENT**. PR #68 touched only `.github/workflows/deploy-staging.yml` and `docs/runbooks/CD-01-STAGING-DEPLOYMENT.md`.
+
+### Replacement Pass 2
+
+A later independent live GitHub branch read again observed protected `main` at:
+
+`b85c5da41aa2c67a9a5232392527b9f84738c47e`
+
+No newer `main` commit was present at that pass. Current main remained an ancestor of the R7 branch.
+
+These replacement reviewer-control passes used live GitHub API branch/compare reads rather than a local checkout; no local `git fetch` or `check_upstream_drift.py` execution is claimed for this replacement section.
+
+### Replacement result
+
+Final final-review freshness status: **FRESH_2**
+Final upstream cutoff: `b85c5da41aa2c67a9a5232392527b9f84738c47e`
+PAY-01 sandbox evidence: preserved; Woo order **49449**; no repeat charge.
+Production promotion: **NOT AUTHORIZED**.
+Live Paystack: **NOT AUTHORIZED**.
+Issue #4 / `pricingParityVerified=false`: still blocks production.
+VitePOS: remains active.
+R8 / RT-01: not imported.
