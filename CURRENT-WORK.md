@@ -77,7 +77,7 @@ Authorized only if TEST credentials already exist through an approved local/stag
 ### Sandbox gate
 
 ```text
-PAYMENT PROVIDER SANDBOX GATE: BLOCKED_SANDBOX_CREDENTIALS
+PAYMENT PROVIDER SANDBOX GATE: PASS
 ```
 
-Ben's concurrent-verification finding is remediations at `3ba954b0ad3ff112a93e4af0c87c4a0a0dc2fa12`. Staging host `https://training.cetechbpa.com` remains TRAINING (`home`/`url` match; public name includes TRAINING). This POS process still has `PAYMENT_PROVIDER` unset and no `PAYSTACK_SECRET_KEY` in the approved local secret mechanism. The secret was not retrieved from staging, printed, or committed. Automated PAY-01 proof uses the fake provider. This is not milestone acceptance. Milestone final freshness remains withheld until a genuine TEST sandbox PASS.
+Paystack TEST credentials were supplied externally through the approved gitignored Next `.env.local` (sibling `apps/pos-web` checkout). The secret was never committed or documented. TEST sandbox execution used `https://training.cetechbpa.com`. Woo order **49449**, POS transaction `8a9959df-4f82-4a25-9792-b058886ed69a`, sanitized Paystack TEST reference `pos_2f0b5a038deb47c68aa36a7b9551b098`, GHS 29.00, durable payment `verified`, sale `completed`. Evidence: `docs/integration/evidence/R7-PAY-01-SANDBOX.md`. Milestone freshness: `docs/integration/evidence/R7-PAY-01-MILESTONE-FRESHNESS.md` (**FRESH_2**).

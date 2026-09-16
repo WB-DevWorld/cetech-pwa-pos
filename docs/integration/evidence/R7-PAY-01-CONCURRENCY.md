@@ -38,10 +38,8 @@ SHA: `3ba954b0ad3ff112a93e4af0c87c4a0a0dc2fa12`
 ## Sandbox
 
 ```text
-PAYMENT PROVIDER SANDBOX GATE: BLOCKED_SANDBOX_CREDENTIALS
+PAYMENT PROVIDER SANDBOX GATE: PASS
 ```
 
-Declared staging target `https://training.cetechbpa.com` public REST: name includes TRAINING; `url`/`home` = that host, not `cetechbpa.com`. This POS process: `PAYMENT_PROVIDER` unset, secret prefix `UNSET`, no `.env.local`, no `NEXT_PUBLIC_` payment secret. The staging secret was not retrieved, printed, or committed. No Paystack TEST initialize. No Woo order. No live charge.
-
-Milestone FRESH_2 remains withheld until a genuine TEST sandbox PASS.
+Paystack TEST on `https://training.cetechbpa.com`. Woo **49449**. Sanitized reference `pos_2f0b5a038deb47c68aa36a7b9551b098`. See `R7-PAY-01-SANDBOX.md`. Milestone FRESH_2 recorded in `R7-PAY-01-MILESTONE-FRESHNESS.md`.
 Production promotion NOT AUTHORIZED.
