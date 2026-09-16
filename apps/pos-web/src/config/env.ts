@@ -29,7 +29,7 @@ export function readServerEnv(
 ): ServerEnv {
   rejectPublicServerOnlyNames(env);
   return {
-    appOrigin: env.APP_ORIGIN ?? env.NEXT_PUBLIC_APP_ORIGIN ?? "http://localhost:3000",
+    appOrigin: resolveAppOrigin(env),
     supabaseUrl: env.SUPABASE_URL,
     bridgeBaseUrl: env.BRIDGE_BASE_URL,
     buildId: env.BUILD_ID ?? "local-dev",
@@ -101,9 +101,31 @@ export function readSupabaseInfrastructureEnv(
 export function staffAllowedOrigins(
   env: Readonly<Record<string, string | undefined>> = process.env,
 ): readonly string[] {
-  const origin = env.APP_ORIGIN ?? env.NEXT_PUBLIC_APP_ORIGIN ?? "http://localhost:3000";
-  const extra = parseAllowedOrigins(env.ALLOWED_ORIGINS);
+  const origin = resolveAppOrigin(env);
+  const extra = parseAllowedOrigins(env.ALLOWED_ORIGINS).filter((candidate) => candidate !== origin);
   return [origin, ...extra];
+}
+
+function resolveAppOrigin(env: Readonly<Record<string, string | undefined>>): string {
+  const explicit = env.APP_ORIGIN?.trim() || env.NEXT_PUBLIC_APP_ORIGIN?.trim();
+  if (explicit) {
+    return explicit;
+  }
+
+  const vercelUrl = env.VERCEL_URL?.trim();
+  if (vercelUrl) {
+    const candidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(vercelUrl) ? vercelUrl : `https://${vercelUrl}`;
+    try {
+      const parsed = new URL(candidate);
+      if (parsed.protocol === "https:") {
+        return parsed.origin;
+      }
+    } catch {
+      // Ignore malformed platform metadata and retain the safe local fallback.
+    }
+  }
+
+  return "http://localhost:3000";
 }
 
 function rejectPublicServerOnlyNames(env: Readonly<Record<string, string | undefined>>): void {
