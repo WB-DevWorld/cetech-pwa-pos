@@ -1,6 +1,7 @@
 import "@/ui/tokens.css";
 import "@/ui/shell/shell.css";
 import "@/features/sell/sell.css";
+import "@/features/health/health.css";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
