@@ -1,4 +1,6 @@
-const SHELL_CACHE = "cetech-pos-shell-v1";
+const WORKER_URL = new URL(self.location.href);
+const BUILD_ID = (WORKER_URL.searchParams.get("build") ?? "unversioned").replace(/[^A-Za-z0-9._-]/g, "_");
+const SHELL_CACHE = `cetech-pos-shell-${BUILD_ID}`;
 const OFFLINE_URL = "/offline.html";
 
 self.addEventListener("install", (event) => {
