@@ -52,7 +52,7 @@ CD-01 uses the Vercel CLI sequence supported by the current Vercel deployment mo
 3. `vercel deploy --prebuilt`
 4. `vercel alias set` to the stable staging hostname
 
-The workflow pins Vercel CLI `59.17.0` rather than using an unbounded `latest` install.
+The workflow pins Vercel CLI `59.17.0` rather than using an unbounded `latest` install. It invokes that transient CLI through pinned `npm exec` rather than `pnpm dlx`: pnpm 12's strict dependency-build policy blocks the transient Vercel CLI's `esbuild` install script unless separately approved. This avoids weakening the repository's workspace `allowBuilds` policy merely to run a deployment utility.
 
 ## One-time external setup
 
