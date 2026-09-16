@@ -10,6 +10,7 @@ export interface ServiceWorkerLifecycleOptions {
   readonly getSafetySnapshot: () => Promise<UpdateSafetySnapshot> | UpdateSafetySnapshot;
   readonly onUpdateReady: () => void;
   readonly onUnsupported?: () => void;
+  readonly workerUrl?: string;
   readonly checkThrottleMs?: number;
   readonly longSessionCheckMs?: number;
   readonly now?: () => number;
@@ -37,6 +38,7 @@ export function createServiceWorkerLifecycle(
   const now = options.now ?? (() => Date.now());
   const throttleMs = options.checkThrottleMs ?? DEFAULT_CHECK_THROTTLE_MS;
   const intervalMs = options.longSessionCheckMs ?? DEFAULT_LONG_SESSION_CHECK_MS;
+  const workerUrl = options.workerUrl ?? "/sw.js";
   let registration: ServiceWorkerRegistration | null = null;
   let lastCheckAt = Number.NEGATIVE_INFINITY;
   let interval: ReturnType<typeof setInterval> | undefined;
@@ -70,7 +72,7 @@ export function createServiceWorkerLifecycle(
       if (typeof window === "undefined" || !("serviceWorker" in navigator) || stopped) {
         return;
       }
-      const next = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+      const next = await navigator.serviceWorker.register(workerUrl, { scope: "/" });
       observeRegistration(next);
       document.addEventListener("visibilitychange", foregroundListener);
       window.addEventListener("online", onlineListener);
