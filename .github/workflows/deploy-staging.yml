@@ -105,15 +105,6 @@ jobs:
           fi
           echo "url=$deployment_url" >> "$GITHUB_OUTPUT"
 
-      - name: Move optional stable staging alias
-        if: env.VERCEL_STAGING_ALIAS != ''
-        working-directory: apps/pos-web
-        run: >-
-          npm exec --yes --package=vercel@59.17.0 -- vercel alias set
-          "${{ steps.deploy.outputs.url }}"
-          "$VERCEL_STAGING_ALIAS"
-          --token="$VERCEL_TOKEN"
-
       - name: Smoke immutable staging deployment
         working-directory: apps/pos-web
         shell: bash
@@ -122,7 +113,18 @@ jobs:
           npm exec --yes --package=vercel@59.17.0 -- vercel curl "/" \
             --deployment "${{ steps.deploy.outputs.url }}" \
             --token="$VERCEL_TOKEN" \
+            --fail \
+            --show-error \
             > /dev/null
+
+      - name: Move optional stable staging alias
+        if: env.VERCEL_STAGING_ALIAS != ''
+        working-directory: apps/pos-web
+        run: >-
+          npm exec --yes --package=vercel@59.17.0 -- vercel alias set
+          "${{ steps.deploy.outputs.url }}"
+          "$VERCEL_STAGING_ALIAS"
+          --token="$VERCEL_TOKEN"
 
       - name: Smoke optional stable staging alias
         if: env.VERCEL_STAGING_ALIAS != ''
@@ -133,6 +135,8 @@ jobs:
           npm exec --yes --package=vercel@59.17.0 -- vercel curl "/" \
             --deployment "https://${VERCEL_STAGING_ALIAS}" \
             --token="$VERCEL_TOKEN" \
+            --fail \
+            --show-error \
             > /dev/null
 
       - name: Record deployment result
