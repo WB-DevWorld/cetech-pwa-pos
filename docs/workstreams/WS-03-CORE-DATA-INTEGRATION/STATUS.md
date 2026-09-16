@@ -1,21 +1,27 @@
 # WS3 current status
 
-Snapshot 2026-09-15. R5 remains APPROVED / MERGED. `main` `bc606a690f0c167b7057e3ae9143337404275882`.
+Snapshot 2026-09-16. `main` `97f64368880ea9838511eb3aacee97e2c2359f6d` (CD-01 PR #66). R6 remains merged at `bd79c2901ce33c3177141d4244cc196be0a719d2`.
 
 ## R6
 
-Draft PR #55 / `batch/r6-first-real-cash-sale`. Do not merge. Do not start R7. Production promotion is not authorized. Issue #4 remains OPEN.
+PR #55 merged. CORE-06 / #25, R6-00 / #54, and CORE-HARDEN-07 / #56 are closed completed. Woo `49439` retained as historical cash evidence. Production promotion is not authorized. Issue #4 remains OPEN.
 
-R6-REM-02 imported. Combined automated gate PASS. Exact-head CI PASS on freeze candidate `3f702f2353a3b9911dd0571e59e8cc2fbeefa535`. Replacement **FRESH_2** recorded in `docs/integration/evidence/R6-REM-02-FRESHNESS.md`. Historical `FRESH_2` on `f6f57cc…` remains valid only for the pre-remediation reviewed head.
+## R7
+
+Active, **READY_FOR_INDEPENDENT_REVIEW**. Integration issue **#57**. Implementation **PAY-01 / #26**. Neutral branch `batch/r7-electronic-payment-reconciliation`. Owner `@wbdevworld` / WS3. Mode: INTEGRATE. PR **#58** is draft; do not self-approve; do not merge.
+
+Control-plane review remediation imported: Paystack is ready only for `PAYSTACK_MODE=test` plus `sk_test_…`.
+
+Ben concurrent-verification finding remediations on `3ba954b0ad3ff112a93e4af0c87c4a0a0dc2fa12`.
+
+Paystack TEST sandbox **PASS** on `https://training.cetechbpa.com`. Woo **49449**. Evidence `docs/integration/evidence/R7-PAY-01-SANDBOX.md` (preserved). Current `origin/main` is merged. Milestone freshness **RECONCILED_2**.
 
 | Role | SHA |
 | --- | --- |
-| Reviewed head | `f6f57cc39b77dd576734a5b8fb5f89be3027c44c` |
-| Authority | `922720ccbc9e12c535c765c44f1dfea887b19ccc` |
-| Source | `edafe1e64c869528f57eb8e4bba8b317b33a46c4` |
-| Import | `82a85f4082f461a2709ccfece9a73e4e8872d3d3` |
-| Freeze candidate (pre-freshness docs) | `3f702f2353a3b9911dd0571e59e8cc2fbeefa535` |
-
-Ben blocker resolved. Emmanuel blockers 1 and 2 resolved. No FE-05 source change. No BR-07 source change. No second staging sale. Woo `49439` retained.
-
-The freshness evidence commit produces a later exact head that must have its own green required workflows.
+| Current `main` | `97f64368880ea9838511eb3aacee97e2c2359f6d` |
+| CD-01 PR #65 | `a9db7adcab8881d905df73b9536ed47a658cf1c9` |
+| R7_ACTIVATION_SHA | `0c34694882e69282b9e3df66104197394c55294e` |
+| Sandbox code head | `e589b7d97303a05d5e5fd353de5e40d124fc2483` |
+| CONCURRENCY_REMEDIATION_SHA | `3ba954b0ad3ff112a93e4af0c87c4a0a0dc2fa12` |
+| R7_CD01_MERGE_SHA | `3ee0e816170cd322c7666d84edc82de6f86057af` |
+| R7_CD01_CLI_MERGE_SHA | `98aca59cdaa0d7dab99564877a9a6e2471d0522a` |
