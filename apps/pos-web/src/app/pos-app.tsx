@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { ReleasePolicy } from "../../../../docs/contracts/domain.generated";
 import { SellRuntimeScreen, type SellSessionPorts } from "../features/sell";
 import { createBrowserPricingPort } from "../features/sell/runtime/pricingClient";
 import { createBrowserCashCheckoutPorts, LOCAL_CHECKOUT_SCOPE } from "./checkout-client";
@@ -12,13 +13,22 @@ import {
   createCartDraftStore,
   createLocalCatalogPort,
   createLocalCustomerPort,
+  createTenderActivityPort,
   ensureCashierLocalSeed,
   openPosLocalDatabase,
   recallActiveCartId,
   rememberActiveCartId,
 } from "../local";
 
-export function PosApp({ route }: { route: PosRoute }) {
+export function PosApp({
+  route,
+  buildId,
+  releasePolicy,
+}: {
+  route: PosRoute;
+  buildId?: string;
+  releasePolicy?: ReleasePolicy;
+}) {
   const router = useRouter();
   const [online, setOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
   const [ports, setPorts] = useState<SellSessionPorts | null>(null);
@@ -40,7 +50,10 @@ export function PosApp({ route }: { route: PosRoute }) {
     void (async () => {
       await ensureCashierLocalSeed();
       const db = openPosLocalDatabase();
-      const checkout = createBrowserCashCheckoutPorts({ scope: LOCAL_CHECKOUT_SCOPE });
+      const checkout = createBrowserCashCheckoutPorts({
+        scope: LOCAL_CHECKOUT_SCOPE,
+        tenderActivity: createTenderActivityPort(db),
+      });
       setPorts({
         catalog: createLocalCatalogPort({ db }),
         customers: createLocalCustomerPort({ db }),
@@ -76,7 +89,11 @@ export function PosApp({ route }: { route: PosRoute }) {
           <p className="muted">Loading catalog…</p>
         )
       ) : route === "health" ? (
-        <HealthRuntime />
+        buildId && releasePolicy ? (
+          <HealthRuntime buildId={buildId} releasePolicy={releasePolicy} />
+        ) : (
+          <p className="muted">Release policy is unavailable. Update activation is disabled.</p>
+        )
       ) : (
         <section>
           <h1>{labelFor(route)}</h1>
