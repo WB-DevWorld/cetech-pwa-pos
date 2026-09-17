@@ -10,6 +10,7 @@ import {
   createBrowserRegisterPort,
   createBrowserReturnPort,
 } from "./checkout-client";
+import { HealthRuntime } from "./health/health-runtime";
 import { RegisterRuntimeScreen } from "./register-runtime";
 import { ReturnsRuntimeScreen, createBrowserHistoricReturnSaleLookup } from "./returns-runtime";
 import { AppShell, POS_ROUTE_HREFS, type PosRoute } from "../ui/shell";
@@ -18,6 +19,7 @@ import {
   createCartDraftStore,
   createLocalCatalogPort,
   createLocalCustomerPort,
+  createTenderActivityPort,
   ensureCashierLocalSeed,
   openPosLocalDatabase,
   recallActiveCartId,
@@ -70,7 +72,11 @@ export function PosRuntime({
     void (async () => {
       await ensureCashierLocalSeed();
       const db = openPosLocalDatabase();
-      const checkout = createBrowserCashCheckoutPorts({ scope: LOCAL_CHECKOUT_SCOPE, fetchImpl });
+      const checkout = createBrowserCashCheckoutPorts({
+        scope: LOCAL_CHECKOUT_SCOPE,
+        fetchImpl,
+        tenderActivity: createTenderActivityPort(db),
+      });
       setPorts({
         catalog: createLocalCatalogPort({ db }),
         customers: createLocalCustomerPort({ db }),
@@ -118,10 +124,12 @@ export function PosRuntime({
           deviceId={LOCAL_CHECKOUT_SCOPE.deviceId}
           currency="GHS"
         />
+      ) : route === "health" ? (
+        <HealthRuntime />
       ) : (
         <section>
           <h1>{labelFor(route)}</h1>
-          <p className="muted">This workspace is not part of the R4 Sell runtime.</p>
+          <p className="muted">This workspace is not part of the active POS runtime.</p>
         </section>
       )}
     </AppShell>

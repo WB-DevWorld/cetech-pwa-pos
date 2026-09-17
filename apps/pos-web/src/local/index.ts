@@ -20,6 +20,37 @@ export {
 } from "./catalog-repository";
 export { createLocalCustomerPort, replaceLocalCustomers } from "./customer-store";
 export { rebuildableCatalogClear, recordLocalSchema } from "./pwa-upgrade";
+export {
+  acquireLifecycleLease,
+  assessUpdateActivation,
+  compareBuildIds,
+  releaseLifecycleLease,
+  renewLifecycleLease,
+  type UpdateActivationDecision,
+  type UpdateBlockReason,
+  type UpdateSafetySnapshot,
+} from "./pwa-lifecycle";
+export {
+  createServiceWorkerLifecycle,
+  type ServiceWorkerLifecycleController,
+  type ServiceWorkerLifecycleOptions,
+} from "./service-worker-lifecycle";
+export { buildMountedSafetySnapshot } from "./mounted-update-safety";
+export {
+  fetchReleasePolicy,
+  RELEASE_POLICY_PATH,
+  sameWorkerUrl,
+  serviceWorkerUrlForBuild,
+} from "./release-policy-client";
+export {
+  createTenderActivityPort,
+  hasActiveTender,
+  type TenderActivityPort,
+} from "./tender-activity";
+export {
+  inspectLocalRecoveryState,
+  type LocalRecoveryDiagnostics,
+} from "./recovery-diagnostics";
 export { assertJournalPayloadHasNoSecrets, journalPayloadContainsSecrets } from "./secrets-guard";
 export { clearActiveCartId, recallActiveCartId, rememberActiveCartId } from "./active-cart";
 export {

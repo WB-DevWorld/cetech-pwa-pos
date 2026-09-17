@@ -1,4 +1,4 @@
-import type { Id, PendingOperation, Quote, ReceiptSnapshot, Uuid } from "../../../../../docs/contracts/domain.generated";
+import type { Id, PendingOperation, Quote, ReceiptSnapshot, ShiftReport, Uuid } from "../../../../../docs/contracts/domain.generated";
 import { mergeStoredPayment, mergeStoredSale } from "./monotonic";
 import type {
   CommandScopeBinding,
@@ -48,6 +48,7 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
   const providerEvents = new Map<string, StoredProviderEvent>();
   const receipts = new Map<Uuid, ReceiptSnapshot>();
   const outbox: OutboxEvent[] = [];
+  const reports = new Map<string, ShiftReport>();
   const idempotency = new Map<string, IdempotencyRow>();
   const scopeByTransaction = new Map<string, CommandScopeBinding>();
   const chains = new Map<string, Promise<void>>();
@@ -133,6 +134,7 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
           currency: expected.currency,
         },
         closedAt: input.status === "closed" ? input.closedAt : undefined,
+        zReportId: input.status === "closed" ? input.zReportId : undefined,
       };
       shifts.set(shift.id, next);
       if (input.status === "closed") {
@@ -186,6 +188,20 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
 
     async expectedCash(shiftId) {
       return shifts.get(shiftId)?.expectedCash;
+    },
+
+    async saveShiftReport(report) {
+      const key = `${report.shiftId}\0${report.kind}`;
+      const existing = reports.get(key);
+      if (existing) {
+        return existing.id === report.id ? "ok" : "duplicate";
+      }
+      reports.set(key, report);
+      return "ok";
+    },
+
+    async getShiftReport(shiftId, kind) {
+      return reports.get(`${shiftId}\0${kind}`);
     },
 
     async saveQuote(quote) {

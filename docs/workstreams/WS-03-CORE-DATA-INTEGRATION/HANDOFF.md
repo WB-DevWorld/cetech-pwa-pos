@@ -1,37 +1,51 @@
-# WS3 current handoff — R8-02 Emmanuel exact-head runtime remediation
+# WS3 current handoff — R9-REC-01 R8-base reconciliation
 
 Kind: TASK_COMPLETION. Date: 2026-09-17.
 
-Task / batch / workstream: R8-02 / PR #69 / WS3.
+Task / batch / workstream: R9-REC-01 / PR #63 / WS3.
 Owner / integration editor: `@wbdevworld` / WS3.
-Requested human reviewers: Emmanuel (verify the two WS1/WS3 blockers) and Ben (confirm no regression to the previously approved WS2/WS3 surface). This agent does not approve, merge, or dismiss reviews.
-Mode: INTEGRATE / REMEDIATE.
-PR: #69. Do not request merge. Do not self-approve.
+Requested human reviewers: independent mixed WS1/WS2/WS3 review of the **new** reconciled exact SHA. This agent does not approve, merge, or dismiss reviews.
+Mode: RECONCILE / INTEGRATE.
+PR: #63. Keep **DRAFT**. Do not request merge. Do not self-approve. Do not close CORE-07. Do not start R10.
 
-Branch: `batch/r8-safe-returns-reconciliation`
-Starting exact head: `79dab6096466e00fd8289300038f07619868f539`
-Prior R8-02 head: `0fe28d353002ef8836eb2739ed9174517da7846b`
-Start `origin/main`: `1feb78db36f33e0254c0170396f30112d71577ea`
+Branch: `batch/r9-pwa-recovery-operational-close`
+Historical R9 head: `13af56ca86d13657736b8c5156b73a8e79664130`
+Start `origin/main`: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` (R8 squash; CI `35216668259` SUCCESS)
+Merge-base: `bd79c2901ce33c3177141d4244cc196be0a719d2` (R6)
+Method: `git merge --no-ff origin/main` (no rebase, no force push), then semantic compose.
 
-Contracts changed: none. Frozen v1 return-refund and CloseShiftRequest wires unchanged. Optional `approvalId` remains schema-valid and non-authoritative for shift close.
-Database migrations: none. Prior `20260916220000` / `20260917090000` allocation history is preserved.
+Contracts changed: none. Frozen v1 `RegisterPort.close` / `report` and CloseShiftRequest wires unchanged. Optional `approvalId` remains schema-valid and non-authoritative for shift close.
 
-## Blockers fixed (not dismissed)
+Database migrations: additive `20260917140000_pos_operational_close_r8_variance.sql`. Historical `20260915223000_pos_operational_close.sql` preserved.
 
-1. Historic return lookup uses durable `PosSaleRecord.orderLines[].orderLineId` via `GET /api/pos/v1/returns/history/{saleKey}`. Cross-org/unknown sales return `NOT_FOUND`. Unauthorized location is `FORBIDDEN`. Non-completed sales are not exposed. Receipt-index identities are gone from the production path.
-2. Non-zero shift variance stays `requires_attention` even when `approvalId` is a valid UUID. `closedAt` is set only for zero variance. R8 does not claim manager approval for shift variance.
+Architecture: one production close path (`sales/close-shift.ts` + R8 BFF). R9 `OperationalCloseStore` is server infrastructure. Root `PwaLifecycleRuntime` wraps all primary POS routes. Health consumes shared lifecycle.
+
+Allowed / forbidden: WS3 integration editor on this R9 branch. Do not edit unrelated untracked `doc/`. No real commercial effects.
+
+## Completed
+
+Reconciled reviewed CORE-07 + FE-07 onto accepted R8 `main`. Rule A/B/C matrix, close/Z/variance resolution, tests, and limitations: `docs/integration/evidence/R9-R8-RECONCILIATION.md`.
 
 ## Tests executed (local)
 
-See `docs/integration/evidence/R8-REVIEW-REMEDIATION.md` R8-02 review-spec close-out. 72 files / 671 tests; E2E 9 passed; return pgTAP 43/43; bridge 1555/0; parity 138/0/19 skip.
+See that evidence file. 83 files / 747 tests; E2E 9 passed; operational_close pgTAP 22/22; bridge 1555/0; parity 138/0/19 skip.
 
 Remote effects performed: none (no Paystack, no Woo refund/restock, no production, no VitePOS change).
 
+## Freshness protocol
+
+START_FRESHNESS_SNAPSHOT: current `main` `778348c…` recorded.
+Classification: **NOT FINAL FRESHNESS**.
+Final ADR-012 Pass 1 + Pass 2: not claimed. Required later after independent review of the reconciled exact SHA and installed-client/device evidence.
+Pass 3: NOT PERMITTED.
+UNVERIFIED if this session is interrupted before exact-head CI is observed.
+
 ## Next exact action
 
-Push this close-out commit. Wait for new exact-head `control-plane` and `control-plane-windows`. Then ADR-012 Pass 1 + Pass 2 only. Stop at `R8_REMEDIATION_READY_FOR_FINAL_REVIEW`. Fresh review on the NEW exact head is required from Emmanuel and Ben.
+Push this merge commit. Wait for **new** exact-head `control-plane` and `control-plane-windows`. Independent review of the replacement SHA. Installed-client/device evidence remains pending.
 
-Pass 3: NOT PERMITTED.
+Delivery status: `R9_RECONCILED_CODE_READY_FOR_REVIEW`
 Production promotion: NOT AUTHORIZED.
 Live electronic payment / live refund/restock: NOT AUTHORIZED.
-Merge of PR #69: NOT AUTHORIZED.
+Merge of PR #63: NOT AUTHORIZED.
+Installed-client evidence: NOT CLAIMED.

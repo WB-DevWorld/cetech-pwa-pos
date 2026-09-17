@@ -31,6 +31,7 @@ import type {
   Uuid,
 } from "../../../../docs/contracts/domain.generated";
 import type { CashCheckoutPorts, CashCheckoutScope } from "../features/sell";
+import type { TenderActivityPort } from "../local";
 
 function readCookie(name: string): string | null {
   if (typeof document === "undefined") {
@@ -57,6 +58,7 @@ type BrowserCheckoutOptions = {
   readonly csrfCookie?: string;
   readonly csrfHeader?: string;
   readonly origin?: string;
+  readonly tenderActivity?: TenderActivityPort;
 };
 
 function unavailable<T>(correlation: Uuid, message: string): ApiResult<T> {
@@ -106,13 +108,26 @@ async function command<T>(
   }
 }
 
+function saleTerminal(result: ApiResult<SaleResolution>): boolean {
+  return result.ok && (result.data.status === "completed" || result.data.status === "cancelled");
+}
+
 export function createBrowserCheckoutUseCases(options: BrowserCheckoutOptions = {}): CheckoutUseCases {
   return {
-    prepare(input: PrepareSaleRequest, context: CommandContext): Promise<ApiResult<PreparedSale>> {
-      return command("/api/pos/v1/sales/prepare", "POST", context, options, input);
+    async prepare(input: PrepareSaleRequest, context: CommandContext): Promise<ApiResult<PreparedSale>> {
+      const result = await command<PreparedSale>("/api/pos/v1/sales/prepare", "POST", context, options, input);
+      if (result.ok) {
+        await options.tenderActivity?.markActive(input.transactionId);
+      }
+      return result;
     },
-    finalize(input: FinalizeSaleRequest, context: CommandContext): Promise<ApiResult<SaleResolution>> {
-      return command("/api/pos/v1/sales/finalize", "POST", context, options, input);
+    async finalize(input: FinalizeSaleRequest, context: CommandContext): Promise<ApiResult<SaleResolution>> {
+      await options.tenderActivity?.markActive(input.transactionId);
+      const result = await command<SaleResolution>("/api/pos/v1/sales/finalize", "POST", context, options, input);
+      if (saleTerminal(result)) {
+        await options.tenderActivity?.clear(input.transactionId);
+      }
+      return result;
     },
   };
 }
@@ -121,10 +136,12 @@ export function createBrowserPaymentPort(
   options: BrowserCheckoutOptions = {},
 ): Pick<PaymentPort, "confirmCash" | "resolve"> {
   return {
-    confirmCash(input: CashPaymentRequest, context: CommandContext): Promise<ApiResult<PaymentState>> {
+    async confirmCash(input: CashPaymentRequest, context: CommandContext): Promise<ApiResult<PaymentState>> {
+      await options.tenderActivity?.markActive(input.transactionId);
       return command("/api/pos/v1/payments/cash", "POST", context, options, input);
     },
-    resolve(input: PaymentLookup): Promise<ApiResult<PaymentState>> {
+    async resolve(input: PaymentLookup): Promise<ApiResult<PaymentState>> {
+      await options.tenderActivity?.markActive(input.transactionId);
       return command("/api/pos/v1/payments/resolve", "POST", { correlationId: crypto.randomUUID() }, options, input);
     },
   };
@@ -132,8 +149,19 @@ export function createBrowserPaymentPort(
 
 export function createBrowserSalesResolvePort(options: BrowserCheckoutOptions = {}): Pick<SalesPort, "resolve"> {
   return {
-    resolve(transactionId: Uuid): Promise<ApiResult<SaleResolution>> {
-      return command(`/api/pos/v1/sales/${transactionId}`, "GET", { correlationId: crypto.randomUUID() }, options);
+    async resolve(transactionId: Uuid): Promise<ApiResult<SaleResolution>> {
+      const result = await command<SaleResolution>(
+        `/api/pos/v1/sales/${transactionId}`,
+        "GET",
+        { correlationId: crypto.randomUUID() },
+        options,
+      );
+      if (saleTerminal(result)) {
+        await options.tenderActivity?.clear(transactionId);
+      } else if (result.ok) {
+        await options.tenderActivity?.markActive(transactionId);
+      }
+      return result;
     },
   };
 }

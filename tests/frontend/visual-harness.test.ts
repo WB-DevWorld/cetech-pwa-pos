@@ -15,6 +15,7 @@ import {
   buildSellUnknownBarcodeHarnessHtml,
   buildSellVariationHarnessHtml,
 } from "./visual/build-sell-harness";
+import { buildStoreHealthHarnessHtml } from "./visual/build-store-health-harness";
 
 const evidenceDir = resolve(dirname(fileURLToPath(import.meta.url)), "evidence");
 
@@ -66,5 +67,19 @@ describe("FE-02 isolated visual harness markup", () => {
     expect(`${desktop}${phone}${variation}${unknown}${customer}${offline}`).not.toContain("preparation pass");
     expect(`${desktop}${phone}${variation}${unknown}${customer}${offline}`.toLowerCase()).not.toContain("adapter");
     expect(`${desktop}${phone}${variation}${unknown}${customer}${offline}`).not.toContain("unwired");
+  });
+
+  test("writes isolated FE-07 Store Health HTML evidence", () => {
+    mkdirSync(evidenceDir, { recursive: true });
+    const health = buildStoreHealthHarnessHtml();
+    writeFileSync(resolve(evidenceDir, "health-desktop.html"), health);
+    writeFileSync(resolve(evidenceDir, "health-tablet.html"), health);
+    writeFileSync(resolve(evidenceDir, "health-phone.html"), health);
+    expect(health).toContain("Store Health");
+    expect(health).toContain("An active payment or tender is in progress");
+    expect(health).toContain("Unverified — not confirmed");
+    expect(health).not.toContain("Demo controls");
+    expect(health).not.toContain("Clear app data and start over");
+    expect(health.toLowerCase()).not.toContain("paystack");
   });
 });

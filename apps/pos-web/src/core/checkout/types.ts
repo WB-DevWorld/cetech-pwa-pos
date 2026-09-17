@@ -14,6 +14,7 @@ import type {
   Quote,
   Session,
   Shift,
+  ShiftReport,
   Timestamp,
   Uuid,
   VerifiedPaymentEvidence,
@@ -197,7 +198,10 @@ export interface CheckoutStore {
     readonly countedCash: Money;
     readonly status: "closed" | "requires_attention";
     readonly closedAt?: Timestamp;
+    readonly zReportId?: Id;
   }): Promise<"ok" | "missing" | "not_open" | "already_closed">;
+  saveShiftReport(report: ShiftReport): Promise<"ok" | "duplicate">;
+  getShiftReport(shiftId: Uuid, kind: "X" | "Z"): Promise<ShiftReport | undefined>;
   appendCashMovement(movement: StoredCashMovement): Promise<"ok" | "duplicate_sale" | "duplicate_refund" | "shift_required" | "negative_expected">;
   listCashSales(transactionId: Uuid): Promise<readonly StoredCashMovement[]>;
   listCashRefunds(refundId: Uuid): Promise<readonly StoredCashMovement[]>;

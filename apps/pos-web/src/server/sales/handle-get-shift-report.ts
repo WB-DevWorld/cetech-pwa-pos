@@ -64,23 +64,41 @@ export async function handleGetShiftReport(input: {
   if (!authorized.ok) {
     return { status: httpStatusFor(authorized.error.code), body: authorized, headers: guard.headers };
   }
-  const expected = shift.expectedCash ?? (await input.checkoutStore.expectedCash(shift.id)) ?? shift.openingFloat;
-  if (input.kind === "Z" && shift.status !== "closed") {
-    const body = apiFailure("VALIDATION_ERROR", "Z report is only available after the shift is closed", guard.correlationId);
-    return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
+  if (input.kind === "Z") {
+    if (shift.status !== "closed") {
+      const body = apiFailure("VALIDATION_ERROR", "Z report is only available after the shift is closed", guard.correlationId);
+      return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
+    }
+    const durable = await input.checkoutStore.getShiftReport(shift.id, "Z");
+    if (!durable || durable.kind !== "Z") {
+      const body = apiFailure(
+        "INTEGRATION_UNAVAILABLE",
+        "closed shift is missing its durable Z report",
+        guard.correlationId,
+      );
+      return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
+    }
+    if (shift.zReportId && durable.id !== shift.zReportId) {
+      const body = apiFailure(
+        "INTEGRATION_UNAVAILABLE",
+        "durable Z report identity does not match the closed shift",
+        guard.correlationId,
+      );
+      return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
+    }
+    if (!validateCanonicalDef("ShiftReport", durable)) {
+      const body = apiFailure("INTEGRATION_UNAVAILABLE", "shift report is invalid", guard.correlationId);
+      return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
+    }
+    return { status: 200, body: { ok: true, data: durable, correlationId: guard.correlationId }, headers: guard.headers };
   }
+  const expected = shift.expectedCash ?? (await input.checkoutStore.expectedCash(shift.id)) ?? shift.openingFloat;
   const report: ShiftReport = {
-    id: shift.zReportId ?? `report-${input.kind.toLowerCase()}-${shift.id}`,
+    id: `report-x-${shift.id}`,
     shiftId: shift.id,
-    kind: input.kind,
+    kind: "X",
     expectedCash: expected,
-    createdAt: shift.closedAt ?? shift.openedAt,
-    ...(input.kind === "Z"
-      ? {
-          countedCash: shift.countedCash,
-          variance: shift.variance,
-        }
-      : {}),
+    createdAt: shift.openedAt,
   };
   if (!validateCanonicalDef("ShiftReport", report)) {
     const body = apiFailure("INTEGRATION_UNAVAILABLE", "shift report is invalid", guard.correlationId);

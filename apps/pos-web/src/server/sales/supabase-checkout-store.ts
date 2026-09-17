@@ -3,6 +3,7 @@ import type {
   PendingOperation,
   Quote,
   ReceiptSnapshot,
+  ShiftReport,
   Uuid,
 } from "../../../../../docs/contracts/domain.generated";
 import type { PosRestFetch } from "../http/server-fetch";
@@ -218,12 +219,57 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
           variance_minor: varianceMinor,
           variance_currency: expected.currency,
           closed_at: input.status === "closed" ? input.closedAt ?? new Date().toISOString() : null,
+          z_report_id: input.status === "closed" ? input.zReportId ?? null : null,
         },
       });
       if (result.status >= 400) {
         throw new Error("durable checkout store rejected shift close");
       }
       return "ok";
+    },
+
+    async saveShiftReport(report) {
+      const existing = await this.getShiftReport(report.shiftId, report.kind);
+      if (existing) {
+        return existing.id === report.id ? "ok" : "duplicate";
+      }
+      const shift = await this.getShift(report.shiftId);
+      if (!shift) {
+        throw new Error("durable checkout store rejected shift report without a shift");
+      }
+      const result = await request({
+        path: "pos_shift_reports",
+        method: "POST",
+        prefer: "return=minimal",
+        body: {
+          id: report.id,
+          organization_id: shift.organizationId,
+          location_id: shift.locationId,
+          register_id: shift.registerId,
+          shift_id: report.shiftId,
+          kind: report.kind,
+          expected_cash_minor: report.expectedCash.minor,
+          counted_cash_minor: report.countedCash?.minor ?? null,
+          variance_minor: report.variance?.minor ?? null,
+          currency: report.expectedCash.currency,
+          created_at: report.createdAt,
+        },
+      });
+      if (result.status === 201 || result.status === 200) {
+        return "ok";
+      }
+      if (result.status === 409) {
+        const replay = await this.getShiftReport(report.shiftId, report.kind);
+        return replay?.id === report.id ? "ok" : "duplicate";
+      }
+      throw new Error("durable checkout store rejected shift report insert");
+    },
+
+    async getShiftReport(shiftId, kind) {
+      const row = await getOne(
+        `pos_shift_reports?shift_id=eq.${encodeURIComponent(shiftId)}&kind=eq.${encodeURIComponent(kind)}&select=id,shift_id,kind,expected_cash_minor,counted_cash_minor,variance_minor,currency,created_at`,
+      );
+      return row ? mapShiftReport(row) : undefined;
     },
 
     async appendCashMovement(movement) {
@@ -779,6 +825,31 @@ function mapShift(row: RestRow): StoredShift | undefined {
     openedAt: toContractTimestamp(row.opened_at) ?? row.opened_at,
     closedAt: typeof row.closed_at === "string" ? toContractTimestamp(row.closed_at) ?? row.closed_at : undefined,
     zReportId: typeof row.z_report_id === "string" ? row.z_report_id : undefined,
+  };
+}
+
+function mapShiftReport(row: RestRow): ShiftReport | undefined {
+  if (
+    typeof row.id !== "string" ||
+    typeof row.shift_id !== "string" ||
+    (row.kind !== "X" && row.kind !== "Z") ||
+    typeof row.expected_cash_minor !== "number" ||
+    typeof row.currency !== "string" ||
+    typeof row.created_at !== "string"
+  ) {
+    return undefined;
+  }
+  const currency = row.currency as ShiftReport["expectedCash"]["currency"];
+  return {
+    id: row.id,
+    shiftId: row.shift_id,
+    kind: row.kind,
+    expectedCash: { minor: row.expected_cash_minor, currency },
+    createdAt: toContractTimestamp(row.created_at) ?? row.created_at,
+    ...(typeof row.counted_cash_minor === "number"
+      ? { countedCash: { minor: row.counted_cash_minor, currency } }
+      : {}),
+    ...(typeof row.variance_minor === "number" ? { variance: { minor: row.variance_minor, currency } } : {}),
   };
 }
 
