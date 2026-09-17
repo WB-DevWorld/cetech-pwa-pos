@@ -9,6 +9,7 @@ import {
 } from "../features/register";
 import { idleShiftWorkspace, type ShiftWorkspaceView } from "../features/register/shiftView";
 import type { RegisterPort } from "../../../../docs/contracts/ports";
+import type { Shift } from "../../../../docs/contracts/domain.generated";
 import { LOCAL_CHECKOUT_SCOPE, createBrowserRegisterPort } from "./checkout-client";
 
 export function useRegisterFlow(ports: RegisterWorkspacePorts | undefined): {
@@ -46,19 +47,43 @@ export function useRegisterFlow(ports: RegisterWorkspacePorts | undefined): {
 export function RegisterRuntimeScreen({
   register,
   registerId,
+  registerName = registerId,
+  locationLabel = "Assigned location",
   deviceId,
   currency,
+  onShiftChange,
 }: {
   readonly register: RegisterPort;
   readonly registerId: string;
+  readonly registerName?: string;
+  readonly locationLabel?: string;
   readonly deviceId: string;
   readonly currency: string;
+  readonly onShiftChange?: (shift: Shift | null) => void;
 }) {
   const ports = useMemo(
     () => ({ register, registerId, deviceId, currency }),
     [register, registerId, deviceId, currency],
   );
   const flow = useRegisterFlow(ports);
+
+  useEffect(() => {
+    if (!onShiftChange) {
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const result = await register.activeShift(registerId);
+      if (cancelled) {
+        return;
+      }
+      onShiftChange(result.ok ? result.data : null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [flow.session.shiftId, flow.session.status, onShiftChange, register, registerId]);
+
   if (!flow.ready || !flow.controller) {
     return <p className="muted">Loading register…</p>;
   }
@@ -66,7 +91,7 @@ export function RegisterRuntimeScreen({
     <>
       <RegisterScreen
         openForm={{
-          registers: [{ id: registerId, name: "Front Counter 1", locationLabel: "Main store" }],
+          registers: [{ id: registerId, name: registerName, locationLabel }],
           selectedRegisterId: registerId,
           online: typeof navigator === "undefined" ? true : navigator.onLine,
           onSubmit: (input) => {

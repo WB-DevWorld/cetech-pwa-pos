@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { installAuthoritativeStaffSession } from "./staff-session";
 
 const RETAIL_FP = "0123456789abcdef0123456789abcdef";
 const B2B_FP = "abcdef0123456789abcdef0123456789";
@@ -9,6 +10,7 @@ const RECEIPT = "rcpt-11111111";
 test("combined Sell UI completes a retail cash sale through mocked BFF routes exactly once", async ({ page }) => {
   const counts = { prepare: 0, cash: 0, finalize: 0, receipt: 0 };
   await installCheckoutRoutes(page, counts, "walkin");
+  await installAuthoritativeStaffSession(page);
   await page.goto("/sell");
   await expect(page.getByRole("heading", { level: 1, name: "Sell" })).toBeVisible({ timeout: 30_000 });
   await scanHardener(page);
@@ -30,6 +32,7 @@ test("combined Sell UI completes a retail cash sale through mocked BFF routes ex
 test("combined Sell UI completes a B2B cash sale using the authoritative quoted total", async ({ page }) => {
   const counts = { prepare: 0, cash: 0, finalize: 0, receipt: 0 };
   await installCheckoutRoutes(page, counts, "b2b");
+  await installAuthoritativeStaffSession(page);
   await page.goto("/sell");
   await expect(page.getByRole("heading", { level: 1, name: "Sell" })).toBeVisible({ timeout: 30_000 });
   await page.locator(".customer-chip").click();

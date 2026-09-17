@@ -43,6 +43,7 @@ export {
 export { establishStaffSession, revokeStaffSession } from "./staff-session";
 export {
   handleEstablishStaffSession,
+  handleReadStaffSession,
   handleRevokeStaffSession,
 } from "./handle-staff-session";
 export { composeStaffSessionStore } from "./compose-session-store";

@@ -1,37 +1,41 @@
-# WS3 current handoff — R8-02 Emmanuel exact-head runtime remediation
+# WS3 current handoff — STG-02 session/CSRF/register composition
 
 Kind: TASK_COMPLETION. Date: 2026-09-17.
 
-Task / batch / workstream: R8-02 / PR #69 / WS3.
+Task / batch / workstream: STG-02 / #71 / STG-01 / WS3.
 Owner / integration editor: `@wbdevworld` / WS3.
-Requested human reviewers: Emmanuel (verify the two WS1/WS3 blockers) and Ben (confirm no regression to the previously approved WS2/WS3 surface). This agent does not approve, merge, or dismiss reviews.
-Mode: INTEGRATE / REMEDIATE.
-PR: #69. Do not request merge. Do not self-approve.
+Requested human reviewers: independent human (not self-approve). Do not merge from this handoff.
+Mode: IMPLEMENT.
+Branch: `ws3/stg-02-session-runtime-composition`
+Starting exact head: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Start `origin/main`: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
 
-Branch: `batch/r8-safe-returns-reconciliation`
-Starting exact head: `79dab6096466e00fd8289300038f07619868f539`
-Prior R8-02 head: `0fe28d353002ef8836eb2739ed9174517da7846b`
-Start `origin/main`: `1feb78db36f33e0254c0170396f30112d71577ea`
+Allowed paths: `apps/pos-web/src/app/**`, `apps/pos-web/src/core/identity/**`, `apps/pos-web/src/server/auth/**`, `apps/pos-web/src/config/**`, `tests/integration/auth/**`, `tests/e2e/**` / `apps/pos-web/e2e/**`, WS3 evidence/handoff.
+Forbidden: WS1 feature/UI implementation (LoginScreen mounted, not edited), Woo bridge, catalog projection redesign (STG-04).
 
-Contracts changed: none. Frozen v1 return-refund and CloseShiftRequest wires unchanged. Optional `approvalId` remains schema-valid and non-authoritative for shift close.
-Database migrations: none. Prior `20260916220000` / `20260917090000` allocation history is preserved.
+Contracts changed: none. Frozen Session/IdentityPort unchanged. BFF GET `/api/pos/v1/session` returns a composition DTO `{ session, assignedLocationIds, assignedRegisterIds }` around Session.
+Database migrations: none.
+Architecture decisions: none.
 
-## Blockers fixed (not dismissed)
+## Behavior
 
-1. Historic return lookup uses durable `PosSaleRecord.orderLines[].orderLineId` via `GET /api/pos/v1/returns/history/{saleKey}`. Cross-org/unknown sales return `NOT_FOUND`. Unauthorized location is `FORBIDDEN`. Non-completed sales are not exposed. Receipt-index identities are gone from the production path.
-2. Non-zero shift variance stays `requires_attention` even when `approvalId` is a valid UUID. `closedAt` is set only for zero variance. R8 does not claim manager approval for shift variance.
+1. Browser restores staff session via GET `/api/pos/v1/session` (cookie). Missing/expired/revoked fail closed.
+2. Sign-in uses the existing identity abstraction (transitional public Supabase Auth adapter) then POST `/api/pos/v1/session` with Bearer token. Server still sets HttpOnly session + readable CSRF cookies.
+3. Mutations continue to send `cetech_pos_csrf` in `x-csrf-token`. CSRF is not optional. Origins are not wildcards.
+4. Header cashier name, register name, and shift-open come from session + register + active-shift APIs. Hard-coded `Staff member` / `shiftOpen=true` are removed from `pos-app.tsx`.
+5. Sign-out / lock uses DELETE session with CSRF and does not clear IndexedDB drafts/journal.
+6. R8 Returns/Register composition remains mounted after a real session exists.
 
 ## Tests executed (local)
 
-See `docs/integration/evidence/R8-REVIEW-REMEDIATION.md` R8-02 review-spec close-out. 72 files / 671 tests; E2E 9 passed; return pgTAP 43/43; bridge 1555/0; parity 138/0/19 skip.
+See `docs/integration/evidence/STG-02-SESSION-RUNTIME.md`. Control-plane PASS; lint PASS; typecheck PASS; unit 73/677 PASS; e2e 10 PASS; `git diff --check` PASS.
 
-Remote effects performed: none (no Paystack, no Woo refund/restock, no production, no VitePOS change).
+Remote effects performed: none (no staging deploy of this SHA, no Paystack, no Woo mutation, no production).
 
 ## Next exact action
 
-Push this close-out commit. Wait for new exact-head `control-plane` and `control-plane-windows`. Then ADR-012 Pass 1 + Pass 2 only. Stop at `R8_REMEDIATION_READY_FOR_FINAL_REVIEW`. Fresh review on the NEW exact head is required from Emmanuel and Ben.
+Push this contributor SHA. STG-01 integration imports only after independent review. Continue authorized same-owner STG-05 only after a clean STG-02 handoff, on a separate WS2 branch. Do not implement Ben STG-03 / FE-07.
 
 Pass 3: NOT PERMITTED.
 Production promotion: NOT AUTHORIZED.
-Live electronic payment / live refund/restock: NOT AUTHORIZED.
-Merge of PR #69: NOT AUTHORIZED.
+Merge of STG-01 / #70: NOT AUTHORIZED.

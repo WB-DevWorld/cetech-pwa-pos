@@ -1,7 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
+import { expectAuthoritativeShell, installAuthoritativeStaffSession } from "./staff-session";
 
 test("Sell runtime restores workspace once and cart edits do not restore again", async ({ page }) => {
+  await installAuthoritativeStaffSession(page);
   await page.goto("/sell");
+  await expectAuthoritativeShell(page);
   await expect(page.getByRole("heading", { level: 1, name: "Sell" })).toBeVisible({ timeout: 30_000 });
   await expect(page.locator("[data-sell-restore-count]")).toHaveAttribute("data-sell-restore-count", "1");
   await expect(page.getByText("Loading catalog…")).toHaveCount(0);
@@ -58,6 +61,7 @@ test("same-revision quote revalidation reaches changed and blocks checkout", asy
     });
   });
 
+  await installAuthoritativeStaffSession(page);
   await page.goto("/sell");
   await expect(page.getByRole("heading", { level: 1, name: "Sell" })).toBeVisible({ timeout: 30_000 });
   await page.locator("#product-search").fill("0012345678901");
@@ -91,6 +95,7 @@ test("same-revision quote revalidation reaches changed and blocks checkout", asy
 
 test("New Sale Cart B quote is accepted even when Cart A had a higher revision", async ({ page }) => {
   await installIdentityQuotes(page, { delayNewCartMs: 800 });
+  await installAuthoritativeStaffSession(page);
   await page.goto("/sell");
   await expect(page.getByRole("heading", { level: 1, name: "Sell" })).toBeVisible({ timeout: 30_000 });
   await scanHardener(page);
@@ -128,6 +133,7 @@ test("New Sale Cart B quote is accepted even when Cart A had a higher revision",
 
 test("equal revision across New Sale cannot reuse Cart A quote while Cart B is quoting", async ({ page }) => {
   await installIdentityQuotes(page, { delayNewCartMs: 800 });
+  await installAuthoritativeStaffSession(page);
   await page.goto("/sell");
   await expect(page.getByRole("heading", { level: 1, name: "Sell" })).toBeVisible({ timeout: 30_000 });
   await scanHardener(page);
