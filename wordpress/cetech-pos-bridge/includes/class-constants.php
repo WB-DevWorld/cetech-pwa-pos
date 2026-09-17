@@ -16,6 +16,7 @@ final class Cetech_Pos_Bridge_Constants {
 	const COMMERCIAL_REFUND_RESOLVE_ROUTE = '/returns/commercial-refund/(?P<commercialRefundId>[0-9a-fA-F-]+)';
 	const STOCK_DISPOSITION_ROUTE         = '/returns/stock-disposition';
 	const STOCK_DISPOSITION_RESOLVE_ROUTE = '/returns/stock-disposition/(?P<stockDispositionId>[0-9a-fA-F-]+)';
+	const CATALOG_ROUTE                   = '/catalog';
 	const OPERATION_PREPARE   = 'prepare';
 	const OPERATION_FINALIZE  = 'finalize';
 	const OPERATION_CANCEL    = 'cancel';

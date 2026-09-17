@@ -1,4 +1,39 @@
-# WS2 current handoff — BR-08 / #60 independent return commerce effects (TASK_COMPLETION)
+# WS2 current handoff — STG-05 / #74 training catalog producer (TASK_COMPLETION)
+
+Kind / UTC: TASK_COMPLETION / 2026-09-17
+Task / batch / workstream: STG-05 / issue #74 VERIFY TRAINING WOO BRIDGE CATALOG, QUOTE AND CASH-SALE PRODUCER PATHS — STG-01; WS2
+Owner / actual implementer: @Emmanuel-coder-prog (WS2 boundary) / @wbdevworld (task-specific implementation reassignment 2026-09-17)
+Requested human reviewer: @Emmanuel-coder-prog (independent GitHub review) and senior/integration authority (no self-approve)
+Integration destination: WS3 import into `batch/stg-01-staging-runtime-acceptance`. Do not mix into STG-02/STG-04 app branches.
+Branch: `ws2/stg-05-training-bridge-runtime`
+Accepted starting SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Allowed paths: `wordpress/cetech-pos-bridge/**`; `tests/bridge/**`; `tests/fixtures/commerce/**`; WS2 STATUS/HANDOFF/evidence
+Forbidden untouched: `apps/**`; `supabase/**`; `docs/contracts/**`; `docs/decisions/**`; `.github/**`; `reference/**`; CURRENT-WORK.md; Ben STG-03 / FE-07
+Contracts changed: **NONE**. Bridge DB version: **5 unchanged**. ADRs: **NONE**. Pricing formulas copied: **NONE**.
+`pricingParityVerified`: **false**. Issue #4 OPEN.
+
+## Producer
+
+Existing training routes inspected first. No catalog producer existed. Added authenticated `GET /wp-json/cetech-pos/v1/catalog` (plugin `0.6.0-stg05`). SKU/barcodes stay strings. No display prices. Woo remains catalog/quote authority. Quote path unchanged (`POST /quotes`). BR-06/BR-07 regressions remain in the PHP suite.
+
+## Verification
+
+- `python scripts/verify_control_plane.py` PASS
+- Docker `php:8.5-cli` `make -C wordpress/cetech-pos-bridge check` PASS
+- `php tests/bridge/run.php` **1614 passed, 0 failed**
+- `php tests/bridge/parity.php` **138 passed, 0 failed, 19 skipped**
+- `git diff --check` clean
+- Training unauthenticated health 401; quotes 401; catalog `rest_no_route` until this plugin is deployed
+- Authenticated live probes: `BLOCKED_TRAINING_BRIDGE_CREDENTIALS_UNAVAILABLE`
+- New training cash sale: `BLOCKED_TRAINING_CASH_SALE_AWAITING_STG02_SESSION_AND_CP04`
+
+## Delivery
+
+**READY_FOR_INTEGRATION** of the catalog producer contract into STG-04. Live training catalog/quote/cash remain blocked as recorded. Receiver: @wbdevworld / WS3 for STG-04 consumption. Independent review required. Do not merge this branch as production approval.
+
+Freshness protocol for this task is recorded in the push/handoff comment; Pass 3 is NOT PERMITTED.
+
+## Previous current handoff — BR-08 / #60 independent return commerce effects (TASK_COMPLETION)
 
 Kind / UTC: TASK_COMPLETION / 2026-09-15 (new bounded ADR-012 two-pass for this owner task; not Pass 3 of BR-07)
 Task / batch / workstream: BR-08 / issue #60 IMPLEMENT COMMERCIAL REFUND + STOCK-DISPOSITION BRIDGE EFFECTS — RT-01; WS2

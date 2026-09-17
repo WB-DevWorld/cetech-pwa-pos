@@ -209,6 +209,8 @@ require_once $plugin_dir . '/includes/class-return-effect-store.php';
 require_once $plugin_dir . '/includes/class-return-effect-engine.php';
 require_once $plugin_dir . '/includes/class-commercial-refund-controller.php';
 require_once $plugin_dir . '/includes/class-stock-disposition-controller.php';
+require_once $plugin_dir . '/includes/class-catalog-engine.php';
+require_once $plugin_dir . '/includes/class-catalog-controller.php';
 require_once $plugin_dir . '/includes/class-pricing-rules.php';
 require_once $plugin_dir . '/includes/class-plugin.php';
 
