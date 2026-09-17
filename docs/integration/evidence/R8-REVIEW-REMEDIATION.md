@@ -219,4 +219,3 @@ Recorded after execution on this workstation. Interrupted or unavailable runtime
 | `.next/static` secret scan | no matches |
 
 No real Paystack, refund, Woo restock, production deploy, or VitePOS cutover. PR #69 is not merged. Reviews are not dismissed. R9 is not started.
-
