@@ -80,6 +80,28 @@ export function readSupabaseAuthEnv(
 }
 
 /**
+ * Browser-safe publishable Auth env. Never reads service-role or other
+ * server-only secrets. Presence is not a health or session proof.
+ */
+export function readPublicStaffAuthEnv(
+  env: Readonly<Record<string, string | undefined>> = {
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  },
+): SupabaseAuthEnv | null {
+  rejectPublicServerOnlyNames(env);
+  const url = env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? "";
+  const publishableKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ?? "";
+  if (!url || !publishableKey) {
+    return null;
+  }
+  if (isUnusableCredential(url) || isUnusableCredential(publishableKey) || publishableKey.toUpperCase().includes("SERVICE_ROLE")) {
+    return null;
+  }
+  return { url, publishableKey };
+}
+
+/**
  * Service-role / infrastructure credential for the BFF session store and
  * read-only health probe. This is not staff or cashier authorization.
  */

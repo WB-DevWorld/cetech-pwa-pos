@@ -12,7 +12,9 @@ describe("R4 POS root page", () => {
   test("mounts the POS shell instead of the engineering scaffold copy", () => {
     const html = renderToStaticMarkup(createElement(HomePage));
     expect(html).toContain("CETECH POS");
-    expect(html).toContain("Loading catalog");
+    expect(html).toContain("Staff sign-in");
+    expect(html).not.toContain("Staff member");
+    expect(html).not.toContain("Shift open");
     expect(html).not.toContain("engineering scaffold");
   });
 });

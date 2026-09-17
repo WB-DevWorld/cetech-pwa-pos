@@ -85,7 +85,8 @@ describe("R8-01 returns and register app composition", () => {
     const app = renderToStaticMarkup(
       createElement(PosRuntime, { route: "returns", onNavigate: () => undefined }),
     );
-    expect(app).toContain("Returns");
+    expect(app).toContain("Staff sign-in");
+    expect(app).not.toContain("Staff member");
     expect(app).not.toContain("This workspace is not part of the R4 Sell runtime.");
   });
 
@@ -111,7 +112,8 @@ describe("R8-01 returns and register app composition", () => {
     const app = renderToStaticMarkup(
       createElement(PosRuntime, { route: "register", onNavigate: () => undefined }),
     );
-    expect(app).toContain("Open register");
+    expect(app).toContain("Staff sign-in");
+    expect(app).not.toContain("Staff member");
     expect(app).not.toContain("This workspace is not part of the R4 Sell runtime.");
     expect(html).not.toContain('name="expectedCash"');
   });

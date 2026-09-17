@@ -3,16 +3,37 @@ import { readSupabaseAuthEnv, staffAllowedOrigins } from "../../../../../config/
 import { composeStaffSessionStore } from "../../../../../server/auth/compose-session-store";
 import {
   handleEstablishStaffSession,
+  handleReadStaffSession,
   handleRevokeStaffSession,
 } from "../../../../../server/auth/handle-staff-session";
 import { staffCookieSecure } from "../../../../../server/auth/cookies";
 import { createStaffIdentityVerifier } from "../../../../../server/auth/identity-verifier";
 import { createSupabaseAuthIntrospector } from "../../../../../server/auth/supabase-auth";
+import { composeStaffAssignmentDirectory } from "../../../../../server/sales/compose-assignment-directory";
 import { createServerRestFetch } from "../../../../../server/http/server-fetch";
 import { STAFF_CSRF_HEADER } from "../../../../../config/auth";
 import { authFailure } from "../../../../../server/auth/errors";
 import { resolveCorrelationId } from "../../../../../server/http/correlation";
 import { httpStatusFor } from "../../../../../server/http/status";
+
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const store = tryComposeStore();
+  const assignments = tryComposeAssignments();
+  if (!store || !assignments) {
+    return unavailable(request);
+  }
+  const result = await handleReadStaffSession({
+    correlationIdHeader: request.headers.get("x-correlation-id") ?? undefined,
+    origin: request.headers.get("origin"),
+    referer: request.headers.get("referer"),
+    cookieHeader: request.headers.get("cookie") ?? undefined,
+    now: new Date(),
+    store,
+    assignments,
+    allowedOrigins: staffAllowedOrigins(),
+  });
+  return withCookies(result);
+}
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const store = tryComposeStore();
@@ -73,6 +94,14 @@ function tryComposeVerifier() {
         publishableKey: authEnv.publishableKey,
       }),
     );
+  } catch {
+    return undefined;
+  }
+}
+
+function tryComposeAssignments() {
+  try {
+    return composeStaffAssignmentDirectory(process.env, createServerRestFetch());
   } catch {
     return undefined;
   }
