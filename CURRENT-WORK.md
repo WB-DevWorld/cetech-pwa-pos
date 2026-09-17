@@ -1,90 +1,95 @@
 # Current work ledger
 
-Updated 2026-09-16. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
+Updated 2026-09-17. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls the current STG-01 recovery assignment on the integration branch and is intended to replace the stale pre-merge R8 ledger when reviewed/imported.
 
 ## Current authority
 
-- `main`: `1feb78db36f33e0254c0170396f30112d71577ea` — squash-merged `[R7] Verified electronic payment and reconciliation (#58)`. Protected. Post-merge CI run `35136321143` SUCCESS.
-- CD-01 chain remains in history: `#65` `a9db7ad…`, `#66` `97f6436…`, `#67` `6548906…`, `#68` `b85c5da…`. R6 remains `bd79c2901ce33c3177141d4244cc196be0a719d2`.
-- ADR-012, ADR-014 and accepted ADR-015 are active; ownership-preserving milestone execution remains required.
-- Issue #4 remains **OPEN**. `pricingParityVerified=false`. Production promotion is not authorized.
-- Live Paystack / live electronic payment is not authorized. Live refund/restock is not authorized. VitePOS remains active.
-- R9 is **not** imported. CORE-07, FE-07, Store Health, new PWA lifecycle, and operational-close/Z-report work stay downstream.
+- accepted `main`: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` — squash-merged `[R8] Safe returns and payment/register states (#69)`.
+- latest successful shared staging for that exact SHA: `https://cetech-pos-staging-q5kb2f8t7-wbdevworlds-projects.vercel.app/`.
+- Staging CD run `35216966693`: SUCCESS for exact main SHA; deployment pipeline/root protected smoke is working.
+- Browser staging evidence on 2026-09-17 shows application-runtime acceptance is **NOT satisfied**: placeholder routes remain, Sell uses synthetic R4 catalog data, mounted UI hard-codes staff/shift authority, and protected quote/checkout mutations fail CSRF because no real staff session is established.
+- CORE-06 / #25 and R6 / #54 are reopened because their own acceptance required real isolated-staging runtime evidence; mock/root-smoke evidence cannot satisfy them.
+- STG-01 / #70 is the active P0 recovery gate.
+- Issue #4 remains OPEN; `pricingParityVerified=false`. Production promotion, live Paystack, real refund/restock and VitePOS deactivation are not authorized.
+- R9 PR #63 remains draft / must not merge while STG-01 is open.
 
 ```text
 human: @wbdevworld
-workstream: WS3
-mode: INTEGRATE / REMEDIATE
-task: R8-02 — Emmanuel exact-head WS1/WS3 runtime remediation
+workstream: WS3 integration authority + task-specific STG-05 bridge implementer
+mode: REMEDIATE / INTEGRATE
+task: STG-01 — recover production-usable staging runtime
+integration branch: batch/stg-01-staging-runtime-acceptance
 ```
 
-Ben `APPROVED` exact head `79dab6096466e00fd8289300038f07619868f539`. Emmanuel `CHANGES_REQUESTED` the same head. This assignment remediates Emmanuel's two runtime blockers (fabricated receipt `orderLineId`; invented shift-variance `approvalId`). Do not dismiss either review. Do not merge PR #69.
+## Active STG-01 assignments
 
-## R6 closure (historical)
+### WS3 / @wbdevworld
 
-R6 PR #55 was squash-merged to `main` as `bd79c2901ce33c3177141d4244cc196be0a719d2`. Post-merge CI run `34966689340`: `control-plane` SUCCESS; `control-plane-windows` SUCCESS. Woo order `49439` is historical R6 training evidence. No second training commercial sale is authorized.
+1. **STG-02 / #71 — staff session, CSRF and authoritative register state**
+   - branch: `ws3/stg-02-session-runtime-composition`
+   - remove hard-coded `Staff member` / `shiftOpen=true` authority;
+   - establish real transitional staff session through the existing identity abstraction and `/api/pos/v1/session`;
+   - preserve exact-origin CSRF and server authorization;
+   - drive cashier/register/shift UI from authoritative server state.
 
-## R7 — merged to protected main
+2. **STG-04 / #73 — training Woo catalog projection**
+   - branch: `ws3/stg-04-training-catalog-projection`
+   - staging must stop treating `CASHIER_SEED_CATALOG` as operational truth;
+   - local/test/demo may retain synthetic fixtures;
+   - staging consumes a provider-derived, rebuildable IndexedDB projection;
+   - Woo remains commerce truth; quote pricing remains bridge/Woo/B2BKing/WoodMart owned.
 
-PAY-01 / #26 and integration issue #57 closed by squash merge of PR #58 as `1feb78db36f33e0254c0170396f30112d71577ea`.
+3. **STG-06 / #75 — functional staging acceptance gate**
+   - branch: `ws3/stg-06-functional-staging-gate`
+   - root HTTP smoke remains necessary but is not application acceptance;
+   - acceptance must prove real session/CSRF, authoritative register state, real training projection, quote path and authorized synthetic cash-sale trace before #25/#54/#70 can close.
 
-Historical provisional R7 head used only as the R8 delta base (not current authority): `9ab7e5b7cf2b5d4f253f9d41468726c31cbfc091`.
+4. **STG-07 / #76 — CD summary audit fix**
+   - branch: `ws3/stg-07-cd-summary-audit-fix`
+   - fix Bash backtick command substitution in deployment summary without changing deployment semantics.
 
-Preserved R7 evidence (no secrets):
+### WS2 boundary — task-specific implementation reassignment to @wbdevworld
 
-- `docs/integration/evidence/R7-PAY-01-SANDBOX.md` — Paystack TEST sandbox PASS on `https://training.cetechbpa.com`; Woo **49449**.
-- `docs/integration/evidence/R7-PAY-01-CONCURRENCY.md` — monotonic payment/sale transitions.
-- `docs/integration/evidence/R7-PAY-01-MILESTONE-FRESHNESS.md`.
+**STG-05 / #74 — training Woo bridge producer/runtime**
 
-R7 fail-closed rules remain in force on `main` and must not regress on the R8 candidate: browser callback is not payment truth; server verification binds reference / POS transaction / order / amount / currency; Paystack execution only when `PAYMENT_PROVIDER=paystack`, `PAYSTACK_MODE=test`, `sk_test_` present; refuse `sk_live_` and `NEXT_PUBLIC_PAYSTACK_SECRET`; verified payments and `finalizing`/`completed` sales are monotonic.
+- branch: `ws2/stg-05-training-bridge-runtime`
+- original WS2 owner remains Emmanuel / `@Emmanuel-coder-prog`, but the senior authority explicitly reassigns implementation of this task to `@wbdevworld` for this remediation cycle because Emmanuel currently lacks SSH/repository implementation access.
+- This does **not** transfer general WS2 ownership to WS3.
+- Changes must remain inside STG-05's WS2-owned paths: `wordpress/cetech-pos-bridge/**`, `tests/bridge/**`, `tests/fixtures/commerce/**`, WS2 evidence/handoff.
+- Do not mix WS2 bridge edits into STG-02/STG-04 branches.
+- Emmanuel may still independently review the resulting GitHub PR; SSH is not required for review.
 
-## Active assignment — R8-02 runtime remediation
+### WS1 / @Ben-001-sys
 
-- Milestone PR: **#69** — `[R8] Safe returns and payment/register states`. Do not self-approve. Do not merge from this ledger.
-- Recovery/integration branch: `batch/r8-safe-returns-reconciliation`.
-- Starting exact head: `79dab6096466e00fd8289300038f07619868f539` (Ben APPROVED; Emmanuel CHANGES_REQUESTED).
-- First R8-02 replacement: `0fe28d353002ef8836eb2739ed9174517da7846b`. This close-out tightens lookup authorization (cross-org `NOT_FOUND`, unauthorized location, non-completed/unknown sale) without redesigning R8.
-- Prior R8-01 remediation (economicsVersion, persisted allocations, BFF composition, non-negative allocation migration) remains in history and must not be rewritten.
-- This assignment remediates Emmanuel's two WS1/WS3 runtime blockers: authorized historic return-sale lookup using durable `orderLines[].orderLineId`, and fail-closed shift variance that ignores invented `approvalId`.
-- Remediation evidence: `docs/integration/evidence/R8-REVIEW-REMEDIATION.md`.
+1. **STG-03 / #72**
+   - branch: `ws1/stg-03-approved-workspaces`
+   - implement approved production-intent Orders, Customers and Settings feature/UI surfaces;
+   - do not edit provider/server/core/local logic.
 
-Accepted contract:
+2. **FE-07 / #12** remains canonical for Store Health, Attention/recovery, update/offline/degraded/passive-tab/migration UI.
 
-- ADR-015 / return-refund contract exact head `58d385300bfba784435448029e88f07742048cde`.
-- Required cross-owner contract reviews: Ben / WS1 APPROVED; Emmanuel / WS2 APPROVED.
+Ben publishes exact tested source SHAs + mount instructions. WS3 mounts accepted WS1 components during STG-01 integration; integration ownership does not transfer WS1 implementation ownership.
 
-Accepted owner implementations (historical provenance):
+## Integration order
 
-- WS3 RT-01 runtime source `4650a0fa18c909743e9fbab4be0b6067bd1eff18`.
-- BR-08 / #60 WS2 source `dcf9098a331f878647e067fc78b3c05778f8f668` — CLOSED / COMPLETED.
-- FE-06 / #11 WS1 source `0ddde7c727337c4005e9878071817bbf826d41a2`; remediation includes `d3ddf0a7592845c710fe768b3645b9a9109693cb` — CLOSED / COMPLETED.
+1. STG-02 real session/CSRF/register composition.
+2. STG-05 bridge producer verification/minimal repair (may run in parallel with STG-02; keep separate branch/path ownership).
+3. STG-04 training catalog projection consumes the verified STG-05 producer boundary.
+4. Ben delivers STG-03 + FE-07 source SHAs.
+5. Integration editor imports only declared tested owner/reassigned-owner commits into `batch/stg-01-staging-runtime-acceptance`, preserving source SHA → imported SHA → tested combined SHA provenance.
+6. Mount accepted WS1 features in WS3-owned app composition; no accepted route may fall through to the generic R4 placeholder.
+7. Apply STG-07 audit fix.
+8. Implement/run STG-06 functional staging acceptance against the exact immutable Vercel deployment produced from the candidate.
+9. Capture redacted exact-SHA staging evidence; independent human review; final ADR-012 freshness procedure.
+10. Only after all STG-01 gates pass may #25, #54 and #70 close and R9 resume.
 
-Combined downstream receiver (pre-final-R7 rebase/reconcile):
+## Safety boundaries
 
-- branch: `batch/rt01-safe-returns-ws3-integrated`
-- BR-08 import: `79d9270a418ec958ffd716b7a20a8d1c213b5e8d`
-- FE-06 import: `bc521c598b834930d2fd6b56c8225b2b08a3ec2a`
-- exact integrated receiver: `d54a916946a6dcf0dfbc636d93528ac58a77ca1b`
-- accepted downstream head: `5fa875eb43c0b2f62b59b80a3dfa3812c2d1e190`
-- PR #62 combined CI `35017127991`: Linux + Windows SUCCESS.
-- post-integration receiver CI `35017460256`: Linux + Windows SUCCESS.
-
-Reconciliation evidence: `docs/integration/evidence/R8-FINAL-R7-RECONCILIATION.md`.
-
-Recommended independent review coverage (do not self-approve): Ben reviews WS2/WS3 integration portions, not his own FE-06 as independent coverage; Emmanuel reviews WS1/WS3 integration portions, not his own BR-08 as independent coverage.
-
-## R8 safety boundaries retained
-
-- No real Woo refund or real stock disposition is authorized by this milestone.
-- No live Paystack/provider refund or live electronic payment is authorized.
-- No production mutation, promotion, or VitePOS deactivation is authorized.
-- Historic sale economics remain authoritative for returns/refunds.
-- Tender refund, Woo commercial refund accounting and physical stock disposition remain independent effects with independent durable identities/idempotency and resolve paths.
-- Damaged, quarantine and not-physically-returned goods must not auto-restock sellable stock.
-- Unknown provider refund results use the existing refund/effect identity (`resolve`), not a second money effect.
-- `opened_resellable` / `defective` remain fail-closed without an approved tenant restock policy.
-- Concrete Paystack refund create remains fail-closed where the provider cannot satisfy the accepted durable idempotency/recovery contract.
-
-## Next milestone boundary
-
-R9 (`batch/r9-pwa-recovery-operational-close`) remains downstream and is not part of this reconciliation. Do not merge PR #69 from this ledger. Controlled training refund/restock rehearsal remains a remaining gate if independently authorized later; it is not executed here.
+- No production promotion.
+- No live electronic payment execution.
+- No real customer refund/restock.
+- No VitePOS deactivation.
+- Training/staging effects must remain inside CP-04 authorization.
+- No secrets in prompts, commits, screenshots, logs or evidence.
+- No wildcard origin/CSRF bypass.
+- Do not clear IndexedDB/drafts/journal as a routine recovery or catalog-sync technique.
