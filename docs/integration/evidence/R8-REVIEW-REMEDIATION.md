@@ -175,3 +175,48 @@ Recorded after execution on this workstation. Interrupted or unavailable runtime
 Windows `npx supabase@2.117.0 db reset` remains BLOCKED by the known Node 24/`npx.cmd` quoting constraint. Established Docker apply + `psql` pgTAP path was used instead. Linux CI `control-plane` remains the canonical `npx` reset/pgTAP runner.
 
 Exact-head GitHub CI and ADR-012 Pass 1 + Pass 2 for this corrective SHA are recorded after push in the Cursor report.
+
+## R8-02 Emmanuel exact-head runtime remediation
+
+Starting exact head: `79dab6096466e00fd8289300038f07619868f539` (Ben APPROVED; Emmanuel CHANGES_REQUESTED; PR CI `35199702408` SUCCESS). This section does not erase Ben's three blockers, the `DEFAULT 1` / `CHECK > 0` allocation defect, Ben's APPROVED review, or Emmanuel's two new blockers.
+
+### Blocker 1 — fabricated `orderLineId`
+
+Production `createReceiptBackedSaleLookup()` built `orderLineId` as `` `${saleId}:receipt:${index}` ``. `previewReturn()` requires the durable `PosSaleRecord.orderLines[].orderLineId`.
+
+**Resolution:** read-only BFF projection `GET /api/pos/v1/returns/history/{saleKey}` (`handleGetHistoricReturnSale`). Staff session + organization/location/register scope. Identity is only `sale.orderLines[].orderLineId`. Display names may come from aligned `sale.lines[]` or fall back to `Sale line <orderLineId>`. DTO is local to the BFF (`HistoricReturnSaleProjection`): `{ saleId, orderReference, currency, lines: [{ orderLineId, name, originalSoldQuantity }] }`. No refund totals. No provider secrets. Browser adapter `createBrowserHistoricReturnSaleLookup()` replaces the receipt-backed lookup; the old function is not reachable. ReturnPort preview/execute/resolve unchanged.
+
+### Blocker 2 — invented shift-variance `approvalId`
+
+`closeShift()` treated any truthy `request.approvalId` as authority to close non-zero variance. There is no durable shift-variance approval subsystem.
+
+**Resolution:** `nextStatus = varianceMinor === 0 ? "closed" : "requires_attention"`. Optional `approvalId` remains schema-valid and reserved. Non-zero variance records counted/expected/variance, does not set `closedAt`, and does not present closed/Z completion. Production Register composition adds an explicit recorded-variance / manager-action notice; FE-06 still does not show `requires_attention` as closed.
+
+### Follow-up local verification
+
+Recorded after execution on this workstation. Interrupted or unavailable runtimes are BLOCKED_VERIFICATION, never invented PASS.
+
+| Command | Result |
+| --- | --- |
+| `python scripts/verify_control_plane.py` | PASS |
+| `python -m unittest discover -s tests/tooling -v` | 48 OK |
+| `pnpm install --frozen-lockfile` | PASS |
+| `pnpm --dir apps/pos-web lint` | PASS |
+| `pnpm --dir apps/pos-web typecheck` | PASS |
+| `pnpm --dir apps/pos-web test` | 71 files / 662 tests PASS |
+| historic lookup `orderLineId` | durable `orderLines[]` ID; not `:receipt:`; real preview succeeds |
+| out-of-scope lookup | not exposed (`FORBIDDEN`/`NOT_FOUND`) |
+| zero variance 10000/10000 | `closed` + `closedAt` |
+| non-zero variance 9900, no approval | `requires_attention`, no `closedAt` |
+| invented + arbitrary approval UUIDs | still `requires_attention`, no `closedAt` |
+| idempotent close replay | same durable `requires_attention`; changed body same key `IDEMPOTENCY_CONFLICT` |
+| `pnpm --dir apps/pos-web build` | PASS; `GET /api/pos/v1/returns/history/[saleKey]` present |
+| `pnpm --dir apps/pos-web test:e2e` | 9 passed (Sell cash + `/returns` + `/register`; first retry raced a concurrent Next build and is not PASS) |
+| Docker pgTAP | `pos_returns.sql` 43/43; `payment_monotonic.sql` 6/6; `electronic_payment.sql` 16/16; rls 81; prepare 8; durable 17; cash uniqueness 7; all ROLLBACK |
+| `C:\tools\php85\php.exe tests/bridge/run.php` | **1555 passed, 0 failed** |
+| `C:\tools\php85\php.exe tests/bridge/parity.php` | 138 passed, 0 failed, 19 skipped |
+| WSL `make -C wordpress/cetech-pos-bridge check` | PASS |
+| `.next/static` secret scan | no matches |
+
+No real Paystack, refund, Woo restock, production deploy, or VitePOS cutover. PR #69 is not merged. Reviews are not dismissed. R9 is not started.
+

@@ -68,7 +68,9 @@ export async function closeShift(input: {
 
     const expected = (await store.expectedCash(shift.id)) ?? shift.expectedCash ?? shift.openingFloat;
     const varianceMinor = request.countedCash.minor - expected.minor;
-    const nextStatus = varianceMinor === 0 || request.approvalId ? "closed" : "requires_attention";
+    // R8: optional approvalId is schema-reserved and non-authoritative. There is
+    // no durable shift-variance approval subsystem, so an invented UUID cannot close.
+    const nextStatus = varianceMinor === 0 ? "closed" : "requires_attention";
     const closed = await store.closeShift({
       shiftId: shift.id,
       countedCash: request.countedCash,

@@ -15,10 +15,10 @@ Updated 2026-09-16. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical sche
 human: @wbdevworld
 workstream: WS3
 mode: INTEGRATE / REMEDIATE
-task: R8-01 — Ben exact-head review remediation
+task: R8-02 — Emmanuel exact-head WS1/WS3 runtime remediation
 ```
 
-Ben reviewed exact head `b6403c5d0df2d6d82d42eba41100b34aa3242cef` (CI `35143511686` SUCCESS) and submitted `CHANGES_REQUESTED`. Those three blockers were fixed at `7fbc17ed4ad9754cc3fa39bf31bbe63a74868ff2`. Independent verification then found that `20260916220000_pos_return_line_allocations.sql` used `DEFAULT 1` and `CHECK (... > 0)` for `allocated_historic_amount_minor`. That committed migration is preserved. A follow-up append-only migration restores non-negative Money and truthful historic allocations. Do not dismiss the review. Do not merge PR #69.
+Ben `APPROVED` exact head `79dab6096466e00fd8289300038f07619868f539`. Emmanuel `CHANGES_REQUESTED` the same head. This assignment remediates Emmanuel's two runtime blockers (fabricated receipt `orderLineId`; invented shift-variance `approvalId`). Do not dismiss either review. Do not merge PR #69.
 
 ## R6 closure (historical)
 
@@ -38,13 +38,14 @@ Preserved R7 evidence (no secrets):
 
 R7 fail-closed rules remain in force on `main` and must not regress on the R8 candidate: browser callback is not payment truth; server verification binds reference / POS transaction / order / amount / currency; Paystack execution only when `PAYMENT_PROVIDER=paystack`, `PAYSTACK_MODE=test`, `sk_test_` present; refuse `sk_live_` and `NEXT_PUBLIC_PAYSTACK_SECRET`; verified payments and `finalizing`/`completed` sales are monotonic.
 
-## Active assignment — R8-01 review remediation
+## Active assignment — R8-02 runtime remediation
 
-- Milestone PR: **#69 draft** — `[R8] Safe returns and payment/register states`. Do not self-approve. Do not merge from this ledger.
+- Milestone PR: **#69** — `[R8] Safe returns and payment/register states`. Do not self-approve. Do not merge from this ledger.
 - Recovery/integration branch: `batch/r8-safe-returns-reconciliation`.
-- Prior exact head Ben reviewed: `b6403c5d0df2d6d82d42eba41100b34aa3242cef` (`CHANGES_REQUESTED`).
+- Starting exact head: `79dab6096466e00fd8289300038f07619868f539` (Ben APPROVED; Emmanuel CHANGES_REQUESTED).
+- Prior R8-01 remediation (economicsVersion, persisted allocations, BFF composition, non-negative allocation migration) remains in history and must not be rewritten.
+- This assignment remediates Emmanuel's two WS1/WS3 runtime blockers: authorized historic return-sale lookup using durable `orderLines[].orderLineId`, and fail-closed shift variance that ignores invented `approvalId`.
 - Remediation evidence: `docs/integration/evidence/R8-REVIEW-REMEDIATION.md`.
-- This assignment fixes Ben's three verified blockers (economicsVersion token, persisted partial allocations, Returns/Register BFF+app composition) plus true WS3→WS2 cross-layer regressions. Independent verification then required one narrow database correction: replace the committed strict-positive/`DEFAULT 1` allocation rule without rewriting `20260916220000`. It is not a redesign and does not start R9/R10.
 
 Accepted contract:
 

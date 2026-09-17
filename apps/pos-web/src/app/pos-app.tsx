@@ -11,7 +11,7 @@ import {
   createBrowserReturnPort,
 } from "./checkout-client";
 import { RegisterRuntimeScreen } from "./register-runtime";
-import { ReturnsRuntimeScreen, createReceiptBackedSaleLookup } from "./returns-runtime";
+import { ReturnsRuntimeScreen, createBrowserHistoricReturnSaleLookup } from "./returns-runtime";
 import { AppShell, POS_ROUTE_HREFS, type PosRoute } from "../ui/shell";
 import {
   CASHIER_SEED_LOCATION_ID,
@@ -92,7 +92,7 @@ export function PosRuntime({
 
   const returns = useMemo(() => createBrowserReturnPort({ fetchImpl }), [fetchImpl]);
   const register = useMemo(() => createBrowserRegisterPort({ fetchImpl }), [fetchImpl]);
-  const lookup = useMemo(() => createReceiptBackedSaleLookup({ fetchImpl }), [fetchImpl]);
+  const lookup = useMemo(() => createBrowserHistoricReturnSaleLookup({ fetchImpl }), [fetchImpl]);
 
   return (
     <AppShell

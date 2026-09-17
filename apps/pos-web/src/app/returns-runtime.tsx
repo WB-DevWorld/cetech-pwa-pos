@@ -43,11 +43,13 @@ export function createProductionReturnRuntime(options?: { readonly fetchImpl?: t
   const returns = createBrowserReturnPort({ fetchImpl: options?.fetchImpl });
   return {
     returns,
-    lookup: createReceiptBackedSaleLookup({ fetchImpl: options?.fetchImpl }),
+    lookup: createBrowserHistoricReturnSaleLookup({ fetchImpl: options?.fetchImpl }),
   };
 }
 
-export function createReceiptBackedSaleLookup(options: { readonly fetchImpl?: typeof fetch } = {}): HistoricSaleLookup {
+export function createBrowserHistoricReturnSaleLookup(
+  options: { readonly fetchImpl?: typeof fetch } = {},
+): HistoricSaleLookup {
   const fetchImpl = options.fetchImpl ?? fetch;
   return {
     async search(query: string) {
@@ -55,47 +57,50 @@ export function createReceiptBackedSaleLookup(options: { readonly fetchImpl?: ty
       if (!trimmed) {
         return [];
       }
-      const correlation = crypto.randomUUID();
-      const headers = {
-        "x-correlation-id": correlation,
-        "x-csrf-token": readCookie("cetech_pos_csrf") ?? "",
-      };
-      const saleResponse = await fetchImpl(`/api/pos/v1/sales/${encodeURIComponent(trimmed)}`, {
+      const response = await fetchImpl(`/api/pos/v1/returns/history/${encodeURIComponent(trimmed)}`, {
         method: "GET",
         credentials: "include",
-        headers,
+        headers: {
+          "x-correlation-id": crypto.randomUUID(),
+          "x-csrf-token": readCookie("cetech_pos_csrf") ?? "",
+        },
       });
-      const saleJson = (await saleResponse.json()) as {
-        readonly ok?: boolean;
-        readonly data?: { readonly saleId?: string; readonly orderReference?: string; readonly transactionId?: string };
-      };
-      if (!saleJson.ok || !saleJson.data?.saleId || !saleJson.data.transactionId) {
-        return [];
-      }
-      const receiptResponse = await fetchImpl(`/api/pos/v1/receipts/${encodeURIComponent(saleJson.data.transactionId)}`, {
-        method: "GET",
-        credentials: "include",
-        headers: { "x-correlation-id": crypto.randomUUID(), "x-csrf-token": readCookie("cetech_pos_csrf") ?? "" },
-      });
-      const receiptJson = (await receiptResponse.json()) as {
+      const json = (await response.json()) as {
         readonly ok?: boolean;
         readonly data?: {
-          readonly total?: { readonly currency?: string };
-          readonly lines?: ReadonlyArray<{ readonly name: string; readonly quantity: string }>;
+          readonly saleId?: string;
+          readonly orderReference?: string;
+          readonly currency?: string;
+          readonly lines?: ReadonlyArray<{
+            readonly orderLineId?: string;
+            readonly name?: string;
+            readonly originalSoldQuantity?: string;
+          }>;
         };
       };
-      const lines = receiptJson.ok
-        ? (receiptJson.data?.lines ?? []).map((line, index) => ({
-            orderLineId: `${saleJson.data!.saleId}:receipt:${index}`,
-            name: line.name,
-            originalSoldQuantity: line.quantity,
-          }))
-        : [];
+      if (!json.ok || !json.data?.saleId || !json.data.lines || json.data.lines.length === 0) {
+        return [];
+      }
+      const lines = json.data.lines.flatMap((line) => {
+        if (!line.orderLineId || line.orderLineId.includes(":receipt:") || !line.originalSoldQuantity) {
+          return [];
+        }
+        return [
+          {
+            orderLineId: line.orderLineId,
+            name: line.name || `Sale line ${line.orderLineId}`,
+            originalSoldQuantity: line.originalSoldQuantity,
+          },
+        ];
+      });
+      if (lines.length === 0) {
+        return [];
+      }
       return [
         {
-          saleId: saleJson.data.saleId,
-          orderReference: saleJson.data.orderReference ?? saleJson.data.saleId,
-          currency: receiptJson.data?.total?.currency ?? "GHS",
+          saleId: json.data.saleId,
+          orderReference: json.data.orderReference ?? json.data.saleId,
+          currency: json.data.currency ?? "GHS",
           lines,
         },
       ];

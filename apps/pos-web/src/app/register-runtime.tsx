@@ -63,27 +63,35 @@ export function RegisterRuntimeScreen({
     return <p className="muted">Loading register…</p>;
   }
   return (
-    <RegisterScreen
-      openForm={{
-        registers: [{ id: registerId, name: "Front Counter 1", locationLabel: "Main store" }],
-        selectedRegisterId: registerId,
-        online: typeof navigator === "undefined" ? true : navigator.onLine,
-        onSubmit: (input) => {
-          void flow.controller?.open(input.openingFloatMinor);
-        },
-      }}
-      session={flow.session}
-      inFlight={flow.inFlight}
-      onOpen={(openingFloatMinor) => {
-        void flow.controller?.open(openingFloatMinor);
-      }}
-      onClose={(countedCashText) => {
-        void flow.controller?.close(countedCashText);
-      }}
-      onShowXReport={() => {
-        void flow.controller?.report("X");
-      }}
-    />
+    <>
+      <RegisterScreen
+        openForm={{
+          registers: [{ id: registerId, name: "Front Counter 1", locationLabel: "Main store" }],
+          selectedRegisterId: registerId,
+          online: typeof navigator === "undefined" ? true : navigator.onLine,
+          onSubmit: (input) => {
+            void flow.controller?.open(input.openingFloatMinor);
+          },
+        }}
+        session={flow.session}
+        inFlight={flow.inFlight}
+        onOpen={(openingFloatMinor) => {
+          void flow.controller?.open(openingFloatMinor);
+        }}
+        onClose={(countedCashText) => {
+          void flow.controller?.close(countedCashText);
+        }}
+        onShowXReport={() => {
+          void flow.controller?.report("X");
+        }}
+      />
+      {flow.session.status === "requires_attention" ? (
+        <p className="muted" data-shift-variance-recorded="" role="status">
+          Counted cash has been recorded. Variance requires attention. Manager/reconciliation
+          action is still required. Do not open a replacement close to bypass this state.
+        </p>
+      ) : null}
+    </>
   );
 }
 
