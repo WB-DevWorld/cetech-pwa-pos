@@ -22,4 +22,4 @@ Canonical machine-readable mapping: error-policy.json. Map domain failures consi
 | RATE_LIMITED | 429 | true | retry_same_key |
 | UNSUPPORTED_VERSION | 426 | false | none |
 
-Unsupported-version UX must preserve local critical data and offer safe update/recovery. Error details are an allowlist of field/operationId/currentQuoteId only. Pending payment errors block new tender, while a successful resolve can return pending state with ok=true.
+Unsupported-version UX must preserve local critical data and offer safe update/recovery. Error details are an allowlist of field/operationId/currentQuoteId only. Pending payment errors block new tender, while a successful resolve can return pending state with ok=true. Uncertain refund, commercial-refund or stock-disposition outcomes use nextAction=resolve (or contact_manager for REQUIRES_ATTENTION / IDEMPOTENCY_CONFLICT). Uncertain `payment.refund` inspects `PaymentPort.resolveRefund` for the same `refundId`; it is not a new refund and does not rotate an effectful Idempotency-Key. PAYMENT_PENDING applies when the original tender is not yet safely refundable. Do not retry those effects under a new key.

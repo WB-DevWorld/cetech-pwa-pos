@@ -5,6 +5,7 @@ import { createServerRestFetch } from "../http/server-fetch";
 import { resolveCorrelationId } from "../http/correlation";
 import { httpStatusFor } from "../http/status";
 import { composeElectronicPaymentProvider } from "../payments/compose-payment-provider";
+import { composeReturnRuntime } from "../returns/compose-return-runtime";
 import { composeCheckoutRuntime } from "./compose-checkout-runtime";
 import { composeStaffAssignmentDirectory } from "./compose-assignment-directory";
 
@@ -18,6 +19,7 @@ export function composePosCommandHandlers(request: NextRequest) {
       runtime: composeCheckoutRuntime(process.env, fetchImpl),
       assignments: composeStaffAssignmentDirectory(process.env, fetchImpl),
       payments,
+      returns: composeReturnRuntime(process.env, fetchImpl),
     };
   } catch {
     const correlation = resolveCorrelationId(request.headers.get("x-correlation-id") ?? undefined);

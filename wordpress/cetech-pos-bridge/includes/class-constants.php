@@ -12,9 +12,15 @@ final class Cetech_Pos_Bridge_Constants {
 	const FINALIZE_ROUTE      = '/sales/finalize';
 	const CANCEL_ROUTE        = '/sales/cancel';
 	const RESOLVE_ROUTE       = '/sales/(?P<transactionId>[0-9a-fA-F-]+)';
+	const COMMERCIAL_REFUND_ROUTE         = '/returns/commercial-refund';
+	const COMMERCIAL_REFUND_RESOLVE_ROUTE = '/returns/commercial-refund/(?P<commercialRefundId>[0-9a-fA-F-]+)';
+	const STOCK_DISPOSITION_ROUTE         = '/returns/stock-disposition';
+	const STOCK_DISPOSITION_RESOLVE_ROUTE = '/returns/stock-disposition/(?P<stockDispositionId>[0-9a-fA-F-]+)';
 	const OPERATION_PREPARE   = 'prepare';
 	const OPERATION_FINALIZE  = 'finalize';
 	const OPERATION_CANCEL    = 'cancel';
+	const OPERATION_COMMERCIAL_REFUND = 'commercial_refund';
+	const OPERATION_STOCK_DISPOSITION = 'stock_disposition';
 	const CAPABILITY          = 'cetech_pos_bridge_access';
 	const ORDER_META_TX       = '_cetech_pos_transaction_id';
 	const ORDER_META_HASH     = '_cetech_pos_request_hash';
@@ -28,7 +34,10 @@ final class Cetech_Pos_Bridge_Constants {
 	const ORDER_META_VERIFY_SRC = '_cetech_pos_verification_source';
 	const ORDER_META_VERIFIED_AT = '_cetech_pos_verified_at';
 	const ORDER_ITEM_META_LINE = '_cetech_pos_quote_line_id';
-	const DB_VERSION          = '4';
+	const ORDER_META_COMMERCIAL_REFUND = '_cetech_pos_commercial_refund_id';
+	const ORDER_META_COMMERCIAL_REFUND_TX = '_cetech_pos_commercial_refund_tx';
+	const ORDER_META_COMMERCIAL_REFUND_HASH = '_cetech_pos_commercial_refund_hash';
+	const DB_VERSION          = '5';
 	const DB_VERSION_OPTION   = 'cetech_pos_bridge_db_version';
 	const CONTRACT            = '1.0.0';
 	const UUID_PATTERN        = '/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/';

@@ -30,6 +30,17 @@ export function createFakePosgrest(options?: {
     pos_provider_payment_events: [],
     pos_staff_location_assignments: [],
     pos_staff_register_assignments: [],
+    pos_returns: [],
+    pos_return_historic_lines: [],
+    pos_return_historic_tenders: [],
+    pos_return_requested_lines: [],
+    pos_return_approvals: [],
+    pos_sale_line_return_balances: [],
+    pos_sale_tender_refund_balances: [],
+    pos_tender_refunds: [],
+    pos_commercial_refunds: [],
+    pos_stock_dispositions: [],
+    pos_return_audit: [],
   };
 
   const fetchImpl: PosRestFetch = async (input, init) => {
@@ -259,6 +270,18 @@ function insertCash(
         kind: "error",
         code: "23505",
         message: 'duplicate key value violates unique constraint "pos_cash_one_opening_float_per_shift"',
+      };
+    }
+  }
+  if (body.kind === "cash_refund" && body.refund_id) {
+    const existing = tables.pos_cash_movements.find(
+      (row) => row.kind === "cash_refund" && row.refund_id === body.refund_id,
+    );
+    if (existing) {
+      return {
+        kind: "error",
+        code: "23505",
+        message: 'duplicate key value violates unique constraint "pos_cash_one_refund_per_refund_id"',
       };
     }
   }

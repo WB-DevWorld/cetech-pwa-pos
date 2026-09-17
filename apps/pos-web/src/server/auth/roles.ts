@@ -22,7 +22,12 @@ export const STAFF_PERMISSIONS = [
   "payment.cash",
   "payment.initialize",
   "payment.resolve",
+  "payment.refund",
   "refund.resolve",
+  "return.preview",
+  "return.execute",
+  "return.resolve",
+  "return.approve",
 ] as const;
 export type StaffPermission = (typeof STAFF_PERMISSIONS)[number];
 
@@ -37,6 +42,10 @@ const CASHIER_PERMISSIONS: ReadonlySet<StaffPermission> = new Set([
   "payment.cash",
   "payment.initialize",
   "payment.resolve",
+  "payment.refund",
+  "return.preview",
+  "return.execute",
+  "return.resolve",
 ]);
 
 /** Manager includes cashier operations plus close/correction/refund approval. */
@@ -45,6 +54,7 @@ const MANAGER_PERMISSIONS: ReadonlySet<StaffPermission> = new Set([
   "shift.close",
   "cash.correction",
   "refund.resolve",
+  "return.approve",
 ]);
 
 export function isStaffAssignmentRole(value: unknown): value is StaffAssignmentRole {

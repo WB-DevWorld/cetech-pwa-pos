@@ -7,7 +7,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Runtime enforcement of the frozen v1 JSON Schema at the Woo bridge boundary
  * for QuoteRequest, Quote, PrepareSaleRequest, PreparedSale, SaleResolution,
- * BridgeFinalizeRequest and CancelSaleRequest.
+ * BridgeFinalizeRequest, CancelSaleRequest, BridgeCommercialRefundRequest,
+ * BridgeCommercialRefundState, BridgeStockDispositionRequest and
+ * BridgeStockDispositionState.
  *
  * Contract source: `docs/contracts/pos-domain.schema.json` (WS3-owned, unchanged).
  * The plugin ships `schema/quote-contract.v1.json`, a mechanical projection of that

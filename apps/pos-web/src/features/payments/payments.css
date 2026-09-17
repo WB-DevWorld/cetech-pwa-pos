@@ -1,0 +1,14 @@
+.electronic-payment,
+.refund-reconciliation {
+  display: grid;
+  gap: 12px;
+}
+
+.payment-do-not-charge {
+  font-weight: 600;
+}
+
+.electronic-payment .banner.warning,
+.refund-reconciliation .banner.warning {
+  border-color: var(--color-warning);
+}

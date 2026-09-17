@@ -21,6 +21,7 @@ REQUIRED_INCLUDE_AREAS = (
     'tests/integration/sync/',
     'tests/integration/sales/',
     'tests/integration/payments/',
+    'tests/integration/returns/',
     'tests/contracts/',
 )
 
@@ -50,6 +51,7 @@ SHOULD_MATCH = (
     '../../tests/integration/sync/catalog-projection.test.ts',
     '../../tests/integration/sales/durable-checkout-store.test.ts',
     '../../tests/integration/payments/electronic-payment.test.ts',
+    '../../tests/integration/returns/return-runtime.test.ts',
     '../../tests/contracts/producer-consumer.test.ts',
 )
 

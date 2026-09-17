@@ -40,6 +40,29 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 	/** @var int */
 	public $create_calls = 0;
 	/** @var int */
+	public $calculate_totals_calls = 0;
+	/** @var array<int,array<string,mixed>> */
+	public $refunds = array();
+	/** @var int */
+	public $next_refund_id = 9001;
+	/** @var int */
+	public $commercial_refund_creates = 0;
+	/** @var int */
+	public $stock_increase_calls = 0;
+	/** @var int */
+	public $payment_provider_refund_calls = 0;
+	/** @var bool */
+	public $duplicate_refund_on_create = false;
+	/** @var bool */
+	public $throw_after_refund_create = false;
+	/** @var int|null throw after this many official stock increases */
+	public $throw_on_stock_increase_n = null;
+	/** @var array<string,int> last wc_create_refund flags */
+	public $last_refund_flags = array(
+		'refund_payment' => null,
+		'restock_items'  => null,
+	);
+	/** @var int */
 	public $payment_complete_calls = 0;
 	/** @var int */
 	public $stock_reduce_calls = 0;
@@ -130,6 +153,7 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 	}
 
 	public function calculate_totals() {
+		++$this->calculate_totals_calls;
 		if ( $this->throw_on_calculate ) {
 			throw new RuntimeException( 'forced calculate_totals failure' );
 		}
@@ -1459,6 +1483,180 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 				return;
 			}
 		}
+	}
+
+	public function inspect_historic_order_lines( $order_id ) {
+		$order = $this->order_array_by_id( $order_id );
+		if ( ! is_array( $order ) ) {
+			return $this->unavailable( 'Woo order could not be loaded to inspect historic sale lines.' );
+		}
+		return $this->fake_line_records( $order );
+	}
+
+	public function create_commercial_refund( $order_id, $amount_minor, $currency, $commercial_refund_id, $transaction_id, $request_hash, $reason ) {
+		unset( $reason, $currency );
+		$found = $this->find_commercial_refunds( $order_id, $commercial_refund_id );
+		if ( count( $found ) > 1 ) {
+			return $this->attention_recovery( 'Multiple native Woo refunds carry this commercialRefundId.' );
+		}
+		if ( count( $found ) === 1 ) {
+			$match = $found[0];
+			if ( ! $this->commercial_refund_matches( $match, $order_id, $amount_minor, $transaction_id, $request_hash ) ) {
+				return $this->attention_recovery( 'Native Woo refund identity contradicts the commercial refund claim.' );
+			}
+			return $match;
+		}
+		$this->armed_commercial_refund = array(
+			'commercialRefundId' => (string) $commercial_refund_id,
+			'transactionId'      => (string) $transaction_id,
+			'requestHash'        => (string) $request_hash,
+			'orderId'            => (string) $order_id,
+			'amountMinor'        => (int) $amount_minor,
+		);
+		$this->fire_seam( $this->before_refund_create );
+		++$this->commercial_refund_creates;
+		$this->last_refund_flags = array(
+			'refund_payment' => false,
+			'restock_items'  => false,
+		);
+		$refund_id = (string) $this->next_refund_id;
+		++$this->next_refund_id;
+		$row       = array(
+			'id'                   => $refund_id,
+			'parent'               => (string) $order_id,
+			'amount_minor'         => (int) $amount_minor,
+			'commercial_refund_id' => (string) $commercial_refund_id,
+			'transaction_id'       => (string) $transaction_id,
+			'request_hash'         => (string) $request_hash,
+			'refund_payment'       => false,
+			'restock_items'        => false,
+		);
+		$this->refunds[] = $row;
+		if ( $this->duplicate_refund_on_create ) {
+			$dup         = $row;
+			$dup['id']   = (string) $this->next_refund_id;
+			++$this->next_refund_id;
+			$this->refunds[] = $dup;
+		}
+		$this->record_woo_mutation( 'commercial_refunds' );
+		if ( $this->throw_after_refund_create ) {
+			$this->throw_after_refund_create = false;
+			throw new RuntimeException( 'wc_create_refund threw after native refund' );
+		}
+		$this->armed_commercial_refund = null;
+		return array(
+			'refundId'           => $refund_id,
+			'parentOrderId'      => (string) $order_id,
+			'amountMinor'        => (int) $amount_minor,
+			'commercialRefundId' => (string) $commercial_refund_id,
+			'transactionId'      => (string) $transaction_id,
+			'requestHash'        => (string) $request_hash,
+			'refundPayment'      => false,
+			'restockItems'       => false,
+		);
+	}
+
+	public function find_commercial_refunds( $order_id, $commercial_refund_id ) {
+		$out = array();
+		foreach ( $this->refunds as $row ) {
+			if ( (string) $row['commercial_refund_id'] !== (string) $commercial_refund_id ) {
+				continue;
+			}
+			if ( (string) $row['parent'] !== (string) $order_id ) {
+				continue;
+			}
+			$out[] = array(
+				'refundId'           => (string) $row['id'],
+				'parentOrderId'      => (string) $row['parent'],
+				'amountMinor'        => (int) $row['amount_minor'],
+				'commercialRefundId' => (string) $row['commercial_refund_id'],
+				'transactionId'      => (string) $row['transaction_id'],
+				'requestHash'        => (string) $row['request_hash'],
+				'refundPayment'      => false,
+				'restockItems'       => false,
+			);
+		}
+		return $out;
+	}
+
+	public function increase_sellable_stock( $owner_id, $quantity ) {
+		$qty = (int) $quantity;
+		if ( $qty <= 0 ) {
+			return $this->unavailable( 'Sellable restock quantity must be a positive integer for the supported Woo stock API.' );
+		}
+		$owner_id = (string) $owner_id;
+		if ( ! isset( $this->stock[ $owner_id ] ) ) {
+			$this->stock[ $owner_id ] = 0;
+		}
+		$this->stock[ $owner_id ] += $qty;
+		++$this->stock_increase_calls;
+		$this->record_woo_mutation( 'stock_increases' );
+		++$this->side_effects['stock'];
+		if ( $this->throw_on_stock_increase_n !== null && $this->stock_increase_calls === (int) $this->throw_on_stock_increase_n ) {
+			$this->throw_on_stock_increase_n = null;
+			throw new RuntimeException( 'stock increase threw after native mutation' );
+		}
+		return true;
+	}
+
+	public function stock_managed_owner_id( $product_id, $variation_id = null ) {
+		$candidate = ( is_string( $variation_id ) && $variation_id !== '' ) ? $variation_id : (string) $product_id;
+		if ( isset( $this->product_stock_rules[ $candidate ]['stock_managed_by'] ) ) {
+			return (string) $this->product_stock_rules[ $candidate ]['stock_managed_by'];
+		}
+		return (string) $candidate;
+	}
+
+	public function inject_line_economics( $order_id, $line_id, $field, $minor ) {
+		foreach ( $this->orders as $index => $order ) {
+			if ( (string) $order['id'] !== (string) $order_id || empty( $order['items'] ) ) {
+				continue;
+			}
+			foreach ( $this->orders[ $index ]['items'] as $iindex => $item ) {
+				if ( isset( $item['line_id'] ) && (string) $item['line_id'] === (string) $line_id ) {
+					$this->orders[ $index ]['items'][ $iindex ][ $field ] = (int) $minor;
+					return;
+				}
+			}
+		}
+	}
+
+	public function inject_line_quantity( $order_id, $line_id, $quantity ) {
+		foreach ( $this->orders as $index => $order ) {
+			if ( (string) $order['id'] !== (string) $order_id || empty( $order['items'] ) ) {
+				continue;
+			}
+			foreach ( $this->orders[ $index ]['items'] as $iindex => $item ) {
+				if ( isset( $item['line_id'] ) && (string) $item['line_id'] === (string) $line_id ) {
+					$this->orders[ $index ]['items'][ $iindex ]['quantity'] = (string) $quantity;
+					return;
+				}
+			}
+		}
+	}
+
+	public function inject_line_variation( $order_id, $line_id, $variation_id ) {
+		foreach ( $this->orders as $index => $order ) {
+			if ( (string) $order['id'] !== (string) $order_id || empty( $order['items'] ) ) {
+				continue;
+			}
+			foreach ( $this->orders[ $index ]['items'] as $iindex => $item ) {
+				if ( isset( $item['line_id'] ) && (string) $item['line_id'] === (string) $line_id ) {
+					$this->orders[ $index ]['items'][ $iindex ]['variationId'] = (string) $variation_id;
+					return;
+				}
+			}
+		}
+	}
+
+	public function native_refund_count_for( $commercial_refund_id ) {
+		$count = 0;
+		foreach ( $this->refunds as $row ) {
+			if ( (string) $row['commercial_refund_id'] === (string) $commercial_refund_id ) {
+				++$count;
+			}
+		}
+		return $count;
 	}
 }
 

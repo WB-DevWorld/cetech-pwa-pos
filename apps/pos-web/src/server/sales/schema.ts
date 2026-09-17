@@ -1,5 +1,6 @@
 import type {
   CashPaymentRequest,
+  CloseShiftRequest,
   FinalizeSaleRequest,
   InitializePaymentRequest,
   OpenShiftRequest,
@@ -39,6 +40,10 @@ export function isFinalizeSaleRequest(value: unknown): value is FinalizeSaleRequ
 
 export function isOpenShiftRequest(value: unknown): value is OpenShiftRequest {
   return validateCanonicalDef("OpenShiftRequest", value);
+}
+
+export function isCloseShiftRequest(value: unknown): value is CloseShiftRequest {
+  return validateCanonicalDef("CloseShiftRequest", value);
 }
 
 export function isPaymentState(value: unknown): value is PaymentState {

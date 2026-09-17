@@ -1,0 +1,23 @@
+{
+  "commercialRefundId": "c2222222-2222-4222-8222-222222222202",
+  "returnId": "e2222222-2222-4222-8222-222222222202",
+  "transactionId": "11111111-1111-4111-8111-111111111401",
+  "saleId": "woo-rt01",
+  "amount": {
+    "minor": 1501,
+    "currency": "GHS"
+  },
+  "economicsVersion": "0123456789abcdef0123456789abcdef",
+  "fingerprint": "e51c182b5f37530295085f6d018e150cbabc9d08e0e69a33f155d73a338e6c55",
+  "reason": "customer changed mind",
+  "lineAllocations": [
+    {
+      "orderLineId": "cccccccc-cccc-4ccc-8ccc-cccccccccc01",
+      "quantity": "1",
+      "historicAmount": {
+        "minor": 1501,
+        "currency": "GHS"
+      }
+    }
+  ]
+}
