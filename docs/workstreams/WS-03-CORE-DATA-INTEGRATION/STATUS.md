@@ -1,21 +1,39 @@
 # WS3 current status
 
-Snapshot 2026-09-15. R5 remains APPROVED / MERGED. `main` `bc606a690f0c167b7057e3ae9143337404275882`.
+Snapshot 2026-09-17. Protected `main` `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` is accepted/merged R8 PR #69. Post-merge CI `35216668259` SUCCESS. R9 is the active reconciliation candidate on `batch/r9-pwa-recovery-operational-close` / PR **#63** (DRAFT).
 
-## R6
+## R6 (historical)
 
-Draft PR #55 / `batch/r6-first-real-cash-sale`. Do not merge. Do not start R7. Production promotion is not authorized. Issue #4 remains OPEN.
+PR #55 merged as `bd79c2901ce33c3177141d4244cc196be0a719d2`. CORE-06 / #25, R6-00 / #54, and CORE-HARDEN-07 / #56 closed completed. Woo `49439` retained as historical cash evidence. Production promotion is not authorized. Issue #4 remains OPEN.
 
-R6-REM-02 imported. Combined automated gate PASS. Exact-head CI PASS on freeze candidate `3f702f2353a3b9911dd0571e59e8cc2fbeefa535`. Replacement **FRESH_2** recorded in `docs/integration/evidence/R6-REM-02-FRESHNESS.md`. Historical `FRESH_2` on `f6f57cc…` remains valid only for the pre-remediation reviewed head.
+## R7 (merged)
 
-| Role | SHA |
+PR #58 squash-merged as `1feb78db36f33e0254c0170396f30112d71577ea`. PAY-01 / #26 and #57 are accepted on `main`. Post-merge CI `35136321143` SUCCESS.
+
+Paystack TEST sandbox evidence remains `docs/integration/evidence/R7-PAY-01-SANDBOX.md` (Woo **49449**). Monotonic concurrency evidence remains `docs/integration/evidence/R7-PAY-01-CONCURRENCY.md`. Live Paystack is still not authorized.
+
+## R8 (merged)
+
+PR #69 squash-merged as `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`. Fail-closed historic return lookup and fail-closed shift variance remain in force. Historical R8 working branch `batch/r8-safe-returns-reconciliation` and PR #69 chronology are provenance only.
+
+## R9 (active, DRAFT)
+
+Mode: RECONCILE / INTEGRATE. Owner `@wbdevworld` / WS3. Branch `batch/r9-pwa-recovery-operational-close`. Milestone PR **#63**; keep DRAFT; do not self-approve; do not merge; do not close CORE-07.
+
+Task `R9-REC-01` reconciles reviewed CORE-07 + FE-07 onto final R8 `main`. Historical pre-reconciliation head `13af56ca86d13657736b8c5156b73a8e79664130` was based on R6 `bd79c290…`. Independent review of that head is provenance only.
+
+Code reconciliation is not runtime-device acceptance. Installed-client/device evidence is still pending. R10 / QA-01 is **not started**.
+
+| Role | SHA / classification |
 | --- | --- |
-| Reviewed head | `f6f57cc39b77dd576734a5b8fb5f89be3027c44c` |
-| Authority | `922720ccbc9e12c535c765c44f1dfea887b19ccc` |
-| Source | `edafe1e64c869528f57eb8e4bba8b317b33a46c4` |
-| Import | `82a85f4082f461a2709ccfece9a73e4e8872d3d3` |
-| Freeze candidate (pre-freshness docs) | `3f702f2353a3b9911dd0571e59e8cc2fbeefa535` |
+| Current `main` / accepted R8 | `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` ACCEPTED / MERGED |
+| Historical accepted R7 | `1feb78db36f33e0254c0170396f30112d71577ea` ACCEPTED / MERGED |
+| Historical R6 | `bd79c2901ce33c3177141d4244cc196be0a719d2` |
+| Historical R9 head (pre-reconciliation) | `13af56ca86d13657736b8c5156b73a8e79664130` |
+| Reconciliation evidence | `docs/integration/evidence/R9-R8-RECONCILIATION.md` |
 
-Ben blocker resolved. Emmanuel blockers 1 and 2 resolved. No FE-05 source change. No BR-07 source change. No second staging sale. Woo `49439` retained.
+Production, live Paystack, live refund/restock, and VitePOS deactivation remain NOT AUTHORIZED.
 
-The freshness evidence commit produces a later exact head that must have its own green required workflows.
+## Remaining disposition
+
+Independent review of PR #63 on the **new** reconciled exact head after CI. Installed-client/device runtime evidence remains a later gate. Do not claim `FRESH_2` in this reconciliation pass (`NOT FINAL FRESHNESS`). Stop at `R9_RECONCILED_CODE_READY_FOR_REVIEW`.

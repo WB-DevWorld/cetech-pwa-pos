@@ -7,7 +7,8 @@
  * is NOT shipped inside the WordPress plugin. This tool extracts the transitive
  * `$defs` closure reachable from the enforced roots (QuoteRequest, Quote,
  * PrepareSaleRequest, PreparedSale, SaleResolution, BridgeFinalizeRequest,
- * CancelSaleRequest) into
+ * CancelSaleRequest, BridgeCommercialRefundRequest, BridgeCommercialRefundState,
+ * BridgeStockDispositionRequest, BridgeStockDispositionState) into
  * `schema/quote-contract.v1.json`, which the plugin loads at runtime.
  *
  * There is exactly one source of contract truth. The artifact is a mechanical
@@ -31,7 +32,11 @@ final class Cetech_Pos_Bridge_Contract_Derivation {
 	 * @var array<int,string>
 	 */
 	const ROOTS = array(
+		'BridgeCommercialRefundRequest',
+		'BridgeCommercialRefundState',
 		'BridgeFinalizeRequest',
+		'BridgeStockDispositionRequest',
+		'BridgeStockDispositionState',
 		'CancelSaleRequest',
 		'PrepareSaleRequest',
 		'PreparedSale',

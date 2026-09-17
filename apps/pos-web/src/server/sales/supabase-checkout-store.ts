@@ -3,6 +3,7 @@ import type {
   PendingOperation,
   Quote,
   ReceiptSnapshot,
+  ShiftReport,
   Uuid,
 } from "../../../../../docs/contracts/domain.generated";
 import type { PosRestFetch } from "../http/server-fetch";
@@ -16,6 +17,7 @@ import type {
   StoredCashMovement,
   StoredDevice,
   StoredPayment,
+  StoredProviderEvent,
   StoredRegister,
   StoredShift,
 } from "../../core/checkout/types";
@@ -29,6 +31,8 @@ export type SupabaseCheckoutStoreOptions = {
 
 const DEFAULT_TIMEOUT_MS = 8_000;
 const CONTRACT_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?Z$/;
+const PAYMENT_SELECT =
+  "payment_id,transaction_id,sale_id,evidence_id,tender,status,amount_minor,amount_currency,cash_received_minor,cash_received_currency,verified_at,verification_source,actor_id,provider,provider_reference,provider_transaction_id,display_reference,access_code,initialize_status,last_verified_at,attention_reason";
 
 type RestRow = Record<string, unknown>;
 
@@ -153,14 +157,14 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
 
     async getActiveShift(registerId) {
       const row = await getOne(
-        `pos_shifts?register_id=eq.${encodeURIComponent(registerId)}&status=in.(open,closing)&select=id,organization_id,location_id,register_id,device_id,cashier_id,status,opening_float_minor,opening_float_currency,expected_cash_minor,expected_cash_currency,opened_at,closed_at,z_report_id`,
+        `pos_shifts?register_id=eq.${encodeURIComponent(registerId)}&status=in.(open,closing)&select=id,organization_id,location_id,register_id,device_id,cashier_id,status,opening_float_minor,opening_float_currency,expected_cash_minor,expected_cash_currency,counted_cash_minor,counted_cash_currency,variance_minor,variance_currency,opened_at,closed_at,z_report_id`,
       );
       return row ? mapShift(row) : undefined;
     },
 
     async getShift(id) {
       const row = await getOne(
-        `pos_shifts?id=eq.${encodeURIComponent(id)}&select=id,organization_id,location_id,register_id,device_id,cashier_id,status,opening_float_minor,opening_float_currency,expected_cash_minor,expected_cash_currency,opened_at,closed_at,z_report_id`,
+        `pos_shifts?id=eq.${encodeURIComponent(id)}&select=id,organization_id,location_id,register_id,device_id,cashier_id,status,opening_float_minor,opening_float_currency,expected_cash_minor,expected_cash_currency,counted_cash_minor,counted_cash_currency,variance_minor,variance_currency,opened_at,closed_at,z_report_id`,
       );
       return row ? mapShift(row) : undefined;
     },
@@ -191,6 +195,83 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
       throw new Error("durable checkout store rejected shift insert");
     },
 
+    async closeShift(input) {
+      const existing = await this.getShift(input.shiftId);
+      if (!existing) {
+        return "missing";
+      }
+      if (existing.status === "closed") {
+        return "already_closed";
+      }
+      if (existing.status !== "open" && existing.status !== "closing" && existing.status !== "requires_attention") {
+        return "not_open";
+      }
+      const expected = existing.expectedCash ?? existing.openingFloat;
+      const varianceMinor = input.countedCash.minor - expected.minor;
+      const result = await request({
+        path: `pos_shifts?id=eq.${encodeURIComponent(input.shiftId)}`,
+        method: "PATCH",
+        prefer: "return=minimal",
+        body: {
+          status: input.status,
+          counted_cash_minor: input.countedCash.minor,
+          counted_cash_currency: input.countedCash.currency,
+          variance_minor: varianceMinor,
+          variance_currency: expected.currency,
+          closed_at: input.status === "closed" ? input.closedAt ?? new Date().toISOString() : null,
+          z_report_id: input.status === "closed" ? input.zReportId ?? null : null,
+        },
+      });
+      if (result.status >= 400) {
+        throw new Error("durable checkout store rejected shift close");
+      }
+      return "ok";
+    },
+
+    async saveShiftReport(report) {
+      const existing = await this.getShiftReport(report.shiftId, report.kind);
+      if (existing) {
+        return existing.id === report.id ? "ok" : "duplicate";
+      }
+      const shift = await this.getShift(report.shiftId);
+      if (!shift) {
+        throw new Error("durable checkout store rejected shift report without a shift");
+      }
+      const result = await request({
+        path: "pos_shift_reports",
+        method: "POST",
+        prefer: "return=minimal",
+        body: {
+          id: report.id,
+          organization_id: shift.organizationId,
+          location_id: shift.locationId,
+          register_id: shift.registerId,
+          shift_id: report.shiftId,
+          kind: report.kind,
+          expected_cash_minor: report.expectedCash.minor,
+          counted_cash_minor: report.countedCash?.minor ?? null,
+          variance_minor: report.variance?.minor ?? null,
+          currency: report.expectedCash.currency,
+          created_at: report.createdAt,
+        },
+      });
+      if (result.status === 201 || result.status === 200) {
+        return "ok";
+      }
+      if (result.status === 409) {
+        const replay = await this.getShiftReport(report.shiftId, report.kind);
+        return replay?.id === report.id ? "ok" : "duplicate";
+      }
+      throw new Error("durable checkout store rejected shift report insert");
+    },
+
+    async getShiftReport(shiftId, kind) {
+      const row = await getOne(
+        `pos_shift_reports?shift_id=eq.${encodeURIComponent(shiftId)}&kind=eq.${encodeURIComponent(kind)}&select=id,shift_id,kind,expected_cash_minor,counted_cash_minor,variance_minor,currency,created_at`,
+      );
+      return row ? mapShiftReport(row) : undefined;
+    },
+
     async appendCashMovement(movement) {
       if (movement.kind === "opening_float") {
         const existing = await getOne(
@@ -213,6 +294,7 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
           actor_id: movement.actorId,
           transaction_id: movement.transactionId ?? null,
           reason: movement.reason ?? null,
+          refund_id: movement.refundId ?? null,
         },
       });
       if (result.status === 201 || result.status === 200) {
@@ -220,6 +302,9 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
       }
       const constraint = constraintName(result.body);
       const message = errorMessage(result.body);
+      if (constraint.includes("pos_cash_one_refund_per_refund_id")) {
+        return "duplicate_refund";
+      }
       if (result.status === 409 || constraint.includes("pos_cash_one_sale_per_transaction")) {
         return "duplicate_sale";
       }
@@ -237,7 +322,14 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
 
     async listCashSales(transactionId) {
       const rows = await getRows(
-        `pos_cash_movements?kind=eq.cash_sale&transaction_id=eq.${encodeURIComponent(transactionId)}&select=id,organization_id,shift_id,kind,signed_amount_minor,currency,actor_id,created_at,transaction_id,reason`,
+        `pos_cash_movements?kind=eq.cash_sale&transaction_id=eq.${encodeURIComponent(transactionId)}&select=id,organization_id,shift_id,kind,signed_amount_minor,currency,actor_id,created_at,transaction_id,reason,refund_id`,
+      );
+      return rows.map(mapCashMovement).filter((row): row is StoredCashMovement => row !== undefined);
+    },
+
+    async listCashRefunds(refundId) {
+      const rows = await getRows(
+        `pos_cash_movements?kind=eq.cash_refund&refund_id=eq.${encodeURIComponent(refundId)}&select=id,organization_id,shift_id,kind,signed_amount_minor,currency,actor_id,created_at,transaction_id,reason,refund_id`,
       );
       return rows.map(mapCashMovement).filter((row): row is StoredCashMovement => row !== undefined);
     },
@@ -289,20 +381,34 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
       return row ? asSale(row.record) : undefined;
     },
 
+    async getSaleBySaleId(organizationId, saleId) {
+      const row = await getOne(
+        `pos_checkout_sales?organization_id=eq.${encodeURIComponent(organizationId)}&sale_id=eq.${encodeURIComponent(saleId)}&select=record`,
+      );
+      return row ? asSale(row.record) : undefined;
+    },
+
     async saveSale(sale) {
       await upsertSale(sale, request);
     },
 
     async getPayment(paymentId) {
       const row = await getOne(
-        `pos_checkout_payments?payment_id=eq.${encodeURIComponent(paymentId)}&select=payment_id,transaction_id,sale_id,evidence_id,tender,status,amount_minor,amount_currency,cash_received_minor,cash_received_currency,verified_at,verification_source,actor_id`,
+        `pos_checkout_payments?payment_id=eq.${encodeURIComponent(paymentId)}&select=${PAYMENT_SELECT}`,
       );
       return row ? mapPayment(row) : undefined;
     },
 
     async getPaymentForTransaction(transactionId) {
       const row = await getOne(
-        `pos_checkout_payments?transaction_id=eq.${encodeURIComponent(transactionId)}&select=payment_id,transaction_id,sale_id,evidence_id,tender,status,amount_minor,amount_currency,cash_received_minor,cash_received_currency,verified_at,verification_source,actor_id`,
+        `pos_checkout_payments?transaction_id=eq.${encodeURIComponent(transactionId)}&select=${PAYMENT_SELECT}`,
+      );
+      return row ? mapPayment(row) : undefined;
+    },
+
+    async getPaymentByProviderReference(provider, reference) {
+      const row = await getOne(
+        `pos_checkout_payments?provider=eq.${encodeURIComponent(provider)}&provider_reference=eq.${encodeURIComponent(reference)}&select=${PAYMENT_SELECT}`,
       );
       return row ? mapPayment(row) : undefined;
     },
@@ -319,28 +425,74 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
           location_id: sale?.locationId ?? "",
           transaction_id: payment.transactionId,
           sale_id: payment.saleId,
-          evidence_id: payment.evidenceId,
+          evidence_id: payment.evidenceId ?? null,
           tender: payment.tender,
           status: payment.status,
           amount_minor: payment.amount.minor,
           amount_currency: payment.amount.currency,
-          cash_received_minor: payment.cashReceived.minor,
-          cash_received_currency: payment.cashReceived.currency,
-          verified_at: payment.verifiedAt,
-          verification_source: payment.verificationSource,
+          cash_received_minor: payment.cashReceived?.minor ?? null,
+          cash_received_currency: payment.cashReceived?.currency ?? null,
+          verified_at: payment.verifiedAt ?? null,
+          verification_source: payment.verificationSource ?? null,
           actor_id: payment.actorId,
+          provider: payment.provider ?? null,
+          provider_reference: payment.providerReference ?? null,
+          provider_transaction_id: payment.providerTransactionId ?? null,
+          display_reference: payment.displayReference ?? null,
+          access_code: payment.accessCode ?? null,
+          initialize_status: payment.initializeStatus ?? null,
+          last_verified_at: payment.lastVerifiedAt ?? null,
+          attention_reason: payment.attentionReason ?? null,
         },
       });
       if (result.status === 201 || result.status === 200) {
         return;
       }
       if (result.status === 409) {
-        const existing = await this.getPaymentForTransaction(payment.transactionId);
+        const existing = await this.getPayment(payment.paymentId);
         if (existing && existing.paymentId === payment.paymentId) {
           return;
         }
       }
       throw new Error("durable checkout store rejected payment");
+    },
+
+    async saveProviderEvent(event) {
+      const result = await request({
+        path: "pos_provider_payment_events",
+        method: "POST",
+        prefer: "return=minimal",
+        body: {
+          id: event.id,
+          organization_id: event.organizationId ?? null,
+          location_id: event.locationId ?? null,
+          provider: event.provider,
+          provider_reference: event.providerReference ?? null,
+          provider_transaction_id: event.providerTransactionId ?? null,
+          event_type: event.eventType,
+          event_fingerprint: event.eventFingerprint,
+          raw_body_hash: event.rawBodyHash,
+          received_at: event.receivedAt,
+          processing_status: event.processingStatus,
+          normalized_status: event.normalizedStatus ?? null,
+          payment_id: event.paymentId ?? null,
+          transaction_id: event.transactionId ?? null,
+        },
+      });
+      if (result.status === 201) {
+        return "inserted";
+      }
+      if (result.status === 200 || result.status === 409) {
+        return "duplicate";
+      }
+      throw new Error("durable checkout store rejected provider event");
+    },
+
+    async getProviderEvent(provider, fingerprint) {
+      const row = await getOne(
+        `pos_provider_payment_events?provider=eq.${encodeURIComponent(provider)}&event_fingerprint=eq.${encodeURIComponent(fingerprint)}&select=id,organization_id,location_id,provider,provider_reference,provider_transaction_id,event_type,event_fingerprint,raw_body_hash,received_at,processing_status,normalized_status,payment_id,transaction_id`,
+      );
+      return row ? mapProviderEvent(row) : undefined;
     },
 
     async getReceipt(transactionId) {
@@ -662,9 +814,42 @@ function mapShift(row: RestRow): StoredShift | undefined {
       typeof row.expected_cash_minor === "number" && typeof row.expected_cash_currency === "string"
         ? { minor: row.expected_cash_minor, currency: row.expected_cash_currency as StoredShift["openingFloat"]["currency"] }
         : undefined,
+    countedCash:
+      typeof row.counted_cash_minor === "number" && typeof row.counted_cash_currency === "string"
+        ? { minor: row.counted_cash_minor, currency: row.counted_cash_currency as StoredShift["openingFloat"]["currency"] }
+        : undefined,
+    variance:
+      typeof row.variance_minor === "number" && typeof row.variance_currency === "string"
+        ? { minor: row.variance_minor, currency: row.variance_currency as StoredShift["openingFloat"]["currency"] }
+        : undefined,
     openedAt: toContractTimestamp(row.opened_at) ?? row.opened_at,
     closedAt: typeof row.closed_at === "string" ? toContractTimestamp(row.closed_at) ?? row.closed_at : undefined,
     zReportId: typeof row.z_report_id === "string" ? row.z_report_id : undefined,
+  };
+}
+
+function mapShiftReport(row: RestRow): ShiftReport | undefined {
+  if (
+    typeof row.id !== "string" ||
+    typeof row.shift_id !== "string" ||
+    (row.kind !== "X" && row.kind !== "Z") ||
+    typeof row.expected_cash_minor !== "number" ||
+    typeof row.currency !== "string" ||
+    typeof row.created_at !== "string"
+  ) {
+    return undefined;
+  }
+  const currency = row.currency as ShiftReport["expectedCash"]["currency"];
+  return {
+    id: row.id,
+    shiftId: row.shift_id,
+    kind: row.kind,
+    expectedCash: { minor: row.expected_cash_minor, currency },
+    createdAt: toContractTimestamp(row.created_at) ?? row.created_at,
+    ...(typeof row.counted_cash_minor === "number"
+      ? { countedCash: { minor: row.counted_cash_minor, currency } }
+      : {}),
+    ...(typeof row.variance_minor === "number" ? { variance: { minor: row.variance_minor, currency } } : {}),
   };
 }
 
@@ -691,43 +876,128 @@ function mapCashMovement(row: RestRow): StoredCashMovement | undefined {
     createdAt: toContractTimestamp(row.created_at) ?? row.created_at,
     transactionId: typeof row.transaction_id === "string" ? row.transaction_id : undefined,
     reason: typeof row.reason === "string" ? row.reason : undefined,
+    refundId: typeof row.refund_id === "string" ? row.refund_id : undefined,
   };
 }
 
+function asPaymentTender(value: unknown): StoredPayment["tender"] | undefined {
+  if (value === "cash" || value === "mobile_money" || value === "card" || value === "external_electronic") {
+    return value;
+  }
+  return undefined;
+}
+
+function asPaymentStatus(value: unknown): StoredPayment["status"] | undefined {
+  if (
+    value === "initializing" ||
+    value === "awaiting_customer" ||
+    value === "pending" ||
+    value === "cancelled" ||
+    value === "failed" ||
+    value === "reconciling" ||
+    value === "requires_attention" ||
+    value === "verified"
+  ) {
+    return value;
+  }
+  return undefined;
+}
+
+function asVerificationSource(value: unknown): StoredPayment["verificationSource"] | undefined {
+  if (
+    value === "cash_ledger" ||
+    value === "provider_server_verification" ||
+    value === "approved_external_attestation"
+  ) {
+    return value;
+  }
+  return undefined;
+}
+
+function asInitializeStatus(value: unknown): StoredPayment["initializeStatus"] | undefined {
+  if (value === "pending_remote" || value === "initialized" || value === "lost_response") {
+    return value;
+  }
+  return undefined;
+}
+
 function mapPayment(row: RestRow): StoredPayment | undefined {
+  const tender = asPaymentTender(row.tender);
+  const status = asPaymentStatus(row.status);
   if (
     typeof row.payment_id !== "string" ||
     typeof row.transaction_id !== "string" ||
     typeof row.sale_id !== "string" ||
-    typeof row.evidence_id !== "string" ||
     typeof row.amount_minor !== "number" ||
     typeof row.amount_currency !== "string" ||
-    typeof row.cash_received_minor !== "number" ||
-    typeof row.cash_received_currency !== "string" ||
-    typeof row.verified_at !== "string" ||
-    typeof row.actor_id !== "string"
+    typeof row.actor_id !== "string" ||
+    !tender ||
+    !status
   ) {
     return undefined;
   }
-  const verifiedAt = toContractTimestamp(row.verified_at);
-  if (!verifiedAt) {
-    return undefined;
-  }
+  const verifiedAt = typeof row.verified_at === "string" ? toContractTimestamp(row.verified_at) : undefined;
+  const lastVerifiedAt =
+    typeof row.last_verified_at === "string" ? toContractTimestamp(row.last_verified_at) : undefined;
   return {
     paymentId: row.payment_id,
     transactionId: row.transaction_id,
     saleId: row.sale_id,
-    evidenceId: row.evidence_id,
-    tender: "cash",
-    status: "verified",
+    evidenceId: typeof row.evidence_id === "string" ? row.evidence_id : undefined,
+    tender,
+    status,
     amount: { minor: row.amount_minor, currency: row.amount_currency as StoredPayment["amount"]["currency"] },
-    cashReceived: {
-      minor: row.cash_received_minor,
-      currency: row.cash_received_currency as StoredPayment["amount"]["currency"],
-    },
-    verifiedAt,
-    verificationSource: "cash_ledger",
+    cashReceived:
+      typeof row.cash_received_minor === "number" && typeof row.cash_received_currency === "string"
+        ? {
+            minor: row.cash_received_minor,
+            currency: row.cash_received_currency as StoredPayment["amount"]["currency"],
+          }
+        : undefined,
+    verifiedAt: verifiedAt ?? undefined,
+    verificationSource: asVerificationSource(row.verification_source),
     actorId: row.actor_id,
+    provider: typeof row.provider === "string" ? row.provider : undefined,
+    providerReference: typeof row.provider_reference === "string" ? row.provider_reference : undefined,
+    providerTransactionId: typeof row.provider_transaction_id === "string" ? row.provider_transaction_id : undefined,
+    displayReference: typeof row.display_reference === "string" ? row.display_reference : undefined,
+    accessCode: typeof row.access_code === "string" ? row.access_code : undefined,
+    initializeStatus: asInitializeStatus(row.initialize_status),
+    lastVerifiedAt: lastVerifiedAt ?? undefined,
+    attentionReason: typeof row.attention_reason === "string" ? row.attention_reason : undefined,
+  };
+}
+
+function mapProviderEvent(row: RestRow): StoredProviderEvent | undefined {
+  if (
+    typeof row.id !== "string" ||
+    typeof row.provider !== "string" ||
+    typeof row.event_type !== "string" ||
+    typeof row.event_fingerprint !== "string" ||
+    typeof row.raw_body_hash !== "string" ||
+    typeof row.received_at !== "string" ||
+    (row.processing_status !== "ingested" &&
+      row.processing_status !== "processed" &&
+      row.processing_status !== "ignored" &&
+      row.processing_status !== "requires_attention")
+  ) {
+    return undefined;
+  }
+  return {
+    id: row.id,
+    organizationId: typeof row.organization_id === "string" ? row.organization_id : undefined,
+    locationId: typeof row.location_id === "string" ? row.location_id : undefined,
+    provider: row.provider,
+    providerReference: typeof row.provider_reference === "string" ? row.provider_reference : undefined,
+    providerTransactionId: typeof row.provider_transaction_id === "string" ? row.provider_transaction_id : undefined,
+    eventType: row.event_type,
+    eventFingerprint: row.event_fingerprint,
+    rawBodyHash: row.raw_body_hash,
+    receivedAt: toContractTimestamp(row.received_at) ?? row.received_at,
+    processingStatus: row.processing_status,
+    normalizedStatus: typeof row.normalized_status === "string" ? row.normalized_status : undefined,
+    paymentId: typeof row.payment_id === "string" ? row.payment_id : undefined,
+    transactionId: typeof row.transaction_id === "string" ? row.transaction_id : undefined,
   };
 }
 

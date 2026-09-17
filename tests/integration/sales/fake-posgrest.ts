@@ -20,6 +20,7 @@ export function createFakePosgrest(options?: {
     pos_registers: [],
     pos_devices: [],
     pos_shifts: [],
+    pos_shift_reports: [],
     pos_cash_movements: [],
     pos_pending_operations: [],
     pos_outbox_events: [],
@@ -27,8 +28,20 @@ export function createFakePosgrest(options?: {
     pos_checkout_sales: [],
     pos_checkout_payments: [],
     pos_checkout_receipts: [],
+    pos_provider_payment_events: [],
     pos_staff_location_assignments: [],
     pos_staff_register_assignments: [],
+    pos_returns: [],
+    pos_return_historic_lines: [],
+    pos_return_historic_tenders: [],
+    pos_return_requested_lines: [],
+    pos_return_approvals: [],
+    pos_sale_line_return_balances: [],
+    pos_sale_tender_refund_balances: [],
+    pos_tender_refunds: [],
+    pos_commercial_refunds: [],
+    pos_stock_dispositions: [],
+    pos_return_audit: [],
   };
 
   const fetchImpl: PosRestFetch = async (input, init) => {
@@ -55,7 +68,7 @@ export function createFakePosgrest(options?: {
       const body = init.body ? (JSON.parse(String(init.body)) as Row) : {};
       for (const row of tables[table]) {
         if (matches(row, filters)) {
-          Object.assign(row, body);
+          applyMonotonicAssign(table, row, body);
         }
       }
       return jsonResponse(204, null);
@@ -65,7 +78,7 @@ export function createFakePosgrest(options?: {
       const conflict = findConflict(table, tables, body, onConflict);
       if (conflict) {
         if (merge && onConflict) {
-          Object.assign(conflict, body);
+          applyMonotonicAssign(table, conflict, body);
           return jsonResponse(200, [conflict]);
         }
         return jsonResponse(409, {
@@ -158,7 +171,20 @@ function findConflict(table: string, tables: Record<string, Row[]>, body: Row, o
   }
   if (table === "pos_checkout_payments") {
     return tables[table].find(
-      (row) => row.payment_id === body.payment_id || row.transaction_id === body.transaction_id,
+      (row) =>
+        row.payment_id === body.payment_id ||
+        row.transaction_id === body.transaction_id ||
+        (Boolean(body.provider) &&
+          Boolean(body.provider_reference) &&
+          row.provider === body.provider &&
+          row.provider_reference === body.provider_reference),
+    );
+  }
+  if (table === "pos_provider_payment_events") {
+    return tables[table].find(
+      (row) =>
+        row.id === body.id ||
+        (row.provider === body.provider && row.event_fingerprint === body.event_fingerprint),
     );
   }
   if (table === "pos_checkout_receipts") {
@@ -248,6 +274,18 @@ function insertCash(
       };
     }
   }
+  if (body.kind === "cash_refund" && body.refund_id) {
+    const existing = tables.pos_cash_movements.find(
+      (row) => row.kind === "cash_refund" && row.refund_id === body.refund_id,
+    );
+    if (existing) {
+      return {
+        kind: "error",
+        code: "23505",
+        message: 'duplicate key value violates unique constraint "pos_cash_one_refund_per_refund_id"',
+      };
+    }
+  }
   if (body.kind === "cash_sale" && body.transaction_id) {
     const existing = tables.pos_cash_movements.find(
       (row) =>
@@ -280,4 +318,58 @@ function insertCash(
   };
   tables.pos_cash_movements.push(row);
   return { kind: "ok", row };
+}
+
+function saleRank(status: unknown): number {
+  switch (status) {
+    case "not_found":
+      return 0;
+    case "preparing":
+      return 1;
+    case "prepared":
+      return 2;
+    case "payment_pending":
+    case "requires_attention":
+      return 3;
+    case "finalizing":
+      return 4;
+    case "completed":
+    case "cancelled":
+      return 5;
+    default:
+      return 0;
+  }
+}
+
+function applyMonotonicAssign(table: string, existing: Row, incoming: Row): void {
+  if (table === "pos_checkout_payments" && existing.status === "verified" && incoming.status !== "verified") {
+    Object.assign(existing, incoming, {
+      status: "verified",
+      evidence_id: existing.evidence_id ?? incoming.evidence_id,
+      verified_at: existing.verified_at ?? incoming.verified_at,
+      verification_source: existing.verification_source ?? incoming.verification_source,
+      provider_transaction_id: existing.provider_transaction_id ?? incoming.provider_transaction_id,
+      attention_reason: existing.attention_reason,
+    });
+    return;
+  }
+  if (table === "pos_checkout_sales" && saleRank(existing.status) >= 4 && saleRank(incoming.status) < saleRank(existing.status)) {
+    const record =
+      incoming.record && typeof incoming.record === "object"
+        ? {
+            ...(incoming.record as Record<string, unknown>),
+            status: existing.status,
+            assignedPaymentId: existing.assigned_payment_id ?? incoming.assigned_payment_id,
+            commercialConfirmed: Boolean(existing.commercial_confirmed) || Boolean(incoming.commercial_confirmed),
+          }
+        : incoming.record;
+    Object.assign(existing, incoming, {
+      status: existing.status,
+      assigned_payment_id: existing.assigned_payment_id ?? incoming.assigned_payment_id,
+      commercial_confirmed: Boolean(existing.commercial_confirmed) || Boolean(incoming.commercial_confirmed),
+      record,
+    });
+    return;
+  }
+  Object.assign(existing, incoming);
 }

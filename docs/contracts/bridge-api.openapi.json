@@ -511,6 +511,298 @@
           }
         }
       }
+    },
+    "/returns/commercial-refund": {
+      "post": {
+        "operationId": "executeReturnCommercialRefund",
+        "summary": "executeReturnCommercialRefund",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "$ref": "./pos-domain.schema.json#/$defs/BridgeCommercialRefundState"
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted/in progress; retain key and resolve. Not proof of completion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./pos-domain.schema.json#/$defs/BridgeCommercialRefundRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/returns/commercial-refund/{commercialRefundId}": {
+      "get": {
+        "operationId": "resolveReturnCommercialRefund",
+        "summary": "resolveReturnCommercialRefund",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          },
+          {
+            "name": "commercialRefundId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "$ref": "./pos-domain.schema.json#/$defs/BridgeCommercialRefundState"
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/returns/stock-disposition": {
+      "post": {
+        "operationId": "executeReturnStockDisposition",
+        "summary": "executeReturnStockDisposition",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "$ref": "./pos-domain.schema.json#/$defs/BridgeStockDispositionState"
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted/in progress; retain key and resolve. Not proof of completion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./pos-domain.schema.json#/$defs/BridgeStockDispositionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/returns/stock-disposition/{stockDispositionId}": {
+      "get": {
+        "operationId": "resolveReturnStockDisposition",
+        "summary": "resolveReturnStockDisposition",
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          },
+          {
+            "name": "stockDispositionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resolved domain result; inspect explicit state before continuing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "const": true
+                    },
+                    "data": {
+                      "$ref": "./pos-domain.schema.json#/$defs/BridgeStockDispositionState"
+                    },
+                    "correlationId": {
+                      "$ref": "./pos-domain.schema.json#/$defs/Uuid"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data",
+                    "correlationId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Typed failure; HTTP status/code policy in ERROR-CONTRACT.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./pos-domain.schema.json#/$defs/ApiFailure"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

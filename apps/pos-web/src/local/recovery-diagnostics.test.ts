@@ -91,4 +91,39 @@ describe("CORE-07 non-destructive recovery diagnostics", () => {
     ]);
     expect(await db.journal.count()).toBe(1);
   });
+
+  test("current R8 journal operations are counted without inventing a second local truth", async () => {
+    const db = testDb();
+    await db.schemaMeta.put({
+      key: "schema",
+      localSchema: POS_LOCAL_SCHEMA_CURRENT,
+      appBuild: "r9-r8",
+    });
+    const operations = [
+      "payment.initialize",
+      "payment.resolve",
+      "return.execute",
+      "shift.close",
+      "payment.refund",
+    ] as const;
+    for (const [index, operation] of operations.entries()) {
+      await db.journal.put({
+        id: `11111111-1111-4111-8111-11111111111${index}`,
+        operation,
+        idempotencyKey: `22222222-2222-4222-8222-22222222222${index}`,
+        requestHash: "b".repeat(64),
+        payloadVersion: "1.0.0",
+        status: "sent",
+        attempts: 1,
+        createdAt: "2026-09-17T00:00:00.000Z",
+        lastAttemptAt: "2026-09-17T00:00:01.000Z",
+        payload: "{}",
+        attemptHistory: [{ at: "2026-09-17T00:00:00.000Z", status: "sent" }],
+      });
+    }
+    const result = await inspectLocalRecoveryState(db);
+    expect(result.pendingOperationCount).toBe(operations.length);
+    expect(result.destructiveResetAllowed).toBe(false);
+    expect(await db.journal.count()).toBe(operations.length);
+  });
 });

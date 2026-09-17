@@ -25,6 +25,10 @@
       "type": "string",
       "pattern": "^(0\\.[0-9]{0,5}[1-9]|[1-9][0-9]{0,8}(\\.[0-9]{0,5}[1-9])?)$"
     },
+    "NonNegativeQuantity": {
+      "type": "string",
+      "pattern": "^(0|0\\.[0-9]{0,5}[1-9]|[1-9][0-9]{0,8}(\\.[0-9]{0,5}[1-9])?)$"
+    },
     "Money": {
       "type": "object",
       "properties": {
@@ -1407,7 +1411,12 @@
             "shift.open",
             "shift.close",
             "cash.movement",
-            "refund.resolve"
+            "return.execute",
+            "return.resolve",
+            "payment.refund",
+            "refund.resolve",
+            "bridge.commercial_refund",
+            "bridge.stock_disposition"
           ]
         },
         "idempotencyKey": {
@@ -1543,6 +1552,130 @@
       ],
       "additionalProperties": false
     },
+    "ReturnCondition": {
+      "type": "string",
+      "enum": [
+        "resellable",
+        "opened_resellable",
+        "damaged",
+        "defective",
+        "quarantine",
+        "not_physically_returned"
+      ]
+    },
+    "StockDisposition": {
+      "type": "string",
+      "enum": [
+        "restock_sellable",
+        "no_automatic_restock"
+      ]
+    },
+    "ReturnConditionStockPolicy": {
+      "type": "string",
+      "enum": [
+        "automatic_sellable_restock",
+        "mandatory_no_automatic_restock",
+        "tenant_policy_required"
+      ]
+    },
+    "RefundChannel": {
+      "type": "string",
+      "enum": [
+        "cash_ledger",
+        "provider_electronic"
+      ]
+    },
+    "IndependentEffectStatus": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "not_required",
+        "not_found",
+        "pending",
+        "completed",
+        "requires_attention"
+      ]
+    },
+    "IndependentEffectSummary": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "effectId": {
+              "$ref": "#/$defs/Uuid"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "not_started",
+                "not_required"
+              ]
+            }
+          },
+          "required": [
+            "status"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "effectId": {
+              "$ref": "#/$defs/Uuid"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "not_found",
+                "completed",
+                "requires_attention"
+              ]
+            }
+          },
+          "required": [
+            "effectId",
+            "status"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "SettledIndependentEffectSummary": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "effectId": {
+              "$ref": "#/$defs/Uuid"
+            },
+            "status": {
+              "const": "completed"
+            }
+          },
+          "required": [
+            "effectId",
+            "status"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "effectId": {
+              "$ref": "#/$defs/Uuid"
+            },
+            "status": {
+              "const": "not_required"
+            }
+          },
+          "required": [
+            "status"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
     "ReturnLineRequest": {
       "type": "object",
       "properties": {
@@ -1557,15 +1690,7 @@
           "minLength": 1
         },
         "condition": {
-          "type": "string",
-          "enum": [
-            "resellable",
-            "opened_resellable",
-            "damaged",
-            "defective",
-            "quarantine",
-            "not_physically_returned"
-          ]
+          "$ref": "#/$defs/ReturnCondition"
         }
       },
       "required": [
@@ -1596,6 +1721,38 @@
       ],
       "additionalProperties": false
     },
+    "ReturnPreviewLine": {
+      "type": "object",
+      "properties": {
+        "orderLineId": {
+          "$ref": "#/$defs/Id"
+        },
+        "requestedQuantity": {
+          "$ref": "#/$defs/Quantity"
+        },
+        "remainingReturnableQuantity": {
+          "$ref": "#/$defs/NonNegativeQuantity"
+        },
+        "condition": {
+          "$ref": "#/$defs/ReturnCondition"
+        },
+        "intendedDisposition": {
+          "$ref": "#/$defs/StockDisposition"
+        },
+        "dispositionPolicy": {
+          "$ref": "#/$defs/ReturnConditionStockPolicy"
+        }
+      },
+      "required": [
+        "orderLineId",
+        "requestedQuantity",
+        "remainingReturnableQuantity",
+        "condition",
+        "intendedDisposition",
+        "dispositionPolicy"
+      ],
+      "additionalProperties": false
+    },
     "ReturnPreview": {
       "type": "object",
       "properties": {
@@ -1605,6 +1762,11 @@
         "saleId": {
           "$ref": "#/$defs/Id"
         },
+        "economicsVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
         "refundTotal": {
           "$ref": "#/$defs/Money"
         },
@@ -1612,19 +1774,30 @@
           "type": "boolean"
         },
         "fingerprint": {
-          "type": "string"
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 128
         },
         "expiresAt": {
           "$ref": "#/$defs/Timestamp"
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ReturnPreviewLine"
+          },
+          "minItems": 1
         }
       },
       "required": [
         "returnId",
         "saleId",
+        "economicsVersion",
         "refundTotal",
         "approvalRequired",
         "fingerprint",
-        "expiresAt"
+        "expiresAt",
+        "lines"
       ],
       "additionalProperties": false
     },
@@ -1635,7 +1808,9 @@
           "$ref": "#/$defs/Uuid"
         },
         "fingerprint": {
-          "type": "string"
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 128
         },
         "approvalId": {
           "$ref": "#/$defs/Uuid"
@@ -1647,31 +1822,116 @@
       ],
       "additionalProperties": false
     },
-    "ReturnResolution": {
+    "ReturnApprovalBinding": {
       "type": "object",
       "properties": {
+        "approvalId": {
+          "$ref": "#/$defs/Uuid"
+        },
         "returnId": {
           "$ref": "#/$defs/Uuid"
         },
-        "status": {
+        "fingerprint": {
           "type": "string",
-          "enum": [
-            "previewed",
-            "approval_required",
-            "refund_pending",
-            "completed",
-            "requires_attention"
-          ]
+          "minLength": 32,
+          "maxLength": 128
         },
-        "message": {
-          "type": "string"
+        "actorId": {
+          "$ref": "#/$defs/Id"
+        },
+        "expiresAt": {
+          "$ref": "#/$defs/Timestamp"
         }
       },
       "required": [
+        "approvalId",
         "returnId",
-        "status"
+        "fingerprint",
+        "actorId",
+        "expiresAt"
       ],
       "additionalProperties": false
+    },
+    "ReturnResolution": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "returnId": {
+              "$ref": "#/$defs/Uuid"
+            },
+            "status": {
+              "const": "completed"
+            },
+            "message": {
+              "type": "string"
+            },
+            "providerRefund": {
+              "$ref": "#/$defs/SettledIndependentEffectSummary"
+            },
+            "cashRefund": {
+              "$ref": "#/$defs/SettledIndependentEffectSummary"
+            },
+            "commercialRefund": {
+              "$ref": "#/$defs/SettledIndependentEffectSummary"
+            },
+            "stockDisposition": {
+              "$ref": "#/$defs/SettledIndependentEffectSummary"
+            }
+          },
+          "required": [
+            "returnId",
+            "status",
+            "providerRefund",
+            "cashRefund",
+            "commercialRefund",
+            "stockDisposition"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "returnId": {
+              "$ref": "#/$defs/Uuid"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "previewed",
+                "approval_required",
+                "refund_pending",
+                "in_progress",
+                "requires_attention"
+              ]
+            },
+            "message": {
+              "type": "string"
+            },
+            "providerRefund": {
+              "$ref": "#/$defs/IndependentEffectSummary"
+            },
+            "cashRefund": {
+              "$ref": "#/$defs/IndependentEffectSummary"
+            },
+            "commercialRefund": {
+              "$ref": "#/$defs/IndependentEffectSummary"
+            },
+            "stockDisposition": {
+              "$ref": "#/$defs/IndependentEffectSummary"
+            }
+          },
+          "required": [
+            "returnId",
+            "status",
+            "providerRefund",
+            "cashRefund",
+            "commercialRefund",
+            "stockDisposition"
+          ],
+          "additionalProperties": false
+        }
+      ]
     },
     "RefundRequest": {
       "type": "object",
@@ -1679,11 +1939,17 @@
         "refundId": {
           "$ref": "#/$defs/Uuid"
         },
+        "returnId": {
+          "$ref": "#/$defs/Uuid"
+        },
         "paymentId": {
           "$ref": "#/$defs/Uuid"
         },
         "transactionId": {
           "$ref": "#/$defs/Uuid"
+        },
+        "channel": {
+          "$ref": "#/$defs/RefundChannel"
         },
         "amount": {
           "$ref": "#/$defs/Money"
@@ -1694,8 +1960,10 @@
       },
       "required": [
         "refundId",
+        "returnId",
         "paymentId",
         "transactionId",
+        "channel",
         "amount"
       ],
       "additionalProperties": false
@@ -1705,6 +1973,12 @@
       "properties": {
         "refundId": {
           "$ref": "#/$defs/Uuid"
+        },
+        "returnId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "channel": {
+          "$ref": "#/$defs/RefundChannel"
         },
         "status": {
           "type": "string",
@@ -1721,8 +1995,401 @@
       },
       "required": [
         "refundId",
+        "returnId",
+        "channel",
         "status",
         "amount"
+      ],
+      "additionalProperties": false
+    },
+    "RefundLookup": {
+      "type": "object",
+      "properties": {
+        "refundId": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "refundId"
+      ],
+      "additionalProperties": false
+    },
+    "HistoricSaleLineEconomics": {
+      "type": "object",
+      "properties": {
+        "orderLineId": {
+          "$ref": "#/$defs/Id"
+        },
+        "originalSoldQuantity": {
+          "$ref": "#/$defs/Quantity"
+        },
+        "previouslyReturnedQuantity": {
+          "$ref": "#/$defs/NonNegativeQuantity"
+        },
+        "remainingReturnableQuantity": {
+          "$ref": "#/$defs/NonNegativeQuantity"
+        },
+        "historicalSubtotal": {
+          "$ref": "#/$defs/Money"
+        },
+        "historicalDiscount": {
+          "$ref": "#/$defs/Money"
+        },
+        "historicalTax": {
+          "$ref": "#/$defs/Money"
+        },
+        "historicalTotal": {
+          "$ref": "#/$defs/Money"
+        }
+      },
+      "required": [
+        "orderLineId",
+        "originalSoldQuantity",
+        "previouslyReturnedQuantity",
+        "remainingReturnableQuantity",
+        "historicalSubtotal",
+        "historicalDiscount",
+        "historicalTax",
+        "historicalTotal"
+      ],
+      "additionalProperties": false
+    },
+    "HistoricTenderEconomics": {
+      "type": "object",
+      "properties": {
+        "paymentId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "tender": {
+          "$ref": "#/$defs/PaymentTender"
+        },
+        "originalAmount": {
+          "$ref": "#/$defs/Money"
+        },
+        "alreadyRefundedAmount": {
+          "$ref": "#/$defs/Money"
+        },
+        "remainingRefundableAmount": {
+          "$ref": "#/$defs/Money"
+        }
+      },
+      "required": [
+        "paymentId",
+        "tender",
+        "originalAmount",
+        "alreadyRefundedAmount",
+        "remainingRefundableAmount"
+      ],
+      "additionalProperties": false
+    },
+    "HistoricSaleEconomicsSnapshot": {
+      "type": "object",
+      "properties": {
+        "saleId": {
+          "$ref": "#/$defs/Id"
+        },
+        "transactionId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "economicsVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "currency": {
+          "$ref": "#/$defs/Currency"
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HistoricSaleLineEconomics"
+          },
+          "minItems": 1
+        },
+        "tenders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HistoricTenderEconomics"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "saleId",
+        "transactionId",
+        "economicsVersion",
+        "currency",
+        "lines",
+        "tenders"
+      ],
+      "additionalProperties": false
+    },
+    "BridgeCommercialRefundLine": {
+      "type": "object",
+      "properties": {
+        "orderLineId": {
+          "$ref": "#/$defs/Id"
+        },
+        "quantity": {
+          "$ref": "#/$defs/Quantity"
+        },
+        "historicAmount": {
+          "$ref": "#/$defs/Money"
+        }
+      },
+      "required": [
+        "orderLineId",
+        "quantity",
+        "historicAmount"
+      ],
+      "additionalProperties": false
+    },
+    "BridgeCommercialRefundRequest": {
+      "type": "object",
+      "properties": {
+        "commercialRefundId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "returnId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "transactionId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "saleId": {
+          "$ref": "#/$defs/Id"
+        },
+        "amount": {
+          "$ref": "#/$defs/Money"
+        },
+        "economicsVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "fingerprint": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 128
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lineAllocations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BridgeCommercialRefundLine"
+          },
+          "minItems": 1
+        },
+        "approvalId": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "commercialRefundId",
+        "returnId",
+        "transactionId",
+        "saleId",
+        "amount",
+        "economicsVersion",
+        "fingerprint",
+        "reason",
+        "lineAllocations"
+      ],
+      "additionalProperties": false
+    },
+    "BridgeCommercialRefundState": {
+      "type": "object",
+      "properties": {
+        "commercialRefundId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "returnId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "transactionId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "saleId": {
+          "$ref": "#/$defs/Id"
+        },
+        "status": {
+          "$ref": "#/$defs/IndependentEffectStatus"
+        },
+        "amount": {
+          "$ref": "#/$defs/Money"
+        },
+        "economicsVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "commercialRefundId",
+        "returnId",
+        "transactionId",
+        "saleId",
+        "status",
+        "amount",
+        "economicsVersion"
+      ],
+      "additionalProperties": false
+    },
+    "StockDispositionCommandLine": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "orderLineId": {
+              "$ref": "#/$defs/Id"
+            },
+            "quantity": {
+              "$ref": "#/$defs/Quantity"
+            },
+            "condition": {
+              "type": "string",
+              "enum": [
+                "damaged",
+                "quarantine",
+                "not_physically_returned"
+              ]
+            },
+            "disposition": {
+              "const": "no_automatic_restock"
+            },
+            "locationId": {
+              "$ref": "#/$defs/Id"
+            }
+          },
+          "required": [
+            "orderLineId",
+            "quantity",
+            "condition",
+            "disposition"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "orderLineId": {
+              "$ref": "#/$defs/Id"
+            },
+            "quantity": {
+              "$ref": "#/$defs/Quantity"
+            },
+            "condition": {
+              "type": "string",
+              "enum": [
+                "resellable",
+                "opened_resellable",
+                "defective"
+              ]
+            },
+            "disposition": {
+              "$ref": "#/$defs/StockDisposition"
+            },
+            "locationId": {
+              "$ref": "#/$defs/Id"
+            }
+          },
+          "required": [
+            "orderLineId",
+            "quantity",
+            "condition",
+            "disposition"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "BridgeStockDispositionRequest": {
+      "type": "object",
+      "properties": {
+        "stockDispositionId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "returnId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "transactionId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "saleId": {
+          "$ref": "#/$defs/Id"
+        },
+        "economicsVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "fingerprint": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 128
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StockDispositionCommandLine"
+          },
+          "minItems": 1
+        },
+        "approvalId": {
+          "$ref": "#/$defs/Uuid"
+        }
+      },
+      "required": [
+        "stockDispositionId",
+        "returnId",
+        "transactionId",
+        "saleId",
+        "economicsVersion",
+        "fingerprint",
+        "lines"
+      ],
+      "additionalProperties": false
+    },
+    "BridgeStockDispositionState": {
+      "type": "object",
+      "properties": {
+        "stockDispositionId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "returnId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "transactionId": {
+          "$ref": "#/$defs/Uuid"
+        },
+        "saleId": {
+          "$ref": "#/$defs/Id"
+        },
+        "status": {
+          "$ref": "#/$defs/IndependentEffectStatus"
+        },
+        "economicsVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "stockDispositionId",
+        "returnId",
+        "transactionId",
+        "saleId",
+        "status",
+        "economicsVersion"
       ],
       "additionalProperties": false
     },

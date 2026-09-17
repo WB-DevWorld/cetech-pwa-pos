@@ -3,8 +3,10 @@ import type {
   CustomerContext,
   Id,
   Money,
+  PaymentTender,
   PendingOperation,
   PreparedSale,
+  Quantity,
   ReceiptLine,
   ReceiptSnapshot,
   Register,
@@ -12,6 +14,7 @@ import type {
   Quote,
   Session,
   Shift,
+  ShiftReport,
   Timestamp,
   Uuid,
   VerifiedPaymentEvidence,
@@ -37,20 +40,70 @@ export type StoredShift = Shift & {
 
 export type StoredCashMovement = CashMovement & {
   readonly organizationId: Id;
+  readonly refundId?: Uuid;
 };
+
+export type StoredPaymentStatus =
+  | "initializing"
+  | "awaiting_customer"
+  | "pending"
+  | "cancelled"
+  | "failed"
+  | "reconciling"
+  | "requires_attention"
+  | "verified";
+
+export type PaymentVerificationSource =
+  | "cash_ledger"
+  | "provider_server_verification"
+  | "approved_external_attestation";
 
 export type StoredPayment = {
   readonly paymentId: Uuid;
   readonly transactionId: Uuid;
   readonly saleId: Id;
-  readonly evidenceId: Uuid;
-  readonly tender: "cash";
-  readonly status: "verified";
+  readonly evidenceId?: Uuid;
+  readonly tender: PaymentTender;
+  readonly status: StoredPaymentStatus;
   readonly amount: Money;
-  readonly cashReceived: Money;
-  readonly verifiedAt: Timestamp;
-  readonly verificationSource: "cash_ledger";
+  readonly cashReceived?: Money;
+  readonly verifiedAt?: Timestamp;
+  readonly verificationSource?: PaymentVerificationSource;
   readonly actorId: Id;
+  readonly provider?: string;
+  readonly providerReference?: string;
+  readonly providerTransactionId?: string;
+  readonly displayReference?: string;
+  readonly accessCode?: string;
+  readonly initializeStatus?: "pending_remote" | "initialized" | "lost_response";
+  readonly lastVerifiedAt?: Timestamp;
+  readonly attentionReason?: string;
+};
+
+export type StoredProviderEvent = {
+  readonly id: Uuid;
+  readonly organizationId?: Id;
+  readonly locationId?: Id;
+  readonly provider: string;
+  readonly providerReference?: string;
+  readonly providerTransactionId?: string;
+  readonly eventType: string;
+  readonly eventFingerprint: string;
+  readonly rawBodyHash: string;
+  readonly receivedAt: Timestamp;
+  readonly processingStatus: "ingested" | "processed" | "ignored" | "requires_attention";
+  readonly normalizedStatus?: string;
+  readonly paymentId?: Uuid;
+  readonly transactionId?: Uuid;
+};
+
+export type StoredSaleOrderLine = {
+  readonly orderLineId: Id;
+  readonly quantity: Quantity;
+  readonly subtotal: Money;
+  readonly discount: Money;
+  readonly tax: Money;
+  readonly total: Money;
 };
 
 export type PosSaleRecord = {
@@ -67,6 +120,8 @@ export type PosSaleRecord = {
   readonly customerLabel: string;
   readonly prepared: PreparedSale;
   readonly lines: readonly ReceiptLine[];
+  readonly orderLines?: readonly StoredSaleOrderLine[];
+  readonly quoteId?: Id;
   readonly subtotal: Money;
   readonly discount: Money;
   readonly tax: Money;
@@ -123,6 +178,8 @@ export type SeedPreparedSaleInput = {
   readonly customerLabel: string;
   readonly prepared: PreparedSale;
   readonly lines: readonly ReceiptLine[];
+  readonly orderLines?: readonly StoredSaleOrderLine[];
+  readonly quoteId?: Id;
   readonly subtotal: Money;
   readonly discount: Money;
   readonly tax: Money;
@@ -136,17 +193,31 @@ export interface CheckoutStore {
   getActiveShift(registerId: Id): Promise<StoredShift | undefined>;
   getShift(id: Uuid): Promise<StoredShift | undefined>;
   insertOpenShift(shift: StoredShift): Promise<"ok" | "conflict">;
-  appendCashMovement(movement: StoredCashMovement): Promise<"ok" | "duplicate_sale" | "shift_required" | "negative_expected">;
+  closeShift(input: {
+    readonly shiftId: Uuid;
+    readonly countedCash: Money;
+    readonly status: "closed" | "requires_attention";
+    readonly closedAt?: Timestamp;
+    readonly zReportId?: Id;
+  }): Promise<"ok" | "missing" | "not_open" | "already_closed">;
+  saveShiftReport(report: ShiftReport): Promise<"ok" | "duplicate">;
+  getShiftReport(shiftId: Uuid, kind: "X" | "Z"): Promise<ShiftReport | undefined>;
+  appendCashMovement(movement: StoredCashMovement): Promise<"ok" | "duplicate_sale" | "duplicate_refund" | "shift_required" | "negative_expected">;
   listCashSales(transactionId: Uuid): Promise<readonly StoredCashMovement[]>;
+  listCashRefunds(refundId: Uuid): Promise<readonly StoredCashMovement[]>;
   expectedCash(shiftId: Uuid): Promise<Money | undefined>;
   saveQuote(quote: Quote): Promise<void>;
   getQuote(quoteId: Id): Promise<Quote | undefined>;
   seedPreparedSale(input: SeedPreparedSaleInput): Promise<PosSaleRecord>;
   getSale(transactionId: Uuid): Promise<PosSaleRecord | undefined>;
+  getSaleBySaleId(organizationId: Id, saleId: Id): Promise<PosSaleRecord | undefined>;
   saveSale(sale: PosSaleRecord): Promise<void>;
   getPayment(paymentId: Uuid): Promise<StoredPayment | undefined>;
   getPaymentForTransaction(transactionId: Uuid): Promise<StoredPayment | undefined>;
+  getPaymentByProviderReference(provider: string, reference: string): Promise<StoredPayment | undefined>;
   savePayment(payment: StoredPayment): Promise<void>;
+  saveProviderEvent(event: StoredProviderEvent): Promise<"inserted" | "duplicate">;
+  getProviderEvent(provider: string, fingerprint: string): Promise<StoredProviderEvent | undefined>;
   getReceipt(transactionId: Uuid): Promise<ReceiptSnapshot | undefined>;
   saveReceipt(receipt: ReceiptSnapshot): Promise<"ok" | "duplicate">;
   enqueueOutbox(event: OutboxEvent): Promise<void>;
@@ -198,15 +269,23 @@ export interface FaultInjectingCheckoutStore extends CheckoutStore {
 }
 
 export function evidenceFromPayment(payment: StoredPayment): VerifiedPaymentEvidence {
+  if (
+    payment.status !== "verified" ||
+    !payment.evidenceId ||
+    !payment.verifiedAt ||
+    !payment.verificationSource
+  ) {
+    throw new Error("payment evidence is not verified");
+  }
   return {
     evidenceId: payment.evidenceId,
     transactionId: payment.transactionId,
     paymentId: payment.paymentId,
     saleId: payment.saleId,
     amount: payment.amount,
-    tender: "cash",
+    tender: payment.tender,
     verifiedAt: payment.verifiedAt,
-    verificationSource: "cash_ledger",
+    verificationSource: payment.verificationSource,
   };
 }
 

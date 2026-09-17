@@ -639,5 +639,503 @@
         "currency": "GHS"
       }
     }
+  },
+  {
+    "name": "return preview request intent only",
+    "schema": "ReturnPreviewRequest",
+    "valid": true,
+    "value": {
+      "saleId": "sale-1",
+      "lines": [
+        {
+          "orderLineId": "line-1",
+          "quantity": "1",
+          "reason": "customer return",
+          "condition": "resellable"
+        }
+      ]
+    }
+  },
+  {
+    "name": "return preview request rejects client refund total",
+    "schema": "ReturnPreviewRequest",
+    "valid": false,
+    "value": {
+      "saleId": "sale-1",
+      "lines": [
+        {
+          "orderLineId": "line-1",
+          "quantity": "1",
+          "reason": "customer return",
+          "condition": "resellable"
+        }
+      ],
+      "refundTotal": {
+        "minor": 1500,
+        "currency": "GHS"
+      }
+    }
+  },
+  {
+    "name": "return execute rejects restock quantity",
+    "schema": "ReturnExecuteRequest",
+    "valid": false,
+    "value": {
+      "returnId": "33333333-3333-4333-8333-333333333333",
+      "fingerprint": "0123456789abcdef0123456789abcdef",
+      "restockQuantity": "1"
+    }
+  },
+  {
+    "name": "return preview server historic snapshot",
+    "schema": "ReturnPreview",
+    "valid": true,
+    "value": {
+      "returnId": "33333333-3333-4333-8333-333333333333",
+      "saleId": "sale-1",
+      "economicsVersion": "hist-v1",
+      "refundTotal": {
+        "minor": 1500,
+        "currency": "GHS"
+      },
+      "approvalRequired": false,
+      "fingerprint": "0123456789abcdef0123456789abcdef",
+      "expiresAt": "2026-09-15T12:00:00.000Z",
+      "lines": [
+        {
+          "orderLineId": "line-1",
+          "requestedQuantity": "1",
+          "remainingReturnableQuantity": "1",
+          "condition": "resellable",
+          "intendedDisposition": "restock_sellable",
+          "dispositionPolicy": "automatic_sellable_restock"
+        }
+      ]
+    }
+  },
+  {
+    "name": "money complete stock pending return resolution",
+    "schema": "ReturnResolution",
+    "valid": true,
+    "value": {
+      "returnId": "33333333-3333-4333-8333-333333333333",
+      "status": "in_progress",
+      "providerRefund": {
+        "effectId": "44444444-4444-4444-8444-444444444444",
+        "status": "completed"
+      },
+      "cashRefund": {
+        "status": "not_required"
+      },
+      "commercialRefund": {
+        "effectId": "55555555-5555-4555-8555-555555555555",
+        "status": "completed"
+      },
+      "stockDisposition": {
+        "effectId": "66666666-6666-4666-8666-666666666666",
+        "status": "pending"
+      }
+    }
+  },
+  {
+    "name": "stock complete money attention return resolution",
+    "schema": "ReturnResolution",
+    "valid": true,
+    "value": {
+      "returnId": "33333333-3333-4333-8333-333333333333",
+      "status": "requires_attention",
+      "providerRefund": {
+        "effectId": "44444444-4444-4444-8444-444444444444",
+        "status": "requires_attention"
+      },
+      "cashRefund": {
+        "status": "not_required"
+      },
+      "commercialRefund": {
+        "effectId": "55555555-5555-4555-8555-555555555555",
+        "status": "completed"
+      },
+      "stockDisposition": {
+        "effectId": "66666666-6666-4666-8666-666666666666",
+        "status": "completed"
+      }
+    }
+  },
+  {
+    "name": "completed return with no automatic restock",
+    "schema": "ReturnResolution",
+    "valid": true,
+    "value": {
+      "returnId": "33333333-3333-4333-8333-333333333333",
+      "status": "completed",
+      "providerRefund": {
+        "effectId": "44444444-4444-4444-8444-444444444444",
+        "status": "completed"
+      },
+      "cashRefund": {
+        "status": "not_required"
+      },
+      "commercialRefund": {
+        "effectId": "55555555-5555-4555-8555-555555555555",
+        "status": "completed"
+      },
+      "stockDisposition": {
+        "status": "not_required"
+      }
+    }
+  },
+  {
+    "name": "completed return with all required effects completed",
+    "schema": "ReturnResolution",
+    "valid": true,
+    "value": {
+      "returnId": "33333333-3333-4333-8333-333333333333",
+      "status": "completed",
+      "providerRefund": {
+        "effectId": "44444444-4444-4444-8444-444444444444",
+        "status": "completed"
+      },
+      "cashRefund": {
+        "status": "not_required"
+      },
+      "commercialRefund": {
+        "effectId": "55555555-5555-4555-8555-555555555555",
+        "status": "completed"
+      },
+      "stockDisposition": {
+        "effectId": "66666666-6666-4666-8666-666666666666",
+        "status": "completed"
+      }
+    }
+  },
+  {
+    "name": "completed return with pending stock denied",
+    "schema": "ReturnResolution",
+    "valid": false,
+    "value": {
+      "returnId": "33333333-3333-4333-8333-333333333333",
+      "status": "completed",
+      "providerRefund": {
+        "effectId": "44444444-4444-4444-8444-444444444444",
+        "status": "completed"
+      },
+      "cashRefund": {
+        "status": "not_required"
+      },
+      "commercialRefund": {
+        "effectId": "55555555-5555-4555-8555-555555555555",
+        "status": "completed"
+      },
+      "stockDisposition": {
+        "effectId": "66666666-6666-4666-8666-666666666666",
+        "status": "pending"
+      }
+    }
+  },
+  {
+    "name": "server refund request binds return and channel",
+    "schema": "RefundRequest",
+    "valid": true,
+    "value": {
+      "refundId": "44444444-4444-4444-8444-444444444444",
+      "returnId": "33333333-3333-4333-8333-333333333333",
+      "paymentId": "22222222-2222-4222-8222-222222222222",
+      "transactionId": "11111111-1111-4111-8111-111111111111",
+      "channel": "provider_electronic",
+      "amount": {
+        "minor": 1500,
+        "currency": "GHS"
+      }
+    }
+  },
+  {
+    "name": "refund lookup by refundId only",
+    "schema": "RefundLookup",
+    "valid": true,
+    "value": {
+      "refundId": "44444444-4444-4444-8444-444444444444"
+    }
+  },
+  {
+    "name": "refund lookup rejects invented amount",
+    "schema": "RefundLookup",
+    "valid": false,
+    "value": {
+      "refundId": "44444444-4444-4444-8444-444444444444",
+      "amount": {
+        "minor": 500,
+        "currency": "GHS"
+      }
+    }
+  },
+  {
+    "name": "refund lookup rejects provider reference",
+    "schema": "RefundLookup",
+    "valid": false,
+    "value": {
+      "refundId": "44444444-4444-4444-8444-444444444444",
+      "providerReference": "pay_ref_1"
+    }
+  },
+  {
+    "name": "pending independent effect without identity denied",
+    "schema": "IndependentEffectSummary",
+    "valid": false,
+    "value": {
+      "status": "pending"
+    }
+  },
+  {
+    "name": "not_required independent effect without identity allowed",
+    "schema": "IndependentEffectSummary",
+    "valid": true,
+    "value": {
+      "status": "not_required"
+    }
+  },
+  {
+    "name": "completed settled effect without identity denied",
+    "schema": "SettledIndependentEffectSummary",
+    "valid": false,
+    "value": {
+      "status": "completed"
+    }
+  },
+  {
+    "name": "completed settled effect with identity allowed",
+    "schema": "SettledIndependentEffectSummary",
+    "valid": true,
+    "value": {
+      "effectId": "44444444-4444-4444-8444-444444444444",
+      "status": "completed"
+    }
+  },
+  {
+    "name": "refund.resolve journal operation",
+    "schema": "PendingOperation",
+    "valid": true,
+    "value": {
+      "id": "88888888-8888-4888-8888-888888888888",
+      "transactionId": "11111111-1111-4111-8111-111111111111",
+      "operation": "refund.resolve",
+      "idempotencyKey": "99999999-9999-4999-8999-999999999999",
+      "requestHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "payloadVersion": "1.0.0",
+      "status": "response_unknown",
+      "attempts": 1,
+      "createdAt": "2026-09-15T12:00:00.000Z"
+    }
+  },
+  {
+    "name": "partial historic line remaining quantity",
+    "schema": "HistoricSaleLineEconomics",
+    "valid": true,
+    "value": {
+      "orderLineId": "line-1",
+      "originalSoldQuantity": "2",
+      "previouslyReturnedQuantity": "1",
+      "remainingReturnableQuantity": "1",
+      "historicalSubtotal": {
+        "minor": 1500,
+        "currency": "GHS"
+      },
+      "historicalDiscount": {
+        "minor": 0,
+        "currency": "GHS"
+      },
+      "historicalTax": {
+        "minor": 0,
+        "currency": "GHS"
+      },
+      "historicalTotal": {
+        "minor": 1500,
+        "currency": "GHS"
+      }
+    }
+  },
+  {
+    "name": "commercial refund command historic allocation",
+    "schema": "BridgeCommercialRefundRequest",
+    "valid": true,
+    "value": {
+      "commercialRefundId": "55555555-5555-4555-8555-555555555555",
+      "returnId": "33333333-3333-4333-8333-333333333333",
+      "transactionId": "11111111-1111-4111-8111-111111111111",
+      "saleId": "sale-1",
+      "amount": {
+        "minor": 1500,
+        "currency": "GHS"
+      },
+      "economicsVersion": "hist-v1",
+      "fingerprint": "0123456789abcdef0123456789abcdef",
+      "reason": "customer return",
+      "lineAllocations": [
+        {
+          "orderLineId": "line-1",
+          "quantity": "1",
+          "historicAmount": {
+            "minor": 1500,
+            "currency": "GHS"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "commercial refund command rejects current catalog price",
+    "schema": "BridgeCommercialRefundRequest",
+    "valid": false,
+    "value": {
+      "commercialRefundId": "55555555-5555-4555-8555-555555555555",
+      "returnId": "33333333-3333-4333-8333-333333333333",
+      "transactionId": "11111111-1111-4111-8111-111111111111",
+      "saleId": "sale-1",
+      "amount": {
+        "minor": 1500,
+        "currency": "GHS"
+      },
+      "economicsVersion": "hist-v1",
+      "fingerprint": "0123456789abcdef0123456789abcdef",
+      "reason": "customer return",
+      "lineAllocations": [
+        {
+          "orderLineId": "line-1",
+          "quantity": "1",
+          "historicAmount": {
+            "minor": 1500,
+            "currency": "GHS"
+          }
+        }
+      ],
+      "currentCatalogPrice": {
+        "minor": 1800,
+        "currency": "GHS"
+      }
+    }
+  },
+  {
+    "name": "damaged sellable restock denied",
+    "schema": "StockDispositionCommandLine",
+    "valid": false,
+    "value": {
+      "orderLineId": "line-1",
+      "quantity": "1",
+      "condition": "damaged",
+      "disposition": "restock_sellable"
+    }
+  },
+  {
+    "name": "quarantine sellable restock denied",
+    "schema": "StockDispositionCommandLine",
+    "valid": false,
+    "value": {
+      "orderLineId": "line-1",
+      "quantity": "1",
+      "condition": "quarantine",
+      "disposition": "restock_sellable"
+    }
+  },
+  {
+    "name": "not physically returned sellable restock denied",
+    "schema": "StockDispositionCommandLine",
+    "valid": false,
+    "value": {
+      "orderLineId": "line-1",
+      "quantity": "1",
+      "condition": "not_physically_returned",
+      "disposition": "restock_sellable"
+    }
+  },
+  {
+    "name": "damaged no automatic restock allowed",
+    "schema": "StockDispositionCommandLine",
+    "valid": true,
+    "value": {
+      "orderLineId": "line-1",
+      "quantity": "1",
+      "condition": "damaged",
+      "disposition": "no_automatic_restock"
+    }
+  },
+  {
+    "name": "stock disposition request independent identity",
+    "schema": "BridgeStockDispositionRequest",
+    "valid": true,
+    "value": {
+      "stockDispositionId": "66666666-6666-4666-8666-666666666666",
+      "returnId": "33333333-3333-4333-8333-333333333333",
+      "transactionId": "11111111-1111-4111-8111-111111111111",
+      "saleId": "sale-1",
+      "economicsVersion": "hist-v1",
+      "fingerprint": "0123456789abcdef0123456789abcdef",
+      "lines": [
+        {
+          "orderLineId": "line-1",
+          "quantity": "1",
+          "condition": "resellable",
+          "disposition": "restock_sellable"
+        }
+      ]
+    }
+  },
+  {
+    "name": "zero previously returned quantity allowed",
+    "schema": "NonNegativeQuantity",
+    "valid": true,
+    "value": "0"
+  },
+  {
+    "name": "zero sold quantity still denied",
+    "schema": "Quantity",
+    "valid": false,
+    "value": "0"
+  },
+  {
+    "name": "return execute journal operation",
+    "schema": "PendingOperation",
+    "valid": true,
+    "value": {
+      "id": "88888888-8888-4888-8888-888888888888",
+      "transactionId": "11111111-1111-4111-8111-111111111111",
+      "operation": "return.execute",
+      "idempotencyKey": "99999999-9999-4999-8999-999999999999",
+      "requestHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "payloadVersion": "1.0.0",
+      "status": "pending",
+      "attempts": 0,
+      "createdAt": "2026-09-15T12:00:00.000Z"
+    }
+  },
+  {
+    "name": "commercial refund journal operation",
+    "schema": "PendingOperation",
+    "valid": true,
+    "value": {
+      "id": "88888888-8888-4888-8888-888888888888",
+      "transactionId": "11111111-1111-4111-8111-111111111111",
+      "operation": "bridge.commercial_refund",
+      "idempotencyKey": "99999999-9999-4999-8999-999999999999",
+      "requestHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "payloadVersion": "1.0.0",
+      "status": "response_unknown",
+      "attempts": 1,
+      "createdAt": "2026-09-15T12:00:00.000Z"
+    }
+  },
+  {
+    "name": "stock disposition journal operation",
+    "schema": "PendingOperation",
+    "valid": true,
+    "value": {
+      "id": "88888888-8888-4888-8888-888888888888",
+      "transactionId": "11111111-1111-4111-8111-111111111111",
+      "operation": "bridge.stock_disposition",
+      "idempotencyKey": "aaaaaaa1-9999-4999-8999-999999999999",
+      "requestHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "payloadVersion": "1.0.0",
+      "status": "response_unknown",
+      "attempts": 1,
+      "createdAt": "2026-09-15T12:00:00.000Z"
+    }
   }
 ]

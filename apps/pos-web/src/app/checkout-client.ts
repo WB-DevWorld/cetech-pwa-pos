@@ -4,19 +4,30 @@ import type {
   PaymentPort,
   PrintPort,
   ReceiptPort,
+  RegisterPort,
+  ReturnPort,
   SalesPort,
 } from "../../../../docs/contracts/ports";
 import type {
   CashPaymentRequest,
+  CloseShiftRequest,
   CommandContext,
   FinalizeSaleRequest,
+  OpenShiftRequest,
   PaymentLookup,
   PaymentState,
   PreparedSale,
   PrepareSaleRequest,
   PrintResult,
   ReceiptSnapshot,
+  Register,
+  ReturnExecuteRequest,
+  ReturnPreview,
+  ReturnPreviewRequest,
+  ReturnResolution,
   SaleResolution,
+  Shift,
+  ShiftReport,
   Uuid,
 } from "../../../../docs/contracts/domain.generated";
 import type { CashCheckoutPorts, CashCheckoutScope } from "../features/sell";
@@ -185,5 +196,49 @@ export function createBrowserCashCheckoutPorts(
     receipts: createBrowserReceiptPort(options),
     printer: createBrowserPrintPort(),
     scope: options.scope ?? LOCAL_CHECKOUT_SCOPE,
+  };
+}
+
+export function createBrowserReturnPort(options: BrowserCheckoutOptions = {}): ReturnPort {
+  return {
+    preview(input: ReturnPreviewRequest): Promise<ApiResult<ReturnPreview>> {
+      return command("/api/pos/v1/returns/preview", "POST", { correlationId: crypto.randomUUID() }, options, input);
+    },
+    execute(input: ReturnExecuteRequest, context: CommandContext): Promise<ApiResult<ReturnResolution>> {
+      return command("/api/pos/v1/returns/execute", "POST", context, options, input);
+    },
+    resolve(returnId: Uuid): Promise<ApiResult<ReturnResolution>> {
+      return command(`/api/pos/v1/returns/${returnId}`, "GET", { correlationId: crypto.randomUUID() }, options);
+    },
+  };
+}
+
+export function createBrowserRegisterPort(options: BrowserCheckoutOptions = {}): RegisterPort {
+  return {
+    get(id): Promise<ApiResult<Register>> {
+      return command(`/api/pos/v1/registers/${id}`, "GET", { correlationId: crypto.randomUUID() }, options);
+    },
+    activeShift(id): Promise<ApiResult<Shift | null>> {
+      return command(`/api/pos/v1/registers/${id}/active-shift`, "GET", { correlationId: crypto.randomUUID() }, options);
+    },
+    open(input: OpenShiftRequest, context: CommandContext): Promise<ApiResult<Shift>> {
+      return command("/api/pos/v1/shifts/open", "POST", context, options, input);
+    },
+    cashMovement() {
+      return Promise.resolve(
+        unavailable(crypto.randomUUID(), "Cash movements are not mounted in this R8 composition."),
+      );
+    },
+    close(input: CloseShiftRequest, context: CommandContext): Promise<ApiResult<Shift>> {
+      return command("/api/pos/v1/shifts/close", "POST", context, options, input);
+    },
+    report(shiftId: Uuid, kind: "X" | "Z"): Promise<ApiResult<ShiftReport>> {
+      return command(
+        `/api/pos/v1/shifts/${shiftId}/report?kind=${kind}`,
+        "GET",
+        { correlationId: crypto.randomUUID() },
+        options,
+      );
+    },
   };
 }

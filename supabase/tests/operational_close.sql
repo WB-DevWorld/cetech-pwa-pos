@@ -1,8 +1,8 @@
--- CORE-07 atomic blind close, variance, idempotency and immutable Z report.
+-- CORE-07 atomic close with R8 fail-closed variance and immutable Z.
 
 BEGIN;
 
-SELECT plan(14);
+SELECT plan(22);
 
 SET ROLE anon;
 SELECT throws_ok(
@@ -23,6 +23,7 @@ SELECT throws_ok(
 RESET ROLE;
 
 SET ROLE service_role;
+
 INSERT INTO pos_shifts (
   register_id, device_id, opening_float_minor, opening_float_currency, cashier_id
 ) VALUES (
@@ -52,31 +53,25 @@ SELECT lives_ok(
   $$ SELECT pos_close_shift_blind(
        'org_a',
        current_setting('pos_test.close_shift')::uuid,
-       7300,
+       7500,
        'GHS',
        '77777777-7777-4777-8777-777777777701',
        '88888888-8888-4888-8888-888888888801',
        repeat('a', 64)
      ) $$,
-  'blind close succeeds without a client-supplied expected-cash value'
+  'zero-variance blind close succeeds without a client-supplied expected-cash value'
 );
 
 SELECT is(
   (SELECT status FROM pos_shifts WHERE id = current_setting('pos_test.close_shift')::uuid),
   'closed',
-  'shift is closed atomically'
+  'zero variance closes the shift atomically'
 );
 
-SELECT is(
-  (SELECT counted_cash_minor::bigint FROM pos_shifts WHERE id = current_setting('pos_test.close_shift')::uuid),
-  7300::bigint,
-  'counted cash is retained'
-);
-
-SELECT is(
-  (SELECT variance_minor::bigint FROM pos_shifts WHERE id = current_setting('pos_test.close_shift')::uuid),
-  (-200)::bigint,
-  'variance is derived from server-owned expected cash'
+SELECT isnt(
+  (SELECT closed_at FROM pos_shifts WHERE id = current_setting('pos_test.close_shift')::uuid),
+  NULL,
+  'zero-variance close sets closedAt'
 );
 
 SELECT is(
@@ -107,7 +102,7 @@ SELECT lives_ok(
   $$ SELECT pos_close_shift_blind(
        'org_a',
        current_setting('pos_test.close_shift')::uuid,
-       7300,
+       7500,
        'GHS',
        '77777777-7777-4777-8777-777777777701',
        '99999999-9999-4999-8999-999999999901',
@@ -138,6 +133,96 @@ SELECT throws_ok(
   'same close key with different economic input conflicts'
 );
 
+INSERT INTO pos_shifts (
+  register_id, device_id, opening_float_minor, opening_float_currency, cashier_id
+) VALUES (
+  'reg_a', '00000000-0000-4000-8000-0000000000a1', 10000, 'GHS', 'cashier_a'
+);
+
+SELECT set_config(
+  'pos_test.attention_shift',
+  (SELECT id::text FROM pos_shifts WHERE opening_float_minor = 10000 AND status = 'open' LIMIT 1),
+  true
+);
+
+SELECT lives_ok(
+  $$ SELECT pos_close_shift_blind(
+       'org_a',
+       current_setting('pos_test.attention_shift')::uuid,
+       9900,
+       'GHS',
+       '77777777-7777-4777-8777-777777777702',
+       '88888888-8888-4888-8888-888888888802',
+       repeat('c', 64)
+     ) $$,
+  'non-zero variance records counted cash without closing'
+);
+
+SELECT is(
+  (SELECT status FROM pos_shifts WHERE id = current_setting('pos_test.attention_shift')::uuid),
+  'requires_attention',
+  'non-zero variance stays requires_attention'
+);
+
+SELECT is(
+  (SELECT closed_at FROM pos_shifts WHERE id = current_setting('pos_test.attention_shift')::uuid),
+  NULL,
+  'non-zero variance does not set closedAt'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM pos_shift_reports
+    WHERE shift_id = current_setting('pos_test.attention_shift')::uuid AND kind = 'Z'),
+  0,
+  'non-zero variance does not mint a Z report'
+);
+
+SELECT lives_ok(
+  $$ SELECT pos_close_shift_blind(
+       'org_a',
+       current_setting('pos_test.attention_shift')::uuid,
+       9900,
+       'GHS',
+       '77777777-7777-4777-8777-777777777702',
+       '88888888-8888-4888-8888-888888888803',
+       repeat('c', 64)
+     ) $$,
+  'replayed non-zero same key returns the durable attention outcome'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM pos_shift_reports
+    WHERE shift_id = current_setting('pos_test.attention_shift')::uuid AND kind = 'Z'),
+  0,
+  'attention replay still has no Z'
+);
+
+SELECT lives_ok(
+  $$ SELECT pos_close_shift_blind(
+       'org_a',
+       current_setting('pos_test.attention_shift')::uuid,
+       10000,
+       'GHS',
+       '77777777-7777-4777-8777-777777777703',
+       '88888888-8888-4888-8888-888888888804',
+       repeat('d', 64)
+     ) $$,
+  'a later corrected recount with a new idempotency key may close'
+);
+
+SELECT is(
+  (SELECT status FROM pos_shifts WHERE id = current_setting('pos_test.attention_shift')::uuid),
+  'closed',
+  'corrected zero-variance recount closes the previously attentive shift'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM pos_shift_reports
+    WHERE shift_id = current_setting('pos_test.attention_shift')::uuid AND kind = 'Z'),
+  1,
+  'corrected recount mints exactly one Z'
+);
+
 RESET ROLE;
 SELECT throws_ok(
   $$ UPDATE pos_shift_reports SET expected_cash_minor = 1
@@ -148,4 +233,5 @@ SELECT throws_ok(
 );
 
 SELECT * FROM finish();
+
 ROLLBACK;

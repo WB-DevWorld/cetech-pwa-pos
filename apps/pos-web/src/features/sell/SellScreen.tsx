@@ -11,6 +11,7 @@ import { VariationDialog } from "./components/VariationDialog";
 import { useBarcodeScanner } from "./hooks/useBarcodeScanner";
 import { canBeginNewSale, checkoutDialogOpen, type CheckoutSessionView } from "./state/checkoutSession";
 import { formatMoneyDisplay, type CheckoutEligibilityView, type QuoteDisplayState } from "./state/quotePresentation";
+import type { ElectronicPaymentSessionView, ElectronicTenderView } from "../payments/electronicPaymentView";
 import { resolveQuotePresentation } from "./state/quoteRevision";
 import { isDigitBarcodeQuery } from "./state/barcodeResolution";
 import type {
@@ -82,6 +83,14 @@ export type SellScreenProps = {
   onPrintReceipt?: () => void;
   onCheckoutNewSale?: () => void;
   onDismissCheckout?: () => void;
+  electronicSession?: ElectronicPaymentSessionView;
+  electronicInFlight?: boolean;
+  electronicTender?: ElectronicTenderView;
+  onElectronicTenderChange?: (tender: ElectronicTenderView) => void;
+  onPresentElectronic?: () => void;
+  onResolveElectronic?: () => void;
+  onContinueWaitingElectronic?: () => void;
+  onContactManager?: () => void;
   searchCatalog?: (query: string) => Promise<readonly SellProductView[]>;
   resolveBarcodeCatalog?: (barcode: string) => Promise<readonly SellProductView[]>;
   loadVariations?: (parentId: string) => Promise<readonly SellProductView[]>;
@@ -121,6 +130,14 @@ export function SellScreen({
   onPrintReceipt,
   onCheckoutNewSale,
   onDismissCheckout,
+  electronicSession,
+  electronicInFlight = false,
+  electronicTender,
+  onElectronicTenderChange,
+  onPresentElectronic,
+  onResolveElectronic,
+  onContinueWaitingElectronic,
+  onContactManager,
   searchCatalog,
   resolveBarcodeCatalog,
   loadVariations,
@@ -420,6 +437,14 @@ export function SellScreen({
           onPrint={() => onPrintReceipt?.()}
           onNewSale={handleNewSale}
           onDismiss={() => onDismissCheckout?.()}
+          electronicSession={electronicSession}
+          electronicInFlight={electronicInFlight}
+          electronicTender={electronicTender}
+          onElectronicTenderChange={onElectronicTenderChange}
+          onPresentElectronic={onPresentElectronic}
+          onResolveElectronic={onResolveElectronic}
+          onContinueWaitingElectronic={onContinueWaitingElectronic}
+          onContactManager={onContactManager}
         />
       ) : null}
     </div>

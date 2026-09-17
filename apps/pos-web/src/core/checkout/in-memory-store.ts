@@ -1,4 +1,5 @@
-import type { Id, PendingOperation, Quote, ReceiptSnapshot, Uuid } from "../../../../../docs/contracts/domain.generated";
+import type { Id, PendingOperation, Quote, ReceiptSnapshot, ShiftReport, Uuid } from "../../../../../docs/contracts/domain.generated";
+import { mergeStoredPayment, mergeStoredSale } from "./monotonic";
 import type {
   CommandScopeBinding,
   FaultInjectingCheckoutStore,
@@ -7,6 +8,7 @@ import type {
   StoredCashMovement,
   StoredDevice,
   StoredPayment,
+  StoredProviderEvent,
   StoredRegister,
   StoredShift,
 } from "./types";
@@ -42,8 +44,11 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
   const sales = new Map<Uuid, PosSaleRecord>();
   const payments = new Map<Uuid, StoredPayment>();
   const paymentsByTx = new Map<Uuid, Uuid>();
+  const paymentsByProviderRef = new Map<string, Uuid>();
+  const providerEvents = new Map<string, StoredProviderEvent>();
   const receipts = new Map<Uuid, ReceiptSnapshot>();
   const outbox: OutboxEvent[] = [];
+  const reports = new Map<string, ShiftReport>();
   const idempotency = new Map<string, IdempotencyRow>();
   const scopeByTransaction = new Map<string, CommandScopeBinding>();
   const chains = new Map<string, Promise<void>>();
@@ -107,6 +112,37 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
       return "ok";
     },
 
+    async closeShift(input) {
+      const shift = shifts.get(input.shiftId);
+      if (!shift) {
+        return "missing";
+      }
+      if (shift.status === "closed") {
+        return "already_closed";
+      }
+      if (shift.status !== "open" && shift.status !== "closing" && shift.status !== "requires_attention") {
+        return "not_open";
+      }
+      const expected = shift.expectedCash ?? shift.openingFloat;
+      const next = {
+        ...shift,
+        status: input.status,
+        countedCash: input.countedCash,
+        expectedCash: expected,
+        variance: {
+          minor: input.countedCash.minor - expected.minor,
+          currency: expected.currency,
+        },
+        closedAt: input.status === "closed" ? input.closedAt : undefined,
+        zReportId: input.status === "closed" ? input.zReportId : undefined,
+      };
+      shifts.set(shift.id, next);
+      if (input.status === "closed") {
+        activeByRegister.delete(shift.registerId);
+      }
+      return "ok";
+    },
+
     async appendCashMovement(movement) {
       const shift = shifts.get(movement.shiftId);
       if (!shift || shift.status !== "open") {
@@ -118,6 +154,14 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
         );
         if (duplicate) {
           return "duplicate_sale";
+        }
+      }
+      if (movement.kind === "cash_refund" && movement.refundId) {
+        const duplicate = movements.some(
+          (row) => row.kind === "cash_refund" && row.refundId === movement.refundId,
+        );
+        if (duplicate) {
+          return "duplicate_refund";
         }
       }
       if (movement.kind !== "opening_float") {
@@ -138,8 +182,26 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
       return movements.filter((row) => row.kind === "cash_sale" && row.transactionId === transactionId);
     },
 
+    async listCashRefunds(refundId) {
+      return movements.filter((row) => row.kind === "cash_refund" && row.refundId === refundId);
+    },
+
     async expectedCash(shiftId) {
       return shifts.get(shiftId)?.expectedCash;
+    },
+
+    async saveShiftReport(report) {
+      const key = `${report.shiftId}\0${report.kind}`;
+      const existing = reports.get(key);
+      if (existing) {
+        return existing.id === report.id ? "ok" : "duplicate";
+      }
+      reports.set(key, report);
+      return "ok";
+    },
+
+    async getShiftReport(shiftId, kind) {
+      return reports.get(`${shiftId}\0${kind}`);
     },
 
     async saveQuote(quote) {
@@ -165,6 +227,15 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
       return row ? { ...row } : undefined;
     },
 
+    async getSaleBySaleId(organizationId, saleId) {
+      for (const row of sales.values()) {
+        if (row.organizationId === organizationId && row.prepared.saleId === saleId) {
+          return { ...row };
+        }
+      }
+      return undefined;
+    },
+
     async saveSale(sale) {
       if (store.failNextSaleWrite) {
         store.failNextSaleWrite = false;
@@ -174,7 +245,10 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
         store.failNextCommercialConfirmedWrite = false;
         throw new Error("injected POS commercial-confirmed persistence failure");
       }
-      sales.set(sale.prepared.transactionId, { ...sale });
+      sales.set(
+        sale.prepared.transactionId,
+        mergeStoredSale(sales.get(sale.prepared.transactionId), { ...sale }),
+      );
     },
 
     async getPayment(paymentId) {
@@ -186,13 +260,44 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
       return paymentId ? payments.get(paymentId) : undefined;
     },
 
+    async getPaymentByProviderReference(provider, reference) {
+      const paymentId = paymentsByProviderRef.get(`${provider}\0${reference}`);
+      return paymentId ? payments.get(paymentId) : undefined;
+    },
+
     async savePayment(payment) {
       if (store.failNextPaymentWrite) {
         store.failNextPaymentWrite = false;
         throw new Error("injected POS payment persistence failure");
       }
-      payments.set(payment.paymentId, payment);
-      paymentsByTx.set(payment.transactionId, payment.paymentId);
+      const existingTx = paymentsByTx.get(payment.transactionId);
+      if (existingTx && existingTx !== payment.paymentId) {
+        throw new Error("one payment intent per transaction");
+      }
+      if (payment.provider && payment.providerReference) {
+        const refKey = `${payment.provider}\0${payment.providerReference}`;
+        const existingRef = paymentsByProviderRef.get(refKey);
+        if (existingRef && existingRef !== payment.paymentId) {
+          throw new Error("provider reference already exists");
+        }
+        paymentsByProviderRef.set(refKey, payment.paymentId);
+      }
+      const merged = mergeStoredPayment(payments.get(payment.paymentId), payment);
+      payments.set(merged.paymentId, merged);
+      paymentsByTx.set(merged.transactionId, merged.paymentId);
+    },
+
+    async saveProviderEvent(event) {
+      const key = `${event.provider}\0${event.eventFingerprint}`;
+      if (providerEvents.has(key)) {
+        return "duplicate";
+      }
+      providerEvents.set(key, event);
+      return "inserted";
+    },
+
+    async getProviderEvent(provider, fingerprint) {
+      return providerEvents.get(`${provider}\0${fingerprint}`);
     },
 
     async getReceipt(transactionId) {

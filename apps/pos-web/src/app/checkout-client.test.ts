@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import type { TenderActivityPort } from "../local";
-import { createBrowserCashCheckoutPorts, LOCAL_CHECKOUT_SCOPE } from "./checkout-client";
+import { assessUpdateActivation } from "../local/pwa-lifecycle";
+import { createBrowserCashCheckoutPorts, createBrowserRegisterPort, createBrowserReturnPort, LOCAL_CHECKOUT_SCOPE } from "./checkout-client";
 
 const TX = "11111111-1111-4111-8111-111111111111";
 const KEY = "22222222-2222-4222-8222-222222222222";
@@ -124,5 +125,88 @@ describe("CORE-06 browser checkout client", () => {
 
     expect(events).toContain(`active:${TX}`);
     expect(events.at(-1)).toBe(`clear:${TX}`);
+  });
+
+  test("R8 checkout prepare blocks update activation until terminal sale clears the tender marker", async () => {
+    let active = false;
+    const tenderActivity: TenderActivityPort = {
+      async markActive() {
+        active = true;
+      },
+      async clear() {
+        active = false;
+      },
+    };
+    const fetchImpl: typeof fetch = async (input) => {
+      const url = String(input);
+      const data = url.endsWith("/sales/prepare")
+        ? {
+            transactionId: TX,
+            saleId: "sale-1",
+            orderReference: "ORDER-1",
+            quoteFingerprint: "0123456789abcdef0123456789abcdef",
+            total: { minor: 1000, currency: "GHS" },
+            status: "prepared",
+            stockCommitment: "reserved",
+            preparedAt: "2026-09-16T12:00:00.000Z",
+            expiresAt: "2026-09-16T12:15:00.000Z",
+          }
+        : { transactionId: TX, status: "completed", saleId: "sale-1", receiptId: "receipt-1" };
+      return new Response(JSON.stringify({ ok: true, correlationId: CORR, data }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    };
+    const ports = createBrowserCashCheckoutPorts({ fetchImpl, tenderActivity, scope: LOCAL_CHECKOUT_SCOPE });
+    await ports.checkout.prepare(
+      {
+        transactionId: TX,
+        registerId: LOCAL_CHECKOUT_SCOPE.registerId,
+        shiftId: LOCAL_CHECKOUT_SCOPE.shiftId,
+        deviceId: LOCAL_CHECKOUT_SCOPE.deviceId,
+        quoteId: "quote-retail-1",
+        quoteFingerprint: "0123456789abcdef0123456789abcdef",
+      },
+      { idempotencyKey: KEY, correlationId: CORR },
+    );
+    expect(active).toBe(true);
+    expect(
+      assessUpdateActivation({
+        activeTender: active,
+        criticalOperationCount: 0,
+        syncMutationInProgress: false,
+        localMigrationInProgress: false,
+        activeWindow: true,
+        appBuild: "1.0.0",
+      }),
+    ).toEqual({ safe: false, reasons: ["ACTIVE_TENDER"] });
+    await ports.checkout.finalize(
+      { transactionId: TX, paymentId: KEY },
+      { idempotencyKey: KEY, correlationId: CORR },
+    );
+    expect(active).toBe(false);
+  });
+
+  test("R8 ReturnPort and RegisterPort remain on the reconciled checkout client", async () => {
+    const calls: string[] = [];
+    const fetchImpl: typeof fetch = async (input, init) => {
+      calls.push(`${init?.method ?? "GET"} ${String(input)}`);
+      return new Response(JSON.stringify({ ok: true, correlationId: CORR, data: { status: "open" } }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    };
+    const returns = createBrowserReturnPort({ fetchImpl });
+    const register = createBrowserRegisterPort({ fetchImpl });
+    await returns.preview({
+      saleId: "sale-hist-1",
+      lines: [{ orderLineId: "ol-1", quantity: "1", reason: "x", condition: "resellable" }],
+    });
+    await register.close(
+      { shiftId: TX, countedCash: { minor: 1000, currency: "GHS" } },
+      { idempotencyKey: KEY, correlationId: CORR },
+    );
+    expect(calls).toContain("POST /api/pos/v1/returns/preview");
+    expect(calls).toContain("POST /api/pos/v1/shifts/close");
   });
 });

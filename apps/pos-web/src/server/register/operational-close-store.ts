@@ -9,6 +9,7 @@ import type { PosRestFetch } from "../http/server-fetch";
 
 export type OperationalCloseResult =
   | { readonly kind: "closed"; readonly shift: Shift; readonly report: ShiftReport }
+  | { readonly kind: "requires_attention"; readonly shift: Shift; readonly report?: undefined }
   | { readonly kind: "not_found" }
   | { readonly kind: "forbidden" }
   | { readonly kind: "conflict" }
@@ -101,17 +102,32 @@ function mapFailure(status: number, body: unknown): OperationalCloseResult {
   return { kind: "unavailable" };
 }
 
-function mapCloseOutcome(body: unknown): Extract<OperationalCloseResult, { kind: "closed" }> | null {
+function mapCloseOutcome(body: unknown): OperationalCloseResult | null {
   const root = asRecord(body);
   const shiftRow = asRecord(root?.shift);
-  const reportRow = asRecord(root?.report);
-  if (!shiftRow || !reportRow) {
+  if (!shiftRow) {
     return null;
   }
 
   const shift = mapShift(shiftRow);
+  if (!shift) {
+    return null;
+  }
+  if (shift.status === "requires_attention") {
+    if (shift.closedAt !== undefined || shift.zReportId !== undefined || root?.report != null) {
+      return null;
+    }
+    return { kind: "requires_attention", shift };
+  }
+  if (shift.status !== "closed") {
+    return null;
+  }
+  const reportRow = asRecord(root?.report);
+  if (!reportRow) {
+    return null;
+  }
   const report = mapReport(reportRow);
-  if (!shift || !report || report.shiftId !== shift.id || shift.zReportId !== report.id) {
+  if (!report || report.shiftId !== shift.id || shift.zReportId !== report.id) {
     return null;
   }
   return { kind: "closed", shift, report };
@@ -123,7 +139,7 @@ function mapShift(row: Record<string, unknown>): Shift | null {
     typeof row.register_id !== "string" ||
     typeof row.device_id !== "string" ||
     typeof row.cashier_id !== "string" ||
-    row.status !== "closed" ||
+    (row.status !== "closed" && row.status !== "requires_attention") ||
     typeof row.opening_float_minor !== "number" ||
     row.opening_float_currency !== "GHS" ||
     typeof row.expected_cash_minor !== "number" ||
@@ -132,10 +148,30 @@ function mapShift(row: Record<string, unknown>): Shift | null {
     row.counted_cash_currency !== "GHS" ||
     typeof row.variance_minor !== "number" ||
     row.variance_currency !== "GHS" ||
-    typeof row.opened_at !== "string" ||
-    typeof row.closed_at !== "string" ||
-    typeof row.z_report_id !== "string"
+    typeof row.opened_at !== "string"
   ) {
+    return null;
+  }
+  if (row.status === "closed") {
+    if (typeof row.closed_at !== "string" || typeof row.z_report_id !== "string") {
+      return null;
+    }
+    return {
+      id: row.id,
+      registerId: row.register_id,
+      deviceId: row.device_id,
+      cashierId: row.cashier_id,
+      status: "closed",
+      openingFloat: { minor: row.opening_float_minor, currency: "GHS" },
+      expectedCash: { minor: row.expected_cash_minor, currency: "GHS" },
+      countedCash: { minor: row.counted_cash_minor, currency: "GHS" },
+      variance: { minor: row.variance_minor, currency: "GHS" },
+      openedAt: normalizeTimestamp(row.opened_at),
+      closedAt: normalizeTimestamp(row.closed_at),
+      zReportId: row.z_report_id,
+    };
+  }
+  if (row.closed_at != null || row.z_report_id != null) {
     return null;
   }
   return {
@@ -143,14 +179,12 @@ function mapShift(row: Record<string, unknown>): Shift | null {
     registerId: row.register_id,
     deviceId: row.device_id,
     cashierId: row.cashier_id,
-    status: "closed",
+    status: "requires_attention",
     openingFloat: { minor: row.opening_float_minor, currency: "GHS" },
     expectedCash: { minor: row.expected_cash_minor, currency: "GHS" },
     countedCash: { minor: row.counted_cash_minor, currency: "GHS" },
     variance: { minor: row.variance_minor, currency: "GHS" },
     openedAt: normalizeTimestamp(row.opened_at),
-    closedAt: normalizeTimestamp(row.closed_at),
-    zReportId: row.z_report_id,
   };
 }
 

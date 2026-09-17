@@ -1,6 +1,8 @@
 import type {
   CashPaymentRequest,
+  CloseShiftRequest,
   FinalizeSaleRequest,
+  InitializePaymentRequest,
   OpenShiftRequest,
   PaymentLookup,
   PaymentState,
@@ -20,6 +22,10 @@ export function isPreparedSale(value: unknown): value is PreparedSale {
   return validateCanonicalDef("PreparedSale", value);
 }
 
+export function isInitializePaymentRequest(value: unknown): value is InitializePaymentRequest {
+  return validateCanonicalDef("InitializePaymentRequest", value);
+}
+
 export function isPaymentLookup(value: unknown): value is PaymentLookup {
   return validateCanonicalDef("PaymentLookup", value);
 }
@@ -34,6 +40,10 @@ export function isFinalizeSaleRequest(value: unknown): value is FinalizeSaleRequ
 
 export function isOpenShiftRequest(value: unknown): value is OpenShiftRequest {
   return validateCanonicalDef("OpenShiftRequest", value);
+}
+
+export function isCloseShiftRequest(value: unknown): value is CloseShiftRequest {
+  return validateCanonicalDef("CloseShiftRequest", value);
 }
 
 export function isPaymentState(value: unknown): value is PaymentState {

@@ -32,6 +32,10 @@ PHP_SOURCES := \
 	includes/class-command-engine.php \
 	includes/class-finalize-controller.php \
 	includes/class-cancel-controller.php \
+	includes/class-return-effect-store.php \
+	includes/class-return-effect-engine.php \
+	includes/class-commercial-refund-controller.php \
+	includes/class-stock-disposition-controller.php \
 	includes/class-pricing-rules.php \
 	includes/class-plugin.php \
 	tools/derive-quote-contract.php
@@ -48,6 +52,8 @@ TEST_SOURCES := \
 	$(TEST_DIR)/test-cart-discount.php \
 	$(TEST_DIR)/test-prepare.php \
 	$(TEST_DIR)/test-finalize-cancel.php \
+	$(TEST_DIR)/test-return-effects.php \
+	$(TEST_DIR)/test-ws3-generated-return-effects.php \
 	$(TEST_DIR)/parity.php
 
 .PHONY: check test parity

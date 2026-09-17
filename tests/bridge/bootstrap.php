@@ -205,6 +205,10 @@ require_once $plugin_dir . '/includes/class-resolve-controller.php';
 require_once $plugin_dir . '/includes/class-command-engine.php';
 require_once $plugin_dir . '/includes/class-finalize-controller.php';
 require_once $plugin_dir . '/includes/class-cancel-controller.php';
+require_once $plugin_dir . '/includes/class-return-effect-store.php';
+require_once $plugin_dir . '/includes/class-return-effect-engine.php';
+require_once $plugin_dir . '/includes/class-commercial-refund-controller.php';
+require_once $plugin_dir . '/includes/class-stock-disposition-controller.php';
 require_once $plugin_dir . '/includes/class-pricing-rules.php';
 require_once $plugin_dir . '/includes/class-plugin.php';
 
