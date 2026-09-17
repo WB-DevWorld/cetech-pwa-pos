@@ -1,37 +1,31 @@
-# WS3 current handoff — R8-02 Emmanuel exact-head runtime remediation
+# WS3 current handoff — STG-04 / #73 training catalog projection (TASK_COMPLETION)
 
 Kind: TASK_COMPLETION. Date: 2026-09-17.
 
-Task / batch / workstream: R8-02 / PR #69 / WS3.
+Task / batch / workstream: STG-04 / issue #73 / STG-01 / WS3.
 Owner / integration editor: `@wbdevworld` / WS3.
-Requested human reviewers: Emmanuel (verify the two WS1/WS3 blockers) and Ben (confirm no regression to the previously approved WS2/WS3 surface). This agent does not approve, merge, or dismiss reviews.
-Mode: INTEGRATE / REMEDIATE.
-PR: #69. Do not request merge. Do not self-approve.
+Requested human reviewer: independent human on the STG-01 milestone PR. This agent does not approve, merge, or close issues.
+Mode: IMPLEMENT.
+Branch: `ws3/stg-04-training-catalog-projection`
+STG04_START_SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
 
-Branch: `batch/r8-safe-returns-reconciliation`
-Starting exact head: `79dab6096466e00fd8289300038f07619868f539`
-Prior R8-02 head: `0fe28d353002ef8836eb2739ed9174517da7846b`
-Start `origin/main`: `1feb78db36f33e0254c0170396f30112d71577ea`
+Do not merge. Do not close #73, #70, #25, or #54. Do not start R10. Do not merge R9 #63. Do not cherry-pick STG-02 or STG-05.
 
-Contracts changed: none. Frozen v1 return-refund and CloseShiftRequest wires unchanged. Optional `approvalId` remains schema-valid and non-authoritative for shift close.
-Database migrations: none. Prior `20260916220000` / `20260917090000` allocation history is preserved.
+Contracts changed: none (frozen CatalogPort v1.0.0 consumed; producer DTO is bridge-local).
+Database migrations: none (Dexie catalog remains rebuildable; drafts/journal retained).
+Architecture decisions: none.
 
-## Blockers fixed (not dismissed)
+## Producer consumed (not imported)
 
-1. Historic return lookup uses durable `PosSaleRecord.orderLines[].orderLineId` via `GET /api/pos/v1/returns/history/{saleKey}`. Cross-org/unknown sales return `NOT_FOUND`. Unauthorized location is `FORBIDDEN`. Non-completed sales are not exposed. Receipt-index identities are gone from the production path.
-2. Non-zero shift variance stays `requires_attention` even when `approvalId` is a valid UUID. `closedAt` is set only for zero variance. R8 does not claim manager approval for shift variance.
+STG-05 exact tested SHA `4d549167f7d6dcecf0eff24f35e1f24a3429d3d8` (`ws2/stg-05-training-bridge-runtime`, CI `35232630899`). Endpoint `GET /wp-json/cetech-pos/v1/catalog`. No prices, no `posItemId`, SKU/barcodes as strings.
 
-## Tests executed (local)
+## Blocker (expected, not STG-04 code failure)
 
-See `docs/integration/evidence/R8-REVIEW-REMEDIATION.md` R8-02 review-spec close-out. 72 files / 671 tests; E2E 9 passed; return pgTAP 43/43; bridge 1555/0; parity 138/0/19 skip.
-
-Remote effects performed: none (no Paystack, no Woo refund/restock, no production, no VitePOS change).
+`BLOCKED_TRAINING_PLUGIN_NOT_DEPLOYED_STG05` — training.cetechbpa.com still returns `rest_no_route` for `/catalog`. Staging must not silently fall back to Epoxy Hardener / Steel Conduit / Armoured Cable.
 
 ## Next exact action
 
-Push this close-out commit. Wait for new exact-head `control-plane` and `control-plane-windows`. Then ADR-012 Pass 1 + Pass 2 only. Stop at `R8_REMEDIATION_READY_FOR_FINAL_REVIEW`. Fresh review on the NEW exact head is required from Emmanuel and Ben.
+Push this contributor SHA. Later assemble STG-02 + STG-04 + STG-05 + Ben on `batch/stg-01-staging-runtime-acceptance`.
 
 Pass 3: NOT PERMITTED.
 Production promotion: NOT AUTHORIZED.
-Live electronic payment / live refund/restock: NOT AUTHORIZED.
-Merge of PR #69: NOT AUTHORIZED.

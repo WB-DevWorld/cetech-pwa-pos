@@ -43,4 +43,12 @@ describe("CORE-04 cashier synthetic seed", () => {
       expect(found.data[0]?.id).toBe("cust-buildworks");
     }
   });
+
+  test("does not seed synthetic catalog when provider projection is required", async () => {
+    const name = `cetech-pos-local-${crypto.randomUUID()}`;
+    DBS.push(name);
+    const db = openPosLocalDatabase(name);
+    await ensureCashierLocalSeed(db, { policy: "provider_required" });
+    expect(await db.catalogItems.count()).toBe(0);
+  });
 });

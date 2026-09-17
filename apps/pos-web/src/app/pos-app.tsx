@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SellRuntimeScreen, type SellSessionPorts } from "../features/sell";
 import { createBrowserPricingPort } from "../features/sell/runtime/pricingClient";
@@ -13,16 +13,20 @@ import {
 import { RegisterRuntimeScreen } from "./register-runtime";
 import { ReturnsRuntimeScreen, createBrowserHistoricReturnSaleLookup } from "./returns-runtime";
 import { AppShell, POS_ROUTE_HREFS, type PosRoute } from "../ui/shell";
+import { resolveBrowserCatalogSourcePolicy } from "../core/catalog/source-policy";
 import {
   CASHIER_SEED_LOCATION_ID,
+  CATALOG_REFRESH_MIN_INTERVAL_MS,
   createCartDraftStore,
   createLocalCatalogPort,
   createLocalCustomerPort,
   ensureCashierLocalSeed,
+  ensureCatalogProjection,
   openPosLocalDatabase,
   recallActiveCartId,
   rememberActiveCartId,
 } from "../local";
+import type { CatalogProjectionAvailability } from "../local/catalog-sync";
 
 export function PosApp({
   route,
@@ -52,7 +56,17 @@ export function PosRuntime({
 }) {
   const [online, setOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
   const [ports, setPorts] = useState<SellSessionPorts | null>(null);
+  const [projectionAvailability, setProjectionAvailability] = useState<CatalogProjectionAvailability | null>(null);
+  const refreshInFlight = useRef(false);
   const readOnline = useCallback(() => online, [online]);
+  const policy = useMemo(
+    () =>
+      resolveBrowserCatalogSourcePolicy({
+        hostname: typeof window === "undefined" ? "localhost" : window.location.hostname,
+        nodeEnv: process.env.NODE_ENV,
+      }),
+    [],
+  );
 
   useEffect(() => {
     function sync() {
@@ -66,11 +80,11 @@ export function PosRuntime({
     };
   }, []);
 
-  useEffect(() => {
-    void (async () => {
-      await ensureCashierLocalSeed();
+  const mountPorts = useCallback(
+    async (availability: CatalogProjectionAvailability) => {
       const db = openPosLocalDatabase();
       const checkout = createBrowserCashCheckoutPorts({ scope: LOCAL_CHECKOUT_SCOPE, fetchImpl });
+      setProjectionAvailability(availability);
       setPorts({
         catalog: createLocalCatalogPort({ db }),
         customers: createLocalCustomerPort({ db }),
@@ -86,9 +100,70 @@ export function PosRuntime({
         receipts: checkout.receipts,
         printer: checkout.printer,
         checkoutScope: checkout.scope,
+        catalogAvailability: availability,
       });
+    },
+    [fetchImpl],
+  );
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const synced = await ensureCatalogProjection({
+          policy,
+          fetchImpl,
+          force: true,
+        });
+        await mountPorts(synced.availability);
+      } catch {
+        if (policy === "synthetic_permitted") {
+          await ensureCashierLocalSeed();
+          await mountPorts("fresh");
+          return;
+        }
+        await mountPorts("unavailable");
+      }
     })();
-  }, [fetchImpl]);
+  }, [fetchImpl, mountPorts, policy]);
+
+  useEffect(() => {
+    async function refresh(force: boolean) {
+      if (refreshInFlight.current) {
+        return;
+      }
+      refreshInFlight.current = true;
+      try {
+        const synced = await ensureCatalogProjection({
+          policy,
+          fetchImpl,
+          force,
+          minRefreshIntervalMs: CATALOG_REFRESH_MIN_INTERVAL_MS,
+        });
+        setProjectionAvailability(synced.availability);
+        setPorts((current) =>
+          current ? { ...current, catalogAvailability: synced.availability } : current,
+        );
+      } finally {
+        refreshInFlight.current = false;
+      }
+    }
+    function onVisible() {
+      if (document.visibilityState === "visible") {
+        void refresh(false);
+      }
+    }
+    function onOnline() {
+      void refresh(false);
+    }
+    window.addEventListener("focus", onVisible);
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", onOnline);
+    return () => {
+      window.removeEventListener("focus", onVisible);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", onOnline);
+    };
+  }, [fetchImpl, policy]);
 
   const returns = useMemo(() => createBrowserReturnPort({ fetchImpl }), [fetchImpl]);
   const register = useMemo(() => createBrowserRegisterPort({ fetchImpl }), [fetchImpl]);
@@ -105,7 +180,14 @@ export function PosRuntime({
     >
       {route === "sell" ? (
         ports ? (
-          <SellRuntimeScreen {...ports} online={readOnline} />
+          <>
+            {projectionAvailability === "unavailable" ? (
+              <p className="muted" role="status">
+                Catalog unavailable. Synchronization required.
+              </p>
+            ) : null}
+            <SellRuntimeScreen {...ports} online={readOnline} catalogAvailability={ports.catalogAvailability} />
+          </>
         ) : (
           <p className="muted">Loading catalog…</p>
         )

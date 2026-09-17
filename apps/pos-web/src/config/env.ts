@@ -98,6 +98,12 @@ export function readSupabaseInfrastructureEnv(
   return { url, serviceRoleKey };
 }
 
+export function readAppEnv(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): string {
+  return env.APP_ENV?.trim() || "local";
+}
+
 export function staffAllowedOrigins(
   env: Readonly<Record<string, string | undefined>> = process.env,
 ): readonly string[] {

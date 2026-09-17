@@ -33,6 +33,7 @@ export type SellSessionPorts = {
   readonly printer?: PrintPort;
   readonly checkoutScope?: CashCheckoutScope;
   readonly createCheckoutUuid?: () => string;
+  readonly catalogAvailability?: CatalogAvailability;
 };
 
 function defaultNow(): Date {
@@ -55,6 +56,21 @@ function availabilityFromNetwork(online: boolean, searchFailed: boolean, hasCach
   return "fresh";
 }
 
+function preserveProjectionAvailability(
+  current: CatalogAvailability,
+  online: boolean,
+  searchFailed: boolean,
+  hasCache: boolean,
+): CatalogAvailability {
+  if (current === "unavailable") {
+    return "unavailable";
+  }
+  if (current === "stale" && !searchFailed) {
+    return online ? "stale" : "offline_cached";
+  }
+  return availabilityFromNetwork(online, searchFailed, hasCache);
+}
+
 export function SellRuntimeScreen(ports: SellSessionPorts) {
   const fallbackCreateCartId = useMemo(() => defaultIdFactory("cart"), []);
   const fallbackCreateLineId = useMemo(() => defaultIdFactory("line"), []);
@@ -75,7 +91,7 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
   const [browseCatalog, setBrowseCatalog] = useState<readonly SellProductView[]>([]);
   const [customers, setCustomers] = useState<readonly CustomerSearchResultView[]>([]);
   const [searchStatus, setSearchStatus] = useState<SellWorkspaceState["search"]["status"]>("idle");
-  const [availability, setAvailability] = useState<CatalogAvailability>("fresh");
+  const [availability, setAvailability] = useState<CatalogAvailability>(ports.catalogAvailability ?? "fresh");
   const [workspace, setWorkspace] = useState<SellWorkspaceState | undefined>(undefined);
   const [restoreCount, setRestoreCount] = useState(0);
   const connected = online();
@@ -155,7 +171,9 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
         recallCartId,
         browseCatalog: views,
         deps: { createCartId, createLineId },
-        availability: availabilityFromNetwork(connectedNow, !browse.ok, views.length > 0),
+        availability:
+          ports.catalogAvailability ??
+          availabilityFromNetwork(connectedNow, !browse.ok, views.length > 0),
       });
       if (cancelled) return;
       await drafts.save(workspaceToCartDraft(restored, locationId, nowRef.current().toISOString()));
@@ -173,7 +191,7 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
     return () => {
       cancelled = true;
     };
-  }, [catalog, createCartId, createLineId, customersPort, drafts, locationId, recallCartId, rememberCartId]);
+  }, [catalog, createCartId, createLineId, customersPort, drafts, locationId, ports.catalogAvailability, recallCartId, rememberCartId]);
 
   const persist = useCallback(
     (state: SellWorkspaceState) => {
@@ -188,7 +206,9 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
     async (barcode: string) => {
       const result = await lookupBarcodeViews(catalog, barcode);
       if (!result.ok) {
-        setAvailability((current) => availabilityFromNetwork(online(), true, current !== "unavailable"));
+        setAvailability((current) =>
+          preserveProjectionAvailability(current, online(), true, current !== "unavailable"),
+        );
         return [];
       }
       return result.items;
@@ -203,12 +223,24 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
       if (!result.ok) {
         setSearchStatus("error");
         setAvailability((current) =>
-          availabilityFromNetwork(online(), true, browseCatalog.length > 0 || current === "offline_cached"),
+          preserveProjectionAvailability(
+            current,
+            online(),
+            true,
+            browseCatalog.length > 0 || current === "offline_cached" || current === "stale",
+          ),
         );
         return browseCatalog;
       }
       setSearchStatus("ready");
-      setAvailability(availabilityFromNetwork(online(), false, result.items.length > 0 || browseCatalog.length > 0));
+      setAvailability((current) =>
+        preserveProjectionAvailability(
+          current,
+          online(),
+          false,
+          result.items.length > 0 || browseCatalog.length > 0,
+        ),
+      );
       return result.items;
     },
     [browseCatalog, catalog, online],

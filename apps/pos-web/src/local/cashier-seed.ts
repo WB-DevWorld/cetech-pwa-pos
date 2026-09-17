@@ -1,4 +1,8 @@
 import type { CustomerSummary } from "../../../../docs/contracts/domain.generated";
+import {
+  catalogSourcePolicyAllowsSynthetic,
+  type CatalogSourcePolicy,
+} from "../core/catalog/source-policy";
 import { mapTransitionalCatalogBatch, type TransitionalCatalogInput } from "../core/catalog/transitional-mapper";
 import { rebuildCatalogProjection } from "./catalog-repository";
 import { replaceLocalCustomers } from "./customer-store";
@@ -117,12 +121,18 @@ export const CASHIER_SEED_CUSTOMERS: readonly CustomerSummary[] = [
 export const CASHIER_SEED_LOCATION_ID = "loc-front-1";
 
 /**
- * Idempotent local projection/customer seed for R4 Sell runtime.
+ * Idempotent local projection/customer seed for local/test/demo Sell runtime.
+ * Staging/production-intent must not call this as a silent fallback.
  * Does not copy production catalog or live inventory.
  */
 export async function ensureCashierLocalSeed(
   db: PosLocalDatabase = openPosLocalDatabase(),
+  options: { readonly policy?: CatalogSourcePolicy } = {},
 ): Promise<void> {
+  const policy = options.policy ?? "synthetic_permitted";
+  if (!catalogSourcePolicyAllowsSynthetic(policy)) {
+    return;
+  }
   const already = await db.kv.get(SEEDED_KEY);
   if (already?.value === CASHIER_SOURCE_VERSION) {
     const itemCount = await db.catalogItems.count();
