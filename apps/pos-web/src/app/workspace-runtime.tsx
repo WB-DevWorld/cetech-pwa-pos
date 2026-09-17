@@ -42,7 +42,6 @@ export function ApprovedWorkspaceScreens({
       <OrdersScreen
         orders={[]}
         state="ready"
-        errorMessage="No frozen provider-neutral Orders list port is mounted. Reprint and returns stay on the existing receipt and Returns use cases."
         onNewSale={() => onNavigate("sell")}
       />
     );
@@ -103,7 +102,6 @@ function CustomersWorkspace({
   const [state, setState] = useState<"ready" | "loading" | "error" | "offline">("loading");
 
   const load = useCallback(async () => {
-    setState(online ? "loading" : "offline");
     const result = await customers.search("");
     if (!result.ok) {
       setState("error");
@@ -114,7 +112,10 @@ function CustomersWorkspace({
   }, [customers, online]);
 
   useEffect(() => {
-    void load();
+    const timer = setTimeout(() => {
+      void load();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [load]);
 
   return (
@@ -146,8 +147,6 @@ function HealthWorkspace({
   const [showFix, setShowFix] = useState(false);
 
   const load = useCallback(async () => {
-    setState("loading");
-    setErrorMessage(undefined);
     const result = await fetchStoreHealth(fetchImpl);
     if (!result.ok) {
       setHealth(undefined);
@@ -157,10 +156,14 @@ function HealthWorkspace({
     }
     setHealth(result.data);
     setState("ready");
+    setErrorMessage(undefined);
   }, [fetchImpl]);
 
   useEffect(() => {
-    void load();
+    const timer = setTimeout(() => {
+      void load();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [load]);
 
   const rebuildCatalog = useCallback(() => {

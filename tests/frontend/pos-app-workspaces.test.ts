@@ -63,7 +63,8 @@ describe("STG-01 mounted approved workspaces", () => {
   test("Orders mounts Ben's screen instead of the R4 placeholder", () => {
     const html = render("orders");
     expect(html).toContain("Orders");
-    expect(html).toContain("No frozen provider-neutral Orders list port");
+    expect(html).toContain("No orders yet.");
+    expect(html).toContain("order history source is mounted");
     expect(html).not.toContain(PLACEHOLDER);
   });
 
