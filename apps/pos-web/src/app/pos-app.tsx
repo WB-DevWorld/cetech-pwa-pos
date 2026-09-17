@@ -12,6 +12,7 @@ import {
 import { RegisterRuntimeScreen } from "./register-runtime";
 import { ReturnsRuntimeScreen, createBrowserHistoricReturnSaleLookup } from "./returns-runtime";
 import { StaffAuthGate } from "./staff-auth-gate";
+import { ApprovedWorkspaceScreens } from "./workspace-runtime";
 import { AppShell, POS_ROUTE_HREFS, type PosRoute } from "../ui/shell";
 import { resolveBrowserCatalogSourcePolicy } from "../core/catalog/source-policy";
 import {
@@ -342,15 +343,16 @@ export function PosRuntime({
           </section>
         )
       ) : (
-        <section>
-          <h1>{labelFor(route)}</h1>
-          <p className="muted">This workspace is not part of the R4 Sell runtime.</p>
-        </section>
+        <ApprovedWorkspaceScreens
+          route={route}
+          authority={authority}
+          customers={ports?.customers ?? createLocalCustomerPort()}
+          online={online}
+          catalogAvailability={projectionAvailability}
+          fetchImpl={fetchImpl}
+          onNavigate={onNavigate}
+        />
       )}
     </AppShell>
   );
-}
-
-function labelFor(route: PosRoute): string {
-  return route.charAt(0).toUpperCase() + route.slice(1);
 }

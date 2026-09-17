@@ -83,6 +83,22 @@ Ben publishes exact tested source SHAs + mount instructions. WS3 mounts accepted
 9. Capture redacted exact-SHA staging evidence; independent human review; final ADR-012 freshness procedure.
 10. Only after all STG-01 gates pass may #25, #54 and #70 close and R9 resume.
 
+## Imported provenance (this integration head)
+
+Do not treat STG-04 contributor `CURRENT-WORK.md` as the shared ledger.
+
+| Contribution | Owner | Source branch | Source SHA | Imported SHA |
+| --- | --- | --- | --- | --- |
+| STG-01 control | WS3 / @wbdevworld | `batch/stg-01-staging-runtime-acceptance` | `acd4a2f009c58f734186cf9e44f278da93499a4b` | base |
+| STG-02 / #71 | WS3 / @wbdevworld | `ws3/stg-02-session-runtime-composition` | `8a6aba2ce82ebe265a154f89999c2caab7a08beb` | `9bfb535ca86f7bd27108b3a82c6876e4b5f19c81` |
+| STG-05 / #74 | WS2 boundary; implementer @wbdevworld | `ws2/stg-05-training-bridge-runtime` | `4d549167f7d6dcecf0eff24f35e1f24a3429d3d8` | `7cab23415d622cef7369ddc03e007e6576cc4ce7` |
+| STG-04 / #73 | WS3 / @wbdevworld | `ws3/stg-04-training-catalog-projection` | `01e4438d3553c633e7b0234de44743ff4cea2368` | `981722e7c8ff6ea7163532f03218f59ea2b9e20d` |
+| STG-03 / FE-07 | WS1 / @Ben-001-sys | `ws1/stg-03-approved-workspaces` | `169f8155fe4cb34b6fe27db3bb6b445a13ade712` | `8073ef59dbf481160387000886b0b7da4a25d237` |
+
+Combined tested SHA and STG-07 SHA are recorded after composition/tests.
+
+Semantic conflict: `apps/pos-web/src/app/pos-app.tsx` and `apps/pos-web/src/config/env.ts` plus WS3 STATUS/HANDOFF. Composition keeps STG-02 staff/CSRF/register authority and STG-04 catalog projection. `readPublicStaffAuthEnv` and `readAppEnv` both remain. Staging still never silently seeds `CASHIER_SEED_CATALOG`.
+
 ## Safety boundaries
 
 - No production promotion.
