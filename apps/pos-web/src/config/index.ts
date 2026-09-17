@@ -16,6 +16,7 @@ export {
   readServerEnv,
   readSupabaseAuthEnv,
   readPublicStaffAuthEnv,
+  readAppEnv,
   readSupabaseInfrastructureEnv,
   staffAllowedOrigins,
   type BridgeServiceEnv,
