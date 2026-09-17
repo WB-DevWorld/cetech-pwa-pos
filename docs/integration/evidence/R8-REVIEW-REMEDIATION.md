@@ -112,3 +112,66 @@ Electronic-payment unit/integration suite remains in the 653. `sk_live_` still r
 ## Freshness / CI
 
 Exact-head GitHub CI and ADR-012 Pass 1 + Pass 2 are recorded after push in the Cursor report. Do not reuse CI `35143511686` as evidence for the replacement SHA.
+
+## Independent verification finding (post-`7fbc17e`)
+
+Exact reviewed/remediated head `7fbc17ed4ad9754cc3fa39bf31bbe63a74868ff2` still contained an incorrect database rule in already-committed:
+
+`supabase/migrations/20260916220000_pos_return_line_allocations.sql`
+
+That migration added:
+
+```sql
+allocated_historic_amount_minor pos_money_minor NOT NULL DEFAULT 1
+CHECK (allocated_historic_amount_minor > 0)
+```
+
+That rule is retained in history. It is not rewritten or deleted. It was wrong for two reasons:
+
+1. Canonical Money is non-negative (`minor >= 0`), not strictly positive. `allocateHistoricMinor()` may return `0` for a free/fully-discounted historic line with positive quantity.
+2. `DEFAULT 1` invents an untrue allocation of 1 minor unit for any existing R8 preview row upgraded through that migration.
+
+This follow-up is one append-only corrective migration:
+
+`supabase/migrations/20260917090000_pos_return_line_allocation_nonnegative.sql`
+
+Strategy:
+
+- Drop `pos_return_requested_allocation_positive`.
+- Temporarily disable only `pos_return_requested_lines_immutable` (not all triggers).
+- Fail closed if a requested line has no matching historic snapshot.
+- Recompute `allocated_historic_amount_minor` with PostgreSQL bigint/numeric operations matching `allocateHistoricMinor()` (micro-scale `round(qty * 1000000)`, last-partial remainder `total - floor(total * previous / original)`).
+- Restore `allocated_historic_currency` from the historic snapshot `currency`.
+- Backfill `remaining_returnable_quantity` from the historic snapshot remaining quantity captured at preview.
+- Re-enable `pos_return_requested_lines_immutable` immediately after the UPDATE.
+- Drop synthetic defaults on amount and currency.
+- Add `CHECK (allocated_historic_amount_minor >= 0)`.
+- Set `remaining_returnable_quantity NOT NULL` because preview/runtime always persist it and legitimate rows must carry the server-owned remaining quantity.
+
+No real Paystack, refund, Woo restock, production deploy, or VitePOS cutover. PR #69 is not merged. Ben's `CHANGES_REQUESTED` is not dismissed. R9 is not started.
+
+## Follow-up local verification
+
+Recorded after execution on this workstation. Interrupted or unavailable runtimes are BLOCKED_VERIFICATION, never invented PASS.
+
+| Command | Result |
+| --- | --- |
+| `python scripts/verify_control_plane.py` | PASS |
+| `python -m unittest discover -s tests/tooling -v` | 48 OK |
+| `pnpm install --frozen-lockfile` | PASS |
+| `pnpm --dir apps/pos-web lint` | PASS |
+| `pnpm --dir apps/pos-web typecheck` | PASS |
+| `pnpm --dir apps/pos-web test` | 69 files / 654 tests PASS |
+| zero-value historic total `0` minor | preview OK; `allocatedHistoricAmount.minor === 0`; fake-posgrest reload `0` not `1`; stock `restock_sellable`; no cash/provider tender refund |
+| odd-minor `3001 => 1500 + 1501` | still green |
+| `pnpm --dir apps/pos-web build` | PASS; return/register routes present |
+| `pnpm --dir apps/pos-web test:e2e` | 9 passed |
+| Docker apply `20260917090000` then pgTAP | `pos_returns.sql` 43/43 (zero accepted, negative rejected); `rls_isolation.sql` 81/81; `prepare_scope_binding.sql` 8/8; `payment_monotonic.sql` 6/6; `electronic_payment.sql` 16/16; `durable_checkout.sql` 17/17; `cash_sale_uniqueness.sql` 7/7; all ROLLBACK; trigger `pos_return_requested_lines_immutable` remains enabled |
+| `C:\tools\php85\php.exe tests/bridge/run.php` | **1555 passed, 0 failed** |
+| `C:\tools\php85\php.exe tests/bridge/parity.php` | 138 passed, 0 failed, 19 skipped (live/training) |
+| WSL `make -C wordpress/cetech-pos-bridge check PHP=/mnt/c/tools/php85/php.exe` | PASS |
+| `.next/static` secret scan (`sk_live_`, `PAYSTACK_SECRET`, `NEXT_PUBLIC_PAYSTACK`) | no matches |
+
+Windows `npx supabase@2.117.0 db reset` remains BLOCKED by the known Node 24/`npx.cmd` quoting constraint. Established Docker apply + `psql` pgTAP path was used instead. Linux CI `control-plane` remains the canonical `npx` reset/pgTAP runner.
+
+Exact-head GitHub CI and ADR-012 Pass 1 + Pass 2 for this corrective SHA are recorded after push in the Cursor report.

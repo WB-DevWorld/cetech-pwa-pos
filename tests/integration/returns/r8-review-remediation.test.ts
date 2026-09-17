@@ -7,6 +7,7 @@ import { createSupabaseReturnStore } from "../../../apps/pos-web/src/server/retu
 import { createFakePosgrest } from "../sales/fake-posgrest";
 import { buildCommercialRefundCommand } from "../../../apps/pos-web/src/server/returns/bridge-commands";
 import { stockCommandLines } from "../../../apps/pos-web/src/core/returns/disposition";
+import { allocateHistoricMinor } from "../../../apps/pos-web/src/core/returns/quantities";
 import {
   generateWs3BridgeCommands,
   writeWs3GeneratedFixtures,
@@ -210,5 +211,74 @@ describe("R8-01 WS3 generated bridge commands", () => {
       },
     });
     expect(rebuilt.lineAllocations[0]?.historicAmount.minor).toBe(1500);
+  });
+});
+
+describe("R8-01 zero-value historic allocation", () => {
+  test("free historic line allocates 0, persists 0 through supabase, and does not invent tender refund", async () => {
+    expect(
+      allocateHistoricMinor({
+        historicalTotal: ghs(0),
+        originalSold: 1,
+        previouslyReturned: 0,
+        requested: 1,
+      }),
+    ).toBe(0);
+
+    const runtime = await createRt01Runtime({ lineTotal: ghs(0), quantity: "1" });
+    const captured: {
+      historicAmountMinor?: number;
+      amountMinor?: number;
+      stockDispositions?: readonly string[];
+    } = {};
+    const originalCommercial = runtime.bridge.applyCommercialRefund.bind(runtime.bridge);
+    const originalStock = runtime.bridge.applyStockDisposition.bind(runtime.bridge);
+    runtime.bridge.applyCommercialRefund = async (input, context) => {
+      captured.historicAmountMinor = input.lineAllocations[0]?.historicAmount.minor;
+      captured.amountMinor = input.amount.minor;
+      return originalCommercial(input, context);
+    };
+    runtime.bridge.applyStockDisposition = async (input, context) => {
+      captured.stockDispositions = input.lines.map((line) => line.disposition);
+      return originalStock(input, context);
+    };
+
+    const first = await preview(runtime, { quantity: "1" });
+    expect(first.body.ok).toBe(true);
+    if (!first.body.ok) {
+      return;
+    }
+    expect(first.body.data.refundTotal).toEqual(ghs(0));
+    const stored = await runtime.returnStore.getReturn(first.body.data.returnId);
+    expect(stored?.requestedLines[0]?.allocatedHistoricAmount).toEqual(ghs(0));
+    expect(stored?.historicLines[0]?.historicalTotal).toEqual(ghs(0));
+    expect(stored?.cashRefund).toBeUndefined();
+
+    const fake = createFakePosgrest();
+    const durable = createSupabaseReturnStore({
+      url: "http://posgrest.test",
+      serviceRoleKey: "service-role-test",
+      fetchImpl: fake.fetchImpl,
+    });
+    await durable.insertPreview(stored!);
+    const loaded = await durable.getReturn(stored!.returnId);
+    expect(loaded?.requestedLines[0]?.allocatedHistoricAmount).toEqual(ghs(0));
+    expect(loaded?.requestedLines[0]?.allocatedHistoricAmount.minor).not.toBe(1);
+    expect(loaded?.refundTotal).toEqual(ghs(0));
+
+    const executed = await execute(
+      runtime,
+      { returnId: first.body.data.returnId, fingerprint: first.body.data.fingerprint },
+      "66666666-6666-4666-8666-666666666603",
+    );
+    expect(executed.body.ok).toBe(true);
+    const afterExecute = await runtime.returnStore.getReturn(first.body.data.returnId);
+    expect(afterExecute?.cashRefund).toBeUndefined();
+    expect(afterExecute?.providerRefund).toBeUndefined();
+    expect(afterExecute?.refundTotal).toEqual(ghs(0));
+    expect(captured.amountMinor).toBe(0);
+    expect(captured.historicAmountMinor).toBe(0);
+    expect(captured.stockDispositions).toEqual(["restock_sellable"]);
+    expect(runtime.bridge.stockApplyCount).toBe(1);
   });
 });

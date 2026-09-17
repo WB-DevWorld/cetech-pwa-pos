@@ -3,7 +3,7 @@
 
 BEGIN;
 
-SELECT plan(41);
+SELECT plan(43);
 
 SET ROLE anon;
 SELECT throws_ok(
@@ -302,11 +302,14 @@ SELECT throws_ok(
 SELECT throws_ok(
   $$ INSERT INTO pos_return_requested_lines (
        return_id, order_line_id, quantity, reason, condition,
-       intended_disposition, disposition_policy
+       intended_disposition, disposition_policy,
+       remaining_returnable_quantity,
+       allocated_historic_amount_minor, allocated_historic_currency
      ) VALUES (
        '33333333-3333-4333-8333-333333333401',
        'line-1', 1, 'damaged', 'damaged',
-       'restock_sellable', 'automatic_sellable_restock'
+       'restock_sellable', 'automatic_sellable_restock',
+       2, 0, 'GHS'
      ) $$,
   '23514',
   NULL,
@@ -368,12 +371,13 @@ SELECT lives_ok(
   $$ INSERT INTO pos_return_requested_lines (
        return_id, order_line_id, quantity, reason, condition,
        intended_disposition, disposition_policy,
+       remaining_returnable_quantity,
        allocated_historic_amount_minor, allocated_historic_currency
      ) VALUES (
        '33333333-3333-4333-8333-333333333402',
        'line-1', 1, 'customer changed mind', 'resellable',
        'restock_sellable', 'automatic_sellable_restock',
-       1500, 'GHS'
+       1, 1500, 'GHS'
      ) $$,
   'resellable requested line persists the exact preview historic allocation'
 );
@@ -427,11 +431,14 @@ SELECT lives_ok(
 SELECT lives_ok(
   $$ INSERT INTO pos_return_requested_lines (
        return_id, order_line_id, quantity, reason, condition,
-       intended_disposition, disposition_policy
+       intended_disposition, disposition_policy,
+       remaining_returnable_quantity,
+       allocated_historic_amount_minor, allocated_historic_currency
      ) VALUES (
        '33333333-3333-4333-8333-333333333403',
        'line-1', 1, 'customer changed mind', 'resellable',
-       'restock_sellable', 'automatic_sellable_restock'
+       'restock_sellable', 'automatic_sellable_restock',
+       1, 1500, 'GHS'
      ) $$,
   'losing preview requested line persists'
 );
@@ -440,6 +447,73 @@ SELECT throws_ok(
   'P0001',
   NULL,
   'last remaining unit cannot be claimed twice'
+);
+
+SELECT lives_ok(
+  $$
+  DO $zero$
+  BEGIN
+    INSERT INTO pos_checkout_sales (
+      transaction_id, organization_id, location_id, register_id, shift_id, sale_id, status, record
+    ) VALUES (
+      '11111111-1111-4111-8111-111111111404',
+      'org_a', 'loc_a1', 'reg_a',
+      current_setting('pos_test.rt01_shift')::uuid,
+      'woo-rt01-zero', 'completed',
+      jsonb_build_object('prepared', jsonb_build_object(
+        'transactionId', '11111111-1111-4111-8111-111111111404',
+        'saleId', 'woo-rt01-zero'
+      ))
+    );
+    INSERT INTO pos_returns (
+      return_id, organization_id, location_id, register_id, actor_id, transaction_id, sale_id,
+      economics_version, fingerprint, preview_expires_at, refund_total_minor, refund_currency, status
+    ) VALUES (
+      '33333333-3333-4333-8333-333333333404',
+      'org_a', 'loc_a1', 'reg_a', 'cashier_a',
+      '11111111-1111-4111-8111-111111111404',
+      'woo-rt01-zero', 'hv1-rt01-zero', '0123456789abcdef0123456789abcdef',
+      now() + interval '30 minutes', 0, 'GHS', 'previewed'
+    );
+    INSERT INTO pos_return_historic_lines (
+      return_id, order_line_id, original_sold_quantity, previously_returned_quantity,
+      remaining_returnable_quantity, historical_subtotal_minor, historical_discount_minor,
+      historical_tax_minor, historical_total_minor, currency
+    ) VALUES (
+      '33333333-3333-4333-8333-333333333404',
+      'line-1', 1, 0, 1, 0, 0, 0, 0, 'GHS'
+    );
+    INSERT INTO pos_return_requested_lines (
+      return_id, order_line_id, quantity, reason, condition,
+      intended_disposition, disposition_policy,
+      remaining_returnable_quantity,
+      allocated_historic_amount_minor, allocated_historic_currency
+    ) VALUES (
+      '33333333-3333-4333-8333-333333333404',
+      'line-1', 1, 'free item return', 'resellable',
+      'restock_sellable', 'automatic_sellable_restock',
+      1, 0, 'GHS'
+    );
+  END
+  $zero$;
+  $$,
+  'zero historic allocation is accepted on requested return lines'
+);
+SELECT throws_ok(
+  $$ INSERT INTO pos_return_requested_lines (
+       return_id, order_line_id, quantity, reason, condition,
+       intended_disposition, disposition_policy,
+       remaining_returnable_quantity,
+       allocated_historic_amount_minor, allocated_historic_currency
+     ) VALUES (
+       '33333333-3333-4333-8333-333333333404',
+       'line-neg', 1, 'negative allocation', 'resellable',
+       'restock_sellable', 'automatic_sellable_restock',
+       1, -1, 'GHS'
+     ) $$,
+  '23514',
+  NULL,
+  'negative historic allocation is rejected'
 );
 
 RESET ROLE;

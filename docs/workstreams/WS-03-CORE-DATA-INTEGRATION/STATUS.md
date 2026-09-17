@@ -16,7 +16,7 @@ Paystack TEST sandbox evidence remains `docs/integration/evidence/R7-PAY-01-SAND
 
 Mode: INTEGRATE / REMEDIATE. Owner `@wbdevworld` / WS3. Branch `batch/r8-safe-returns-reconciliation`. Milestone PR **#69** draft; do not self-approve; do not merge.
 
-Ben reviewed exact head `b6403c5d0df2d6d82d42eba41100b34aa3242cef` (CI `35143511686` SUCCESS) and requested changes. R8-01 remediates those three verified blockers. Evidence: `docs/integration/evidence/R8-REVIEW-REMEDIATION.md`. R9 is not imported.
+Ben reviewed exact head `b6403c5d0df2d6d82d42eba41100b34aa3242cef` (CI `35143511686` SUCCESS) and requested changes. R8-01 remediates those three verified blockers at `7fbc17ed4ad9754cc3fa39bf31bbe63a74868ff2`, plus a follow-up append-only correction for non-negative historic allocation (`DEFAULT 1` / `CHECK > 0` was incorrect). Evidence: `docs/integration/evidence/R8-REVIEW-REMEDIATION.md`. R9 is not imported.
 
 | Role | SHA / classification |
 | --- | --- |
