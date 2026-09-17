@@ -1,0 +1,76 @@
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, test } from "vitest";
+import type { StoreHealth } from "../../../../../docs/contracts/domain.generated";
+import {
+  ConnectivityNotice,
+  FixAppPanel,
+  LocalDataMigrationPanel,
+  NeedsAttentionScreen,
+  PassiveTabNotice,
+  StoreHealthScreen,
+  UpdateReadyDialog,
+} from "./OperationalSurfaces";
+
+const health: StoreHealth = {
+  checks: [
+    { id: "commerce", status: "healthy", message: "Commerce reachable", checkedAt: "2026-09-17T10:00:00.000Z" },
+    { id: "pricing", status: "degraded", message: "Pricing parity not verified", checkedAt: "2026-09-17T10:00:00.000Z" },
+    { id: "payments", status: "unavailable", message: "Provider unavailable", checkedAt: "2026-09-17T10:00:00.000Z" },
+  ],
+  contractVersion: "1.0.0",
+  pendingOperationCount: 2,
+  attentionCount: 1,
+  buildId: "r8-staging",
+};
+
+describe("operational recovery surfaces", () => {
+  test("Store Health renders contract health without overstating degraded/unavailable checks", () => {
+    const html = renderToStaticMarkup(<StoreHealthScreen health={health} deviceName="POS tablet" appVersion="R8" />);
+    expect(html).toContain("Store Health");
+    expect(html).toContain("Pending operations");
+    expect(html).toContain("Needs attention");
+    expect(html).toContain("Commerce reachable");
+    expect(html).toContain("Degraded");
+    expect(html).toContain("Unavailable");
+    expect(html).toContain("1.0.0");
+  });
+
+  test("Store Health loading, offline, degraded and error states remain explicit", () => {
+    expect(renderToStaticMarkup(<StoreHealthScreen state="loading" />)).toContain("Checking store health…");
+    expect(renderToStaticMarkup(<StoreHealthScreen state="offline" />)).toContain("You are offline.");
+    expect(renderToStaticMarkup(<StoreHealthScreen state="degraded" />)).toContain("Connection is degraded.");
+    expect(renderToStaticMarkup(<StoreHealthScreen state="error" />)).toContain("Store Health could not be refreshed.");
+  });
+
+  test("Needs attention exposes only supplied safe actions", () => {
+    const html = renderToStaticMarkup(
+      <NeedsAttentionScreen
+        items={[{ id: "a1", title: "Payment status uncertain", summary: "Resolve the existing payment before retrying.", typeLabel: "Payment", severity: "critical", transactionReference: "tx-1", resolveAllowed: true }]}
+        onResolveItem={() => undefined}
+      />,
+    );
+    expect(html).toContain("Needs attention");
+    expect(html).toContain("Payment status uncertain");
+    expect(html).toContain("Resolve existing operation");
+    expect(html).not.toContain("Retry safely");
+  });
+
+  test("Update Ready blocks activation when critical work exists and allows a safe state", () => {
+    const blocked = renderToStaticMarkup(<UpdateReadyDialog open safety="blocked_critical" currentBuild="r8" onLater={() => undefined} onApply={() => undefined} />);
+    expect(blocked).toContain("Update blocked by active transaction.");
+    expect(blocked).toContain("disabled");
+    const safe = renderToStaticMarkup(<UpdateReadyDialog open safety="safe" currentBuild="r8" nextBuild="r8.1" onLater={() => undefined} onApply={() => undefined} />);
+    expect(safe).toContain("Safe to update.");
+    expect(safe).toContain("r8.1");
+  });
+
+  test("connectivity, passive-tab, migration and Fix App copy preserve critical local state", () => {
+    expect(renderToStaticMarkup(<ConnectivityNotice state="offline" />)).toContain("Saved local work stays on this device.");
+    expect(renderToStaticMarkup(<PassiveTabNotice passive />)).toContain("passive mode");
+    expect(renderToStaticMarkup(<LocalDataMigrationPanel state="blocked" />)).toContain("Data has not been deleted.");
+    const fix = renderToStaticMarkup(<FixAppPanel criticalOperationActive onLastResortReset={() => undefined} />);
+    expect(fix).toContain("Non-destructive recovery first.");
+    expect(fix).toContain("Destructive reset blocked.");
+    expect(fix).toContain("disabled");
+  });
+});
