@@ -33,4 +33,4 @@ R9 is not started. Production, live Paystack, live refund/restock, and VitePOS d
 
 ## Remaining disposition
 
-Independent review of PR #69 on the **new** exact remediation head after CI. Ben reviews WS2/WS3 integration portions; Emmanuel reviews WS1/WS3 integration portions. Do not dismiss Ben's `CHANGES_REQUESTED`. Controlled real training refund/restock remains an unexecuted remaining gate.
+Independent review of PR #69 on the **new** exact remediation head after CI. Ben confirms no regression to the previously approved WS2/WS3 surface; Emmanuel verifies immutable return-line identity and fail-closed shift variance. Do not dismiss Ben's `APPROVED` on `79dab609…` or Emmanuel's `CHANGES_REQUESTED`. Controlled real training refund/restock remains an unexecuted remaining gate.

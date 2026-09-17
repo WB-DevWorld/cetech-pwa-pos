@@ -51,12 +51,8 @@ export async function handleGetHistoricReturnSale(input: {
     return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
   }
 
-  const sale = await loadCompletedSale(input.checkoutStore, guard.session.organizationId, saleKey);
-  if (!sale) {
-    const body = apiFailure("NOT_FOUND", "completed sale was not found", guard.correlationId);
-    return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
-  }
-  if (sale.status !== "completed") {
+  const sale = await loadSaleForHistoricReturn(input.checkoutStore, guard.session.organizationId, saleKey);
+  if (!sale || sale.organizationId !== guard.session.organizationId) {
     const body = apiFailure("NOT_FOUND", "completed sale was not found", guard.correlationId);
     return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
   }
@@ -70,6 +66,10 @@ export async function handleGetHistoricReturnSale(input: {
   });
   if (!authorized.ok) {
     return { status: httpStatusFor(authorized.error.code), body: authorized, headers: guard.headers };
+  }
+  if (sale.status !== "completed") {
+    const body = apiFailure("NOT_FOUND", "completed sale was not found", guard.correlationId);
+    return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
   }
   const projection = projectHistoricReturnSale(sale);
   if (!projection) {
@@ -87,7 +87,7 @@ export async function handleGetHistoricReturnSale(input: {
   };
 }
 
-async function loadCompletedSale(
+async function loadSaleForHistoricReturn(
   store: CheckoutStore,
   organizationId: string,
   saleKey: string,

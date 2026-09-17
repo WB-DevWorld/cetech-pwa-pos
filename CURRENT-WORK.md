@@ -43,6 +43,7 @@ R7 fail-closed rules remain in force on `main` and must not regress on the R8 ca
 - Milestone PR: **#69** — `[R8] Safe returns and payment/register states`. Do not self-approve. Do not merge from this ledger.
 - Recovery/integration branch: `batch/r8-safe-returns-reconciliation`.
 - Starting exact head: `79dab6096466e00fd8289300038f07619868f539` (Ben APPROVED; Emmanuel CHANGES_REQUESTED).
+- First R8-02 replacement: `0fe28d353002ef8836eb2739ed9174517da7846b`. This close-out tightens lookup authorization (cross-org `NOT_FOUND`, unauthorized location, non-completed/unknown sale) without redesigning R8.
 - Prior R8-01 remediation (economicsVersion, persisted allocations, BFF composition, non-negative allocation migration) remains in history and must not be rewritten.
 - This assignment remediates Emmanuel's two WS1/WS3 runtime blockers: authorized historic return-sale lookup using durable `orderLines[].orderLineId`, and fail-closed shift variance that ignores invented `approvalId`.
 - Remediation evidence: `docs/integration/evidence/R8-REVIEW-REMEDIATION.md`.

@@ -10,6 +10,7 @@ import {
 } from "../returns/helpers";
 
 const ZERO_KEY = "aaaaaaa1-aaaa-4aaa-8aaa-aaaaaaaaaaa1";
+const ZERO_WITH_APPROVAL_KEY = "aaaaaaa6-aaaa-4aaa-8aaa-aaaaaaaaaaa6";
 const VARIANCE_KEY = "aaaaaaa2-aaaa-4aaa-8aaa-aaaaaaaaaaa2";
 const INVENTED_KEY = "aaaaaaa3-aaaa-4aaa-8aaa-aaaaaaaaaaa3";
 const ARBITRARY_KEY = "aaaaaaa4-aaaa-4aaa-8aaa-aaaaaaaaaaa4";
@@ -48,6 +49,18 @@ describe("R8-02 shift variance is fail-closed", () => {
   test("zero variance closes and records closedAt", async () => {
     const runtime = await createOpenShiftRuntime();
     const result = await close(runtime, 10000, ZERO_KEY);
+    expect(result.body.ok).toBe(true);
+    if (!result.body.ok) {
+      return;
+    }
+    expect(result.body.data.status).toBe("closed");
+    expect(result.body.data.closedAt).toBeTruthy();
+    expect(result.body.data.variance?.minor).toBe(0);
+  });
+
+  test("zero variance still closes because variance is zero, not because of approvalId", async () => {
+    const runtime = await createOpenShiftRuntime();
+    const result = await close(runtime, 10000, ZERO_WITH_APPROVAL_KEY, INVENTED_APPROVAL);
     expect(result.body.ok).toBe(true);
     if (!result.body.ok) {
       return;

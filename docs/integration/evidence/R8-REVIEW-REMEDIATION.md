@@ -219,3 +219,51 @@ Recorded after execution on this workstation. Interrupted or unavailable runtime
 | `.next/static` secret scan | no matches |
 
 No real Paystack, refund, Woo restock, production deploy, or VitePOS cutover. PR #69 is not merged. Reviews are not dismissed. R9 is not started.
+
+## R8-02 review-spec close-out
+
+Continues from replacement head `0fe28d353002ef8836eb2739ed9174517da7846b`. Does not erase Ben's three blockers, the allocation `DEFAULT 1` issue, Ben APPROVED, Emmanuel's two blockers, or the first R8-02 remediation.
+
+Design decision: R8 does not claim manager approval for shift variance; optional `approvalId` is non-authoritative until a durable approval-binding system exists.
+
+Authorization model for `GET /api/pos/v1/returns/history/{saleKey}`:
+
+- same-organization, allowed-location cashier: projection returned; `orderLineId` from `sale.orderLines[]`
+- different organization (including UUID lookup of an existing foreign sale): `NOT_FOUND` (no existence leak)
+- unauthorized location: `FORBIDDEN`
+- non-completed sale: `NOT_FOUND`
+- unknown sale: `NOT_FOUND`
+
+Zero variance still closes when an invented `approvalId` is supplied, because variance is zero — not because of the UUID.
+
+Production Register composition now tells the operator not to resubmit close with another approval ID.
+
+| Command | Result |
+| --- | --- |
+| `python scripts/verify_control_plane.py` | PASS |
+| `python -m unittest discover -s tests/tooling -v` | 48 OK |
+| `pnpm install --frozen-lockfile` | PASS |
+| `pnpm --dir apps/pos-web lint` | PASS |
+| `pnpm --dir apps/pos-web typecheck` | PASS |
+| `pnpm --dir apps/pos-web test` | 72 files / 671 tests PASS |
+| same-org allowed-location lookup | durable `LINE_1`; real preview succeeds |
+| different-org UUID lookup | `NOT_FOUND` |
+| unauthorized location | `FORBIDDEN` |
+| non-completed sale | `NOT_FOUND` |
+| unknown sale | `NOT_FOUND` |
+| fabricated `:receipt:` preview | `VALIDATION_ERROR` |
+| zero variance 10000/10000 | `closed` + `closedAt` |
+| zero variance with invented approval | still `closed` + `closedAt` |
+| non-zero 9900, no approval | `requires_attention`, no `closedAt` |
+| invented `7777…` + arbitrary `8888…` | still `requires_attention`, no `closedAt` |
+| idempotent close replay | same durable `requires_attention`; changed body same key `IDEMPOTENCY_CONFLICT` |
+| `pnpm --dir apps/pos-web build` | PASS; `GET /api/pos/v1/returns/history/[saleKey]` present |
+| `pnpm --dir apps/pos-web test:e2e` | 9 passed |
+| Docker pgTAP | `pos_returns.sql` 43/43; `payment_monotonic.sql` 6/6; `electronic_payment.sql` 16/16; rls 81/81; prepare 8/8; durable 17/17; cash uniqueness 7/7; all ROLLBACK |
+| `C:\tools\php85\php.exe tests/bridge/run.php` | **1555 passed, 0 failed** |
+| `C:\tools\php85\php.exe tests/bridge/parity.php` | 138 passed, 0 failed, 19 skipped |
+| WSL `make -C wordpress/cetech-pos-bridge check` | PASS |
+| `.next/static` secret scan | no matches |
+| `git diff --check` | clean |
+
+No real Paystack, refund, Woo restock, production deploy, or VitePOS cutover. PR #69 is not merged. Reviews are not dismissed. R9 is not started.
