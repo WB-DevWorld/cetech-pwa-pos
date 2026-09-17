@@ -94,10 +94,11 @@ Do not treat STG-04 contributor `CURRENT-WORK.md` as the shared ledger.
 | STG-05 / #74 | WS2 boundary; implementer @wbdevworld | `ws2/stg-05-training-bridge-runtime` | `4d549167f7d6dcecf0eff24f35e1f24a3429d3d8` | `7cab23415d622cef7369ddc03e007e6576cc4ce7` |
 | STG-04 / #73 | WS3 / @wbdevworld | `ws3/stg-04-training-catalog-projection` | `01e4438d3553c633e7b0234de44743ff4cea2368` | `981722e7c8ff6ea7163532f03218f59ea2b9e20d` |
 | STG-03 / FE-07 | WS1 / @Ben-001-sys | `ws1/stg-03-approved-workspaces` | `169f8155fe4cb34b6fe27db3bb6b445a13ade712` | `8073ef59dbf481160387000886b0b7da4a25d237` |
+| STG-07 / #76 | WS3 / @wbdevworld | isolated on this integration branch | `4a978b9a67291c34c34f6cb75fddf31d14a7cbdd` | same commit |
 
-Combined tested SHA and STG-07 SHA are recorded after composition/tests.
+WS3 composition (mount + session/catalog keep-both): `6df4e1edc503aa2ab0fe37f2f26a9177e6726177`. Combined tested SHA is recorded in WS3 HANDOFF after the e2e-isolation commit; it is not self-embedded here.
 
-Semantic conflict: `apps/pos-web/src/app/pos-app.tsx` and `apps/pos-web/src/config/env.ts` plus WS3 STATUS/HANDOFF. Composition keeps STG-02 staff/CSRF/register authority and STG-04 catalog projection. `readPublicStaffAuthEnv` and `readAppEnv` both remain. Staging still never silently seeds `CASHIER_SEED_CATALOG`.
+Semantic conflict: `apps/pos-web/src/app/pos-app.tsx` and `apps/pos-web/src/config/env.ts` plus WS3 STATUS/HANDOFF. Composition keeps STG-02 staff/CSRF/register authority and STG-04 catalog projection. `readPublicStaffAuthEnv` and `readAppEnv` both remain. Staging still never silently seeds `CASHIER_SEED_CATALOG`. Ben Orders has no frozen list port: mounted empty/unavailable, no Woo from UI, no invented contract.
 
 ## Safety boundaries
 

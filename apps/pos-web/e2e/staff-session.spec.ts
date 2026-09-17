@@ -26,11 +26,19 @@ test("unauthenticated POS does not claim staff or shift authority", async ({ pag
 });
 
 test("authenticated approved workspaces are mounted instead of the R4 placeholder", async ({ page }) => {
+  test.setTimeout(90_000);
   await installAuthoritativeStaffSession(page);
-  for (const path of ["/orders", "/customers", "/settings", "/health", "/attention"] as const) {
-    await page.goto(path);
-    await expect(page.getByText("Cashier A")).toBeVisible({ timeout: 30_000 });
+  const mounted = [
+    { path: "/orders", heading: "Orders" },
+    { path: "/customers", heading: "Customers" },
+    { path: "/settings", heading: "Settings" },
+    { path: "/health", heading: "Store Health" },
+    { path: "/attention", heading: "Needs attention" },
+  ] as const;
+  for (const { path, heading } of mounted) {
+    await page.goto(path, { waitUntil: "domcontentloaded" });
+    await expect(page.getByText("Cashier A")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("heading", { name: heading })).toBeVisible();
     await expect(page.getByText("This workspace is not part of the R4 Sell runtime.")).toHaveCount(0);
   }
-  await expect(page.getByRole("heading", { name: "Needs attention" })).toBeVisible();
 });

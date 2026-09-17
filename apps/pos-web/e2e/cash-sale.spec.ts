@@ -35,6 +35,7 @@ test("combined Sell UI completes a B2B cash sale using the authoritative quoted 
   await installAuthoritativeStaffSession(page);
   await page.goto("/sell");
   await expect(page.getByRole("heading", { level: 1, name: "Sell" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("button", { name: /Epoxy Hardener/ })).toBeVisible({ timeout: 15_000 });
   await page.locator(".customer-chip").click();
   await page.getByRole("button", { name: /Buildworks Ltd/ }).click();
   await scanHardener(page);

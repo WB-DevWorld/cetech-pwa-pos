@@ -31,6 +31,46 @@ export async function installAuthoritativeStaffSession(
   options: { readonly shiftOpen?: boolean } = {},
 ): Promise<void> {
   const shiftOpen = options.shiftOpen ?? true;
+  await page.route("**/api/pos/v1/catalog/sync**", async (route) => {
+    await route.fulfill({
+      status: 401,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: false,
+        error: {
+          code: "AUTH_REQUIRED",
+          message: "staff session is required",
+          retryable: false,
+          nextAction: "reauthenticate",
+        },
+        correlationId: CORRELATION,
+      }),
+    });
+  });
+  await page.route("**/api/pos/v1/health", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        correlationId: CORRELATION,
+        data: {
+          checks: [
+            {
+              id: "pos-bff",
+              status: "healthy",
+              message: "e2e health probe",
+              checkedAt: "2026-09-17T12:00:00.000Z",
+            },
+          ],
+          contractVersion: "1.0.0",
+          pendingOperationCount: 0,
+          attentionCount: 0,
+          buildId: "e2e",
+        },
+      }),
+    });
+  });
   await page.route("**/api/pos/v1/session", async (route) => {
     const method = route.request().method();
     if (method === "GET" || method === "POST") {
