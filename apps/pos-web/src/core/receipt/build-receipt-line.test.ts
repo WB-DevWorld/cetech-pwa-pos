@@ -164,4 +164,69 @@ describe("receipt SKU and line snapshot", () => {
     expect(line?.sku).toBe("CBL-ARM-RED");
     expect(line?.displayName).toBeUndefined();
   });
+
+  test("variation SKU absent and parent without SKU omits SKU legitimately", () => {
+    const parentNoSku: CatalogPresentationItem = {
+      id: "p-cable",
+      name: "Armoured Cable",
+      kind: "variable",
+    };
+    const built = captureSalePresentationLines({
+      quote: {
+        id: "quote-1",
+        fingerprint: "0123456789abcdef0123456789abcdef",
+        cartId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        cartRevision: 1,
+        customer: { kind: "walkin" },
+        locationId: "loc_a1",
+        currency: "GHS",
+        lines: [quoteLine({ productId: parentNoSku.id, variationId: variationWithoutSku.id })],
+        subtotal: money,
+        discount: { minor: 0, currency: "GHS" },
+        tax: { minor: 0, currency: "GHS" },
+        total: money,
+        calculatedAt: "2026-09-18T12:00:00.000Z",
+        expiresAt: "2099-01-01T00:00:00.000Z",
+        purchasable: true,
+      },
+      items: new Map([
+        [parentNoSku.id, parentNoSku],
+        [variationWithoutSku.id, variationWithoutSku],
+      ]),
+    });
+    expect(built.ok).toBe(true);
+    if (!built.ok) {
+      throw new Error("expected sale presentation lines");
+    }
+    expect(built.lines[0]?.sku).toBeUndefined();
+    expect("sku" in (built.lines[0] ?? {})).toBe(false);
+  });
+
+  test("quoted variation without parent presentation fails closed", () => {
+    const built = captureSalePresentationLines({
+      quote: {
+        id: "quote-1",
+        fingerprint: "0123456789abcdef0123456789abcdef",
+        cartId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        cartRevision: 1,
+        customer: { kind: "walkin" },
+        locationId: "loc_a1",
+        currency: "GHS",
+        lines: [quoteLine({ productId: parent.id, variationId: variationWithoutSku.id })],
+        subtotal: money,
+        discount: { minor: 0, currency: "GHS" },
+        tax: { minor: 0, currency: "GHS" },
+        total: money,
+        calculatedAt: "2026-09-18T12:00:00.000Z",
+        expiresAt: "2099-01-01T00:00:00.000Z",
+        purchasable: true,
+      },
+      items: new Map([[variationWithoutSku.id, variationWithoutSku]]),
+    });
+    expect(built.ok).toBe(false);
+    if (built.ok) {
+      throw new Error("expected parent presentation failure");
+    }
+    expect(built.message).toContain("parent presentation");
+  });
 });

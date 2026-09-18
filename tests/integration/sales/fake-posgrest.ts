@@ -126,7 +126,7 @@ function parseFilters(params: URLSearchParams): Array<{ column: string; op: stri
     if (key === "select" || key === "on_conflict") {
       continue;
     }
-    const match = /^(eq|in)\.(.*)$/.exec(raw);
+    const match = /^(eq|in|is)\.(.*)$/.exec(raw);
     if (!match) {
       continue;
     }
@@ -140,6 +140,12 @@ function matches(row: Row, filters: Array<{ column: string; op: string; value: s
     const actual = row[filter.column];
     if (filter.op === "eq") {
       return String(actual ?? "") === decodeURIComponent(filter.value);
+    }
+    if (filter.op === "is") {
+      if (filter.value === "null") {
+        return actual === null || actual === undefined;
+      }
+      return false;
     }
     const inner = filter.value.replace(/^\(/, "").replace(/\)$/, "");
     const allowed = inner.split(",").map((part) => decodeURIComponent(part.trim()));

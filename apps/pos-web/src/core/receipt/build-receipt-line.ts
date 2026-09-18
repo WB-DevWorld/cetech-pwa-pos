@@ -29,7 +29,16 @@ export function resolveSoldCatalogItem(input: {
       return { ok: false, message: "sale-time variation presentation is unavailable for the receipt snapshot" };
     }
     const parent = input.items.get(input.line.productId);
-    return parent ? { ok: true, selected, parent } : { ok: true, selected };
+    if (!parent) {
+      // Parent presentation is mandatory for every quoted variation so
+      // variation→parent SKU fallback can distinguish a genuine blank parent
+      // SKU from an unavailable parent catalog row.
+      return {
+        ok: false,
+        message: "sale-time parent presentation is unavailable for the quoted variation",
+      };
+    }
+    return { ok: true, selected, parent };
   }
   const selected = input.items.get(input.line.productId);
   if (!selected) {
@@ -121,8 +130,9 @@ export function catalogIdsForQuote(quote: Quote): readonly string[] {
 }
 
 /**
- * Load and validate sale-time presentation before a first commercial prepare,
- * and again on lost-response recovery. Does not shorten names or apply showSku.
+ * Load and validate sale-time presentation before the first commercial prepare.
+ * Recovery must reuse the durable prepare intent, never this catalog read.
+ * Does not shorten names or apply showSku.
  */
 export async function loadSalePresentation(input: {
   readonly catalogLookup: CatalogPresentationLookup;

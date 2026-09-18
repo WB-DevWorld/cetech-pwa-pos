@@ -8,6 +8,11 @@ import type {
 } from "../../../../../docs/contracts/domain.generated";
 import { loadSalePresentation } from "../../core/receipt/build-receipt-line";
 import type { CatalogPresentationLookup } from "../../core/receipt/catalog-presentation";
+import {
+  buildPrepareIntentSnapshot,
+  prepareIntentMatchesRequest,
+  type PrepareIntentSnapshot,
+} from "../../core/receipt/prepare-intent";
 import { canonicalJson, sha256Hex } from "../../local/canonical";
 import { toIsoTimestamp } from "../auth/ids";
 import { apiFailure } from "../http/api-failure";
@@ -94,7 +99,6 @@ export async function prepareSale(input: {
       return replayPrepared(claim.outcome, context.correlationId);
     }
 
-    await store.markIdempotencySent(actor.organizationId, "sale.prepare", context.idempotencyKey);
     try {
       const result = await completePrepare({
         store,
@@ -117,7 +121,6 @@ export async function prepareSale(input: {
         recovered = await recoverPrepared({
           store,
           salesPort,
-          catalogLookup: input.catalogLookup,
           actor,
           request,
           context,
@@ -140,6 +143,9 @@ export async function prepareSale(input: {
           message: "Prepare result is unknown; resolve the existing transaction before retrying",
         },
       );
+      if (recovered && !recovered.ok && recovered.error.code === "REQUIRES_ATTENTION") {
+        return recovered;
+      }
       return apiFailure(
         "INTEGRATION_UNAVAILABLE",
         "prepare result is unknown; resolve the existing transaction before creating another order",
@@ -184,14 +190,23 @@ async function completePrepare(input: {
     return scoped;
   }
   const quote = scoped.data.quote;
-  const presentation = await loadSalePresentation({
+  const intent = await loadOrBindPrepareIntent({
+    store: input.store,
     catalogLookup: input.catalogLookup,
-    organizationId: input.actor.organizationId,
+    actor: input.actor,
+    request: input.request,
+    context: input.context,
     quote,
   });
-  if (!presentation.ok) {
-    return apiFailure("INTEGRATION_UNAVAILABLE", presentation.message, input.context.correlationId);
+  if (!intent.ok) {
+    return intent;
   }
+
+  await input.store.markIdempotencySent(
+    input.actor.organizationId,
+    "sale.prepare",
+    input.context.idempotencyKey,
+  );
 
   const commercial = await input.salesPort.prepare(input.request, input.context);
   if (!commercial.ok) {
@@ -213,7 +228,7 @@ async function completePrepare(input: {
     request: input.request,
     prepared: commercial.data,
     quote,
-    lines: presentation.lines,
+    lines: intent.data.lines,
     context: input.context,
   });
 }
@@ -221,7 +236,6 @@ async function completePrepare(input: {
 async function recoverPrepared(input: {
   readonly store: CheckoutStore;
   readonly salesPort: Pick<SalesPort, "prepare" | "resolve">;
-  readonly catalogLookup: CatalogPresentationLookup;
   readonly actor: StaffActor;
   readonly request: PrepareSaleRequest;
   readonly context: CommandContext;
@@ -272,13 +286,22 @@ async function recoverPrepared(input: {
     return scoped;
   }
   const quote = scoped.data.quote;
-  const presentation = await loadSalePresentation({
-    catalogLookup: input.catalogLookup,
-    organizationId: input.actor.organizationId,
-    quote,
-  });
-  if (!presentation.ok) {
-    return apiFailure("INTEGRATION_UNAVAILABLE", presentation.message, input.context.correlationId);
+  const intent = await input.store.getPrepareIntent(
+    input.actor.organizationId,
+    "sale.prepare",
+    input.context.idempotencyKey,
+  );
+  if (!intent || !prepareIntentMatchesRequest({
+    intent,
+    quoteId: input.request.quoteId,
+    quoteFingerprint: input.request.quoteFingerprint,
+    transactionId: input.request.transactionId,
+  })) {
+    return apiFailure(
+      "REQUIRES_ATTENTION",
+      "durable sale-time presentation is missing for this prepare intent; current catalog cannot substitute",
+      input.context.correlationId,
+    );
   }
   const prepared: PreparedSale = {
     transactionId: input.request.transactionId,
@@ -300,7 +323,7 @@ async function recoverPrepared(input: {
     request: input.request,
     prepared,
     quote,
-    lines: presentation.lines,
+    lines: intent.lines,
     context: input.context,
   });
 }
@@ -347,6 +370,63 @@ async function assertPrepareScope(input: {
     return apiFailure("VALIDATION_ERROR", "device is not at the register location", input.context.correlationId);
   }
   return { ok: true, data: { quote }, correlationId: input.context.correlationId };
+}
+
+async function loadOrBindPrepareIntent(input: {
+  readonly store: CheckoutStore;
+  readonly catalogLookup: CatalogPresentationLookup;
+  readonly actor: StaffActor;
+  readonly request: PrepareSaleRequest;
+  readonly context: CommandContext;
+  readonly quote: Quote;
+}): Promise<ApiResult<PrepareIntentSnapshot>> {
+  const existing = await input.store.getPrepareIntent(
+    input.actor.organizationId,
+    "sale.prepare",
+    input.context.idempotencyKey,
+  );
+  if (existing) {
+    if (!prepareIntentMatchesRequest({
+      intent: existing,
+      quoteId: input.request.quoteId,
+      quoteFingerprint: input.request.quoteFingerprint,
+      transactionId: input.request.transactionId,
+    })) {
+      return apiFailure(
+        "REQUIRES_ATTENTION",
+        "durable prepare intent does not match this PrepareSaleRequest",
+        input.context.correlationId,
+      );
+    }
+    return { ok: true, data: existing, correlationId: input.context.correlationId };
+  }
+  const presentation = await loadSalePresentation({
+    catalogLookup: input.catalogLookup,
+    organizationId: input.actor.organizationId,
+    quote: input.quote,
+  });
+  if (!presentation.ok) {
+    return apiFailure("INTEGRATION_UNAVAILABLE", presentation.message, input.context.correlationId);
+  }
+  try {
+    const bound = await input.store.bindPrepareIntent(
+      input.actor.organizationId,
+      "sale.prepare",
+      input.context.idempotencyKey,
+      buildPrepareIntentSnapshot({
+        quote: input.quote,
+        transactionId: input.request.transactionId,
+        lines: presentation.lines,
+      }),
+    );
+    return { ok: true, data: bound, correlationId: input.context.correlationId };
+  } catch {
+    return apiFailure(
+      "INTEGRATION_UNAVAILABLE",
+      "prepare intent could not be persisted before the commercial sale",
+      input.context.correlationId,
+    );
+  }
 }
 
 async function persistPrepared(input: {

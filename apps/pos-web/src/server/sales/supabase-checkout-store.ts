@@ -20,6 +20,7 @@ import type {
   StoredRegister,
   StoredShift,
 } from "../../core/checkout/types";
+import { isPrepareIntentSnapshot, type PrepareIntentSnapshot } from "../../core/receipt/prepare-intent";
 
 export type SupabaseCheckoutStoreOptions = {
   readonly url: string;
@@ -560,6 +561,31 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
       await patchPending(request, organizationId, operation, idempotencyKey, { status: "sent" });
     },
 
+    async bindPrepareIntent(organizationId, operation, idempotencyKey, snapshot) {
+      const existing = await getPending(getRows, organizationId, operation, idempotencyKey);
+      if (!existing) {
+        throw new Error("prepare intent requires a claimed operation");
+      }
+      const current = parseIntentSnapshot(existing.intent_snapshot);
+      if (current) {
+        return current;
+      }
+      await patchPending(request, organizationId, operation, idempotencyKey, {
+        intent_snapshot: snapshot,
+      });
+      const bound = await getPending(getRows, organizationId, operation, idempotencyKey);
+      const parsed = parseIntentSnapshot(bound?.intent_snapshot);
+      if (!parsed) {
+        throw new Error("durable checkout store rejected prepare intent");
+      }
+      return parsed;
+    },
+
+    async getPrepareIntent(organizationId, operation, idempotencyKey) {
+      const existing = await getPending(getRows, organizationId, operation, idempotencyKey);
+      return parseIntentSnapshot(existing?.intent_snapshot);
+    },
+
     async acknowledgeIdempotency(organizationId, operation, idempotencyKey, outcome) {
       await patchPending(request, organizationId, operation, idempotencyKey, {
         status: "acknowledged",
@@ -628,7 +654,7 @@ async function getPending(
   idempotencyKey: Uuid,
 ): Promise<RestRow | undefined> {
   const rows = await getRows(
-    `pos_pending_operations?organization_id=eq.${encodeURIComponent(organizationId)}&operation=eq.${encodeURIComponent(operation)}&idempotency_key=eq.${encodeURIComponent(idempotencyKey)}&select=request_hash,status,outcome`,
+    `pos_pending_operations?organization_id=eq.${encodeURIComponent(organizationId)}&operation=eq.${encodeURIComponent(operation)}&idempotency_key=eq.${encodeURIComponent(idempotencyKey)}&select=request_hash,status,outcome,intent_snapshot`,
   );
   return rows[0];
 }
@@ -673,6 +699,10 @@ function mapCommandScope(row: RestRow): CommandScopeBinding | undefined {
     transactionId: row.transaction_id,
     operation: row.operation as CommandScopeBinding["operation"],
   };
+}
+
+function parseIntentSnapshot(value: unknown): PrepareIntentSnapshot | undefined {
+  return isPrepareIntentSnapshot(value) ? value : undefined;
 }
 
 function claimFromRow(row: RestRow, requestHash: string): IdempotencyClaim {

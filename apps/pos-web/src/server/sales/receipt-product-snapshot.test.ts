@@ -6,6 +6,7 @@ import { createMemoryCatalogPresentationLookup } from "../../core/receipt/catalo
 import { RECEIPT_DISPLAY_NAME_ELLIPSIS } from "../../core/receipt/display-name";
 import { DEFAULT_RECEIPT_SETTINGS } from "../../core/receipt/settings";
 import { createMemoryReceiptSettingsStore } from "../../core/receipt/settings-store";
+import { apiFailure } from "../http/api-failure";
 import { validateCanonicalDef } from "../quotes/canonical-schema";
 import { confirmCash } from "./confirm-cash";
 import { finalizeSale } from "./finalize-sale";
@@ -468,5 +469,381 @@ describe("receipt product-name snapshot", () => {
       documentKind: "operational_pos_receipt",
     };
     expect(validateCanonicalDef("ReceiptSnapshot", legacy)).toBe(true);
+  });
+
+  test("lost-response recovery reuses durable presentation A after catalog mutates to B", async () => {
+    const runtime = await seedRuntime();
+    const inner = runtime.salesPort;
+    const dropping = {
+      get prepareCount() {
+        return inner.prepareCount;
+      },
+      prepare: async (
+        request: Parameters<typeof inner.prepare>[0],
+        context: Parameters<typeof inner.prepare>[1],
+      ) => {
+        await inner.prepare(request, context);
+        runtime.catalogLookup.seed("org_a", [
+          { id: "p-cable", name: "CHANGED PARENT NAME", sku: "CHANGED-PARENT-SKU", kind: "variable" },
+          {
+            id: "v-cable-red",
+            name: "CHANGED VARIATION NAME",
+            sku: "CHANGED-VAR-SKU",
+            kind: "variation",
+            parentId: "p-cable",
+            variationLabel: "Changed",
+          },
+        ]);
+        throw new Error("injected lost prepare response");
+      },
+      resolve: inner.resolve.bind(inner),
+    };
+    const recovered = await prepareSale({
+      store: runtime.store,
+      salesPort: dropping,
+      catalogLookup: runtime.catalogLookup,
+      actor: ACTOR,
+      request: {
+        transactionId: TX,
+        registerId: "reg_a1",
+        shiftId: SHIFT,
+        deviceId: DEVICE,
+        quoteId: "quote-receipt-1",
+        quoteFingerprint: FINGERPRINT,
+      },
+      context: { idempotencyKey: PREPARE_KEY, correlationId: CORRELATION },
+      now: NOW,
+    });
+    expect(recovered.ok).toBe(true);
+    if (!recovered.ok) {
+      throw new Error("expected recovered prepare from durable intent A");
+    }
+    expect(inner.prepareCount).toBe(1);
+    const sale = await runtime.store.getSale(TX);
+    expect(sale?.lines[0]?.name).toBe(FULL_NAME);
+    expect(sale?.lines[0]?.sku).toBe("CBL-ARM-RED");
+    expect(sale?.lines[0]?.variationLabel).toBe("Red");
+    expect(sale?.lines[0]?.name).not.toBe("CHANGED VARIATION NAME");
+    expect(sale?.lines[0]?.sku).not.toBe("CHANGED-VAR-SKU");
+    expect(sale?.lines[0]?.displayName).toBeUndefined();
+    const intent = await runtime.store.getPrepareIntent("org_a", "sale.prepare", PREPARE_KEY);
+    expect(intent?.lines[0]?.name).toBe(FULL_NAME);
+    expect(intent?.lines[0]?.sku).toBe("CBL-ARM-RED");
+    const replay = await prepareSale({
+      store: runtime.store,
+      salesPort: inner,
+      catalogLookup: runtime.catalogLookup,
+      actor: ACTOR,
+      request: {
+        transactionId: TX,
+        registerId: "reg_a1",
+        shiftId: SHIFT,
+        deviceId: DEVICE,
+        quoteId: "quote-receipt-1",
+        quoteFingerprint: FINGERPRINT,
+      },
+      context: { idempotencyKey: PREPARE_KEY, correlationId: CORRELATION },
+      now: NOW,
+    });
+    expect(replay.ok).toBe(true);
+    expect(inner.prepareCount).toBe(1);
+  });
+
+  test("durable intent write failure occurs before SalesPort.prepare", async () => {
+    const runtime = await seedRuntime();
+    runtime.store.failNextIntentWrite = true;
+    const prepared = await prepareSale({
+      store: runtime.store,
+      salesPort: runtime.salesPort,
+      catalogLookup: runtime.catalogLookup,
+      actor: ACTOR,
+      request: {
+        transactionId: TX,
+        registerId: "reg_a1",
+        shiftId: SHIFT,
+        deviceId: DEVICE,
+        quoteId: "quote-receipt-1",
+        quoteFingerprint: FINGERPRINT,
+      },
+      context: { idempotencyKey: PREPARE_KEY, correlationId: CORRELATION },
+      now: NOW,
+    });
+    expect(prepared.ok).toBe(false);
+    if (!prepared.ok) {
+      expect(prepared.error.code).toBe("INTEGRATION_UNAVAILABLE");
+    }
+    expect(await runtime.store.getSale(TX)).toBeUndefined();
+    expect(runtime.salesPort.prepareCount).toBe(0);
+    expect(await runtime.store.getPrepareIntent("org_a", "sale.prepare", PREPARE_KEY)).toBeUndefined();
+  });
+
+  test("variation without SKU and missing parent fails closed with no commercial prepare", async () => {
+    const runtime = await seedRuntime();
+    const catalogLookup = createMemoryCatalogPresentationLookup({
+      org_a: [
+        {
+          id: "v-cable-red",
+          name: FULL_NAME,
+          kind: "variation",
+          parentId: "p-cable",
+          variationLabel: "Red",
+        },
+      ],
+    });
+    const prepared = await prepareSale({
+      store: runtime.store,
+      salesPort: runtime.salesPort,
+      catalogLookup,
+      actor: ACTOR,
+      request: {
+        transactionId: TX,
+        registerId: "reg_a1",
+        shiftId: SHIFT,
+        deviceId: DEVICE,
+        quoteId: "quote-receipt-1",
+        quoteFingerprint: FINGERPRINT,
+      },
+      context: { idempotencyKey: PREPARE_KEY, correlationId: CORRELATION },
+      now: NOW,
+    });
+    expect(prepared.ok).toBe(false);
+    if (!prepared.ok) {
+      expect(prepared.error.code).toBe("INTEGRATION_UNAVAILABLE");
+    }
+    expect(await runtime.store.getSale(TX)).toBeUndefined();
+    expect(runtime.salesPort.prepareCount).toBe(0);
+  });
+
+  test("variation SKU absent uses parent SKU when parent presentation exists", async () => {
+    const runtime = await seedRuntime();
+    runtime.catalogLookup.seed("org_a", [
+      { id: "p-cable", name: FULL_NAME, sku: "CBL-ARM", kind: "variable" },
+      {
+        id: "v-cable-red",
+        name: FULL_NAME,
+        kind: "variation",
+        parentId: "p-cable",
+        variationLabel: "Red",
+      },
+    ]);
+    const prepared = await prepareSale({
+      store: runtime.store,
+      salesPort: runtime.salesPort,
+      catalogLookup: runtime.catalogLookup,
+      actor: ACTOR,
+      request: {
+        transactionId: TX,
+        registerId: "reg_a1",
+        shiftId: SHIFT,
+        deviceId: DEVICE,
+        quoteId: "quote-receipt-1",
+        quoteFingerprint: FINGERPRINT,
+      },
+      context: { idempotencyKey: PREPARE_KEY, correlationId: CORRELATION },
+      now: NOW,
+    });
+    expect(prepared.ok).toBe(true);
+    expect(runtime.salesPort.prepareCount).toBe(1);
+    const sale = await runtime.store.getSale(TX);
+    expect(sale?.lines[0]?.sku).toBe("CBL-ARM");
+  });
+
+  test("variation SKU absent and parent without SKU omits SKU without failing prepare", async () => {
+    const runtime = await seedRuntime();
+    runtime.catalogLookup.seed("org_a", [
+      { id: "p-cable", name: FULL_NAME, kind: "variable" },
+      {
+        id: "v-cable-red",
+        name: FULL_NAME,
+        kind: "variation",
+        parentId: "p-cable",
+        variationLabel: "Red",
+      },
+    ]);
+    const prepared = await prepareSale({
+      store: runtime.store,
+      salesPort: runtime.salesPort,
+      catalogLookup: runtime.catalogLookup,
+      actor: ACTOR,
+      request: {
+        transactionId: TX,
+        registerId: "reg_a1",
+        shiftId: SHIFT,
+        deviceId: DEVICE,
+        quoteId: "quote-receipt-1",
+        quoteFingerprint: FINGERPRINT,
+      },
+      context: { idempotencyKey: PREPARE_KEY, correlationId: CORRELATION },
+      now: NOW,
+    });
+    expect(prepared.ok).toBe(true);
+    const sale = await runtime.store.getSale(TX);
+    expect(sale?.lines[0]?.sku).toBeUndefined();
+    expect("sku" in (sale?.lines[0] ?? {})).toBe(false);
+    expect(runtime.salesPort.prepareCount).toBe(1);
+  });
+
+  test("same-key different request hash cannot reuse durable presentation", async () => {
+    const runtime = await seedRuntime();
+    const failingPort = {
+      prepareCount: 0,
+      prepare: async () => {
+        failingPort.prepareCount += 1;
+        return apiFailure("INTEGRATION_UNAVAILABLE", "woo down", CORRELATION);
+      },
+      resolve: runtime.salesPort.resolve.bind(runtime.salesPort),
+    };
+    const first = await prepareSale({
+      store: runtime.store,
+      salesPort: failingPort,
+      catalogLookup: runtime.catalogLookup,
+      actor: ACTOR,
+      request: {
+        transactionId: TX,
+        registerId: "reg_a1",
+        shiftId: SHIFT,
+        deviceId: DEVICE,
+        quoteId: "quote-receipt-1",
+        quoteFingerprint: FINGERPRINT,
+      },
+      context: { idempotencyKey: PREPARE_KEY, correlationId: CORRELATION },
+      now: NOW,
+    });
+    expect(first.ok).toBe(false);
+    expect(failingPort.prepareCount).toBe(1);
+    const intent = await runtime.store.getPrepareIntent("org_a", "sale.prepare", PREPARE_KEY);
+    expect(intent?.lines[0]?.name).toBe(FULL_NAME);
+    const conflict = await prepareSale({
+      store: runtime.store,
+      salesPort: failingPort,
+      catalogLookup: runtime.catalogLookup,
+      actor: ACTOR,
+      request: {
+        transactionId: "11111111-1111-4111-8111-111111111112",
+        registerId: "reg_a1",
+        shiftId: SHIFT,
+        deviceId: DEVICE,
+        quoteId: "quote-receipt-1",
+        quoteFingerprint: FINGERPRINT,
+      },
+      context: { idempotencyKey: PREPARE_KEY, correlationId: CORRELATION },
+      now: NOW,
+    });
+    expect(conflict.ok).toBe(false);
+    if (!conflict.ok) {
+      expect(conflict.error.code).toBe("IDEMPOTENCY_CONFLICT");
+    }
+    expect(failingPort.prepareCount).toBe(1);
+    expect(await runtime.store.getSale(TX)).toBeUndefined();
+    expect((await runtime.store.getPrepareIntent("org_a", "sale.prepare", PREPARE_KEY))?.lines[0]?.name).toBe(FULL_NAME);
+  });
+
+  test("cross-organization actors cannot read another operation intent", async () => {
+    const runtime = await seedRuntime();
+    const prepared = await prepareSale({
+      store: runtime.store,
+      salesPort: runtime.salesPort,
+      catalogLookup: runtime.catalogLookup,
+      actor: ACTOR,
+      request: {
+        transactionId: TX,
+        registerId: "reg_a1",
+        shiftId: SHIFT,
+        deviceId: DEVICE,
+        quoteId: "quote-receipt-1",
+        quoteFingerprint: FINGERPRINT,
+      },
+      context: { idempotencyKey: PREPARE_KEY, correlationId: CORRELATION },
+      now: NOW,
+    });
+    expect(prepared.ok).toBe(true);
+    expect(await runtime.store.getPrepareIntent("org_b", "sale.prepare", PREPARE_KEY)).toBeUndefined();
+    expect(await runtime.store.getPrepareIntent("org_a", "sale.prepare", PREPARE_KEY)).toMatchObject({
+      quoteId: "quote-receipt-1",
+      lines: [{ name: FULL_NAME, sku: "CBL-ARM-RED" }],
+    });
+    const foreign = await prepareSale({
+      store: runtime.store,
+      salesPort: runtime.salesPort,
+      catalogLookup: runtime.catalogLookup,
+      actor: { ...ACTOR, organizationId: "org_b", locationIds: ["loc_b1"] },
+      request: {
+        transactionId: TX,
+        registerId: "reg_a1",
+        shiftId: SHIFT,
+        deviceId: DEVICE,
+        quoteId: "quote-receipt-1",
+        quoteFingerprint: FINGERPRINT,
+      },
+      context: { idempotencyKey: PREPARE_KEY, correlationId: CORRELATION },
+      now: NOW,
+    });
+    expect(foreign.ok).toBe(false);
+    if (!foreign.ok) {
+      expect(foreign.error.code).toBe("FORBIDDEN");
+    }
+    expect(runtime.salesPort.prepareCount).toBe(1);
+  });
+
+  test("lost-response recovery without durable intent fails closed instead of refreshing the catalog", async () => {
+    const runtime = await seedRuntime();
+    const innerStore = runtime.store;
+    let hideIntent = false;
+    const store = new Proxy(innerStore, {
+      get(target, prop, receiver) {
+        if (prop === "getPrepareIntent") {
+          return async (
+            organizationId: Parameters<typeof innerStore.getPrepareIntent>[0],
+            operation: Parameters<typeof innerStore.getPrepareIntent>[1],
+            idempotencyKey: Parameters<typeof innerStore.getPrepareIntent>[2],
+          ) => {
+            if (hideIntent) {
+              return undefined;
+            }
+            return target.getPrepareIntent(organizationId, operation, idempotencyKey);
+          };
+        }
+        const value = Reflect.get(target, prop, receiver) as unknown;
+        return typeof value === "function" ? (value as (...args: unknown[]) => unknown).bind(target) : value;
+      },
+    });
+    const inner = runtime.salesPort;
+    const dropping = {
+      get prepareCount() {
+        return inner.prepareCount;
+      },
+      prepare: async (
+        request: Parameters<typeof inner.prepare>[0],
+        context: Parameters<typeof inner.prepare>[1],
+      ) => {
+        await inner.prepare(request, context);
+        hideIntent = true;
+        runtime.catalogLookup.seed("org_a", catalogItems({ name: "CHANGED CATALOG NAME", sku: "CHANGED-SKU" }));
+        throw new Error("injected lost prepare response");
+      },
+      resolve: inner.resolve.bind(inner),
+    };
+    const recovered = await prepareSale({
+      store,
+      salesPort: dropping,
+      catalogLookup: runtime.catalogLookup,
+      actor: ACTOR,
+      request: {
+        transactionId: TX,
+        registerId: "reg_a1",
+        shiftId: SHIFT,
+        deviceId: DEVICE,
+        quoteId: "quote-receipt-1",
+        quoteFingerprint: FINGERPRINT,
+      },
+      context: { idempotencyKey: PREPARE_KEY, correlationId: CORRELATION },
+      now: NOW,
+    });
+    expect(recovered.ok).toBe(false);
+    if (!recovered.ok) {
+      expect(recovered.error.code).toBe("REQUIRES_ATTENTION");
+    }
+    expect(inner.prepareCount).toBe(1);
+    expect(await innerStore.getSale(TX)).toBeUndefined();
   });
 });

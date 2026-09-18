@@ -265,4 +265,52 @@ describe("R6-REM-01 durable checkout store", () => {
     ).toBe("duplicate");
     expect(await restarted.listCashSales(TX)).toHaveLength(1);
   });
+
+  test("prepare intent snapshot is append-once, org-scoped, and independent of outcome", async () => {
+    const fake = createFakePosgrest();
+    const store = createSupabaseCheckoutStore({
+      url: "https://example.supabase.co",
+      serviceRoleKey: "server-only-infrastructure",
+      fetchImpl: fake.fetchImpl,
+    });
+    expect(
+      await store.claimIdempotency("org_a", "sale.prepare", PREPARE_KEY, HASH_A, "loc_a1", {
+        registerId: "reg_a",
+        shiftId: SHIFT_ID,
+        transactionId: TX,
+      }),
+    ).toEqual({ kind: "acquired" });
+    const first = {
+      kind: "sale.prepare.presentation" as const,
+      quoteId: "quote-r6-1",
+      quoteFingerprint: "0123456789abcdef0123456789abcdef",
+      transactionId: TX,
+      lineIds: ["cccccccc-cccc-4ccc-8ccc-cccccccccccc"],
+      lines: [
+        {
+          name: "Training Product 49111",
+          sku: "SKU-49111",
+          quantity: "1",
+          unitPrice: { minor: 2900, currency: "GHS" as const },
+          subtotal: { minor: 2900, currency: "GHS" as const },
+          discount: { minor: 0, currency: "GHS" as const },
+          tax: { minor: 0, currency: "GHS" as const },
+          total: { minor: 2900, currency: "GHS" as const },
+        },
+      ],
+    };
+    await expect(store.bindPrepareIntent("org_a", "sale.prepare", PREPARE_KEY, first)).resolves.toEqual(first);
+    await expect(
+      store.bindPrepareIntent("org_a", "sale.prepare", PREPARE_KEY, {
+        ...first,
+        lines: [{ ...first.lines[0]!, name: "CHANGED NAME", sku: "CHANGED-SKU" }],
+      }),
+    ).resolves.toEqual(first);
+    expect(await store.getPrepareIntent("org_a", "sale.prepare", PREPARE_KEY)).toEqual(first);
+    expect(await store.getPrepareIntent("org_b", "sale.prepare", PREPARE_KEY)).toBeUndefined();
+    await store.acknowledgeIdempotency("org_a", "sale.prepare", PREPARE_KEY, { status: "prepared" });
+    expect(await store.getPrepareIntent("org_a", "sale.prepare", PREPARE_KEY)).toEqual(first);
+    expect(fake.tables.pos_pending_operations[0]?.outcome).toEqual({ status: "prepared" });
+    expect(fake.tables.pos_pending_operations[0]?.intent_snapshot).toEqual(first);
+  });
 });

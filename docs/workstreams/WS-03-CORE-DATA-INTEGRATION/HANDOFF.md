@@ -1,24 +1,46 @@
 # WS3 current handoff — REC-01 receipt product-name / SKU
 
-Kind: TASK_COMPLETION. UTC: 2026-09-18T14:10:00Z (pre-freshness implementation close; freshness fields filled after Pass 2).
+Kind: TASK_COMPLETION. UTC: 2026-09-18T17:10:00Z (review remediation close; freshness fields filled after Pass 2 if run).
 
-Task / batch / workstream: REC-01 / WS3 contributor branch (not a milestone PR).
-Owner / integration editor / requested human reviewer: `@wbdevworld` / WS3. Independent human review required before merge. WS1 consumer: `@Ben-001-sys` after this head is published. This agent does not approve, merge, or dismiss reviews.
+Task / batch / workstream: REC-01 / WS3 contributor branch PR #80 (not a milestone merge).
+Owner / integration editor / requested human reviewer: `@wbdevworld` / WS3. Independent human review required before merge. This agent does not approve, merge, or dismiss reviews.
 Mode: IMPLEMENT.
-PR: none. Do not merge main. Do not deploy production.
+PR: #80. Do not merge main. Do not deploy production.
 
 Branch: `ws3/receipt-product-name-sku`
 Starting/base SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` (`origin/main` R8 #69)
-Current/final task head SHA: recorded after the implementation commit (cannot be self-referential in this file’s first commit)
-Allowed / forbidden paths and central leases: WS3 contracts, `apps/pos-web/src/core/**`, `apps/pos-web/src/server/**`, `apps/pos-web/src/app/api/**`, `supabase/**`, `docs/**`, `tests/contracts/**`. Forbidden: WS1 `ProductSearch.tsx` / `sell.css` / cart presentation; WS2 plugin; production deploy.
-Files changed: listed in git commit; core receipt helpers, prepare wiring, additive `pos_receipt_settings` migration, ADR-016, fixtures.
-Contracts changed: v1.0.0 additive. `ReceiptLine.displayName?`, `ReceiptLine.sku?`; new `ReceiptSettings`. Quote/Prepare/Payment unchanged. `domain.generated.ts` regenerated from canonical JSON schema.
-Database migrations: `20260918140000_pos_receipt_settings.sql` (additive). Applied on **local** Docker `supabase_db_cetech-pwa-pos` / database `postgres`. **Remote staging UNVERIFIED. Production not touched.**
-Architecture decisions: ADR-016.
+Review-remediation starting HEAD: `f9c7c2a415823a8911435e56ce650a00e1ef0b7b`
+Current/final task head SHA: recorded after the remediation commit (cannot be self-referential in this file)
+Allowed / forbidden paths and central leases: WS3 contracts, `apps/pos-web/src/core/**`, `apps/pos-web/src/server/**`, `apps/pos-web/src/app/api/**`, `supabase/**`, `docs/**`, `tests/contracts/**`, `tests/integration/**`. Forbidden: WS1 `ProductSearch.tsx` / `sell.css` / cart presentation; WS2 plugin; production deploy.
+Files changed: durable `intent_snapshot` journal field, prepare append-before-send, variation parent fail-closed, tests, ADR-016.
+Contracts changed: v1.0.0 additive unchanged this remediation (`ReceiptLine.displayName?`/`sku?`, `ReceiptSettings` already on the branch).
+Database migrations: `20260918140000_pos_receipt_settings.sql` (pending shared-staging). **New** `20260918150000_pos_prepare_intent_snapshot.sql` (additive `pos_pending_operations.intent_snapshot jsonb`). Applied on **local** Docker `supabase_db_cetech-pwa-pos` only. **Remote staging UNVERIFIED / not applied from this work. Production not touched.**
+Architecture decisions: ADR-016 updated for durable pre-commercial intent and mandatory variation parent presentation.
 
-## Defect confirmed on main
+## Review blockers closed
 
-`receiptLinesFromQuote` on `778348c…` mapped `name <- productId` and `variationLabel <- variationId`. REC-01 does not wrap truncation around that mapping. Prepare now joins `pos_catalog_items` presentation (name, sku, variation_label, kind, parent) at sale time and fails closed with `INTEGRATION_UNAVAILABLE` if presentation is missing.
+1. Sale-time presentation is bound to the existing `sale.prepare` `pos_pending_operations` row as `intent_snapshot` **before** `SalesPort.prepare`. Recovery loads that exact intent after `SalesPort.resolve`. It does not re-read catalog. Missing intent fails `REQUIRES_ATTENTION`. Intent write failure does not call `SalesPort.prepare`.
+2. Quoted variations require parent catalog presentation. Missing parent is `INTEGRATION_UNAVAILABLE` with prepare count 0. Variation SKU still wins; blank variation + parent SKU uses parent; both blank omits SKU legitimately.
+
+## Durable prepare-intent design
+
+- Column: `pos_pending_operations.intent_snapshot jsonb` (not `outcome`).
+- Kind: `sale.prepare.presentation`.
+- Bound to organization + operation=`sale.prepare` + idempotency key + request hash + transaction scope.
+- Append-once: later binds return the original capture.
+- Contains quote id/fingerprint, transaction id, line ids, full sale-time name, variation label, effective SKU, quote-derived line economics.
+- Not a fabricated `PreparedSale`.
+
+## Append-before-send order
+
+1. validate quote/register/shift/device/scope
+2. claim/bind idempotency
+3. load/validate sale presentation, or reuse existing intent
+4. durably persist/bind `intent_snapshot`
+5. mark sent, then `SalesPort.prepare`
+6. validate commercial response
+7. persist `PosSaleRecord` from the exact durable intent
+8. acknowledge idempotency
 
 ## Receipt settings defaults
 
@@ -30,61 +52,29 @@ Architecture decisions: ADR-016.
 
 Missing `pos_receipt_settings` row means those defaults. Shortening defaults OFF.
 
-## Examples (synthetic; not live customer data)
-
-- Full sale-time name: `Armoured Cable 4-Core 25mm Copper Conductor`
-- Frozen shortened `displayName` at max 18: `Armoured Cable 4-…` (Unicode ellipsis U+2026; 18 code points including ellipsis)
-- Variation SKU `CBL-ARM-RED` overrides parent `CBL-ARM`
-- Missing variation SKU falls back to parent SKU
-- `showSku=false` or empty SKU: field omitted
-
-## Local DB evidence (not remote staging)
-
-Environment: local Docker Postgres `supabase_db_cetech-pwa-pos`, not production. That stack already contained extra versions `20260915223000` and `20260917140000` (shared local R9 stack) before this additive apply.
-- Pre-migration historic receipt snapshot md5: `2f61331f167796e1d4dc78fb6f2bf64f` (legacy line had `name`, no `displayName`/`sku`)
-- After `20260918140000` apply: same hash
-- After inserting loc_a1 settings `shorten=true`, max 18, `showSku=true`: same hash
-- pgTAP `supabase/tests/receipt_settings.sql`: 9/9 ok (BEGIN/ROLLBACK)
-- `npx supabase db reset` was **not** used (Windows CLI quoting failure). Direct `psql` apply only.
-- No second training commercial sale. No remote Supabase project apply. No production.
-
 ## Tests executed (local)
 
 - `pnpm --dir apps/pos-web lint` PASS
 - `pnpm --dir apps/pos-web typecheck` PASS
-- `pnpm --dir apps/pos-web test` PASS — 76 files / 699 tests
+- `pnpm --dir apps/pos-web test` PASS — 76 files / 712 tests
 - `pnpm --dir apps/pos-web build` PASS
 - `python scripts/verify_control_plane.py` PASS (82 schemas, 68 fixtures)
 - `python -m unittest discover -s tests/tooling -v` PASS — 48 OK
-- Local pgTAP receipt settings 9/9 PASS
+- Local pgTAP `supabase/tests/prepare_intent_snapshot.sql`: 6/6 ok (BEGIN/ROLLBACK)
+- Local Docker additive apply of `20260918150000` only. No remote staging apply. No production.
 
 Remote effects performed: none (no Paystack, no Woo sale/refund, no production, no VitePOS change).
-
-## WS1 handoff — fields Ben may consume
-
-Do **not** start compact POS two-line wrapping in this foundation. Do **not** reuse `formatReceiptDisplayName` on catalog, search, cart, or Woo payloads.
-
-Receipt paper / reprint should read the stored snapshot:
-
-- `line.name` — full sale-time product name (never a product/variation id)
-- `line.displayName` — frozen printable name written on new receipts; historic receipts may omit it
-- Render printable name as `line.displayName ?? line.name`
-- `line.sku?` — frozen effective SKU; omit in UI when absent
-- `line.variationLabel?` — sale-time variation label, never a variation id
-- Existing quantity/pricing/tax fields unchanged
-
-There is no cashier HTTP settings API yet. Settings persist in `pos_receipt_settings` and are read at prepare. A later WS1/admin task can expose upsert.
 
 ## Remaining / not done
 
 - Compact POS two-line UI: WS1, out of scope
-- Remote staging migration/sale/reprint: UNVERIFIED
+- Remote staging migration/sale/reprint for `20260918140000` and `20260918150000`: UNVERIFIED / senior shared-staging verification
 - Milestone PR / merge / production deploy: NOT AUTHORIZED
 - Unrelated untracked `doc/` preserved, not committed
 
 ## Next exact action
 
-Publish this contributor branch for independent review. Hand `ReceiptLine` fields above to Ben/WS1. Do not merge main. Do not deploy production. ADR-012 Pass 1 + Pass 2 only after the implementation commit; then STOP.
+Independent review of PR #80. Do not merge. Do not deploy production. Human senior applies shared-staging migrations when ready.
 
 Pass 3: NOT PERMITTED.
 Production promotion: NOT AUTHORIZED.
