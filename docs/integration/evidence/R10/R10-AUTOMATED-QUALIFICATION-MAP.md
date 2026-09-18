@@ -30,6 +30,13 @@ The new R10 guard tests therefore live under the existing `tests/integration/pay
 | Q-TX-06 | `tests/integration/payments/r10-fail-closed-payment-guards.test.ts` — missing prepared sale | absent commercial prerequisite cannot reach payment initialize | staging outage/failure injection later |
 | Q-REC-01 | CORE-06 harness + `tests/contracts/producer-consumer.test.ts` | completed sale resolves stable receipt contract | accepted staging reprint trace |
 
+## Cash payment mapping
+
+| Matrix ID | Executable evidence | What it proves | Remaining runtime evidence |
+| --- | --- | --- | --- |
+| Q-CASH-00 | `tests/integration/sales/r10-fail-closed-cash-guards.test.ts` | wrong register authority or missing CSRF creates no cash movement and no payment record | accepted staging negative-path proof later |
+| Q-CASH-01 | CORE-06 cash harness | duplicate cash confirmation yields one ledger/tender effect | accepted STG-01 cash-sale trace |
+
 ## R7 payment mapping
 
 | Matrix ID | Executable evidence | What it proves | Remaining runtime evidence |
@@ -99,6 +106,11 @@ These remain runtime/device/release evidence, not unit-test substitutes:
 
 1. wrong register assignment → FORBIDDEN with zero Woo-order / stock-reservation effects;
 2. missing CSRF → FORBIDDEN with zero Woo-order / stock-reservation effects.
+
+`tests/integration/sales/r10-fail-closed-cash-guards.test.ts` adds the cash-tender effect-boundary proof:
+
+1. wrong register assignment → FORBIDDEN with zero cash movements / payment evidence;
+2. missing CSRF → FORBIDDEN with zero cash movements / payment evidence.
 
 `tests/integration/sales/r10-fail-closed-finalize-guards.test.ts` adds the finalization effect-boundary proof:
 
