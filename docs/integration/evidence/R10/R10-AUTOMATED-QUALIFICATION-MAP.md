@@ -49,6 +49,7 @@ The new R10 guard tests therefore live under the existing `tests/integration/pay
 | Q-RT-01 | `tests/integration/returns/historic-sale-projection.test.ts` + R8 historic lookup tests | durable orderLineId is the return identity; receipt index is not authority | final regression |
 | Q-RT-02 | `tests/integration/returns/r8-review-remediation.test.ts` + `return-runtime.test.ts` | exact historic allocation, odd-minor remainder, over-quantity rejection | final regression |
 | Q-RT-03 | `return-runtime.test.ts` identical retry/concurrency tests | commercial effect identity is idempotent at integration-test level | controlled staging effect if authorized |
+| Q-RT-00 | `tests/integration/returns/r10-fail-closed-return-effects.test.ts` | missing approval, wrong register assignment, or missing CSRF is rejected before provider refund, commercial refund, or stock-disposition calls occur | accepted staging negative-path proof later |
 | Q-RT-04 | `return-runtime.test.ts` mixed outcomes + independent bridge effects | settlement/commercial/stock effects remain independently truthful | controlled staging evidence |
 | Q-RT-05 | `r8-review-remediation.test.ts` + `return-runtime.test.ts` disposition tests | damaged/quarantine-like paths do not invent sellable restock | controlled staging evidence |
 | Q-RT-06 | `return-runtime.test.ts` lost-provider-response/resolve tests | ambiguous refund resolves same refundId; no second refund | final regression |
@@ -60,8 +61,8 @@ The new R10 guard tests therefore live under the existing `tests/integration/pay
 | Matrix ID | Executable evidence | What it proves |
 | --- | --- | --- |
 | Q-SEC-01 | `tests/integration/auth/staff-authorization.test.ts`, `staff-session-http.test.ts`, health anonymous tests | anonymous/expired/revoked requests fail closed |
-| Q-SEC-02 | staff authorization/session HTTP tests | origin + CSRF are enforced for mutation paths |
-| Q-SEC-03 | staff assignment directory, payment cross-tenant, return cross-tenant tests | cross-tenant/cross-location authority is rejected |
+| Q-SEC-02 | staff authorization/session HTTP tests + R10 payment/return no-effect guards | origin + CSRF are enforced before payment/refund/stock external effects |
+| Q-SEC-03 | staff assignment directory, payment cross-tenant, return cross-tenant tests + R10 return no-effect guard | cross-tenant/cross-location/register authority is rejected before external effects |
 | Q-SEC-04 | `tests/integration/auth/secrets.test.ts`, `tests/integration/health/env.test.ts`, session/health route secret tests | public secret aliases and privileged browser exposure are rejected by executable checks |
 | Q-SEC-05 | auth provider timeout/unavailable tests + new R10 payment guard | infrastructure uncertainty does not become trusted access or payment execution |
 
@@ -92,4 +93,10 @@ These remain runtime/device/release evidence, not unit-test substitutes:
 2. unavailable staff-assignment authority → INTEGRATION_UNAVAILABLE and `provider.initializeCount === 0`;
 3. missing CSRF → FORBIDDEN and `provider.initializeCount === 0`.
 
-These tests do not change source behavior and do not authorize any external payment.
+`tests/integration/returns/r10-fail-closed-return-effects.test.ts` adds the equivalent R8 effect-boundary proof:
+
+1. approval-required return without approval → zero provider-refund, commercial-refund and stock-disposition calls;
+2. wrong register assignment → FORBIDDEN before any of those effects;
+3. missing CSRF → FORBIDDEN before any of those effects.
+
+These tests do not change source behavior and do not authorize any external payment, refund, Woo mutation or stock change.
