@@ -1,5 +1,11 @@
 # WS1 current status
 
+Snapshot 2026-09-18. UX-01 / issue #78 cashier language and actionable POS errors implemented on `ws1/ux-01-cashier-language` from start SHA `ee9e3d95bc8914cdd9251973412924d64a7b2ea9`. Implementation SHA `9335ee0ad31d1a18554178184a1a185c2d809824`. Presentation mappers live in `apps/pos-web/src/ui/cashier-language/`; standard is `docs/standards/POS-CASHIER-LANGUAGE.md`. Frozen contracts, error codes, pricing/stock authority, payment uncertainty, idempotency, register/shift, and recovery semantics are unchanged. Synthetic customers were not restored. `pricingParityVerified=false` remains an open functional fact, not a copy regression. Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION**. Reassignment NONE. Do not merge; do not modify `main`; do not touch R9.
+
+## Previous snapshot (historical; current section above controls)
+
+# WS1 current status
+
 Snapshot 2026-09-15. FE-06 / issue #11 HIGH outstanding-return abandonment remediated. Replacement implementation SHA `d3ddf0a7592845c710fe768b3645b9a9109693cb` supersedes prior published head `91641f4f9ab242f3026cc47dcc5a8cc78d5b9c39` / prior implementation `bb2010b260a78d3741186df48462b22f7ece3861`. An executed return in `executing` / `resolving` / `refund_pending` / `in_progress` / `requires_attention` stays bound to its `returnId`; sale lookup, sale selection, and quantity/reason/condition edits are locked in both controller and UI until authoritative `completed`. Failed `ReturnPort.resolve` with an outstanding identity stays `requires_attention`, not editable `failed`. Prior FRESH_2 that watched obsolete `batch/rt01-safe-returns` is superseded; current receiver is `origin/batch/rt01-safe-returns-ws3-integrated` `4650a0fa18c909743e9fbab4be0b6067bd1eff18` (COMPATIBLE / DO_NOT_CONSUME). PAY-01 remains **PROVISIONAL_TEST**. No live refund/restock/provider acceptance. Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION**. Reassignment NONE. Do not merge; do not modify the WS3 integration branch; do not start FE-07/R8.
 
 ## Previous snapshot (historical; current section above controls)

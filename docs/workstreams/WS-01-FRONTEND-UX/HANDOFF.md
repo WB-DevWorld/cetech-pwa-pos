@@ -1,3 +1,77 @@
+# WS1 current handoff — UX-01 cashier language and actionable POS errors (TASK_COMPLETION FRESH_2)
+
+Kind / UTC: TASK_COMPLETION / 2026-09-18T15:02:28Z
+Handoff kind: DEPENDENCY_READY
+Task / batch / workstream: UX-01 / issue #78 / WS1 cashier language and actionable POS errors
+Owner / integration editor / requested human reviewer: Ben / @Ben-001-sys owns WS1; WS3 independently reviews/imports. Senior instruction authorized this WS1 presentation pass plus cashier-visible `src/app` copy and `docs/standards/POS-CASHIER-LANGUAGE.md`. Do not self-approve. Do not merge.
+Branch: `ws1/ux-01-cashier-language`
+Starting/base SHA: `ee9e3d95bc8914cdd9251973412924d64a7b2ea9`
+Pre-handoff implementation SHA: `9335ee0ad31d1a18554178184a1a185c2d809824`
+Commit(s) / contributor source SHAs: `9335ee0ad31d1a18554178184a1a185c2d809824`
+Allowed / forbidden paths and central leases: `apps/pos-web/src/features/**`; `apps/pos-web/src/ui/**`; `tests/frontend/**`; cashier-visible copy in `apps/pos-web/src/app/**` (authorized this task); `docs/standards/POS-CASHIER-LANGUAGE.md` (authorized this task); this workstream STATUS/HANDOFF. No contracts, migrations, CURRENT-WORK, `main`, R9, provider adapters, or security/payment/register-authority semantics.
+Files changed: 87 in implementation commit (cashier-language module, sell/cart/quote/catalog/customers/register/payments/receipt/orders/returns/operational/settings/login copy, tests, visual evidence HTML, `docs/standards/POS-CASHIER-LANGUAGE.md`). This STATUS/HANDOFF commit is evidence only.
+Contracts changed: none. Frozen v1.0.0 consumed. Canonical error codes unchanged.
+Database migrations: none
+Architecture decisions: none authored. Presentation-only language adapters; no pricing/stock authority moved into the frontend.
+Completed/current/remaining tasks: UX-01 copy/error presentation complete on this branch. Remaining live facts are not copy work: no mounted real customer source; `pricingParityVerified=false` still open.
+Dependencies (accepted / provisional SHA / prep-only / blocked): start SHA `ee9e3d95bc8914cdd9251973412924d64a7b2ea9` (STG-01..06). `origin/main` `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` is an ancestor; not consumed. Batch ref: NOT_APPLICABLE.
+Tests executed:
+- `pnpm install --frozen-lockfile` → lockfile unchanged / exit 0 during verification
+- `python scripts/verify_control_plane.py` → PASS (exit 0)
+- `pnpm --dir apps/pos-web lint` → exit 0
+- `pnpm --dir apps/pos-web typecheck` → exit 0
+- `pnpm --dir apps/pos-web test` → 91 files, 776 passed, exit 0
+- `pnpm --dir apps/pos-web build` → exit 0
+- `pnpm --dir apps/pos-web test:e2e` → 12 passed, exit 0
+- `git diff --check` → clean
+Runtime verification and tested combined SHA/environment: frontend unit/e2e on `9335ee0ad31d1a18554178184a1a185c2d809824`. Not live Woo quote, Paystack, refund, restock, or customer-source acceptance. Isolated worktree `cetech-pwa-pos-ws1-ux-01`.
+Remote effects performed: none (no production; no merge; no push in this handoff).
+Assumptions / limitations / unresolved risks: out-of-stock copy is used only when quote problems or provider message prove it; unknown line rejection stays “can't be sold right now”. Diagnostic codes remain in Technical details / data attributes / logs. Retail/Wholesale customer categories remain in UI; live staging still has no real customer projection. Do not restore Ada Boateng / Buildworks Ltd fixtures.
+Next exact action: WS3 independently reviews/imports `ws1/ux-01-cashier-language` at implementation SHA `9335ee0ad31d1a18554178184a1a185c2d809824`. Reassignment: NONE.
+
+Freshness protocol:
+START_FRESHNESS_SNAPSHOT UTC: 2026-09-18T14:22:00Z
+Start main SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Start batch ref/SHA, if declared (else NOT_APPLICABLE): NOT_APPLICABLE
+Applicable contracts / ADRs / ownership / queue revision: frozen v1.0.0; ADR-012; ADR-014; issue #78; OWNERSHIP.md WS1 presentation + senior-authorized `src/app` copy and cashier-language standard
+
+Pass 1 fetch UTC / success evidence: 2026-09-18T15:01:21Z `git fetch origin --prune` succeeded; `origin/main` `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Pass 1 main SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Pass 1 batch SHA: NOT_APPLICABLE
+Relevant upstream paths and dependency/authority effects: `origin/main` is an ancestor of start SHA `ee9e3d9`; no new main commits vs snapshot
+Classification per change: main — IRRELEVANT (SAME / no arrivals). Batch — NOT_APPLICABLE.
+Actions taken / reconciliation commits: none. Did not merge or consume `origin/main`.
+Tests rerun / tested combined SHA: full required suite on implementation tree before commit; tested SHA `9335ee0ad31d1a18554178184a1a185c2d809824`
+
+Pass 2 fetch UTC / success evidence: 2026-09-18T15:02:28Z `git fetch origin --prune` succeeded; `origin/main` still `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`; `origin/main` is ancestor of HEAD
+Pass 2 main SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Pass 2 batch SHA: NOT_APPLICABLE
+Relevant upstream paths and dependency/authority effects: none since Pass 1
+Classification per change: no arrivals — IRRELEVANT
+Actions taken / reconciliation commits: none
+Tests rerun / tested combined SHA: no rerun required (IRRELEVANT); tested SHA remains `9335ee0ad31d1a18554178184a1a185c2d809824`
+
+Final freshness status: FRESH_2
+Delivery status: READY_FOR_INTEGRATION
+Final task head SHA: recorded after this evidence commit in the session report (cannot be embedded in its own commit)
+Known post-cutoff risk / integration editor follow-up: WS3 review/import only; live customer source and pricing-parity verification remain open outside UX-01
+Pass 3: NOT PERMITTED for this assignment.
+Review/merge/release status and limitations: not merged; `main` not modified; R9 not touched; no production promotion.
+Metrics delta for CURRENT-WORK: not edited (forbidden this assignment).
+
+Acting human / workstream / mode: Ben / WS1 / IMPLEMENT
+Declared task owner / actual implementing human / workstream: Ben / @Ben-001-sys / WS1
+Source contributor branch / full source SHA(s): `ws1/ux-01-cashier-language` / `9335ee0ad31d1a18554178184a1a185c2d809824`
+Imported SHA(s) / exact tested combined integration SHA: none / `9335ee0ad31d1a18554178184a1a185c2d809824`
+Integration branch / classification: not created; contributor branch READY_FOR_INTEGRATION
+Receiving human / workstream / acknowledgment checkpoint: WS3 / senior integration editor
+Explicit senior reassignment authority / scope / expiry: NONE (this assignment is the senior UX-01 instruction)
+Remote effects allowed (not inferred from this handoff): none
+Next exact action for receiving owner: review/import UX-01 presentation SHA `9335ee0ad31d1a18554178184a1a185c2d809824`; do not treat this handoff as production approval
+Other independently authorized same-owner work: WAITING_FOR_OWNER
+
+## Previous current handoff — FE-06 outstanding-return identity lock (TASK_COMPLETION FRESH_2)
+
 # WS1 current handoff — FE-06 outstanding-return identity lock (TASK_COMPLETION FRESH_2)
 
 Kind / UTC: TASK_COMPLETION / 2026-09-15T19:33:28Z
