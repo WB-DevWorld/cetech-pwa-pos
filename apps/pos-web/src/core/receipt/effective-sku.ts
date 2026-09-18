@@ -9,18 +9,14 @@ function normalizeSku(value: string | undefined): string | undefined {
 }
 
 /**
- * Frozen receipt SKU for one sale line.
+ * Sale-time effective SKU for one line.
  * Variation SKU wins; otherwise parent SKU; simple products use their own SKU.
- * Missing SKU is omitted by the caller. `showSku=false` yields undefined.
+ * Receipt print omission (`showSku=false`) is applied later by freezeReceiptLine.
  */
 export function resolveEffectiveSku(input: {
   readonly selected: CatalogPresentationItem;
   readonly parent?: CatalogPresentationItem;
-  readonly showSku: boolean;
 }): string | undefined {
-  if (!input.showSku) {
-    return undefined;
-  }
   const own = normalizeSku(input.selected.sku);
   if (own) {
     return own;

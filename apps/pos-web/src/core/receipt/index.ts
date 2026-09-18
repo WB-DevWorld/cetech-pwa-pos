@@ -1,6 +1,13 @@
 export type { CatalogPresentationItem, CatalogPresentationLookup, MutableCatalogPresentationLookup } from "./catalog-presentation";
 export { createMemoryCatalogPresentationLookup } from "./catalog-presentation";
-export { catalogIdsForQuote, buildReceiptLine, receiptLinesFromQuotePresentation, resolveSoldCatalogItem } from "./build-receipt-line";
+export {
+  catalogIdsForQuote,
+  captureSalePresentationLine,
+  captureSalePresentationLines,
+  freezeReceiptLine,
+  freezeReceiptLines,
+  resolveSoldCatalogItem,
+} from "./build-receipt-line";
 export { formatReceiptDisplayName, RECEIPT_DISPLAY_NAME_ELLIPSIS } from "./display-name";
 export { resolveEffectiveSku } from "./effective-sku";
 export {

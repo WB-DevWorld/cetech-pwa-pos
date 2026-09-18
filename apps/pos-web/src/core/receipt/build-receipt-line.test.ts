@@ -1,7 +1,11 @@
 import { describe, expect, test } from "vitest";
 import type { QuoteLine } from "../../../../../docs/contracts/domain.generated";
 import { validateCanonicalDef } from "../../server/quotes/canonical-schema";
-import { buildReceiptLine, receiptLinesFromQuotePresentation } from "./build-receipt-line";
+import {
+  captureSalePresentationLine,
+  captureSalePresentationLines,
+  freezeReceiptLine,
+} from "./build-receipt-line";
 import type { CatalogPresentationItem } from "./catalog-presentation";
 import { DEFAULT_RECEIPT_SETTINGS } from "./settings";
 import { resolveEffectiveSku } from "./effective-sku";
@@ -64,67 +68,68 @@ const simpleNoSku: CatalogPresentationItem = {
 
 describe("receipt SKU and line snapshot", () => {
   test("variation SKU overrides parent SKU", () => {
-    expect(
-      resolveEffectiveSku({ selected: variationWithSku, parent, showSku: true }),
-    ).toBe("CBL-ARM-RED");
+    expect(resolveEffectiveSku({ selected: variationWithSku, parent })).toBe("CBL-ARM-RED");
   });
 
   test("missing variation SKU falls back to parent SKU", () => {
-    expect(
-      resolveEffectiveSku({ selected: variationWithoutSku, parent, showSku: true }),
-    ).toBe("CBL-ARM");
+    expect(resolveEffectiveSku({ selected: variationWithoutSku, parent })).toBe("CBL-ARM");
   });
 
   test("simple-product SKU works", () => {
-    expect(resolveEffectiveSku({ selected: simple, showSku: true })).toBe("HDN-1L");
+    expect(resolveEffectiveSku({ selected: simple })).toBe("HDN-1L");
   });
 
   test("no available SKU omits the field", () => {
-    expect(resolveEffectiveSku({ selected: simpleNoSku, showSku: true })).toBeUndefined();
-    const line = buildReceiptLine({
+    expect(resolveEffectiveSku({ selected: simpleNoSku })).toBeUndefined();
+    const line = captureSalePresentationLine({
       line: quoteLine({ productId: simpleNoSku.id }),
       selected: simpleNoSku,
-      settings: { ...DEFAULT_RECEIPT_SETTINGS, showSku: true },
     });
     expect(line.sku).toBeUndefined();
     expect("sku" in line).toBe(false);
+    expect("displayName" in line).toBe(false);
   });
 
-  test("showSku=false omits SKU even when one exists", () => {
-    expect(
-      resolveEffectiveSku({ selected: variationWithSku, parent, showSku: false }),
-    ).toBeUndefined();
-    const line = buildReceiptLine({
+  test("sale capture keeps full name and SKU; freeze omits SKU when showSku=false", () => {
+    const captured = captureSalePresentationLine({
       line: quoteLine({ productId: parent.id, variationId: variationWithSku.id }),
       selected: variationWithSku,
       parent,
-      settings: DEFAULT_RECEIPT_SETTINGS,
     });
-    expect(line.sku).toBeUndefined();
-    expect(line.variationLabel).toBe("Red");
+    expect(captured.name).toBe("Armoured Cable");
+    expect(captured.sku).toBe("CBL-ARM-RED");
+    expect(captured.variationLabel).toBe("Red");
+    expect("displayName" in captured).toBe(false);
+    const frozen = freezeReceiptLine(captured, DEFAULT_RECEIPT_SETTINGS);
+    expect(frozen.sku).toBeUndefined();
+    expect("sku" in frozen).toBe(false);
+    expect(frozen.variationLabel).toBe("Red");
+    expect(frozen.displayName).toBe("Armoured Cable");
   });
 
   test("full original name remains available and source catalog name is unchanged", () => {
     const catalogName = "Epoxy Hardener 1L — industrial grade slow cure";
     const item: CatalogPresentationItem = { ...simple, name: catalogName };
-    const line = buildReceiptLine({
+    const captured = captureSalePresentationLine({
       line: quoteLine({ productId: item.id }),
       selected: item,
-      settings: {
-        shortenProductNames: true,
-        productNameMaxCharacters: 18,
-        showSku: false,
-      },
     });
-    expect(line.name).toBe(catalogName);
-    expect(line.displayName).not.toBe(catalogName);
-    expect(Array.from(line.displayName ?? "")).toHaveLength(18);
+    expect(captured.name).toBe(catalogName);
+    expect("displayName" in captured).toBe(false);
+    const frozen = freezeReceiptLine(captured, {
+      shortenProductNames: true,
+      productNameMaxCharacters: 18,
+      showSku: false,
+    });
+    expect(frozen.name).toBe(catalogName);
+    expect(frozen.displayName).not.toBe(catalogName);
+    expect(Array.from(frozen.displayName ?? "")).toHaveLength(18);
     expect(item.name).toBe(catalogName);
-    expect(validateCanonicalDef("ReceiptLine", line)).toBe(true);
+    expect(validateCanonicalDef("ReceiptLine", frozen)).toBe(true);
   });
 
   test("does not copy productId or variationId into presentation fields", () => {
-    const built = receiptLinesFromQuotePresentation({
+    const built = captureSalePresentationLines({
       quote: {
         id: "quote-1",
         fingerprint: "0123456789abcdef0123456789abcdef",
@@ -146,11 +151,10 @@ describe("receipt SKU and line snapshot", () => {
         [parent.id, parent],
         [variationWithSku.id, variationWithSku],
       ]),
-      settings: { ...DEFAULT_RECEIPT_SETTINGS, showSku: true },
     });
     expect(built.ok).toBe(true);
     if (!built.ok) {
-      throw new Error("expected receipt lines");
+      throw new Error("expected sale presentation lines");
     }
     const line = built.lines[0];
     expect(line?.name).toBe("Armoured Cable");
@@ -158,6 +162,6 @@ describe("receipt SKU and line snapshot", () => {
     expect(line?.variationLabel).toBe("Red");
     expect(line?.variationLabel).not.toBe(variationWithSku.id);
     expect(line?.sku).toBe("CBL-ARM-RED");
-    expect(line?.displayName).toBe("Armoured Cable");
+    expect(line?.displayName).toBeUndefined();
   });
 });

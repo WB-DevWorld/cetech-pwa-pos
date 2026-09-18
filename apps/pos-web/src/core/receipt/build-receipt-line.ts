@@ -9,11 +9,6 @@ export type ReceiptLineBuildFailure = {
   readonly message: string;
 };
 
-export type ReceiptLineBuildSuccess = {
-  readonly ok: true;
-  readonly line: ReceiptLine;
-};
-
 function presentationLabel(value: string | undefined): string | undefined {
   if (value === undefined) {
     return undefined;
@@ -43,23 +38,20 @@ export function resolveSoldCatalogItem(input: {
   return { ok: true, selected };
 }
 
-export function buildReceiptLine(input: {
+/** Capture full sale-time presentation. Does not shorten names or apply receipt print settings. */
+export function captureSalePresentationLine(input: {
   readonly line: QuoteLine;
   readonly selected: CatalogPresentationItem;
   readonly parent?: CatalogPresentationItem;
-  readonly settings: ReceiptSettings;
 }): ReceiptLine {
   const name = input.selected.name;
-  const displayName = formatReceiptDisplayName(name, input.settings);
   const sku = resolveEffectiveSku({
     selected: input.selected,
     parent: input.parent,
-    showSku: input.settings.showSku,
   });
   const variationLabel = input.selected.kind === "variation" ? presentationLabel(input.selected.variationLabel) : undefined;
   return {
     name,
-    displayName,
     ...(sku ? { sku } : {}),
     ...(variationLabel ? { variationLabel } : {}),
     quantity: input.line.quantity,
@@ -71,10 +63,34 @@ export function buildReceiptLine(input: {
   };
 }
 
-export function receiptLinesFromQuotePresentation(input: {
+/** Receipt-only freeze. Shortening and showSku apply here, never at prepare or reprint. */
+export function freezeReceiptLine(line: ReceiptLine, settings: ReceiptSettings): ReceiptLine {
+  const displayName = formatReceiptDisplayName(line.name, settings);
+  const sku = settings.showSku ? line.sku : undefined;
+  return {
+    name: line.name,
+    displayName,
+    ...(sku ? { sku } : {}),
+    ...(line.variationLabel ? { variationLabel: line.variationLabel } : {}),
+    quantity: line.quantity,
+    unitPrice: line.unitPrice,
+    subtotal: line.subtotal,
+    discount: line.discount,
+    tax: line.tax,
+    total: line.total,
+  };
+}
+
+export function freezeReceiptLines(
+  lines: readonly ReceiptLine[],
+  settings: ReceiptSettings,
+): readonly ReceiptLine[] {
+  return lines.map((line) => freezeReceiptLine(line, settings));
+}
+
+export function captureSalePresentationLines(input: {
   readonly quote: Quote;
   readonly items: ReadonlyMap<string, CatalogPresentationItem>;
-  readonly settings: ReceiptSettings;
 }): { readonly ok: true; readonly lines: readonly ReceiptLine[] } | ReceiptLineBuildFailure {
   const lines: ReceiptLine[] = [];
   for (const line of input.quote.lines) {
@@ -83,11 +99,10 @@ export function receiptLinesFromQuotePresentation(input: {
       return { ok: false, lineId: line.lineId, message: resolved.message };
     }
     lines.push(
-      buildReceiptLine({
+      captureSalePresentationLine({
         line,
         selected: resolved.selected,
         parent: resolved.parent,
-        settings: input.settings,
       }),
     );
   }

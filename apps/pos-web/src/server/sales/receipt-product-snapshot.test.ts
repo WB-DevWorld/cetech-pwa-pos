@@ -129,13 +129,12 @@ async function seedRuntime(settings: ReceiptSettings = {
 }
 
 describe("receipt product-name snapshot", () => {
-  test("prepare freezes shortened display name and variation SKU; reprint ignores later settings and catalog changes", async () => {
+  test("prepare captures full name without shortening; finalize freezes displayName; reprint ignores later settings and catalog changes", async () => {
     const runtime = await seedRuntime();
     const prepared = await prepareSale({
       store: runtime.store,
       salesPort: runtime.salesPort,
       catalogLookup: runtime.catalogLookup,
-      receiptSettings: runtime.receiptSettings,
       actor: ACTOR,
       request: {
         transactionId: TX,
@@ -151,7 +150,8 @@ describe("receipt product-name snapshot", () => {
     expect(prepared.ok).toBe(true);
     const sale = await runtime.store.getSale(TX);
     expect(sale?.lines[0]?.name).toBe(FULL_NAME);
-    expect(sale?.lines[0]?.displayName).toBe(`Armoured Cable 4-${RECEIPT_DISPLAY_NAME_ELLIPSIS}`);
+    expect(sale?.lines[0]?.displayName).toBeUndefined();
+    expect("displayName" in (sale?.lines[0] ?? {})).toBe(false);
     expect(sale?.lines[0]?.sku).toBe("CBL-ARM-RED");
     expect(sale?.lines[0]?.variationLabel).toBe("Red");
     expect(sale?.lines[0]?.name).not.toBe("p-cable");
@@ -172,6 +172,7 @@ describe("receipt product-name snapshot", () => {
     const firstFinalize = await finalizeSale({
       store: runtime.store,
       salesPort: runtime.salesPort,
+      receiptSettings: runtime.receiptSettings,
       actor: ACTOR,
       request: { transactionId: TX, paymentId: cash.data.paymentId },
       context: { idempotencyKey: FINALIZE_KEY, correlationId: CORRELATION },
@@ -193,6 +194,9 @@ describe("receipt product-name snapshot", () => {
       throw new Error("expected receipt");
     }
     expect(validateCanonicalDef("ReceiptSnapshot", firstReceipt.data)).toBe(true);
+    expect(firstReceipt.data.lines[0]?.name).toBe(FULL_NAME);
+    expect(firstReceipt.data.lines[0]?.displayName).toBe(`Armoured Cable 4-${RECEIPT_DISPLAY_NAME_ELLIPSIS}`);
+    expect(firstReceipt.data.lines[0]?.sku).toBe("CBL-ARM-RED");
     const frozen = structuredClone(firstReceipt.data);
 
     runtime.catalogLookup.seed("org_a", catalogItems({ name: "CHANGED CATALOG NAME", sku: "CHANGED-SKU" }));
@@ -221,6 +225,7 @@ describe("receipt product-name snapshot", () => {
     const secondFinalize = await finalizeSale({
       store: runtime.store,
       salesPort: runtime.salesPort,
+      receiptSettings: runtime.receiptSettings,
       actor: ACTOR,
       request: { transactionId: TX, paymentId: cash.data.paymentId },
       context: { idempotencyKey: FINALIZE_KEY_2, correlationId: CORRELATION },
@@ -261,7 +266,6 @@ describe("receipt product-name snapshot", () => {
       store: runtime.store,
       salesPort: runtime.salesPort,
       catalogLookup: emptyCatalog,
-      receiptSettings: runtime.receiptSettings,
       actor: ACTOR,
       request: {
         transactionId: TX,
@@ -279,6 +283,74 @@ describe("receipt product-name snapshot", () => {
       expect(prepared.error.code).toBe("INTEGRATION_UNAVAILABLE");
     }
     expect(await runtime.store.getSale(TX)).toBeUndefined();
+  });
+
+  test("receipt shortening and showSku apply at finalize, not prepare", async () => {
+    const runtime = await seedRuntime(DEFAULT_RECEIPT_SETTINGS);
+    const prepared = await prepareSale({
+      store: runtime.store,
+      salesPort: runtime.salesPort,
+      catalogLookup: runtime.catalogLookup,
+      actor: ACTOR,
+      request: {
+        transactionId: TX,
+        registerId: "reg_a1",
+        shiftId: SHIFT,
+        deviceId: DEVICE,
+        quoteId: "quote-receipt-1",
+        quoteFingerprint: FINGERPRINT,
+      },
+      context: { idempotencyKey: PREPARE_KEY, correlationId: CORRELATION },
+      now: NOW,
+    });
+    expect(prepared.ok).toBe(true);
+    const sale = await runtime.store.getSale(TX);
+    expect(sale?.lines[0]?.name).toBe(FULL_NAME);
+    expect(sale?.lines[0]?.displayName).toBeUndefined();
+    expect(sale?.lines[0]?.sku).toBe("CBL-ARM-RED");
+
+    await runtime.receiptSettings.upsert("org_a", "loc_a1", {
+      shortenProductNames: true,
+      productNameMaxCharacters: 18,
+      showSku: true,
+    });
+
+    const cash = await confirmCash({
+      store: runtime.store,
+      actor: ACTOR,
+      request: { transactionId: TX, cashReceived: ghs(4000) },
+      context: { idempotencyKey: CASH_KEY, correlationId: CORRELATION },
+      now: NOW,
+    });
+    expect(cash.ok).toBe(true);
+    if (!cash.ok) {
+      throw new Error("expected cash");
+    }
+
+    const finalized = await finalizeSale({
+      store: runtime.store,
+      salesPort: runtime.salesPort,
+      receiptSettings: runtime.receiptSettings,
+      actor: ACTOR,
+      request: { transactionId: TX, paymentId: cash.data.paymentId },
+      context: { idempotencyKey: FINALIZE_KEY, correlationId: CORRELATION },
+      now: NOW,
+    });
+    expect(finalized.ok).toBe(true);
+    const receipt = await getReceiptByTransaction({
+      store: runtime.store,
+      actor: ACTOR,
+      transactionId: TX,
+      context: { correlationId: CORRELATION },
+    });
+    expect(receipt.ok).toBe(true);
+    if (!receipt.ok) {
+      throw new Error("expected receipt");
+    }
+    expect(receipt.data.lines[0]?.name).toBe(FULL_NAME);
+    expect(receipt.data.lines[0]?.displayName).toBe(`Armoured Cable 4-${RECEIPT_DISPLAY_NAME_ELLIPSIS}`);
+    expect(receipt.data.lines[0]?.sku).toBe("CBL-ARM-RED");
+    expect(sale?.lines[0]?.displayName).toBeUndefined();
   });
 
   test("legacy receipt without displayName still deserializes", () => {

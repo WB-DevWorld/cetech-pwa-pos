@@ -5,9 +5,8 @@ import type {
   PrepareSaleRequest,
   Quote,
 } from "../../../../../docs/contracts/domain.generated";
-import { catalogIdsForQuote, receiptLinesFromQuotePresentation } from "../../core/receipt/build-receipt-line";
+import { catalogIdsForQuote, captureSalePresentationLines } from "../../core/receipt/build-receipt-line";
 import type { CatalogPresentationLookup } from "../../core/receipt/catalog-presentation";
-import type { ReceiptSettingsStore } from "../../core/receipt/settings-store";
 import { canonicalJson, sha256Hex } from "../../local/canonical";
 import { toIsoTimestamp } from "../auth/ids";
 import { apiFailure } from "../http/api-failure";
@@ -19,7 +18,6 @@ export async function prepareSale(input: {
   readonly store: CheckoutStore;
   readonly salesPort: Pick<SalesPort, "prepare" | "resolve">;
   readonly catalogLookup: CatalogPresentationLookup;
-  readonly receiptSettings: ReceiptSettingsStore;
   readonly actor: StaffActor;
   readonly request: PrepareSaleRequest;
   readonly context: CommandContext;
@@ -101,7 +99,6 @@ export async function prepareSale(input: {
         store,
         salesPort,
         catalogLookup: input.catalogLookup,
-        receiptSettings: input.receiptSettings,
         actor,
         request,
         context,
@@ -120,7 +117,6 @@ export async function prepareSale(input: {
           store,
           salesPort,
           catalogLookup: input.catalogLookup,
-          receiptSettings: input.receiptSettings,
           actor,
           request,
           context,
@@ -156,7 +152,6 @@ async function completePrepare(input: {
   readonly store: CheckoutStore;
   readonly salesPort: Pick<SalesPort, "prepare" | "resolve">;
   readonly catalogLookup: CatalogPresentationLookup;
-  readonly receiptSettings: ReceiptSettingsStore;
   readonly actor: StaffActor;
   readonly request: PrepareSaleRequest;
   readonly context: CommandContext;
@@ -206,7 +201,6 @@ async function completePrepare(input: {
   return persistPrepared({
     store: input.store,
     catalogLookup: input.catalogLookup,
-    receiptSettings: input.receiptSettings,
     actor: input.actor,
     request: input.request,
     prepared: commercial.data,
@@ -219,7 +213,6 @@ async function recoverPrepared(input: {
   readonly store: CheckoutStore;
   readonly salesPort: Pick<SalesPort, "prepare" | "resolve">;
   readonly catalogLookup: CatalogPresentationLookup;
-  readonly receiptSettings: ReceiptSettingsStore;
   readonly actor: StaffActor;
   readonly request: PrepareSaleRequest;
   readonly context: CommandContext;
@@ -287,7 +280,6 @@ async function recoverPrepared(input: {
   return persistPrepared({
     store: input.store,
     catalogLookup: input.catalogLookup,
-    receiptSettings: input.receiptSettings,
     actor: input.actor,
     request: input.request,
     prepared,
@@ -343,7 +335,6 @@ async function assertPrepareScope(input: {
 async function persistPrepared(input: {
   readonly store: CheckoutStore;
   readonly catalogLookup: CatalogPresentationLookup;
-  readonly receiptSettings: ReceiptSettingsStore;
   readonly actor: StaffActor;
   readonly request: PrepareSaleRequest;
   readonly prepared: PreparedSale;
@@ -371,14 +362,12 @@ async function persistPrepared(input: {
     input.actor.organizationId,
     catalogIdsForQuote(input.quote),
   );
-  const settings = await input.receiptSettings.get(input.actor.organizationId, register.locationId);
-  const receiptLines = receiptLinesFromQuotePresentation({
+  const presentation = captureSalePresentationLines({
     quote: input.quote,
     items,
-    settings,
   });
-  if (!receiptLines.ok) {
-    return apiFailure("INTEGRATION_UNAVAILABLE", receiptLines.message, input.context.correlationId);
+  if (!presentation.ok) {
+    return apiFailure("INTEGRATION_UNAVAILABLE", presentation.message, input.context.correlationId);
   }
   await input.store.seedPreparedSale({
     organizationId: input.actor.organizationId,
@@ -393,7 +382,7 @@ async function persistPrepared(input: {
     customer: input.quote.customer,
     customerLabel: customerLabel(input.quote),
     prepared: input.prepared,
-    lines: receiptLines.lines,
+    lines: presentation.lines,
     orderLines: input.quote.lines.map((line) => ({
       orderLineId: line.lineId,
       quantity: line.quantity,
