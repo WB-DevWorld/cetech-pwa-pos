@@ -16,6 +16,7 @@ This matrix converts QA-01 / #29 into explicit evidence rows. It deliberately se
 
 | ID | Scenario / invariant | Existing evidence to reuse | Additional R10 evidence | Status |
 | --- | --- | --- | --- | --- |
+| Q-TX-PRE | Unauthorized or CSRF-invalid prepare cannot invoke Woo order creation or stock reservation | R10 prepare no-effect guards | Accepted staging negative-path proof | PREPARED |
 | Q-TX-00 | Unauthorized or CSRF-invalid finalization cannot invoke commercial completion or stock effect | R10 finalize no-effect guards | Accepted staging negative-path proof | PREPARED |
 | Q-TX-01 | Same prepare key + same body returns same sale/order | CORE-06/R6 evidence | Re-run on accepted staging candidate | PENDING_STG01 |
 | Q-TX-02 | Same prepare key + changed body conflicts; no second order | CORE-06/R6 evidence | Re-run on accepted staging candidate | PENDING_STG01 |
