@@ -1,5 +1,11 @@
 # WS1 current status
 
+Snapshot 2026-09-18. UX-02 Sell demo-alignment on `ws1/ux-02-sell-demo-alignment` from start SHA `7918bafc4163f4919bad6da8ae1f5de9bed30558` (current `origin/batch/stg-01-staging-runtime-acceptance`). Pre-handoff implementation SHA `da5eaa33907576c61e1deebfc01bfe38bfd7a772`. Search-first workstation, selling-decision cards, pinned cart totals/Pay, and `CatalogItem.displayPrice` presentation are in WS1 UI. Live staging cards still omit prices because WS3 `mapBridgeCatalogItem` strips `displayPrice`. Numeric availability is not in the current catalog contract; stock copy is status-only. UX-01 safety language is preserved except the Sell-specific copy in this prompt. Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION** for independent WS1 UI; live product-price visual acceptance remains **blocked on the catalog producer**. Reassignment NONE. Do not merge; do not modify `main`; do not edit the shared batch branch.
+
+## Previous snapshot (historical; current section above controls)
+
+# WS1 current status
+
 Snapshot 2026-09-18. UX-01 / issue #78 review follow-up on `ws1/ux-01-cashier-language`. Previous head `0aa519db480f119589cbc037a8a7194246a260c2`. Follow-up implementation SHA `d865234575d5664839a5082e0c6305f0dbb57768`. Scanner/printer copy is capability-only (`Keyboard scanner input` / `Browser print`). `toCashierError` is safe-by-default: unknown backend text is never primary cashier copy; raw code/message stay in Technical details. Batch watched: `origin/batch/stg-01-staging-runtime-acceptance` `ee9e3d95bc8914cdd9251973412924d64a7b2ea9` (SAME / COMPATIBLE). `origin/main` `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` (SAME). Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION**. Reassignment NONE. Do not merge; do not modify `main`; do not touch R9.
 
 ## Previous snapshot (historical; current section above controls)

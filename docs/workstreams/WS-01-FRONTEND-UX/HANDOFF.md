@@ -1,3 +1,77 @@
+# WS1 current handoff — UX-02 Sell demo-alignment (TASK_COMPLETION FRESH_2)
+
+Kind / UTC: TASK_COMPLETION / 2026-09-18T23:10:44Z
+Handoff kind: DEPENDENCY_READY
+Task / batch / workstream: UX-02 / Sell demo visual-interaction alignment / WS1
+Owner / integration editor / requested human reviewer: Ben / @Ben-001-sys owns WS1; WS3 independently reviews/imports. Do not self-approve. Do not merge.
+Branch: `ws1/ux-02-sell-demo-alignment`
+Starting/base SHA: `7918bafc4163f4919bad6da8ae1f5de9bed30558`
+Pre-handoff implementation SHA: `da5eaa33907576c61e1deebfc01bfe38bfd7a772`
+Commit(s) / contributor source SHAs: `da5eaa33907576c61e1deebfc01bfe38bfd7a772`
+Allowed / forbidden paths and central leases: `apps/pos-web/src/features/**`; `apps/pos-web/src/ui/**`; `tests/frontend/**`; this workstream STATUS/HANDOFF. Existing `apps/pos-web/e2e/**` assertions were updated only where Scan / visible Sell heading / cart Clear presentation would otherwise fail; WS3 owns those files on import. No contracts, migrations, CURRENT-WORK, `main`, or batch/stg-01 edits.
+Files changed: SellScreen/search/cart/quote presentation and CSS workstation lock; `displayPrice` pass-through on `SellProductView`/`catalogItemToSellView`; ProductBadge/CartTotals/productPresentation; frontend tests; isolated visual harness/evidence; existing e2e assertion updates plus live Sell chrome spec.
+Contracts changed: none. `CatalogItem.displayPrice` consumed, not altered.
+Database migrations: none
+Architecture decisions: none
+Completed/current/remaining tasks: independent WS1 Sell visual/interaction alignment complete. Remaining: WS3 catalog producer should supply advisory `CatalogItem.displayPrice` without copying customer-specific/B2B/WoodMart quote prices. Numeric `available` quantity is optional and not in the current item contract.
+Dependencies (accepted / provisional SHA / prep-only / blocked): start SHA / batch `origin/batch/stg-01-staging-runtime-acceptance` `7918bafc4163f4919bad6da8ae1f5de9bed30558`. `origin/main` `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` is an ancestor; not consumed. Live displayPrice production BLOCKED on WS3 `apps/pos-web/src/server/catalog/map-bridge-catalog.ts`.
+Tests executed:
+- `python scripts/verify_control_plane.py` → PASS (exit 0)
+- `pnpm --dir apps/pos-web lint` → exit 0
+- `pnpm --dir apps/pos-web typecheck` → exit 0
+- `pnpm --dir apps/pos-web test` → 94 files, 792 passed, exit 0
+- `pnpm --dir apps/pos-web build` → exit 0
+- `pnpm --dir apps/pos-web test:e2e` → 13 passed, exit 0
+- `pnpm --dir apps/pos-web exec playwright test --config ../../tests/frontend/visual/playwright.config.ts` → 19 passed, exit 0
+- `git diff --check` → clean
+Runtime verification and tested combined SHA/environment: frontend unit/e2e/visual on `da5eaa33907576c61e1deebfc01bfe38bfd7a772`. Not live Woo quote, Paystack, or catalog-producer displayPrice acceptance.
+Remote effects performed: none (contributor branch push not performed in this evidence commit).
+Assumptions / limitations / unresolved risks: UI support for demo-aligned product pricing is complete, but live visual acceptance remains blocked because the current catalog producer does not supply `CatalogItem.displayPrice`. Numeric availability is not fabricated. Commercial badges are not inferred from names/SKUs. PR #77 remains DRAFT; this branch must not be merged onto protected main or edited into `batch/stg-01-staging-runtime-acceptance` except by the integration editor.
+Next exact action: WS3 independently reviews/imports `da5eaa33907576c61e1deebfc01bfe38bfd7a772`. WS3 catalog owner may add a safe advisory displayPrice in `mapBridgeCatalogItem` while keeping POST `/quotes` authoritative. Reassignment: NONE.
+
+Freshness protocol:
+START_FRESHNESS_SNAPSHOT UTC: 2026-09-18T22:40:00Z
+Start main SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Start batch ref/SHA: `origin/batch/stg-01-staging-runtime-acceptance` `7918bafc4163f4919bad6da8ae1f5de9bed30558`
+Applicable contracts / ADRs / ownership / queue revision: frozen v1.0.0; ADR-012; ADR-014; this prompt as newer Sell presentation instruction; issue #78 safety language retained except Sell-specific copy
+
+Pass 1 fetch UTC / success evidence: 2026-09-18T23:08:00Z `git fetch origin --prune` succeeded
+Pass 1 main SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Pass 1 batch SHA: `7918bafc4163f4919bad6da8ae1f5de9bed30558`
+Relevant upstream paths and dependency/authority effects: `origin/main` is an ancestor of HEAD; batch tip equals start SHA `7918baf` and is an ancestor of HEAD
+Classification per change: main — IRRELEVANT (SAME / no arrivals). Batch — SAME / COMPATIBLE (no arrivals; start SHA is the batch tip).
+Actions taken / reconciliation commits: none. Did not merge or consume `origin/main` or the batch branch.
+Tests rerun / tested combined SHA: required suite on implementation tree; tested SHA `da5eaa33907576c61e1deebfc01bfe38bfd7a772`
+
+Pass 2 fetch UTC / success evidence: 2026-09-18T23:10:44Z `git fetch origin --prune` succeeded; `origin/main` still `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`; batch still `7918bafc4163f4919bad6da8ae1f5de9bed30558`
+Pass 2 main SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Pass 2 batch SHA: `7918bafc4163f4919bad6da8ae1f5de9bed30558`
+Relevant upstream paths and dependency/authority effects: none since Pass 1
+Classification per change: no arrivals — IRRELEVANT on main; SAME / COMPATIBLE on batch
+Actions taken / reconciliation commits: none
+Tests rerun / tested combined SHA: no rerun required (no arrivals); tested SHA remains `da5eaa33907576c61e1deebfc01bfe38bfd7a772`
+
+Final freshness status: FRESH_2
+Delivery status: READY_FOR_INTEGRATION (UI); live product-card price visual acceptance BLOCKED_BY_PRODUCER
+Final task head SHA: recorded after this evidence commit in the session report (cannot be embedded in its own commit)
+Known post-cutoff risk / integration editor follow-up: import WS1 SHA only; do not treat missing live displayPrice as a WS1 defect; optional producer change is WS3 `map-bridge-catalog.ts`
+Pass 3: NOT PERMITTED for this assignment.
+Review/merge/release status and limitations: not merged; `main` not modified; shared batch branch not edited; no production promotion.
+Metrics delta for CURRENT-WORK: not edited (forbidden this assignment).
+
+Acting human / workstream / mode: WS1 / IMPLEMENT (senior-authorized Sell alignment on WS1 paths)
+Declared task owner / actual implementing human / workstream: Ben / @Ben-001-sys / WS1
+Source contributor branch / full source SHA(s): `ws1/ux-02-sell-demo-alignment` / `da5eaa33907576c61e1deebfc01bfe38bfd7a772`
+Imported SHA(s) / exact tested combined integration SHA: none / `da5eaa33907576c61e1deebfc01bfe38bfd7a772`
+Receiving human / workstream / acknowledgment checkpoint: WS3 / senior integration editor
+Review finding / severity / owning task / fix source/import SHAs: none / UX-02 / `da5eaa33907576c61e1deebfc01bfe38bfd7a772`
+Explicit senior reassignment authority / scope / expiry: NONE (WS1 ownership unchanged; this prompt authorized implementation on WS1 Sell paths)
+Remote effects allowed (not inferred from this handoff): contributor branch push only, when the owner requests it
+Next exact action for receiving owner: review/import `da5eaa33907576c61e1deebfc01bfe38bfd7a772`; WS3 catalog may supply advisory `CatalogItem.displayPrice`; do not treat this handoff as production approval
+Other independently authorized same-owner work: WAITING_FOR_OWNER
+
+## Previous current handoff — UX-01 review follow-up (TASK_COMPLETION FRESH_2)
+
 # WS1 current handoff — UX-01 review follow-up (TASK_COMPLETION FRESH_2)
 
 Kind / UTC: TASK_COMPLETION / 2026-09-18T15:28:54Z
