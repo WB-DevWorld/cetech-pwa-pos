@@ -408,7 +408,10 @@ describe("R6-REM-02 transaction scope binding", () => {
     expect(lost.data.saleId).toBe("woo-1");
     expect(salesPort.prepareCount).toBe(1);
     expect(salesPort.resolveCount).toBe(1);
-    expect((await store.getSale(TX_A))?.prepared.saleId).toBe("woo-1");
+    const recoveredSale = await store.getSale(TX_A);
+    expect(recoveredSale?.prepared.saleId).toBe("woo-1");
+    expect(recoveredSale?.lines[0]?.name).toBe("Training Product 49111");
+    expect(recoveredSale?.lines[0]?.displayName).toBeUndefined();
     const replay = await prepareSale({
       store,
       salesPort: countingPort(),

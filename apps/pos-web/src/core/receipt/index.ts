@@ -6,6 +6,7 @@ export {
   captureSalePresentationLines,
   freezeReceiptLine,
   freezeReceiptLines,
+  loadSalePresentation,
   resolveSoldCatalogItem,
 } from "./build-receipt-line";
 export { formatReceiptDisplayName, RECEIPT_DISPLAY_NAME_ELLIPSIS } from "./display-name";

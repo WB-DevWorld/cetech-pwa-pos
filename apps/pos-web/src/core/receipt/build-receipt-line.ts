@@ -1,5 +1,5 @@
 import type { Quote, QuoteLine, ReceiptLine, ReceiptSettings } from "../../../../../docs/contracts/domain.generated";
-import type { CatalogPresentationItem } from "./catalog-presentation";
+import type { CatalogPresentationItem, CatalogPresentationLookup } from "./catalog-presentation";
 import { formatReceiptDisplayName } from "./display-name";
 import { resolveEffectiveSku } from "./effective-sku";
 
@@ -118,4 +118,17 @@ export function catalogIdsForQuote(quote: Quote): readonly string[] {
     }
   }
   return [...ids];
+}
+
+/**
+ * Load and validate sale-time presentation before a first commercial prepare,
+ * and again on lost-response recovery. Does not shorten names or apply showSku.
+ */
+export async function loadSalePresentation(input: {
+  readonly catalogLookup: CatalogPresentationLookup;
+  readonly organizationId: string;
+  readonly quote: Quote;
+}): Promise<{ readonly ok: true; readonly lines: readonly ReceiptLine[] } | ReceiptLineBuildFailure> {
+  const items = await input.catalogLookup.getItems(input.organizationId, catalogIdsForQuote(input.quote));
+  return captureSalePresentationLines({ quote: input.quote, items });
 }

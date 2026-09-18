@@ -148,6 +148,7 @@ describe("receipt product-name snapshot", () => {
       now: NOW,
     });
     expect(prepared.ok).toBe(true);
+    expect(runtime.salesPort.prepareCount).toBe(1);
     const sale = await runtime.store.getSale(TX);
     expect(sale?.lines[0]?.name).toBe(FULL_NAME);
     expect(sale?.lines[0]?.displayName).toBeUndefined();
@@ -156,6 +157,25 @@ describe("receipt product-name snapshot", () => {
     expect(sale?.lines[0]?.variationLabel).toBe("Red");
     expect(sale?.lines[0]?.name).not.toBe("p-cable");
     expect(validateCanonicalDef("ReceiptLine", sale?.lines[0])).toBe(true);
+
+    const replay = await prepareSale({
+      store: runtime.store,
+      salesPort: runtime.salesPort,
+      catalogLookup: runtime.catalogLookup,
+      actor: ACTOR,
+      request: {
+        transactionId: TX,
+        registerId: "reg_a1",
+        shiftId: SHIFT,
+        deviceId: DEVICE,
+        quoteId: "quote-receipt-1",
+        quoteFingerprint: FINGERPRINT,
+      },
+      context: { idempotencyKey: PREPARE_KEY, correlationId: CORRELATION },
+      now: NOW,
+    });
+    expect(replay.ok).toBe(true);
+    expect(runtime.salesPort.prepareCount).toBe(1);
 
     const cash = await confirmCash({
       store: runtime.store,
@@ -261,6 +281,7 @@ describe("receipt product-name snapshot", () => {
 
   test("missing catalog presentation fails closed instead of storing productId as the name", async () => {
     const runtime = await seedRuntime();
+    expect(runtime.salesPort.prepareCount).toBe(0);
     const emptyCatalog = createMemoryCatalogPresentationLookup();
     const prepared = await prepareSale({
       store: runtime.store,
@@ -283,6 +304,70 @@ describe("receipt product-name snapshot", () => {
       expect(prepared.error.code).toBe("INTEGRATION_UNAVAILABLE");
     }
     expect(await runtime.store.getSale(TX)).toBeUndefined();
+    expect(runtime.salesPort.prepareCount).toBe(0);
+  });
+
+  test("lost-response recovery persists presentation without a second commercial prepare", async () => {
+    const runtime = await seedRuntime();
+    const inner = runtime.salesPort;
+    const dropping = {
+      get prepareCount() {
+        return inner.prepareCount;
+      },
+      prepare: async (
+        request: Parameters<typeof inner.prepare>[0],
+        context: Parameters<typeof inner.prepare>[1],
+      ) => {
+        await inner.prepare(request, context);
+        throw new Error("injected lost prepare response");
+      },
+      resolve: inner.resolve.bind(inner),
+    };
+    const recovered = await prepareSale({
+      store: runtime.store,
+      salesPort: dropping,
+      catalogLookup: runtime.catalogLookup,
+      actor: ACTOR,
+      request: {
+        transactionId: TX,
+        registerId: "reg_a1",
+        shiftId: SHIFT,
+        deviceId: DEVICE,
+        quoteId: "quote-receipt-1",
+        quoteFingerprint: FINGERPRINT,
+      },
+      context: { idempotencyKey: PREPARE_KEY, correlationId: CORRELATION },
+      now: NOW,
+    });
+    expect(recovered.ok).toBe(true);
+    if (!recovered.ok) {
+      throw new Error("expected recovered prepare");
+    }
+    expect(inner.prepareCount).toBe(1);
+    const sale = await runtime.store.getSale(TX);
+    expect(sale?.prepared.saleId).toBe(recovered.data.saleId);
+    expect(sale?.lines[0]?.name).toBe(FULL_NAME);
+    expect(sale?.lines[0]?.displayName).toBeUndefined();
+    expect(sale?.lines[0]?.sku).toBe("CBL-ARM-RED");
+
+    const replay = await prepareSale({
+      store: runtime.store,
+      salesPort: inner,
+      catalogLookup: runtime.catalogLookup,
+      actor: ACTOR,
+      request: {
+        transactionId: TX,
+        registerId: "reg_a1",
+        shiftId: SHIFT,
+        deviceId: DEVICE,
+        quoteId: "quote-receipt-1",
+        quoteFingerprint: FINGERPRINT,
+      },
+      context: { idempotencyKey: PREPARE_KEY, correlationId: CORRELATION },
+      now: NOW,
+    });
+    expect(replay.ok).toBe(true);
+    expect(inner.prepareCount).toBe(1);
   });
 
   test("receipt shortening and showSku apply at finalize, not prepare", async () => {

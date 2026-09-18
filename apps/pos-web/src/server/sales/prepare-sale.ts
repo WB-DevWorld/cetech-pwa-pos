@@ -4,8 +4,9 @@ import type {
   PreparedSale,
   PrepareSaleRequest,
   Quote,
+  ReceiptLine,
 } from "../../../../../docs/contracts/domain.generated";
-import { catalogIdsForQuote, captureSalePresentationLines } from "../../core/receipt/build-receipt-line";
+import { loadSalePresentation } from "../../core/receipt/build-receipt-line";
 import type { CatalogPresentationLookup } from "../../core/receipt/catalog-presentation";
 import { canonicalJson, sha256Hex } from "../../local/canonical";
 import { toIsoTimestamp } from "../auth/ids";
@@ -183,6 +184,14 @@ async function completePrepare(input: {
     return scoped;
   }
   const quote = scoped.data.quote;
+  const presentation = await loadSalePresentation({
+    catalogLookup: input.catalogLookup,
+    organizationId: input.actor.organizationId,
+    quote,
+  });
+  if (!presentation.ok) {
+    return apiFailure("INTEGRATION_UNAVAILABLE", presentation.message, input.context.correlationId);
+  }
 
   const commercial = await input.salesPort.prepare(input.request, input.context);
   if (!commercial.ok) {
@@ -200,11 +209,11 @@ async function completePrepare(input: {
   }
   return persistPrepared({
     store: input.store,
-    catalogLookup: input.catalogLookup,
     actor: input.actor,
     request: input.request,
     prepared: commercial.data,
     quote,
+    lines: presentation.lines,
     context: input.context,
   });
 }
@@ -263,6 +272,14 @@ async function recoverPrepared(input: {
     return scoped;
   }
   const quote = scoped.data.quote;
+  const presentation = await loadSalePresentation({
+    catalogLookup: input.catalogLookup,
+    organizationId: input.actor.organizationId,
+    quote,
+  });
+  if (!presentation.ok) {
+    return apiFailure("INTEGRATION_UNAVAILABLE", presentation.message, input.context.correlationId);
+  }
   const prepared: PreparedSale = {
     transactionId: input.request.transactionId,
     saleId: resolved.data.saleId ?? `recovered-${input.request.transactionId.slice(0, 8)}`,
@@ -279,11 +296,11 @@ async function recoverPrepared(input: {
   }
   return persistPrepared({
     store: input.store,
-    catalogLookup: input.catalogLookup,
     actor: input.actor,
     request: input.request,
     prepared,
     quote,
+    lines: presentation.lines,
     context: input.context,
   });
 }
@@ -334,11 +351,11 @@ async function assertPrepareScope(input: {
 
 async function persistPrepared(input: {
   readonly store: CheckoutStore;
-  readonly catalogLookup: CatalogPresentationLookup;
   readonly actor: StaffActor;
   readonly request: PrepareSaleRequest;
   readonly prepared: PreparedSale;
   readonly quote: Quote;
+  readonly lines: readonly ReceiptLine[];
   readonly context: CommandContext;
 }): Promise<ApiResult<PreparedSale>> {
   const existing = await input.store.getSale(input.request.transactionId);
@@ -358,17 +375,6 @@ async function persistPrepared(input: {
   if (!register) {
     return apiFailure("NOT_FOUND", "register is not available", input.context.correlationId);
   }
-  const items = await input.catalogLookup.getItems(
-    input.actor.organizationId,
-    catalogIdsForQuote(input.quote),
-  );
-  const presentation = captureSalePresentationLines({
-    quote: input.quote,
-    items,
-  });
-  if (!presentation.ok) {
-    return apiFailure("INTEGRATION_UNAVAILABLE", presentation.message, input.context.correlationId);
-  }
   await input.store.seedPreparedSale({
     organizationId: input.actor.organizationId,
     locationId: register.locationId,
@@ -382,7 +388,7 @@ async function persistPrepared(input: {
     customer: input.quote.customer,
     customerLabel: customerLabel(input.quote),
     prepared: input.prepared,
-    lines: presentation.lines,
+    lines: input.lines,
     orderLines: input.quote.lines.map((line) => ({
       orderLineId: line.lineId,
       quantity: line.quantity,
