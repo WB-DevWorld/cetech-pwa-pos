@@ -9,6 +9,8 @@ import type {
 import type { SalesPort } from "../../../../../docs/contracts/ports";
 import { createInMemoryCheckoutStore } from "../../core/checkout/in-memory-store";
 import type { CheckoutStore, StaffActor } from "../../core/checkout/types";
+import { createMemoryCatalogPresentationLookup } from "../../core/receipt/catalog-presentation";
+import { createMemoryReceiptSettingsStore } from "../../core/receipt/settings-store";
 import { prepareSale } from "./prepare-sale";
 import { resolveSale } from "./resolve-sale";
 
@@ -22,6 +24,11 @@ const SHIFT_A = "55555555-5555-4555-8555-555555555555";
 const SHIFT_B = "55555555-5555-4555-8555-555555555556";
 const NOW = new Date("2026-09-15T12:00:00.000Z");
 const FINGERPRINT = "0123456789abcdef0123456789abcdef";
+const catalogLookup = createMemoryCatalogPresentationLookup({
+  org_a: [{ id: "49111", name: "Training Product 49111", sku: "SKU-49111", kind: "simple" }],
+  org_b: [{ id: "49111", name: "Training Product 49111", sku: "SKU-49111", kind: "simple" }],
+});
+const receiptSettings = createMemoryReceiptSettingsStore();
 
 const ACTOR_A: StaffActor = {
   actorId: "cashier_a",
@@ -243,6 +250,8 @@ describe("R6-REM-02 transaction scope binding", () => {
     const prepared = await prepareSale({
       store,
       salesPort,
+      catalogLookup,
+      receiptSettings,
       actor: ACTOR_A,
       request: request(SHIFT_A),
       context: context(),
@@ -273,6 +282,8 @@ describe("R6-REM-02 transaction scope binding", () => {
     const first = await prepareSale({
       store,
       salesPort,
+      catalogLookup,
+      receiptSettings,
       actor: ACTOR_A,
       request: request(SHIFT_A),
       context: context(),
@@ -282,6 +293,8 @@ describe("R6-REM-02 transaction scope binding", () => {
     const replay = await prepareSale({
       store,
       salesPort,
+      catalogLookup,
+      receiptSettings,
       actor: ACTOR_A_LOC_B,
       request: { ...request(SHIFT_B, "reg_b1", DEVICE_B), quoteId: "quote-a2" },
       context: context(PREPARE_KEY_2),
@@ -312,6 +325,8 @@ describe("R6-REM-02 transaction scope binding", () => {
     const first = await prepareSale({
       store,
       salesPort,
+      catalogLookup,
+      receiptSettings,
       actor: ACTOR_A,
       request: request(SHIFT_A, "reg_a1"),
       context: context(),
@@ -321,6 +336,8 @@ describe("R6-REM-02 transaction scope binding", () => {
     const wrongRegister = await prepareSale({
       store,
       salesPort,
+      catalogLookup,
+      receiptSettings,
       actor: ACTOR_A,
       request: request(SHIFT_A, "reg_a2"),
       context: context(PREPARE_KEY_2),
@@ -339,6 +356,8 @@ describe("R6-REM-02 transaction scope binding", () => {
     const first = await prepareSale({
       store,
       salesPort,
+      catalogLookup,
+      receiptSettings,
       actor: ACTOR_A,
       request: request(SHIFT_A),
       context: context(),
@@ -348,6 +367,8 @@ describe("R6-REM-02 transaction scope binding", () => {
     const wrongShift = await prepareSale({
       store,
       salesPort,
+      catalogLookup,
+      receiptSettings,
       actor: ACTOR_A,
       request: request(SHIFT_B),
       context: context(PREPARE_KEY_2),
@@ -384,6 +405,8 @@ describe("R6-REM-02 transaction scope binding", () => {
     const lost = await prepareSale({
       store,
       salesPort,
+      catalogLookup,
+      receiptSettings,
       actor: ACTOR_A,
       request: request(SHIFT_A),
       context: context(),
@@ -400,6 +423,8 @@ describe("R6-REM-02 transaction scope binding", () => {
     const replay = await prepareSale({
       store,
       salesPort: countingPort(),
+      catalogLookup,
+      receiptSettings,
       actor: ACTOR_A,
       request: request(SHIFT_A),
       context: context(),
@@ -417,6 +442,8 @@ describe("R6-REM-02 transaction scope binding", () => {
     const lost = await prepareSale({
       store,
       salesPort,
+      catalogLookup,
+      receiptSettings,
       actor: ACTOR_A,
       request: request(SHIFT_A),
       context: context(),

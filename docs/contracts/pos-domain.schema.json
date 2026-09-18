@@ -844,10 +844,24 @@
       "type": "object",
       "properties": {
         "name": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "sku": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
         },
         "variationLabel": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
         },
         "quantity": {
           "$ref": "#/$defs/Quantity"
@@ -876,6 +890,28 @@
         "discount",
         "tax",
         "total"
+      ],
+      "additionalProperties": false
+    },
+    "ReceiptSettings": {
+      "type": "object",
+      "properties": {
+        "shortenProductNames": {
+          "type": "boolean"
+        },
+        "productNameMaxCharacters": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256
+        },
+        "showSku": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "shortenProductNames",
+        "productNameMaxCharacters",
+        "showSku"
       ],
       "additionalProperties": false
     },

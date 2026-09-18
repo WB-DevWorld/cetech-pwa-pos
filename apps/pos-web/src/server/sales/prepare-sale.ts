@@ -4,8 +4,10 @@ import type {
   PreparedSale,
   PrepareSaleRequest,
   Quote,
-  ReceiptLine,
 } from "../../../../../docs/contracts/domain.generated";
+import { catalogIdsForQuote, receiptLinesFromQuotePresentation } from "../../core/receipt/build-receipt-line";
+import type { CatalogPresentationLookup } from "../../core/receipt/catalog-presentation";
+import type { ReceiptSettingsStore } from "../../core/receipt/settings-store";
 import { canonicalJson, sha256Hex } from "../../local/canonical";
 import { toIsoTimestamp } from "../auth/ids";
 import { apiFailure } from "../http/api-failure";
@@ -16,6 +18,8 @@ import { assertBindingMatchesPrepareRequest, assertSaleMatchesPrepareRequest } f
 export async function prepareSale(input: {
   readonly store: CheckoutStore;
   readonly salesPort: Pick<SalesPort, "prepare" | "resolve">;
+  readonly catalogLookup: CatalogPresentationLookup;
+  readonly receiptSettings: ReceiptSettingsStore;
   readonly actor: StaffActor;
   readonly request: PrepareSaleRequest;
   readonly context: CommandContext;
@@ -93,7 +97,16 @@ export async function prepareSale(input: {
 
     await store.markIdempotencySent(actor.organizationId, "sale.prepare", context.idempotencyKey);
     try {
-      const result = await completePrepare({ store, salesPort, actor, request, context, now });
+      const result = await completePrepare({
+        store,
+        salesPort,
+        catalogLookup: input.catalogLookup,
+        receiptSettings: input.receiptSettings,
+        actor,
+        request,
+        context,
+        now,
+      });
       if (!result.ok) {
         await store.releaseIdempotency(actor.organizationId, "sale.prepare", context.idempotencyKey);
         return result;
@@ -103,7 +116,16 @@ export async function prepareSale(input: {
     } catch {
       let recovered: ApiResult<PreparedSale> | undefined;
       try {
-        recovered = await recoverPrepared({ store, salesPort, actor, request, context, now });
+        recovered = await recoverPrepared({
+          store,
+          salesPort,
+          catalogLookup: input.catalogLookup,
+          receiptSettings: input.receiptSettings,
+          actor,
+          request,
+          context,
+          now,
+        });
       } catch {
         recovered = undefined;
       }
@@ -133,6 +155,8 @@ export async function prepareSale(input: {
 async function completePrepare(input: {
   readonly store: CheckoutStore;
   readonly salesPort: Pick<SalesPort, "prepare" | "resolve">;
+  readonly catalogLookup: CatalogPresentationLookup;
+  readonly receiptSettings: ReceiptSettingsStore;
   readonly actor: StaffActor;
   readonly request: PrepareSaleRequest;
   readonly context: CommandContext;
@@ -181,6 +205,8 @@ async function completePrepare(input: {
   }
   return persistPrepared({
     store: input.store,
+    catalogLookup: input.catalogLookup,
+    receiptSettings: input.receiptSettings,
     actor: input.actor,
     request: input.request,
     prepared: commercial.data,
@@ -192,6 +218,8 @@ async function completePrepare(input: {
 async function recoverPrepared(input: {
   readonly store: CheckoutStore;
   readonly salesPort: Pick<SalesPort, "prepare" | "resolve">;
+  readonly catalogLookup: CatalogPresentationLookup;
+  readonly receiptSettings: ReceiptSettingsStore;
   readonly actor: StaffActor;
   readonly request: PrepareSaleRequest;
   readonly context: CommandContext;
@@ -258,6 +286,8 @@ async function recoverPrepared(input: {
   }
   return persistPrepared({
     store: input.store,
+    catalogLookup: input.catalogLookup,
+    receiptSettings: input.receiptSettings,
     actor: input.actor,
     request: input.request,
     prepared,
@@ -312,6 +342,8 @@ async function assertPrepareScope(input: {
 
 async function persistPrepared(input: {
   readonly store: CheckoutStore;
+  readonly catalogLookup: CatalogPresentationLookup;
+  readonly receiptSettings: ReceiptSettingsStore;
   readonly actor: StaffActor;
   readonly request: PrepareSaleRequest;
   readonly prepared: PreparedSale;
@@ -335,6 +367,19 @@ async function persistPrepared(input: {
   if (!register) {
     return apiFailure("NOT_FOUND", "register is not available", input.context.correlationId);
   }
+  const items = await input.catalogLookup.getItems(
+    input.actor.organizationId,
+    catalogIdsForQuote(input.quote),
+  );
+  const settings = await input.receiptSettings.get(input.actor.organizationId, register.locationId);
+  const receiptLines = receiptLinesFromQuotePresentation({
+    quote: input.quote,
+    items,
+    settings,
+  });
+  if (!receiptLines.ok) {
+    return apiFailure("INTEGRATION_UNAVAILABLE", receiptLines.message, input.context.correlationId);
+  }
   await input.store.seedPreparedSale({
     organizationId: input.actor.organizationId,
     locationId: register.locationId,
@@ -348,7 +393,7 @@ async function persistPrepared(input: {
     customer: input.quote.customer,
     customerLabel: customerLabel(input.quote),
     prepared: input.prepared,
-    lines: receiptLinesFromQuote(input.quote),
+    lines: receiptLines.lines,
     orderLines: input.quote.lines.map((line) => ({
       orderLineId: line.lineId,
       quantity: line.quantity,
@@ -363,19 +408,6 @@ async function persistPrepared(input: {
     tax: input.quote.tax,
   });
   return { ok: true, data: input.prepared, correlationId: input.context.correlationId };
-}
-
-export function receiptLinesFromQuote(quote: Quote): readonly ReceiptLine[] {
-  return quote.lines.map((line) => ({
-    name: line.productId,
-    ...(line.variationId ? { variationLabel: line.variationId } : {}),
-    quantity: line.quantity,
-    unitPrice: line.unitPrice,
-    subtotal: line.subtotal,
-    discount: line.discount,
-    tax: line.tax,
-    total: line.total,
-  }));
 }
 
 export function customerLabel(quote: Quote): string {
