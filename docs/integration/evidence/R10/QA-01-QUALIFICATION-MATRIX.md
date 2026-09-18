@@ -39,6 +39,7 @@ This matrix converts QA-01 / #29 into explicit evidence rows. It deliberately se
 
 | ID | Scenario / invariant | Existing evidence to reuse | Additional R10 evidence | Status |
 | --- | --- | --- | --- | --- |
+| Q-RT-00 | Unauthorized, unapproved, or CSRF-invalid return cannot invoke provider refund, commercial refund, or stock-disposition effects | R10 no-effect guard tests | Accepted staging negative-path proof | PREPARED |
 | Q-RT-01 | Historic immutable order-line identity is used for return | R8 remediation evidence | Regression suite | REUSE_EXISTING_EVIDENCE |
 | Q-RT-02 | Partial return cannot refund more historic economics than remain | R8 allocation evidence | Concurrency/failure regression | PREPARED |
 | Q-RT-03 | Duplicate commercial refund effect is idempotent | R8 WS2/WS3 tests | Controlled staging effect only if separately authorized | PENDING_AUTHORIZATION |
