@@ -8,7 +8,7 @@ import { rebuildCatalogProjection } from "./catalog-repository";
 import { replaceLocalCustomers } from "./customer-store";
 import { openPosLocalDatabase, type PosLocalDatabase } from "./pos-local-db";
 
-const CASHIER_SOURCE_VERSION = "r4-cashier-synthetic-v1";
+const CASHIER_SOURCE_VERSION = "ux02-cashier-synthetic-v2";
 const SEEDED_KEY = "cashier-seed-version";
 
 /** Non-PII synthetic cashier catalog. Not a production/Woo copy. */
@@ -33,6 +33,8 @@ export const CASHIER_SEED_CATALOG: readonly TransitionalCatalogInput[] = [
     barcodes: ["0012345678901"],
     kind: "simple",
     catalogStockStatus: "in_stock",
+    listPriceMinor: 15500,
+    listPriceCurrency: "GHS",
     sourceUpdatedAt: "2026-09-13T20:00:00.000Z",
   },
   {
@@ -81,6 +83,8 @@ export const CASHIER_SEED_CATALOG: readonly TransitionalCatalogInput[] = [
     barcodes: ["5550001112223"],
     kind: "simple",
     catalogStockStatus: "in_stock",
+    listPriceMinor: 21500,
+    listPriceCurrency: "GHS",
     sourceUpdatedAt: "2026-09-13T20:00:00.000Z",
   },
   {

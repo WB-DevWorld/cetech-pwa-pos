@@ -144,6 +144,38 @@ describe("STG-04 BFF catalog sync", () => {
     }
   });
 
+  test("advisory displayPrice maps into sync items and stays out of durable identity rows", async () => {
+    const { store, cookieHeader } = await staffCookies();
+    const projectionStore = createMemoryCatalogProjectionStore();
+    const priced = {
+      ...SIMPLE_DTO,
+      displayPrice: { minor: 15500, currency: "GHS" },
+      unitPrice: { minor: 999999, currency: "GHS" },
+      b2bPrice: { minor: 1, currency: "GHS" },
+    };
+    const result = await handleCatalogSync({
+      correlationIdHeader: CORRELATION,
+      cookieHeader,
+      now: NOW,
+      appEnv: "staging",
+      sessionStore: store,
+      projectionStore,
+      bridge: pageBridge([priced], null),
+    });
+    expect(result.status).toBe(200);
+    expect(result.body.ok).toBe(true);
+    if (result.body.ok) {
+      const item = result.body.data.items[0] as CatalogSourceRecord;
+      expect(item.displayPrice).toEqual({ minor: 15500, currency: "GHS" });
+      expect(JSON.stringify(item)).not.toContain("999999");
+      expect(JSON.stringify(item)).not.toContain("b2bPrice");
+      const mapped = await projectionStore.loadByItemIds("org_a", [item.posItemId]);
+      expect(mapped[0]?.sourceItemId).toBe("101");
+      expect(JSON.stringify(mapped)).not.toContain("15500");
+      expect(JSON.stringify(mapped)).not.toContain("display");
+    }
+  });
+
   test("rejects an invalid cursor before invoking the producer", async () => {
     let called = 0;
     const { store, cookieHeader } = await staffCookies();

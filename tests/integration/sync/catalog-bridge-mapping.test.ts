@@ -65,7 +65,8 @@ describe("STG-04 bridge catalog mapping", () => {
     expect(mapped.kind).toBe("simple");
     expect(mapped.purchasable).toBe(true);
     expect(mapped.stockStatus).toBe("in_stock");
-    expect(mapped.displayPrice).toBeUndefined();
+    expect(mapped.displayPrice).toEqual({ minor: 9999, currency: "GHS" });
+    expect(Number.isInteger(mapped.displayPrice?.minor)).toBe(true);
   });
 
   test("maps a variable parent and resolves variation sourceParentId onto the parent posItemId", () => {
@@ -77,6 +78,8 @@ describe("STG-04 bridge catalog mapping", () => {
     expect(child?.parentId).toBe(stableCatalogPosItemId("woocommerce", "200"));
     expect(child?.sourceItemId).toBe("201");
     expect(child?.posItemId).not.toBe("201");
+    expect(parent?.displayPrice).toBeUndefined();
+    expect(child?.displayPrice).toBeUndefined();
   });
 
   test("preserves leading-zero barcodes and SKUs that a number would have stripped", () => {
@@ -110,11 +113,58 @@ describe("STG-04 bridge catalog mapping", () => {
     expect(mapped?.sourceVersion).toBe("2026-09-17T12:00:00.000Z:101");
   });
 
-  test("never copies prices from a catalog DTO even when price keys are present", () => {
+  test("maps advisory displayPrice and ignores unrelated price-like keys", () => {
     const mapped = mapBridgeCatalogItems([SIMPLE])[0];
-    expect(mapped?.displayPrice).toBeUndefined();
-    expect(JSON.stringify(mapped)).not.toContain("9999");
+    expect(mapped?.displayPrice).toEqual({ minor: 9999, currency: "GHS" });
+    expect(mapped?.displayPrice?.currency).toBe("GHS");
     expect(JSON.stringify(mapped)).not.toContain("99.99");
+    expect(JSON.stringify(mapped)).not.toContain("regularPrice");
+    expect(JSON.stringify(mapped)).not.toContain("b2bPrice");
+    expect(JSON.stringify(mapped)).not.toContain("woodmartPrice");
+  });
+
+  test("does not let unsafe price fields override or fabricate displayPrice", () => {
+    const unsafeOnly = mapBridgeCatalogItem({
+      ...SIMPLE,
+      displayPrice: undefined,
+      regularPrice: "99.99",
+      unitPrice: { minor: 8888, currency: "GHS" },
+      b2bPrice: { minor: 1, currency: "GHS" },
+      woodmartPrice: "12.00",
+    });
+    expect(unsafeOnly?.displayPrice).toBeUndefined();
+    const preferred = mapBridgeCatalogItem({
+      ...SIMPLE,
+      displayPrice: { minor: 15500, currency: "GHS" },
+      unitPrice: { minor: 999999, currency: "GHS" },
+      b2bPrice: { minor: 1, currency: "GHS" },
+      listPriceMinor: 200,
+      listPriceCurrency: "USD",
+    });
+    expect(preferred?.displayPrice).toEqual({ minor: 15500, currency: "GHS" });
+  });
+
+  test("absence of advisory displayPrice remains absence", () => {
+    const { displayPrice: _omit, regularPrice: _regular, ...plain } = SIMPLE;
+    const mapped = mapBridgeCatalogItem(plain);
+    expect(mapped?.displayPrice).toBeUndefined();
+  });
+
+  test("invalid displayPrice envelopes are omitted rather than coerced", () => {
+    expect(mapBridgeCatalogItem({ ...SIMPLE, displayPrice: { minor: 12.5, currency: "GHS" } })?.displayPrice).toBeUndefined();
+    expect(mapBridgeCatalogItem({ ...SIMPLE, displayPrice: { minor: -1, currency: "GHS" } })?.displayPrice).toBeUndefined();
+    expect(mapBridgeCatalogItem({ ...SIMPLE, displayPrice: { minor: 100, currency: "" } })?.displayPrice).toBeUndefined();
+    expect(mapBridgeCatalogItem({ ...SIMPLE, displayPrice: "155.00" })?.displayPrice).toBeUndefined();
+  });
+
+  test("listPriceMinor plus currency maps when displayPrice is absent", () => {
+    const { displayPrice: _omit, ...plain } = SIMPLE;
+    const mapped = mapBridgeCatalogItem({
+      ...plain,
+      listPriceMinor: 21500,
+      listPriceCurrency: "GHS",
+    });
+    expect(mapped?.displayPrice).toEqual({ minor: 21500, currency: "GHS" });
   });
 
   test("posItemId is stable across mapping calls", () => {

@@ -5,14 +5,11 @@ import type { CatalogSourceRecord } from "../../core/catalog/source";
 
 const KINDS = new Set(["simple", "variable", "variation"]);
 const STOCK = new Set(["in_stock", "out_of_stock", "backorder", "unknown"]);
-const PRICE_KEYS = [
-  "displayPrice",
+const UNSAFE_PRICE_KEYS = [
   "price",
   "regularPrice",
   "salePrice",
   "listPrice",
-  "listPriceMinor",
-  "listPriceCurrency",
   "unitPrice",
   "tax",
   "b2bPrice",
@@ -33,12 +30,15 @@ export type BridgeCatalogSourceItem = {
   readonly stockStatus: CatalogSourceRecord["stockStatus"];
   readonly sourceUpdatedAt: string;
   readonly deleted?: boolean;
+  readonly listPriceMinor?: number;
+  readonly listPriceCurrency?: string;
 };
 
 /**
  * Maps STG-05 catalog producer DTOs onto the provider-neutral transitional model.
  * Woo sourceItemId remains source identity only. Opaque posItemId is assigned here.
- * Prices are never copied — quote-time POST /quotes remains pricing authority.
+ * Advisory displayPrice (Money envelope) is copied as listPriceMinor/listPriceCurrency.
+ * Quote-time POST /quotes remains pricing authority. Unsafe price-like keys are ignored.
  */
 export function mapBridgeCatalogItem(raw: unknown): CatalogSourceRecord | null {
   const item = parseBridgeItem(raw);
@@ -65,6 +65,8 @@ export function mapBridgeCatalogItem(raw: unknown): CatalogSourceRecord | null {
     catalogStockStatus: item.stockStatus,
     sourceUpdatedAt: item.sourceUpdatedAt,
     deleted: item.deleted,
+    listPriceMinor: item.listPriceMinor,
+    listPriceCurrency: item.listPriceCurrency,
   };
   return mapTransitionalCatalogItem(input);
 }
@@ -104,6 +106,7 @@ function parseBridgeItem(raw: unknown): BridgeCatalogSourceItem | null {
   const sku = row.sku === undefined || row.sku === null ? undefined : preserveBarcode(String(row.sku));
   const barcodes = parseBarcodes(row.barcodes, sku);
   const sourceParentId = asNonEmptyString(row.sourceParentId);
+  const advisory = parseAdvisoryListPrice(row);
   return {
     sourceSystem: "woocommerce",
     sourceItemId,
@@ -118,7 +121,51 @@ function parseBridgeItem(raw: unknown): BridgeCatalogSourceItem | null {
     stockStatus: stockStatus as BridgeCatalogSourceItem["stockStatus"],
     sourceUpdatedAt,
     deleted: row.deleted === true,
+    listPriceMinor: advisory.listPriceMinor,
+    listPriceCurrency: advisory.listPriceCurrency,
   };
+}
+
+function parseAdvisoryListPrice(row: Record<string, unknown>): {
+  readonly listPriceMinor?: number;
+  readonly listPriceCurrency?: string;
+} {
+  const fromEnvelope = parseMoneyEnvelope(row.displayPrice);
+  if (fromEnvelope) {
+    return { listPriceMinor: fromEnvelope.minor, listPriceCurrency: fromEnvelope.currency };
+  }
+  const minor = row.listPriceMinor;
+  const currency = row.listPriceCurrency;
+  if (
+    typeof minor === "number" &&
+    Number.isInteger(minor) &&
+    minor >= 0 &&
+    typeof currency === "string" &&
+    currency.trim().length > 0
+  ) {
+    return { listPriceMinor: minor, listPriceCurrency: currency.trim() };
+  }
+  return {};
+}
+
+function parseMoneyEnvelope(value: unknown): { readonly minor: number; readonly currency: string } | undefined {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  const row = value as Record<string, unknown>;
+  const minor = row.minor;
+  const currency = row.currency;
+  if (typeof minor !== "number" || !Number.isInteger(minor) || minor < 0) {
+    return undefined;
+  }
+  if (typeof currency !== "string") {
+    return undefined;
+  }
+  const trimmed = currency.trim();
+  if (trimmed.length === 0) {
+    return undefined;
+  }
+  return { minor, currency: trimmed };
 }
 
 function parseBarcodes(value: unknown, sku: string | undefined): ReadonlyArray<string> {
@@ -153,5 +200,5 @@ export function bridgeCatalogItemHasPriceFields(raw: unknown): boolean {
     return false;
   }
   const row = raw as Record<string, unknown>;
-  return PRICE_KEYS.some((key) => key in row && row[key] !== undefined);
+  return UNSAFE_PRICE_KEYS.some((key) => key in row && row[key] !== undefined);
 }

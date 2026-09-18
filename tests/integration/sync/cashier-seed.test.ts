@@ -24,6 +24,13 @@ describe("CORE-04 cashier synthetic seed", () => {
     if (leading.ok) {
       expect(leading.data.items).toHaveLength(1);
       expect(leading.data.items[0]?.barcodes).toContain("0012345");
+      expect(leading.data.items[0]?.displayPrice).toBeUndefined();
+    }
+    const hardener = await catalog.search({ barcode: "0012345678901" });
+    expect(hardener.ok).toBe(true);
+    if (hardener.ok) {
+      expect(hardener.data.items[0]?.name).toBe("Epoxy Hardener 1L");
+      expect(hardener.data.items[0]?.displayPrice).toEqual({ minor: 15500, currency: "GHS" });
     }
     const duplicate = await catalog.search({ barcode: "5550001112223" });
     expect(duplicate.ok).toBe(true);

@@ -6,7 +6,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Maps Woo products/variations onto provider-neutral catalog source rows.
- * Does not compute WoodMart/B2BKing prices. SKU and barcodes stay strings.
+ * May copy Woo's stored ordinary display/base price as advisory displayPrice.
+ * Does not compute WoodMart/B2BKing/customer-specific prices. SKU and barcodes stay strings.
  */
 final class Cetech_Pos_Bridge_Catalog_Engine {
 	const DEFAULT_LIMIT = 50;
@@ -119,7 +120,66 @@ final class Cetech_Pos_Bridge_Catalog_Engine {
 		if ( $label !== null ) {
 			$row['variationLabel'] = $label;
 		}
+		$display = self::advisory_display_price( $product, $kind );
+		if ( $display !== null ) {
+			$row['displayPrice'] = $display;
+		}
 		return $row;
+	}
+
+	/**
+	 * Advisory/public/base current price from Woo's stored product value.
+	 * Uses get_price('edit') so view filters (customer/B2B/qty hooks) are not applied.
+	 * Variable parents emit a price only when min and max variation prices are identical.
+	 *
+	 * @param object $product
+	 * @param string $kind
+	 * @return array{minor:int,currency:string}|null
+	 */
+	private static function advisory_display_price( $product, $kind ) {
+		$raw = null;
+		if ( $kind === 'variable' ) {
+			if ( ! method_exists( $product, 'get_variation_price' ) ) {
+				return null;
+			}
+			$min_raw = self::normalize_woo_decimal( $product->get_variation_price( 'min', false ) );
+			$max_raw = self::normalize_woo_decimal( $product->get_variation_price( 'max', false ) );
+			if ( $min_raw === null || $max_raw === null ) {
+				return null;
+			}
+			$min = Cetech_Pos_Bridge_Money::from_decimal_string( $min_raw, Cetech_Pos_Bridge_Constants::SETTLEMENT_CURRENCY );
+			$max = Cetech_Pos_Bridge_Money::from_decimal_string( $max_raw, Cetech_Pos_Bridge_Constants::SETTLEMENT_CURRENCY );
+			if ( $min === null || $max === null || $min !== $max ) {
+				return null;
+			}
+			return Cetech_Pos_Bridge_Money::envelope( $min );
+		}
+		if ( method_exists( $product, 'get_price' ) ) {
+			$raw = self::normalize_woo_decimal( $product->get_price( 'edit' ) );
+		}
+		if ( $raw === null ) {
+			return null;
+		}
+		$minor = Cetech_Pos_Bridge_Money::from_decimal_string( $raw, Cetech_Pos_Bridge_Constants::SETTLEMENT_CURRENCY );
+		if ( $minor === null ) {
+			return null;
+		}
+		return Cetech_Pos_Bridge_Money::envelope( $minor );
+	}
+
+	/**
+	 * @param mixed $value
+	 * @return string|null
+	 */
+	private static function normalize_woo_decimal( $value ) {
+		if ( is_int( $value ) && $value >= 0 ) {
+			return (string) $value;
+		}
+		if ( is_float( $value ) || is_string( $value ) ) {
+			$trimmed = trim( (string) $value );
+			return $trimmed === '' ? null : $trimmed;
+		}
+		return null;
 	}
 
 	public static function load_woo_products( $cursor, $limit, $modified_after ) {

@@ -11,6 +11,11 @@ test.describe("Sell live workstation chrome", () => {
     await expect(page.getByRole("button", { name: "F2 Search" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Clear", exact: true })).toBeVisible();
     await expect(page.locator(".page-head")).toHaveCount(0);
+    await expect(page.locator(".product-card").filter({ hasText: "Epoxy Hardener 1L" })).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(page.locator(".product-card").filter({ hasText: "Epoxy Hardener 1L" })).toContainText("GHS 155.00");
+    await expect(page.locator(".product-card").filter({ hasText: "Leading-zero sample" })).not.toContainText("GHS");
     const pay = page.getByRole("button", { name: /^Pay/ });
     await expect(pay).toBeVisible();
     const payBox = await pay.boundingBox();
