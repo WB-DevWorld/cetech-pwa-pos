@@ -26,7 +26,29 @@ describe("R10 fail-closed sale finalization guards", () => {
       sessionStore: runtime.sessions.store,
       checkoutStore: runtime.checkoutStore,
       salesPort: runtime.salesPort,
+      test("missing verified payment evidence cannot reach commercial finalization or stock effect", async () => {
+    const runtime = await createPay01Runtime();
+
+    const finalized = await handleFinalizeSale({
+      ...commandBase(runtime.sessions.cookieHeader),
+      idempotencyKeyHeader: FINALIZE_KEY,
+      body: {
+        transactionId: TX_A,
+        paymentId: "99999999-9999-4999-8999-999999999882",
+      },
+      sessionStore: runtime.sessions.store,
+      checkoutStore: runtime.checkoutStore,
+      salesPort: runtime.salesPort,
     });
+
+    expect(finalized.body.ok).toBe(false);
+    if (!finalized.body.ok) {
+      expect(finalized.body.error.code).toBe("PAYMENT_NOT_VERIFIED");
+    }
+    expect(runtime.salesPort.paymentCompleteCount).toBe(0);
+    expect(runtime.salesPort.stockEffectCount).toBe(0);
+  });
+});
 
     expect(finalized.body.ok).toBe(false);
     if (!finalized.body.ok) {
