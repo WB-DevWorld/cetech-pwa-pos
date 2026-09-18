@@ -27,7 +27,7 @@ Mounted routes: `/sell` `/orders` `/customers` `/returns` `/register` `/health` 
 
 Composition rule: mounted POS keeps STG-02 staff authority **and** STG-04 catalog authority. STG-04 contributor `CURRENT-WORK.md` was not accepted onto this integration ledger.
 
-`BLOCKED_TRAINING_PLUGIN_NOT_DEPLOYED_STG05` remains. Do not claim live catalog/quote/cash-sale PASS. Do not close #70/#25/#54. Do not merge. Do not start R10.
+STG-05 plugin is deployed on training Woo; authenticated bridge health/catalog/quote are verified (product 14985 equal 3000 GHS minor totals prove customer-context routing, not B2B parity). `BLOCKED_TRAINING_PLUGIN_NOT_DEPLOYED_STG05` is not current truth. Live Preview catalog is blocked by BFF service-identity denial (`bridge denied the BFF service identity`). Cash-sale acceptance is pending. `pricingParityVerified=false`. CP-04 / issue #4 remains OPEN. Do not close #70/#25/#54. Do not merge. Do not start R10.
 
 ## R8 (historical / accepted on main)
 

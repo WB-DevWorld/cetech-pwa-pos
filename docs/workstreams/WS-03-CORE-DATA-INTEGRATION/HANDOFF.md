@@ -16,13 +16,14 @@ Allowed: `apps/pos-web/src/app/**`, `apps/pos-web/e2e/**`, `tests/frontend/**`, 
 
 Contracts changed: none. Database migrations: none. Architecture decisions: none.
 
-Do not merge. Do not modify `main`. Do not import/start R9. Next exact action: integrate this contributor SHA into `batch/stg-01-staging-runtime-acceptance` after independent review, then re-run STG-06 against the new Preview.
+Do not merge. Do not modify `main`. Do not import/start R9. Current verified training/bridge truth: STG-05 plugin is deployed on `https://training.cetechbpa.com`; authenticated health/catalog/quote PASS as recorded in the evidence file. Do not treat `BLOCKED_TRAINING_PLUGIN_NOT_DEPLOYED_STG05` as current. Live Preview catalog is blocked by BFF→WordPress `bridge denied the BFF service identity`. Cash-sale acceptance, `pricingParityVerified=false`, and CP-04 / #4 remain open. Next exact action: integrate this contributor SHA into `batch/stg-01-staging-runtime-acceptance` after independent review, then re-run STG-06 against the new Preview.
 
 ---
 
 # WS3 previous handoff — STG-01 integration composition
 
-Kind: PROGRESS_CHECKPOINT. Date: 2026-09-17.
+Kind: PROGRESS_CHECKPOINT. Date: 2026-09-17. Historical snapshot; the `BLOCKED_TRAINING_PLUGIN_NOT_DEPLOYED_STG05` line below is superseded by the 2026-09-18 current handoff above.
+
 
 
 Task / batch / workstream: STG-01 / #70 / WS3.

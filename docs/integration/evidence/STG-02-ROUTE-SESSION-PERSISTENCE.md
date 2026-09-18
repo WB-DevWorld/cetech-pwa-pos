@@ -21,7 +21,7 @@ Each mounted POS `page.tsx` rendered `<PosApp route="…" />`. Next.js App Route
 
 ## Sell duplicate search/Scan rows
 
-`SellScreen` composes a single `ProductSearch` toolbar. There is no second search/Scan component in mounted Sell composition. A live screenshot of two identical toolbars is consistent with a remount flash of `SellRuntimeScreen` during the same PosRuntime restore, not a duplicate Sell tree. No Sell redesign in this patch.
+Source inspection found only one `ProductSearch` in the Sell composition. The duplicate toolbar visible in the prior live screenshot was not reproduced or causally proven from source inspection. Re-test on the persistence-fixed protected Preview. If it disappears after the persistent runtime fix, that supports the remount hypothesis; if it remains, open/fix it as a separate Sell rendering defect. No Sell redesign in this patch.
 
 ## Checks
 
@@ -43,5 +43,7 @@ The existing `page.goto` workspace test is retained so full document loads are s
 ## Remaining blockers
 
 - Live Preview of this SHA is still required before STG-06 can accept the navigation fix.
-- Training Woo plugin deploy / live catalog/quote/cash remain blocked independently (`BLOCKED_TRAINING_PLUGIN_NOT_DEPLOYED_STG05`).
+- STG-05 CETECH POS Bridge is deployed on `https://training.cetechbpa.com`. Authenticated bridge health PASS (Woo, WoodMart, and B2BKing detected). Authenticated bridge catalog PASS with real training Woo products. Authoritative quote path PASS for product 14985: walk-in, retail customer 32, and B2B customer 21 all return 3000 GHS minor. Equal totals prove customer-context routing, not B2B price differential/parity. Product 9480 separately fails Woo `add_to_cart` validation and is not a bridge-wide failure. Do not claim training plugin deployment, catalog, or quote are still blocked. `BLOCKED_TRAINING_PLUGIN_NOT_DEPLOYED_STG05` is not current truth.
+- The current live Preview catalog blocker is Vercel BFF → WordPress bridge health returning `bridge denied the BFF service identity`, so the live Preview catalog projection is unavailable.
+- Cash-sale functional acceptance is still pending. `pricingParityVerified=false` remains open. CP-04 / issue #4 remains OPEN.
 - No production promotion. Do not merge from this evidence file.
