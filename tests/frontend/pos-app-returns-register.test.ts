@@ -11,6 +11,7 @@ import type {
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
+  usePathname: () => "/returns",
 }));
 
 import { ReturnsRuntimeScreen } from "../../apps/pos-web/src/app/returns-runtime";

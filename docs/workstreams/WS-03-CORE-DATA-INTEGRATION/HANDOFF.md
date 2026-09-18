@@ -1,6 +1,29 @@
-# WS3 current handoff — STG-01 integration composition
+# WS3 current handoff — STG-02 route session persistence
+
+Kind: TASK_COMPLETION. Date: 2026-09-18.
+
+Task / batch / workstream: STG-02 route persistence / STG-06 live navigation blocker / WS3.
+Owner / integration editor: `@wbdevworld` / WS3.
+Requested human reviewer: independent senior review; no self-approve.
+Mode: REMEDIATE.
+Branch: `ws3/stg-02-route-session-persistence`
+Starting exact head: `4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897`
+Start `origin/main`: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Start batch ref: `origin/batch/stg-01-staging-runtime-acceptance` = `4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897`
+Evidence: `docs/integration/evidence/STG-02-ROUTE-SESSION-PERSISTENCE.md`
+
+Allowed: `apps/pos-web/src/app/**`, `apps/pos-web/e2e/**`, `tests/frontend/**`, CURRENT-WORK, WS3 STATUS/HANDOFF, this evidence. Forbidden: `main`, R9, WS1 Sell redesign, WS2 plugin, auth/CSRF/RLS weakening.
+
+Contracts changed: none. Database migrations: none. Architecture decisions: none.
+
+Do not merge. Do not modify `main`. Do not import/start R9. Next exact action: integrate this contributor SHA into `batch/stg-01-staging-runtime-acceptance` after independent review, then re-run STG-06 against the new Preview.
+
+---
+
+# WS3 previous handoff — STG-01 integration composition
 
 Kind: PROGRESS_CHECKPOINT. Date: 2026-09-17.
+
 
 Task / batch / workstream: STG-01 / #70 / WS3.
 Owner / integration editor: `@wbdevworld` / WS3.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { SellRuntimeScreen, type SellSessionPorts } from "../features/sell";
 import { createBrowserPricingPort } from "../features/sell/runtime/pricingClient";
@@ -79,6 +79,9 @@ export function PosRuntime({
     shift: null,
     shiftOpen: false,
   }));
+  const restoreCountRef = useRef(0);
+  const catalogBootstrapCountRef = useRef(0);
+  const ownerNodeRef = useRef<HTMLDivElement | null>(null);
   const readOnline = useCallback(() => online, [online]);
   const policy = useMemo(
     () =>
@@ -107,6 +110,8 @@ export function PosRuntime({
   }, [runtime]);
 
   useEffect(() => {
+    restoreCountRef.current += 1;
+    writeOwnerCounts(ownerNodeRef.current, restoreCountRef.current, catalogBootstrapCountRef.current);
     void runtime.restore();
   }, [runtime]);
 
@@ -171,6 +176,8 @@ export function PosRuntime({
     }
     let cancelled = false;
     const snapshot = authority;
+    catalogBootstrapCountRef.current += 1;
+    writeOwnerCounts(ownerNodeRef.current, restoreCountRef.current, catalogBootstrapCountRef.current);
     void (async () => {
       try {
         const synced = await ensureCatalogProjection({
@@ -282,14 +289,21 @@ export function PosRuntime({
 
   if (authority.status !== "ready" || !authority.session) {
     return (
-      <StaffAuthGate
-        noticeState={authNotice}
-        busy={authority.status === "restoring"}
-        errorMessage={authority.errorMessage}
-        onSignIn={(request) => {
-          void runtime.signIn(request);
-        }}
-      />
+      <PosRuntimeOwner
+        ownerRef={ownerNodeRef}
+        restoreCountRef={restoreCountRef}
+        catalogBootstrapCountRef={catalogBootstrapCountRef}
+        status={authority.status}
+      >
+        <StaffAuthGate
+          noticeState={authNotice}
+          busy={authority.status === "restoring"}
+          errorMessage={authority.errorMessage}
+          onSignIn={(request) => {
+            void runtime.signIn(request);
+          }}
+        />
+      </PosRuntimeOwner>
     );
   }
 
@@ -297,6 +311,12 @@ export function PosRuntime({
   const deviceId = authority.shift?.deviceId ?? readOrCreateLocalDeviceId();
 
   return (
+    <PosRuntimeOwner
+      ownerRef={ownerNodeRef}
+      restoreCountRef={restoreCountRef}
+      catalogBootstrapCountRef={catalogBootstrapCountRef}
+      status={authority.status}
+    >
     <AppShell
       activeRoute={route}
       registerName={authority.register?.name ?? "No register"}
@@ -355,5 +375,45 @@ export function PosRuntime({
         />
       )}
     </AppShell>
+    </PosRuntimeOwner>
+  );
+}
+
+function writeOwnerCounts(
+  node: HTMLDivElement | null,
+  restoreCount: number,
+  catalogBootstrapCount: number,
+): void {
+  if (!node) {
+    return;
+  }
+  node.dataset.staffRestoreCount = String(restoreCount);
+  node.dataset.catalogBootstrapCount = String(catalogBootstrapCount);
+}
+
+function PosRuntimeOwner({
+  ownerRef,
+  restoreCountRef,
+  catalogBootstrapCountRef,
+  status,
+  children,
+}: {
+  readonly ownerRef: { current: HTMLDivElement | null };
+  readonly restoreCountRef: { current: number };
+  readonly catalogBootstrapCountRef: { current: number };
+  readonly status: StaffRuntimeAuthority["status"];
+  readonly children: ReactNode;
+}) {
+  return (
+    <div
+      ref={(node) => {
+        ownerRef.current = node;
+        writeOwnerCounts(node, restoreCountRef.current, catalogBootstrapCountRef.current);
+      }}
+      data-pos-runtime-owner="true"
+      data-staff-runtime-status={status}
+    >
+      {children}
+    </div>
   );
 }

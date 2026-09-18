@@ -1,10 +1,17 @@
 # WS3 current status
 
-Snapshot 2026-09-17. Protected `main` `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` is accepted/merged R8 PR #69. STG-01 / #70 is the active P0 recovery gate on `batch/stg-01-staging-runtime-acceptance`. R9 PR #63 must not merge while STG-01 is open.
+Snapshot 2026-09-18. Protected `main` `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` is accepted/merged R8 PR #69. STG-01 / #70 remains the active P0 recovery gate. R9 PR #63 must not merge while STG-01 is open.
 
-## STG-01 integration (active)
+## Active contributor assignment
 
-Mode: INTEGRATE. Owner `@wbdevworld` / WS3. Integration base `acd4a2f009c58f734186cf9e44f278da93499a4b`.
+Mode: REMEDIATE. Owner `@wbdevworld` / WS3.
+Branch: `ws3/stg-02-route-session-persistence` from exact STG-01 candidate `4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897`.
+Scope: persist authenticated staff/catalog runtime across App Router navigation. Not imported into `batch/stg-01-staging-runtime-acceptance` from this status file. Do not merge.
+
+## STG-01 integration (active, not this branch)
+
+Mode: INTEGRATE. Owner `@wbdevworld` / WS3. Integration base `acd4a2f009c58f734186cf9e44f278da93499a4b`. Combined candidate SHA `4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897`.
+
 
 Imported contributor sources (provenance recorded in CURRENT-WORK):
 

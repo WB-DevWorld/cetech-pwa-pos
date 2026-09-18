@@ -1,25 +1,34 @@
 # Current work ledger
 
-Updated 2026-09-17. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls the current STG-01 recovery assignment on the integration branch and is intended to replace the stale pre-merge R8 ledger when reviewed/imported.
+Updated 2026-09-18. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
 
 ## Current authority
 
 - accepted `main`: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` — squash-merged `[R8] Safe returns and payment/register states (#69)`.
-- latest successful shared staging for that exact SHA: `https://cetech-pos-staging-q5kb2f8t7-wbdevworlds-projects.vercel.app/`.
-- Staging CD run `35216966693`: SUCCESS for exact main SHA; deployment pipeline/root protected smoke is working.
-- Browser staging evidence on 2026-09-17 shows application-runtime acceptance is **NOT satisfied**: placeholder routes remain, Sell uses synthetic R4 catalog data, mounted UI hard-codes staff/shift authority, and protected quote/checkout mutations fail CSRF because no real staff session is established.
-- CORE-06 / #25 and R6 / #54 are reopened because their own acceptance required real isolated-staging runtime evidence; mock/root-smoke evidence cannot satisfy them.
-- STG-01 / #70 is the active P0 recovery gate.
+- STG-01 candidate / live Preview baseline: `4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897` on `batch/stg-01-staging-runtime-acceptance`.
+- Live Preview against real staging Supabase staff identity authenticates, resolves Staging Cashier / Register A, and truthfully shows no open shift. In-app route navigation incorrectly remounts `PosApp` and flashes Staff Sign-In / "Signing in...". That is an STG-06 acceptance blocker.
 - Issue #4 remains OPEN; `pricingParityVerified=false`. Production promotion, live Paystack, real refund/restock and VitePOS deactivation are not authorized.
 - R9 PR #63 remains draft / must not merge while STG-01 is open.
 
 ```text
 human: @wbdevworld
-workstream: WS3 integration authority + task-specific STG-05 bridge implementer
-mode: REMEDIATE / INTEGRATE
-task: STG-01 — recover production-usable staging runtime
-integration branch: batch/stg-01-staging-runtime-acceptance
+workstream: WS3
+mode: REMEDIATE
+task: STG-02 / STG-06 — persist authenticated staff runtime across POS route navigation
+branch: ws3/stg-02-route-session-persistence
+start SHA: 4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897
+allowed: apps/pos-web/src/app/**, apps/pos-web/e2e/**, tests/frontend/**, CURRENT-WORK.md, docs/workstreams/WS-03-CORE-DATA-INTEGRATION/**, docs/integration/evidence/**
+forbidden: main, R9, WS1 feature redesign, WS2 plugin, auth/CSRF/RLS weakening, credential persistence, fake sessions
 ```
+
+Senior instruction 2026-09-18 authorizes this WS3 contributor branch from the exact live STG-01 SHA. Do not modify `main`. Do not merge. Do not import/start R9. Review/merge remains independent human authority.
+
+## STG-01 recovery context (retained)
+
+- latest successful shared staging for merged main remains historical; application-runtime acceptance is gated on STG-01 / #70 plus this live navigation fix.
+- CORE-06 / #25 and R6 / #54 remain reopened until isolated-staging runtime evidence exists.
+- STG-02 original composition branch `ws3/stg-02-session-runtime-composition` established real session/CSRF/register authority. This assignment does not rewrite that; it persists that runtime across App Router navigations.
+
 
 ## Active STG-01 assignments
 

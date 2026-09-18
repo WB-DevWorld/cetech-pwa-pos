@@ -1,5 +1,1 @@
-import { PosApp } from "../pos-app";
-
-export default function HealthPage() {
-  return <PosApp route="health" />;
-}
+export { default } from "../pos-route-slot";

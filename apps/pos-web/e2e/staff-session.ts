@@ -26,12 +26,20 @@ const OPEN_SHIFT = {
   openedAt: "2026-09-17T08:00:00.000Z",
 };
 
+export type StaffSessionHarness = {
+  readonly sessionGets: () => number;
+  readonly catalogSyncs: () => number;
+};
+
 export async function installAuthoritativeStaffSession(
   page: Page,
   options: { readonly shiftOpen?: boolean } = {},
-): Promise<void> {
+): Promise<StaffSessionHarness> {
   const shiftOpen = options.shiftOpen ?? true;
+  let sessionGets = 0;
+  let catalogSyncs = 0;
   await page.route("**/api/pos/v1/catalog/sync**", async (route) => {
+    catalogSyncs += 1;
     await route.fulfill({
       status: 401,
       contentType: "application/json",
@@ -73,6 +81,9 @@ export async function installAuthoritativeStaffSession(
   });
   await page.route("**/api/pos/v1/session", async (route) => {
     const method = route.request().method();
+    if (method === "GET") {
+      sessionGets += 1;
+    }
     if (method === "GET" || method === "POST") {
       await route.fulfill({
         status: 200,
@@ -121,15 +132,20 @@ export async function installAuthoritativeStaffSession(
       }),
     });
   });
+  return {
+    sessionGets: () => sessionGets,
+    catalogSyncs: () => catalogSyncs,
+  };
 }
 
 export async function expectAuthoritativeShell(page: Page, options: { readonly shiftOpen?: boolean } = {}): Promise<void> {
-  await expect(page.getByText("Cashier A")).toBeVisible();
+  const topbar = page.getByRole("banner");
+  await expect(topbar.getByText("Cashier A")).toBeVisible();
   await expect(page.getByText("Staff member")).toHaveCount(0);
   if (options.shiftOpen === false) {
-    await expect(page.getByText("No open shift")).toBeVisible();
-    await expect(page.getByText("Shift open")).toHaveCount(0);
+    await expect(topbar.getByText("No open shift")).toBeVisible();
+    await expect(topbar.getByText("Shift open")).toHaveCount(0);
   } else {
-    await expect(page.getByText("Shift open")).toBeVisible();
+    await expect(topbar.getByText("Shift open")).toBeVisible();
   }
 }
