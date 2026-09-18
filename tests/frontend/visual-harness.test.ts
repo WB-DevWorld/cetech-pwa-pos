@@ -52,14 +52,14 @@ describe("FE-02 isolated visual harness markup", () => {
     writeFileSync(resolve(evidenceDir, "sell-customer.html"), customer);
     writeFileSync(resolve(evidenceDir, "sell-offline.html"), offline);
 
-    expect(desktop).toContain("Scan barcode or search products");
+    expect(desktop).toContain("Scan or search for a product");
     expect(desktop).toContain("Epoxy Hardener 1L");
     expect(phone).toContain("mobile-open");
     expect(variation).toContain("Choose variation");
     expect(unknown).toContain("9999999999999");
     expect(customer).toContain("Buildworks Ltd");
     expect(customer).toContain("Wholesale");
-    expect(offline).toContain("Cached catalog is available");
+    expect(offline).toContain("Saved products are available");
     expect(`${desktop}${phone}${variation}${unknown}${customer}${offline}`).not.toContain("demo-barcodes");
     expect(`${desktop}${phone}${variation}${unknown}${customer}${offline}`).not.toContain("Demo controls");
     expect(`${desktop}${phone}${variation}${unknown}${customer}${offline}`).not.toContain("later task");

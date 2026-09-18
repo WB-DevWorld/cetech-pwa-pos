@@ -1,6 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
+import { skuLabel } from "../../../ui/cashier-language";
 import type { SellProductView } from "../state/sellView";
 
 export function ProductSearch({
@@ -28,14 +29,14 @@ export function ProductSearch({
           ⌕
         </span>
         <label className="sr-only" htmlFor="product-search">
-          Scan barcode or search products
+          Barcode, SKU or product name
         </label>
         <input
           className="input"
           id="product-search"
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
-          placeholder="Scan barcode or search products, SKU…"
+          placeholder="Barcode, SKU or product name"
           autoComplete="off"
           inputMode="text"
         />
@@ -84,7 +85,7 @@ export function ProductCard({
       aria-label={item.name}
     >
       <div className="product-name">{item.name}</div>
-      {item.sku ? <div className="muted">{item.sku}</div> : null}
+      {skuLabel(item.sku) ? <div className="muted">{skuLabel(item.sku)}</div> : null}
       <div className={stockClass}>
         {stockText}
       </div>

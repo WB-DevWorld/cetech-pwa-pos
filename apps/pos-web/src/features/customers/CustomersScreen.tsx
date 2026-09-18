@@ -43,7 +43,7 @@ export function CustomersScreen({
       <div className="page-head">
         <div>
           <h1 id="customers-title">Customers</h1>
-          <p>Choose retail or wholesale customer context without exposing provider internals.</p>
+          <p>Find a customer or continue as walk-in.</p>
         </div>
       </div>
 
@@ -55,14 +55,14 @@ export function CustomersScreen({
       ) : null}
       {state === "degraded" ? (
         <div className="banner warning workspace-banner" role="status">
-          <strong>Customer lookup is degraded.</strong>
-          <span>Use only customer records already returned by the mounted customer source; do not infer wholesale pricing here.</span>
+          <strong>Customer search is temporarily limited.</strong>
+          <span>You can still continue as Walk-in. Saved customer details may be incomplete until this recovers.</span>
         </div>
       ) : null}
       {state === "error" ? (
         <div className="banner danger workspace-banner" role="alert">
           <strong>Customers could not be loaded.</strong>
-          <span>{errorMessage ?? "Customer lookup is unavailable. Walk-in customer context remains available from Sell."}</span>
+          <span>{errorMessage ?? "Customer search is unavailable. You can continue as Walk-in from Sell."}</span>
           {onRetry ? (
             <button className="btn small" type="button" onClick={onRetry}>Retry</button>
           ) : null}
@@ -91,7 +91,7 @@ export function CustomersScreen({
       {state === "loading" ? (
         <div className="card card-pad workspace-state" role="status" aria-live="polite">
           <div className="workspace-spinner" aria-hidden="true" />
-          <div><strong>Loading customers…</strong><p>Walk-in context remains available from Sell.</p></div>
+          <div><strong>Loading customers…</strong><p>You can continue as Walk-in from Sell.</p></div>
         </div>
       ) : null}
 
@@ -99,7 +99,7 @@ export function CustomersScreen({
         <div className="card card-pad workspace-state" role="status">
           <div>
             <strong>{customers.length === 0 ? "No customers available." : "No customers match this search."}</strong>
-            <p>{customers.length === 0 ? "The mounted customer source has not supplied retail or wholesale records." : "Try a different name, company, or phone."}</p>
+            <p>{customers.length === 0 ? "No customer accounts are available yet. You can continue as Walk-in." : "Try a different name, company, or phone."}</p>
           </div>
         </div>
       ) : null}
@@ -130,7 +130,7 @@ export function CustomersScreen({
                     {selected ? "Selected for next sale" : "Use for next sale"}
                   </button>
                 ) : (
-                  <div className="muted">Selection is available after WS3 mounts the customer-to-Sell handoff.</div>
+                  <div className="muted">Choose a customer here, then continue the sale.</div>
                 )}
               </article>
             );

@@ -24,22 +24,22 @@ const health: StoreHealth = {
 };
 
 describe("operational recovery surfaces", () => {
-  test("Store Health renders contract health without overstating degraded/unavailable checks", () => {
+  test("System status renders contract health without overstating degraded/unavailable checks", () => {
     const html = renderToStaticMarkup(<StoreHealthScreen health={health} deviceName="POS tablet" appVersion="R8" />);
-    expect(html).toContain("Store Health");
+    expect(html).toContain("System status");
     expect(html).toContain("Pending operations");
-    expect(html).toContain("Needs attention");
-    expect(html).toContain("Commerce reachable");
+    expect(html).toContain("Issues");
+    expect(html).toContain("Commerce connection");
     expect(html).toContain("Degraded");
     expect(html).toContain("Unavailable");
     expect(html).toContain("1.0.0");
   });
 
-  test("Store Health loading, offline, degraded and error states remain explicit", () => {
-    expect(renderToStaticMarkup(<StoreHealthScreen state="loading" />)).toContain("Checking store health…");
+  test("System status loading, offline, degraded and error states remain explicit", () => {
+    expect(renderToStaticMarkup(<StoreHealthScreen state="loading" />)).toContain("Checking system status…");
     expect(renderToStaticMarkup(<StoreHealthScreen state="offline" />)).toContain("You are offline.");
     expect(renderToStaticMarkup(<StoreHealthScreen state="degraded" />)).toContain("Connection is degraded.");
-    expect(renderToStaticMarkup(<StoreHealthScreen state="error" />)).toContain("Store Health could not be refreshed.");
+    expect(renderToStaticMarkup(<StoreHealthScreen state="error" />)).toContain("couldn&#x27;t be refreshed");
   });
 
   test("Needs attention exposes only supplied safe actions", () => {
@@ -51,7 +51,7 @@ describe("operational recovery surfaces", () => {
     );
     expect(html).toContain("Needs attention");
     expect(html).toContain("Payment status uncertain");
-    expect(html).toContain("Resolve existing operation");
+    expect(html).toContain("Check status");
     expect(html).not.toContain("Retry safely");
   });
 
@@ -64,12 +64,12 @@ describe("operational recovery surfaces", () => {
     expect(safe).toContain("r8.1");
   });
 
-  test("connectivity, passive-tab, migration and Fix App copy preserve critical local state", () => {
+  test("connectivity, passive-tab, migration and Troubleshoot copy preserve critical local state", () => {
     expect(renderToStaticMarkup(<ConnectivityNotice state="offline" />)).toContain("Saved local work stays on this device.");
-    expect(renderToStaticMarkup(<PassiveTabNotice passive />)).toContain("passive mode");
+    expect(renderToStaticMarkup(<PassiveTabNotice passive />)).toContain("This tab is read-only.");
     expect(renderToStaticMarkup(<LocalDataMigrationPanel state="blocked" />)).toContain("Data has not been deleted.");
     const fix = renderToStaticMarkup(<FixAppPanel criticalOperationActive onLastResortReset={() => undefined} />);
-    expect(fix).toContain("Non-destructive recovery first.");
+    expect(fix).toContain("Repair safely first.");
     expect(fix).toContain("Destructive reset blocked.");
     expect(fix).toContain("disabled");
   });

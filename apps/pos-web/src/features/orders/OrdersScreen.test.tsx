@@ -61,7 +61,7 @@ describe("OrdersScreen", () => {
       />,
     );
     expect(html).toContain("Order detail");
-    expect(html).toContain("Transaction reference");
+    expect(html).toContain("Reference");
     expect(html).toContain("Cashier / register");
     expect(html).toContain("Reprint");
     expect(html).toContain("Return items");
@@ -70,7 +70,7 @@ describe("OrdersScreen", () => {
 
   test("renders an explicit empty state", () => {
     const html = renderToStaticMarkup(<OrdersScreen orders={[]} />);
-    expect(html).toContain("No orders yet.");
-    expect(html).toContain("order history source");
+    expect(html).toContain("No sales yet.");
+    expect(html).toContain("Completed sales will appear here when order history is available.");
   });
 });

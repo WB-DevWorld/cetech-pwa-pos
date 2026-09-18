@@ -32,7 +32,7 @@ test("authenticated approved workspaces are mounted instead of the R4 placeholde
     { path: "/orders", heading: "Orders" },
     { path: "/customers", heading: "Customers" },
     { path: "/settings", heading: "Settings" },
-    { path: "/health", heading: "Store Health" },
+    { path: "/health", heading: "System status" },
     { path: "/attention", heading: "Needs attention" },
   ] as const;
   for (const { path, heading } of mounted) {
@@ -66,7 +66,7 @@ test("client-side POS navigation keeps the authenticated staff runtime mounted",
     { route: "customers", heading: "Customers" },
     { route: "returns", heading: "Returns" },
     { route: "register", heading: "Shift open" },
-    { route: "health", heading: "Store Health" },
+    { route: "health", heading: "System status" },
     { route: "attention", heading: "Needs attention" },
     { route: "settings", heading: "Settings" },
     { route: "sell", heading: "Sell" },

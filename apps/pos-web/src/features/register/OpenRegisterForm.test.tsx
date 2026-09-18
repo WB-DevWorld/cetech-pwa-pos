@@ -17,10 +17,10 @@ describe("OpenRegisterForm", () => {
         onSubmit: () => undefined,
       }),
     );
-    expect(html).toContain("Open register");
+    expect(html).toContain("Start shift");
     expect(html).toContain("Front Counter 1");
     expect(html).toContain("opening-float");
-    expect(html).toContain("The server owns expected cash");
+    expect(html).toContain("Enter the cash currently in the drawer");
     expect(html).not.toContain("staffId");
     expect(html).not.toContain("Ama Mensah");
     expect(html).toContain('id="opening-float"');
@@ -35,7 +35,7 @@ describe("OpenRegisterForm", () => {
         onSubmit: () => undefined,
       }),
     );
-    expect(html).toContain("Connection required to open a register.");
+    expect(html).toContain("Connection required to start a shift.");
     expect(html).toContain("disabled");
   });
 
@@ -59,6 +59,6 @@ describe("OpenRegisterForm", () => {
         onSubmit: () => undefined,
       }),
     );
-    expect(html).toContain("Opening…");
+    expect(html).toContain("Starting…");
   });
 });

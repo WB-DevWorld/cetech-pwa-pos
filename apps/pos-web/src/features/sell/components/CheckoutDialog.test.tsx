@@ -51,7 +51,7 @@ describe("CheckoutDialog stages", () => {
     expect(confirming).not.toContain("receipt-paper");
     const finalizing = render({ ...idleCheckoutSession(), stage: "finalizing", message: "Finalizing the sale." });
     expect(finalizing).toContain('data-checkout-stage="finalizing"');
-    expect(finalizing).toContain("Finalizing sale");
+    expect(finalizing).toContain("Completing sale…");
     expect(finalizing).not.toContain("receipt-paper");
     expect(finalizing).not.toContain("Confirm cash");
   });

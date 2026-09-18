@@ -204,7 +204,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
     }
     patch({
       stage: "resolving_sale",
-      message: "Sale status is uncertain. Do not start another sale. Checking the existing transaction.",
+      message: "Sale status is uncertain. Do not start another sale.",
       inputError: undefined,
     });
     const outcome = await settle(() => ports.sales.resolve(identities!.transactionId));
@@ -247,7 +247,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
     if (resolution.status === "prepared") {
       patch({
         stage: "cash",
-        message: "Enter cash received. The server verifies the tender.",
+        message: "Enter the cash handed to you. Change will be shown after payment.",
         transactionId: resolution.transactionId,
       });
       return;
@@ -255,7 +255,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
     if (resolution.status === "payment_pending") {
       patch({
         stage: "resolving_payment",
-        message: "A payment is already pending for this sale. Do not confirm cash again. Checking the existing tender.",
+        message: "A payment is already pending for this sale. Do not confirm cash again.",
         transactionId: resolution.transactionId,
       });
       await resolvePaymentUnlocked();
@@ -266,7 +266,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
         stage: "finalizing",
         saleCompleted: false,
         transactionId: resolution.transactionId,
-        message: "Finalizing the sale. Payment has been submitted; do not charge again.",
+        message: "Completing the sale. Payment has been submitted; do not charge again.",
       });
       if (paymentId) {
         await finalizeUnlocked();
@@ -303,7 +303,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
     }
     patch({
       stage: "resolving_payment",
-      message: "Payment status is uncertain. Do not confirm cash again. Checking the existing tender.",
+      message: "Payment status is uncertain. Do not confirm cash again.",
       inputError: undefined,
     });
     const outcome = await settle(() =>
@@ -334,7 +334,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
     if (paymentVerified(state)) {
       patch({
         stage: "finalizing",
-        message: "Finalizing the sale. Payment has been submitted; do not charge again.",
+        message: "Completing the sale. Payment has been submitted; do not charge again.",
         inputError: undefined,
       });
       await finalizeUnlocked();
@@ -353,7 +353,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
         message:
           state.nextAction === "present_payment"
             ? "A payment is already in progress. Do not confirm cash again. Check payment status."
-            : "Payment status is uncertain. Do not confirm cash again. Checking the existing tender.",
+            : "Payment status is uncertain. Do not confirm cash again.",
       });
       return;
     }
@@ -375,7 +375,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
     }
     patch({
       stage: "finalizing",
-      message: "Finalizing the sale. Payment has been submitted; do not charge again.",
+      message: "Completing the sale. Payment has been submitted; do not charge again.",
     });
     const outcome = await settle(() =>
       ports.checkout.finalize(
@@ -498,7 +498,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
             message:
               session.stage === "cash_failed"
                 ? session.message
-                : "Enter cash received. The server verifies the tender.",
+                : "Enter the cash handed to you. Change will be shown after payment.",
             inputError: undefined,
           });
         }
@@ -511,7 +511,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       const attempt = identitiesFor(quote);
       patch({
         stage: "preparing",
-        message: "Preparing order. Rechecking price and stock before money is accepted.",
+        message: "Checking price and stock…",
         inputError: undefined,
         receipt: undefined,
         transactionId: attempt.transactionId,
@@ -540,7 +540,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
             stage: "cash",
             prepared: mapPrepared(outcome.value.data),
             transactionId: outcome.value.data.transactionId,
-            message: "Enter cash received. The server verifies the tender.",
+            message: "Enter the cash handed to you. Change will be shown after payment.",
           });
           return;
         }
@@ -587,7 +587,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       commandLock = true;
       patch({
         stage: "confirming_cash",
-        message: "Confirming cash payment. Do not send another tender.",
+        message: "Confirming cash payment. Do not start another payment.",
         inputError: undefined,
       });
       try {

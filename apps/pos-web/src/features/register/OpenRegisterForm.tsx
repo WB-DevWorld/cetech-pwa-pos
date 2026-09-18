@@ -74,12 +74,12 @@ export function OpenRegisterForm({
       <div className="page-head">
         <div>
           <h1>Register</h1>
-          <p>Select a register and open a shift before taking payment.</p>
+          <p>Select a register and start a shift before taking payment.</p>
         </div>
       </div>
       <section className="card card-pad register-open" aria-labelledby="open-register-title">
         <h2 id="open-register-title" className="sr-only">
-          Open register
+          Start shift
         </h2>
         <form className="stack" onSubmit={handleSubmit}>
           <div className="field">
@@ -111,7 +111,7 @@ export function OpenRegisterForm({
               disabled={submitting}
             />
             <div className="muted" id="opening-help">
-              Recorded as the opening float for the shift. The server owns expected cash and the acting cashier.
+              Enter the cash currently in the drawer. This becomes the opening balance for your shift.
             </div>
           </div>
           {(localError || errorMessage) ? (
@@ -120,11 +120,11 @@ export function OpenRegisterForm({
             </div>
           ) : null}
           <button className="btn primary" type="submit" disabled={!canSubmit}>
-            {submitting ? "Opening…" : "Open register"}
+            {submitting ? "Starting…" : "Start shift"}
           </button>
           {!online ? (
             <div className="banner warning" role="status">
-              Connection required to open a register.
+              Connection required to start a shift.
             </div>
           ) : null}
         </form>

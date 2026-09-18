@@ -162,29 +162,29 @@ export function describeCheckoutStage(stage: CheckoutStageView): {
     case "idle":
       return { title: "Checkout", status: "" };
     case "preparing":
-      return { title: "Preparing sale", status: "Preparing order. Rechecking price and stock before money is accepted." };
+      return { title: "Checking price and stock…", status: "Checking price and stock before money is accepted." };
     case "prepare_failed":
-      return { title: "Prepare failed", status: "The sale was not prepared. The cart is unchanged." };
+      return { title: "Sale couldn't be started", status: "The sale was not started. The cart is unchanged." };
     case "resolving_sale":
       return {
         title: "Checking sale",
-        status: "Sale status is uncertain. Do not start another sale. Checking the existing transaction.",
+        status: "Sale status is uncertain. Do not start another sale.",
       };
     case "cash":
-      return { title: "Cash payment", status: "Enter cash received. The server verifies the tender." };
+      return { title: "Cash payment", status: "Enter the cash handed to you. Change will be shown after payment." };
     case "confirming_cash":
-      return { title: "Confirming cash", status: "Confirming cash payment. Do not send another tender." };
+      return { title: "Confirming cash", status: "Confirming cash payment. Do not start another payment." };
     case "cash_failed":
       return { title: "Cash confirmation failed", status: "Cash was not confirmed. The cart is unchanged." };
     case "resolving_payment":
       return {
         title: "Checking payment",
-        status: "Payment status is uncertain. Do not confirm cash again. Checking the existing tender.",
+        status: "Payment status is uncertain. Do not confirm cash again.",
       };
     case "finalizing":
-      return { title: "Finalizing sale", status: "Finalizing the sale. Payment has been submitted; do not charge again." };
+      return { title: "Completing sale…", status: "Completing the sale. Payment has been submitted; do not charge again." };
     case "finalize_failed":
-      return { title: "Finalization failed", status: "The sale could not be finalized. Do not start another payment." };
+      return { title: "Sale could not be finished", status: "The sale could not be finished. Do not start another payment." };
     case "complete":
       return { title: "Sale complete", status: "The sale is complete. Loading the official receipt." };
     case "receipt_failed":

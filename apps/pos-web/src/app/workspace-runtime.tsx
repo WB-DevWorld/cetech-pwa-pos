@@ -13,6 +13,7 @@ import {
   type AttentionItemView,
   type OperationalLoadState,
 } from "../ui/operational";
+import { toCashierError } from "../ui/cashier-language";
 import { POS_LOCAL_SCHEMA_CURRENT } from "../local";
 import type { CatalogProjectionAvailability, CatalogProjectionSyncResult } from "../local/catalog-sync";
 import { ensureCatalogProjection } from "../local/catalog-sync";
@@ -58,8 +59,8 @@ export function ApprovedWorkspaceScreens({
         settings={{
           deviceName: readOrCreateLocalDeviceId(),
           registerName: authority.register?.name ?? "No register assigned",
-          scannerLabel: "Attached scanner (presentation only)",
-          printerLabel: "Receipt printer via PrintPort",
+          scannerLabel: "Connected scanner",
+          printerLabel: "Receipt printer",
           appearance: "system",
           buildId: "local-dev",
           contractVersion: "1.0.0",
@@ -159,7 +160,7 @@ function HealthWorkspace({
     if (!result.ok) {
       setHealth(undefined);
       setState("error");
-      setErrorMessage(result.error.message);
+      setErrorMessage(toCashierError({ code: result.error.code, message: result.error.message, domain: "health" }).message);
       return;
     }
     setHealth(result.data);
@@ -216,7 +217,7 @@ function HealthWorkspace({
       ) : null}
       {catalogAvailability === "unavailable" || catalogAvailability === "stale" ? (
         <p className="muted" role="status">
-          Catalog projection is {catalogAvailability}. Search stays local; carts and journal are preserved.
+          Products are {catalogAvailability === "unavailable" ? "unavailable" : "out of date"}. Saved carts are kept.
         </p>
       ) : null}
     </>
@@ -240,12 +241,12 @@ function AttentionWorkspace({
     if (catalogAvailability === "unavailable" || catalogAvailability === "stale") {
       next.push({
         id: "catalog-projection",
-        title: catalogAvailability === "unavailable" ? "Catalog projection unavailable" : "Catalog projection is stale",
+        title: catalogAvailability === "unavailable" ? "Products couldn't be loaded" : "Products may be out of date",
         summary:
           catalogAvailability === "unavailable"
-            ? "Provider catalog has not populated this device. Local search cannot invent products. Carts and journal are preserved."
-            : "The local catalog projection is older than the last successful provider sync. Search still uses local data.",
-        typeLabel: "Catalog",
+            ? "Products are not available on this device yet. Saved carts are kept."
+            : "The product list may be older than the last successful update. Search still uses saved products.",
+        typeLabel: "Products",
         severity: catalogAvailability === "unavailable" ? "critical" : "medium",
         retryAllowed: true,
       });

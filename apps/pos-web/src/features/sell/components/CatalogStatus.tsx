@@ -7,26 +7,26 @@ export function catalogAvailabilityCopy(availability: CatalogAvailability): { to
     case "stale":
       return {
         tone: "warning",
-        title: "Catalog may be out of date.",
-        body: "Reconnect to refresh before checkout.",
+        title: "Products may be out of date.",
+        body: "Refresh products before checkout.",
       };
     case "offline":
       return {
         tone: "warning",
         title: "Offline.",
-        body: "You can keep browsing and editing the cart. Connection is required to confirm pricing and complete this sale.",
+        body: "You can keep browsing and editing the cart. A connection is required to check prices and complete this sale.",
       };
     case "offline_cached":
       return {
         tone: "info",
         title: "Offline.",
-        body: "Cached catalog is available. Connection is required to confirm pricing and complete this sale.",
+        body: "Saved products are available. A connection is required to check prices and complete this sale.",
       };
     case "unavailable":
       return {
         tone: "danger",
-        title: "Catalog is unavailable.",
-        body: "Reconnect or try again.",
+        title: "Products couldn't be loaded.",
+        body: "Check the connection and try again.",
       };
     default:
       return null;
@@ -53,7 +53,7 @@ export function CatalogStatusBanners({
       {draftStatus.retainedLocally ? (
         <div className="banner info" role="status">
           <div>
-            <strong>Cart draft is saved on this device.</strong>
+            <strong>This sale is saved on this device.</strong>
           </div>
         </div>
       ) : null}

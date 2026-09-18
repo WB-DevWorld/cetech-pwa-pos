@@ -108,7 +108,7 @@ export function CheckoutDialog({
                 aria-describedby={session.inputError ? "cash-received-error" : "cash-received-help"}
               />
               <div className="muted" id="cash-received-help">
-                Cash received is cashier input. Change due appears on the official receipt after the sale completes.
+                Enter the cash handed to you. Change will be shown after payment.
               </div>
               {session.inputError ? (
                 <div id="cash-received-error" className="qty-error" role="alert">
@@ -118,7 +118,7 @@ export function CheckoutDialog({
             </div>
             <div className="row wrap">
               <button type="button" className="btn small" disabled={inFlight || !session.prepared} onClick={fillExact}>
-                Exact
+                Exact amount
               </button>
             </div>
             <div className="dialog-actions">
@@ -178,7 +178,7 @@ export function CheckoutDialog({
         {session.stage === "finalize_failed" ? (
           <div className="dialog-actions">
             <button type="button" className="btn primary" disabled={inFlight} onClick={onRetryFinalize}>
-              Retry finalize
+              Try finishing sale again
             </button>
           </div>
         ) : null}

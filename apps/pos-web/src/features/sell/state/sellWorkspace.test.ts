@@ -155,14 +155,14 @@ describe("FE-03 sell workspace", () => {
     let state = createSellWorkspace(workspaceDeps, SELL_TEST_CATALOG);
     state = applyCatalogAvailability(state, "stale");
     expect(catalogAvailabilityCopy(state.catalogAvailability)?.title).toContain("out of date");
-    expect(catalogAvailabilityCopy(state.catalogAvailability)?.body).toContain("Reconnect to refresh before checkout");
+    expect(catalogAvailabilityCopy(state.catalogAvailability)?.body).toContain("Refresh products before checkout");
     state = applyCatalogAvailability(state, "offline_cached");
     const copy = catalogAvailabilityCopy(state.catalogAvailability);
-    expect(copy?.body).toContain("Cached catalog is available");
+    expect(copy?.body).toContain("Saved products are available");
     expect(copy?.body.toLowerCase()).not.toContain("verified");
     state = applyDraftStatus(state, { retainedLocally: true });
     expect(state.draftStatus.retainedLocally).toBe(true);
-    expect(catalogAvailabilityCopy("unavailable")?.title).toContain("unavailable");
+    expect(catalogAvailabilityCopy("unavailable")?.title).toContain("couldn't be loaded");
   });
 
   test("unavailable catalog blocks barcode, product, variation, and collision mutation", () => {

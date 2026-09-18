@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Money } from "../../../../../docs/contracts/domain.generated";
+import { orderStatusLabel, paymentStatusLabel } from "../../ui/cashier-language";
 
 export type OrdersWorkspaceState = "ready" | "loading" | "error" | "offline" | "degraded";
 export type OrderWorkspaceStatus = "completed" | "refunded" | "partially_refunded" | "payment_pending" | "needs_attention" | "cancelled";
@@ -56,8 +57,8 @@ const STATUS_LABELS: Record<OrderWorkspaceStatus, string> = {
   completed: "Completed",
   refunded: "Refunded",
   partially_refunded: "Partially refunded",
-  payment_pending: "Payment pending",
-  needs_attention: "Needs attention",
+  payment_pending: "Pending",
+  needs_attention: "Needs review",
   cancelled: "Cancelled",
 };
 
@@ -127,19 +128,19 @@ export function OrdersScreen({
       {state === "offline" ? (
         <div className="banner warning workspace-banner" role="status">
           <strong>Offline.</strong>
-          <span>Recent local records can stay visible, but authoritative order lookup and status require a connection.</span>
+          <span>Current order details require a connection. Recent saved records may still be available.</span>
         </div>
       ) : null}
       {state === "degraded" ? (
         <div className="banner warning workspace-banner" role="status">
           <strong>Orders are partially available.</strong>
-          <span>Some provider status may be delayed. Confirm uncertain payments or refunds in Needs attention.</span>
+          <span>Some order updates may be delayed.</span>
         </div>
       ) : null}
       {state === "error" ? (
         <div className="banner danger workspace-banner" role="alert">
           <strong>Orders could not be loaded.</strong>
-          <span>{errorMessage ?? "The order source is unavailable. Existing sale state has not been changed."}</span>
+          <span>{errorMessage ?? "Order details are unavailable. Existing sales have not been changed."}</span>
           {onRetry ? (
             <button className="btn small" type="button" onClick={onRetry}>
               Retry
@@ -155,7 +156,7 @@ export function OrdersScreen({
             id="order-search"
             className="input"
             type="search"
-            placeholder="Order, receipt, customer or transaction…"
+            placeholder="Order, receipt, customer or reference"
             value={query}
             disabled={unavailable}
             onChange={(event) => setQuery(event.target.value)}
@@ -185,7 +186,7 @@ export function OrdersScreen({
           <div className="workspace-spinner" aria-hidden="true" />
           <div>
             <strong>Loading orders…</strong>
-            <p>Existing transaction state is not being changed.</p>
+            <p>Existing sales are not being changed.</p>
           </div>
         </div>
       ) : null}
@@ -193,8 +194,8 @@ export function OrdersScreen({
       {state !== "loading" && state !== "error" && filtered.length === 0 ? (
         <div className="card card-pad workspace-state" role="status">
           <div>
-            <strong>{orders.length === 0 ? "No orders yet." : "No orders match this search."}</strong>
-            <p>{orders.length === 0 ? "Completed sales will appear here when an order history source is mounted." : "Try another order, receipt, customer, transaction reference, or status."}</p>
+            <strong>{orders.length === 0 ? "No sales yet." : "No orders match this search."}</strong>
+            <p>{orders.length === 0 ? "Completed sales will appear here when order history is available." : "Try another order, receipt, customer, or status."}</p>
           </div>
         </div>
       ) : null}
@@ -233,12 +234,12 @@ export function OrdersScreen({
                   <td data-label="Payment">
                     {order.paymentLabel}
                     {order.paymentStatus ? (
-                      <span className={`workspace-badge ${badgeTone(order.paymentStatus)}`}>{order.paymentStatus.replaceAll("_", " ")}</span>
+                      <span className={`workspace-badge ${badgeTone(order.paymentStatus)}`}>{paymentStatusLabel(order.paymentStatus)}</span>
                     ) : null}
                   </td>
                   <td data-label="Total"><strong>{formatMoney(order.total)}</strong></td>
                   <td data-label="Status">
-                    <span className={`workspace-badge ${badgeTone(order.status)}`}>{STATUS_LABELS[order.status]}</span>
+                    <span className={`workspace-badge ${badgeTone(order.status)}`}>{orderStatusLabel(order.status)}</span>
                   </td>
                 </tr>
               ))}
@@ -288,8 +289,8 @@ export function OrderDetailDialog({ open, order, canReturn = true, onClose, onRe
           <div className="order-detail-grid">
             <div className="stack">
               <div><span className="eyebrow">Customer</span><strong>{order.customerLabel}</strong>{order.customerKind === "b2b" ? <span className="workspace-badge info">Wholesale</span> : null}</div>
-              {order.transactionReference ? <div><span className="eyebrow">Transaction reference</span><strong>{order.transactionReference}</strong></div> : null}
-              <div><span className="eyebrow">Payment</span><strong>{order.paymentLabel}</strong>{order.paymentStatus ? <span className={`workspace-badge ${badgeTone(order.paymentStatus)}`}>{order.paymentStatus.replaceAll("_", " ")}</span> : null}</div>
+              {order.transactionReference ? <div><span className="eyebrow">Reference</span><strong>{order.transactionReference}</strong></div> : null}
+              <div><span className="eyebrow">Payment</span><strong>{order.paymentLabel}</strong>{order.paymentStatus ? <span className={`workspace-badge ${badgeTone(order.paymentStatus)}`}>{paymentStatusLabel(order.paymentStatus)}</span> : null}</div>
             </div>
             <div className="stack">
               <div><span className="eyebrow">Total</span><strong className="order-detail-total">{formatMoney(order.total)}</strong></div>

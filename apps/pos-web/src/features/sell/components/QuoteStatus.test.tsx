@@ -44,7 +44,8 @@ describe("QuoteStatus markup", () => {
   test("missing", () => {
     const html = renderQuote({ status: "missing" });
     expect(html).toContain('data-quote-status="missing"');
-    expect(html).toContain("Prices will be confirmed after an item is added.");
+    expect(html).toContain("Prices will be ready after an item is added.");
+    expect(html).toContain('aria-live="polite"');
     expect(html).not.toContain("GHS");
   });
 
@@ -57,7 +58,7 @@ describe("QuoteStatus markup", () => {
   test("stale", () => {
     const html = renderQuote({ status: "stale" });
     expect(html).toContain('data-quote-status="stale"');
-    expect(html).toContain("no longer current");
+    expect(html).toContain("Price needs to be checked again.");
     expect(html).not.toContain("GHS");
   });
 
@@ -68,9 +69,10 @@ describe("QuoteStatus markup", () => {
       quote: { total: { minor: 2599, currency: "GHS" }, tax: { minor: 99, currency: "GHS" } },
     });
     expect(html).toContain('data-quote-status="confirmed"');
-    expect(html).toContain("Price confirmed");
+    expect(html).toContain("Price ready");
     expect(html).toContain("GHS 25.99");
-    expect(html).toContain("Quoted tax");
+    expect(html).toContain("Tax");
+    expect(html).not.toContain("Quoted tax");
     expect(html).toContain("GHS 0.99");
   });
 
@@ -82,22 +84,23 @@ describe("QuoteStatus markup", () => {
       current: { total: { minor: 1400, currency: "GHS" } },
     });
     expect(html).toContain('data-quote-status="changed"');
-    expect(html).toContain("Previous quoted total");
+    expect(html).toContain("Previous total");
     expect(html).toContain("GHS 10.00");
-    expect(html).toContain("Current quoted total");
+    expect(html).toContain("New total");
+    expect(html).not.toContain("quoted total");
     expect(html).toContain("GHS 14.00");
   });
 
   test("expired", () => {
     const html = renderQuote({ status: "expired" });
     expect(html).toContain('data-quote-status="expired"');
-    expect(html).toContain("Price expired");
+    expect(html).toContain("Price needs to be checked again.");
   });
 
   test("offline", () => {
     const html = renderQuote({ status: "offline" });
     expect(html).toContain('data-quote-status="offline"');
-    expect(html).toContain("Connection is required for authoritative pricing and checkout");
+    expect(html).toContain("A connection is required to check prices and take payment");
   });
 
   test("failed INTEGRATION_UNAVAILABLE", () => {
@@ -108,6 +111,8 @@ describe("QuoteStatus markup", () => {
       message: "Pricing unavailable — cart saved",
     });
     expect(html).toContain('data-quote-status="failed"');
+    expect(html).toContain("couldn&#x27;t be checked");
+    expect(html).toContain("Technical details");
     expect(html).toContain("INTEGRATION_UNAVAILABLE");
     expect(html).toContain("Pricing unavailable — cart saved");
     expect(html).not.toContain("PRICING_UNAVAILABLE");
@@ -118,10 +123,10 @@ describe("CartPanel eligibility presentation", () => {
   test("QUOTE_REQUIRED explains disabled Pay", () => {
     const html = renderCart(
       { status: "missing" },
-      { allowed: false, reason: "QUOTE_REQUIRED", message: "Checkout is unavailable until prices are confirmed." },
+      { allowed: false, reason: "QUOTE_REQUIRED", message: "Checkout is unavailable until the price is ready." },
     );
     expect(html).toContain('data-eligibility-reason="QUOTE_REQUIRED"');
-    expect(html).toContain("Checkout is unavailable until prices are confirmed.");
+    expect(html).toContain("Checkout is unavailable until the price is ready.");
     expect(html).toMatch(/pay-btn[^>]*disabled/);
   });
 
@@ -137,10 +142,10 @@ describe("CartPanel eligibility presentation", () => {
   test("QUOTE_EXPIRED explains disabled Pay", () => {
     const html = renderCart(
       { status: "expired" },
-      { allowed: false, reason: "QUOTE_EXPIRED", message: "Price expired" },
+      { allowed: false, reason: "QUOTE_EXPIRED", message: "Price needs to be checked again." },
     );
     expect(html).toContain('data-eligibility-reason="QUOTE_EXPIRED"');
-    expect(html).toContain("Price expired");
+    expect(html).toContain("Price needs to be checked again.");
   });
 
   test("CONNECTION_REQUIRED explains disabled Pay", () => {
@@ -159,7 +164,7 @@ describe("CartPanel eligibility presentation", () => {
     );
     expect(html).toContain('data-eligibility-allowed="true"');
     expect(html).toMatch(/pay-btn[^>]*disabled/);
-    expect(html).toContain("Payment is not available on this screen");
+    expect(html).toContain("Review the price, then continue when payment is available.");
     expect(html).not.toContain("PRICING_UNAVAILABLE");
   });
 
@@ -186,6 +191,6 @@ describe("CartPanel eligibility presentation", () => {
     );
     expect(html).toContain('data-eligibility-allowed="true"');
     expect(html).not.toMatch(/pay-btn[^>]*disabled/);
-    expect(html).not.toContain("Payment is not available on this screen");
+    expect(html).not.toContain("Review the price, then continue when payment is available.");
   });
 });

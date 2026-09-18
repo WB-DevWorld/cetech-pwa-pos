@@ -204,7 +204,9 @@ describe("FE-06 electronic payment", () => {
         onContactManager: () => undefined,
       }),
     );
-    expect(html).toContain("not payment truth");
+    expect(html).toContain("We haven&#x27;t confirmed this payment yet");
+    expect(html).toContain("Do not charge again");
+    expect(html).toContain('data-browser-callback-not-truth="true"');
     expect(html).toContain('data-payment-verified="false"');
   });
 });

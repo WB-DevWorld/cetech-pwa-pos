@@ -329,7 +329,7 @@ export function SellScreen({
         <div className="page-head">
           <div>
             <h1>Sell</h1>
-            <p>Scan a barcode or choose a product.</p>
+            <p>Scan or search for a product</p>
           </div>
         </div>
         <CatalogStatusBanners availability={displayed.catalogAvailability} draftStatus={displayed.draftStatus} />
@@ -351,14 +351,14 @@ export function SellScreen({
               <strong>Products</strong>
               <span className="muted"> · {displayed.search.results.length} shown</span>
             </div>
-            {loading ? <p className="muted">Loading catalog…</p> : null}
+            {loading ? <p className="muted">Loading products…</p> : null}
             {searchError ? (
               <div className="banner danger" role="alert">
-                Catalog search is unavailable. Try again.
+                Product search is unavailable. Try again.
               </div>
             ) : null}
             {catalogBlocked ? (
-              <p className="muted">Catalog is unavailable. Reconnect or try again.</p>
+              <p className="muted">{"Products couldn't be loaded. Check the connection and try again."}</p>
             ) : loading || searchError ? null : (
               <ProductResults items={displayed.search.results} onSelect={handleSelectProduct} />
             )}
@@ -390,7 +390,7 @@ export function SellScreen({
               <div className="muted">
                 {presentedQuote.quote?.status === "confirmed"
                   ? formatMoneyDisplay(presentedQuote.quote.quote.total)
-                  : "Price pending"}
+                  : "Checking price…"}
               </div>
             </div>
             <button type="button" className="btn primary" onClick={() => setState((current) => (applyMobileCartOpen(current, true)))}>

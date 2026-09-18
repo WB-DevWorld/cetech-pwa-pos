@@ -71,7 +71,7 @@ function viewFromShift(shift: Shift | null, extras: Partial<ShiftWorkspaceView> 
     message: extras.message ?? (status === "requires_attention"
       ? "This shift needs manager review. It is not closed."
       : status === "closed"
-        ? "The server closed this shift."
+        ? "Shift closed successfully."
         : "Shift is open."),
     inputError: extras.inputError,
     closeSucceeded: status === "closed",
@@ -177,7 +177,7 @@ export function createRegisterController(ports: RegisterWorkspacePorts) {
         status: "opening",
         inputError: undefined,
         closeSucceeded: false,
-        message: "Opening the register.",
+        message: "Starting your shift.",
       });
       try {
         const outcome = await settle(() =>
@@ -233,7 +233,7 @@ export function createRegisterController(ports: RegisterWorkspacePorts) {
         variance: undefined,
         closeSucceeded: false,
         countedCash: { minor: parsed.minor, currency: ports.currency },
-        message: "Submitting counted cash. Expected cash stays server-owned.",
+        message: "Submitting counted cash.",
       });
       try {
         const outcome = await settle(() =>
@@ -256,7 +256,7 @@ export function createRegisterController(ports: RegisterWorkspacePorts) {
             viewFromShift(shift, {
               message:
                 shift.status === "closed"
-                  ? "The server closed this shift."
+                  ? "Shift closed successfully."
                   : shift.status === "requires_attention"
                     ? "This close needs manager review. It is not closed."
                     : "Shift close is not finished.",

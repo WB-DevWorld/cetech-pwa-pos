@@ -262,7 +262,7 @@ async function completeSale(controller: ReturnType<typeof createCashCheckoutCont
 describe("FE-05 cash checkout and receipt UX", () => {
   test("1. Pay remains unavailable when checkout eligibility is false", () => {
     const pay = describePayButton(
-      { allowed: false, reason: "QUOTE_REQUIRED", message: "Checkout is unavailable until prices are confirmed." },
+      { allowed: false, reason: "QUOTE_REQUIRED", message: "Checkout is unavailable until the price is ready." },
       { checkoutReady: true },
     );
     expect(pay.disabled).toBe(true);
@@ -369,7 +369,7 @@ describe("FE-05 cash checkout and receipt UX", () => {
       await Promise.resolve();
     }
     expect(controller.getSession().stage).toBe("finalizing");
-    expect(controller.getSession().message).toMatch(/Finalizing the sale/i);
+    expect(controller.getSession().message).toMatch(/Completing the sale/i);
     expect(controller.getSession().stage).not.toBe("confirming_cash");
     finalizeGate.resolve(success(completedSale()));
     await pending;

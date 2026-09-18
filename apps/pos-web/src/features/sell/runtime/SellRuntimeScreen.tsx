@@ -268,7 +268,7 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
   if (!ready || !initialState) {
     return (
       <div className="sell-workspace">
-        <p className="muted">Loading catalog…</p>
+        <p className="muted">Loading products…</p>
       </div>
     );
   }

@@ -10,4 +10,37 @@
 .workspace-badge.danger { background: var(--color-danger-soft); color: var(--color-danger); }
 .workspace-badge.info { background: var(--color-info-soft); color: var(--color-info); }
 
+.technical-details {
+  margin-top: 10px;
+  font-size: var(--font-sm);
+  color: var(--color-text-muted);
+}
+
+.technical-details summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.technical-details dl {
+  margin: 8px 0 0;
+  display: grid;
+  gap: 4px;
+}
+
+.technical-details dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.technical-details dt {
+  font-weight: 600;
+}
+
+.technical-details dd {
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
 @keyframes workspace-spin { to { transform: rotate(360deg); } }

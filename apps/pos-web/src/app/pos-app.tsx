@@ -348,7 +348,7 @@ export function PosRuntime({
     >
       {authority.errorMessage ? (
         <p className="banner danger" role="status" data-register-authority-degraded="">
-          {authority.errorMessage} Last known register and shift stay visible until an authoritative result replaces them.
+          {authority.errorMessage} Last known register and shift stay visible until we get an updated result.
         </p>
       ) : null}
       {route === "sell" ? (
@@ -356,13 +356,13 @@ export function PosRuntime({
           <>
             {projectionAvailability === "unavailable" ? (
               <p className="muted" role="status">
-                Catalog unavailable. Synchronization required.
+                {"Products couldn't be loaded. Check the connection and try again."}
               </p>
             ) : null}
             <SellRuntimeScreen {...ports} shiftOpen={authority.shiftOpen} online={readOnline} catalogAvailability={ports.catalogAvailability} />
           </>
         ) : (
-          <p className="muted">Loading catalog…</p>
+          <p className="muted">Loading products…</p>
         )
       ) : route === "returns" ? (
         <ReturnsRuntimeScreen returns={returns} lookup={lookup} />

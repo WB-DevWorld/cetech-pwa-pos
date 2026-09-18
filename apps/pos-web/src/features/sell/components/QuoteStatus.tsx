@@ -1,11 +1,17 @@
 import { describeQuoteDisplay, type QuoteDisplayState } from "../state/quotePresentation";
+import { TechnicalDetails } from "../../../ui/cashier-language";
 
-export function QuoteStatus({ quote }: { quote: QuoteDisplayState }) {
-  const view = describeQuoteDisplay(quote);
+export function QuoteStatus({
+  quote,
+  cartLineNames,
+}: {
+  quote: QuoteDisplayState;
+  cartLineNames?: readonly string[];
+}) {
+  const view = describeQuoteDisplay(quote, { cartLineNames });
   return (
-    <div className={`quote-status ${view.tone}`} data-quote-status={quote.status} data-quote-authority="supplied">
+    <div className={`quote-status ${view.tone}`} data-quote-status={quote.status} data-quote-authority="supplied" role="status" aria-live="polite">
       <div>{view.message}</div>
-      {view.code ? <div className="quote-status-code">{view.code}</div> : null}
       {view.comparison ? (
         <dl className="quote-changed">
           <div>
@@ -21,12 +27,20 @@ export function QuoteStatus({ quote }: { quote: QuoteDisplayState }) {
       {view.amounts ? (
         <dl className="quote-amounts">
           {view.amounts.map((row) => (
-            <div key={row.label}>
+            <div key={row.label} className={row.emphasize ? "quote-amount-total" : undefined}>
               <dt>{row.label}</dt>
               <dd>{row.value}</dd>
             </div>
           ))}
         </dl>
+      ) : null}
+      {view.code || view.technicalMessage ? (
+        <TechnicalDetails
+          rows={[
+            ...(view.code ? [{ label: "Error code", value: view.code }] : []),
+            ...(view.technicalMessage ? [{ label: "Technical message", value: view.technicalMessage }] : []),
+          ]}
+        />
       ) : null}
     </div>
   );

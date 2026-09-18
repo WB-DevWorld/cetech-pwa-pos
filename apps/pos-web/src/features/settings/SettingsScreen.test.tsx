@@ -21,14 +21,14 @@ describe("SettingsScreen", () => {
     expect(html).toContain("Main Counter");
     expect(html).toContain("Keyboard scanner");
     expect(html).toContain("Browser print");
-    expect(html).toContain("Diagnostics");
-    expect(html).toContain("Open Store Health");
+    expect(html).toContain("Technical details");
+    expect(html).toContain("View system status");
     expect(html).toContain("build-r8");
   });
 
   test.each([
     ["offline", "Device settings remain readable."],
-    ["degraded", "Some diagnostics are degraded."],
+    ["degraded", "Some system information is temporarily unavailable."],
     ["error", "Settings could not be fully loaded."],
     ["loading", "Loading settings…"],
     ["empty", "Settings are not available."],

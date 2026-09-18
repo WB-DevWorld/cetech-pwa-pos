@@ -2,18 +2,27 @@
 
 import { useState, type KeyboardEvent } from "react";
 import { commitQuantityDraft, holdQuantityDraft, restoreQuantityDraft } from "../state/quantityDraft";
-import { describePayButton, type CheckoutEligibilityView, type QuoteDisplayState } from "../state/quotePresentation";
+import { skuLabel } from "../../../ui/cashier-language";
+import {
+  describePayButton,
+  formatMoneyDisplay,
+  type CheckoutEligibilityView,
+  type QuoteDisplayState,
+  type QuotePresentationLine,
+} from "../state/quotePresentation";
 import type { CartLineView, CustomerSearchResultView } from "../state/sellView";
 import { QuoteStatus } from "./QuoteStatus";
 
 export function CartLineRow({
   line,
+  quotedLine,
   onIncrement,
   onDecrement,
   onQuantityChange,
   onRemove,
 }: {
   line: CartLineView;
+  quotedLine?: QuotePresentationLine;
   onIncrement: (lineId: string) => void;
   onDecrement: (lineId: string) => void;
   onQuantityChange: (lineId: string, quantity: string) => void;
@@ -61,9 +70,10 @@ export function CartLineRow({
         <div>
           <div className="cart-line-name">{line.name}</div>
           {line.variationLabel ? <div className="muted">{line.variationLabel}</div> : null}
-          {line.sku ? <div className="muted">{line.sku}</div> : null}
+          {skuLabel(line.sku) ? <div className="muted">{skuLabel(line.sku)}</div> : null}
           {line.scannedBarcode ? <div className="muted">Barcode {line.scannedBarcode}</div> : null}
         </div>
+        {quotedLine ? <div className="cart-line-price">{formatMoneyDisplay(quotedLine.total)}</div> : null}
       </div>
       <div className="qty-row">
         <div className="qty-control">
@@ -156,14 +166,16 @@ export function CartPanel({
   newSaleDisabled?: boolean;
   onPay?: () => void;
 }) {
-  const pay = describePayButton(eligibility, { checkoutReady, inFlight: checkoutInFlight });
+  const confirmedTotal = quote?.status === "confirmed" ? quote.quote.total : undefined;
+  const quotedLines = quote?.status === "confirmed" ? quote.quote.lines : undefined;
+  const cartLineNames = lines.map((line) => line.name);
+  const pay = describePayButton(eligibility, { checkoutReady, inFlight: checkoutInFlight, confirmedTotal });
   return (
-    <aside className={mobileOpen ? "cart-panel mobile-open" : "cart-panel"} aria-label="Current cart">
+    <aside className={mobileOpen ? "cart-panel mobile-open" : "cart-panel"} aria-label="Current sale" data-cart-revision={revision}>
       <div className="cart-head">
         <div className="cart-head-row">
           <div>
-            <strong>Cart</strong>
-            <span className="muted"> · Rev {revision}</span>
+            <strong>Sale</strong>
           </div>
           <div className="cart-head-actions">
             <button type="button" className="btn cart-back" onClick={onCloseMobile}>
@@ -183,12 +195,12 @@ export function CartPanel({
           <span aria-hidden="true">›</span>
         </button>
         {quote ? (
-          <QuoteStatus quote={quote} />
+          <QuoteStatus quote={quote} cartLineNames={cartLineNames} />
         ) : (
           <div className="quote-status">
             {lines.length === 0
-              ? "Prices will be confirmed after an item is added."
-              : "Price confirmation is required before payment."}
+              ? "Prices will be ready after an item is added."
+              : "Price needs to be checked again."}
           </div>
         )}
       </div>
@@ -196,13 +208,14 @@ export function CartPanel({
         {lines.length === 0 ? (
           <div className="empty-cart">
             <strong>Your cart is empty</strong>
-            <div>Scan a barcode or choose a product to start selling.</div>
+            <div>Add a product to start this sale.</div>
           </div>
         ) : (
           lines.map((line) => (
             <CartLineRow
               key={line.lineId}
               line={line}
+              quotedLine={quotedLines?.find((quoted) => quoted.lineId === line.lineId)}
               onIncrement={onIncrement}
               onDecrement={onDecrement}
               onQuantityChange={onQuantityChange}
@@ -221,7 +234,7 @@ export function CartPanel({
             onPay?.();
           }}
         >
-          Pay
+          {pay.label}
         </button>
         {eligibility ? (
           <div
@@ -232,7 +245,7 @@ export function CartPanel({
             {pay.reason}
           </div>
         ) : (
-          <div className="muted pay-reason">Checkout is unavailable until prices are confirmed.</div>
+          <div className="muted pay-reason">Checkout is unavailable until the price is ready.</div>
         )}
       </div>
     </aside>

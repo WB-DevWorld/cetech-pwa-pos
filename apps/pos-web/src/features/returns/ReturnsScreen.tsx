@@ -45,7 +45,7 @@ export function ReturnsScreen({
       const result = await lookup.search(query);
       setMatches(result);
       if (result.length === 0) {
-        setLookupError("No historical sale matched that lookup.");
+        setLookupError("No original sale matched that search.");
       }
     } catch (error) {
       setLookupError(error instanceof Error ? error.message : "Sale lookup failed.");
@@ -59,13 +59,13 @@ export function ReturnsScreen({
       <div className="page-head">
         <div>
           <h1>Returns</h1>
-          <p>Historical refund amounts come from the return preview. Refund is not restock.</p>
+          <p>Find the original sale, choose the items being returned, and review the refund before completing.</p>
         </div>
       </div>
       <section className="card card-pad">
         <form className="stack" onSubmit={handleSearch}>
           <div className="field">
-            <label htmlFor="return-sale-query">Historical sale</label>
+            <label htmlFor="return-sale-query">Original sale</label>
             <input
               id="return-sale-query"
               className="input"
@@ -79,7 +79,7 @@ export function ReturnsScreen({
           </button>
           {!lookup ? (
             <div className="banner warning" role="status">
-              Historical sale lookup is not mounted. WS3 must inject a sale lookup seam.
+              Original sale lookup is not available yet. You can still review a return after a sale is selected.
             </div>
           ) : null}
           {locked ? (

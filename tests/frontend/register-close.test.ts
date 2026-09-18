@@ -63,14 +63,14 @@ describe("FE-06 register close", () => {
         inFlight: false,
       }),
     );
-    expect(html).toContain("Open register");
+    expect(html).toContain("Start shift");
     expect(html).toContain("opening-float");
-    expect(html).toContain("The server owns expected cash");
+    expect(html).toContain("Enter the cash currently in the drawer");
     expect(html).toContain('data-shift-status="no_open_shift"');
     const original = renderToStaticMarkup(
       createElement(OpenRegisterForm, { registers, online: true, onSubmit: () => undefined }),
     );
-    expect(original).toContain("Open register");
+    expect(original).toContain("Start shift");
     expect(original).toContain("opening-float");
   });
 
@@ -78,7 +78,7 @@ describe("FE-06 register close", () => {
     const html = renderToStaticMarkup(createElement(CloseShiftForm, { onSubmit: () => undefined }));
     expect(html).toContain("closing-count");
     expect(html).toContain("Cash counted");
-    expect(html).toContain("Blind cash count");
+    expect(html).toContain("Count drawer cash");
     expect(html).not.toContain('id="expected');
     expect(html).not.toContain("name=\"expectedCash\"");
     expect(html).not.toContain("<label for=\"expected");

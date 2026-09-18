@@ -1,3 +1,4 @@
+import { catalogRebuildCopy } from "../ui/cashier-language";
 import type { CatalogProjectionAvailability } from "../local/catalog-sync";
 
 export type CatalogRebuildView =
@@ -7,14 +8,9 @@ export type CatalogRebuildView =
   | { readonly phase: "failure"; readonly message: string };
 
 export function catalogRebuildStatusText(view: CatalogRebuildView): string | undefined {
-  if (view.phase === "rebuilding") {
-    return "Rebuilding catalog…";
-  }
-  if (view.phase === "success") {
-    return `Catalog refreshed. ${view.itemCount} items. Availability ${view.availability}.`;
-  }
-  if (view.phase === "failure") {
-    return `Catalog rebuild failed. ${view.message} Retry Rebuild Catalog without clearing carts or journal.`;
-  }
-  return undefined;
+  return catalogRebuildCopy({
+    phase: view.phase,
+    itemCount: view.phase === "success" ? view.itemCount : undefined,
+    message: view.phase === "failure" ? view.message : undefined,
+  });
 }

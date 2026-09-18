@@ -35,7 +35,7 @@ export const PRIMARY_NAV_ITEMS: readonly NavItem[] = [
   { route: "customers", label: "Customers", icon: "♙" },
   { route: "returns", label: "Returns", icon: "↩" },
   { route: "register", label: "Register", icon: "▣" },
-  { route: "health", label: "Health", icon: "●" },
+  { route: "health", label: "System status", icon: "●" },
   { route: "attention", label: "Attention", icon: "!" },
 ];
 

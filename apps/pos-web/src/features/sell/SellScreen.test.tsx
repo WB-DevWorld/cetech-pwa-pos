@@ -28,7 +28,7 @@ describe("SellScreen presentation", () => {
         createLineId: deps.createLineId,
       }),
     );
-    expect(html).toContain("Scan barcode or search products");
+    expect(html).toContain("Scan or search for a product");
     expect(html).toContain("Walk-in");
     expect(html).toContain("Your cart is empty");
     expect(html).toContain("Pay");
@@ -87,8 +87,8 @@ describe("SellScreen presentation", () => {
       }),
     );
     expect(html).toContain("Ada Boateng");
-    expect(html).toContain("Catalog may be out of date.");
-    expect(html).toContain("Reconnect to refresh before checkout.");
+    expect(html).toContain("Products may be out of date.");
+    expect(html).toContain("Refresh products before checkout.");
     expect(html.toLowerCase()).not.toContain("adapter");
   });
 
@@ -143,7 +143,7 @@ describe("SellScreen presentation", () => {
         createLineId: deps.createLineId,
       }),
     );
-    expect(html).toContain("Catalog is unavailable. Reconnect or try again.");
+    expect(html).toContain("couldn&#x27;t be loaded");
     expect(html).toMatch(/<button class="btn" type="button" disabled="">Scan<\/button>/);
     expect(html).not.toContain("product-grid");
   });
@@ -169,6 +169,8 @@ describe("SellScreen presentation", () => {
       }),
     );
     expect(html).toContain('data-quote-status="failed"');
+    expect(html).toContain("couldn&#x27;t be checked");
+    expect(html).toContain("Technical details");
     expect(html).toContain("INTEGRATION_UNAVAILABLE");
     expect(html).toContain("Pricing unavailable — cart saved");
     expect(html).toContain('data-eligibility-reason="CONNECTION_REQUIRED"');
@@ -193,7 +195,7 @@ describe("SellScreen presentation", () => {
       }),
     );
     expect(html).toContain('data-quote-status="stale"');
-    expect(html).toContain("no longer current");
+    expect(html).toContain("Price needs to be checked again.");
     expect(html).not.toContain("GHS 25.00");
     expect(html).toContain('data-eligibility-reason="QUOTE_STALE"');
     expect(html).toMatch(/pay-btn[^>]*disabled/);

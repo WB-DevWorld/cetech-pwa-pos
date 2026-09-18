@@ -27,7 +27,7 @@ describe("CustomersScreen", () => {
 
   test.each([
     ["offline", "Walk-in sales remain the safe fallback."],
-    ["degraded", "Customer lookup is degraded."],
+    ["degraded", "Customer search is temporarily limited."],
     ["error", "Customers could not be loaded."],
     ["loading", "Loading customers…"],
   ] as const)("renders %s state", (state, copy) => {

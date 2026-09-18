@@ -11,7 +11,7 @@ test("/returns mounts the accepted Returns UI instead of the R4 placeholder", as
 test("/register mounts the accepted Register UI instead of the R4 placeholder", async ({ page }) => {
   await installAuthoritativeStaffSession(page, { shiftOpen: false });
   await page.goto("/register");
-  await expect(page.getByRole("button", { name: "Open register" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("button", { name: "Start shift" })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText("This workspace is not part of the R4 Sell runtime.")).toHaveCount(0);
   await expect(page.locator('input[name="expectedCash"]')).toHaveCount(0);
 });

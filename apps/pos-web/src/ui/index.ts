@@ -28,5 +28,13 @@ export {
   type UpdateReadyDialogProps,
   type UpdateSafetyView,
 } from "./operational";
+export {
+  TechnicalDetails,
+  catalogRebuildCopy,
+  describePaymentState,
+  describeQuoteFailure,
+  toCashierError,
+  type CashierErrorView,
+} from "./cashier-language";
 
 export const WORKSPACE_STYLESHEETS = ["@/ui/workspace.css"] as const;

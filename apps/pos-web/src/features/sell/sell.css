@@ -284,6 +284,22 @@
   font-variant-numeric: tabular-nums;
 }
 
+.quote-amount-total {
+  color: var(--color-text);
+  font-size: var(--font-md);
+}
+
+.quote-amount-total dt,
+.quote-amount-total dd {
+  font-weight: 800;
+}
+
+.cart-line-price {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .mobile-cart-bar {
   display: none;
 }

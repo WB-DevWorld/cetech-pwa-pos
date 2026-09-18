@@ -178,7 +178,7 @@ export function createReturnController(ports: ReturnControllerPorts) {
       commercialRefund: undefined,
       stockDisposition: undefined,
       complete: false,
-      message: "Return intent changed. Preview again before executing.",
+      message: "Return details changed. Review the return again before completing.",
     });
   }
 
@@ -194,8 +194,8 @@ export function createReturnController(ports: ReturnControllerPorts) {
       stage: stageFromResolution(resolution.status),
       complete,
       message: complete
-        ? resolution.message ?? "The server marked this return complete."
-        : resolution.message ?? "Independent return effects are still unresolved. This return is not complete.",
+        ? resolution.message ?? "Return completed successfully."
+        : resolution.message ?? "This return isn't finished yet. Some refund or stock updates are still pending.",
       providerRefund: mapEffect(resolution.providerRefund),
       cashRefund: mapEffect(resolution.cashRefund),
       commercialRefund: mapEffect(resolution.commercialRefund),
@@ -213,7 +213,7 @@ export function createReturnController(ports: ReturnControllerPorts) {
       ...session,
       stage: "resolving",
       complete: false,
-      message: "Return status is uncertain. Resolve the same return identity. Do not start another return.",
+      message: "Return status is uncertain. Check the same return. Do not start another return.",
     });
     const outcome = await settle(() => ports.returns.resolve(returnId));
     if (outcome.kind === "unknown") {
@@ -221,7 +221,7 @@ export function createReturnController(ports: ReturnControllerPorts) {
         ...session,
         stage: "resolving",
         complete: false,
-        message: `${outcome.message} Keep return ${returnId}. Do not start another return.`,
+        message: `${outcome.message} Keep this return. Do not start another return.`,
       });
       return;
     }
@@ -230,7 +230,7 @@ export function createReturnController(ports: ReturnControllerPorts) {
         ...session,
         stage: "resolving",
         complete: false,
-        message: `${outcome.value.error.message} Keep return ${returnId}. Do not start another return.`,
+        message: `${outcome.value.error.message} Keep this return. Do not start another return.`,
       });
       return;
     }
@@ -246,7 +246,7 @@ export function createReturnController(ports: ReturnControllerPorts) {
           returnId,
           stage: "requires_attention",
           complete: false,
-          message: `${outcome.value.error.message} Keep return ${returnId}. ${OUTSTANDING_RETURN_COPY}`,
+          message: `${outcome.value.error.message} Keep this return. ${OUTSTANDING_RETURN_COPY}`,
         });
         return;
       }
@@ -283,7 +283,7 @@ export function createReturnController(ports: ReturnControllerPorts) {
         stage: "selecting",
         saleId: sale.saleId,
         lines: draftsFromSale(sale),
-        message: `Sale ${sale.orderReference}. Select return quantities. Do not use catalog prices.`,
+        message: `Sale ${sale.orderReference}. Select return quantities.`,
       });
     },
     updateLine(
@@ -306,14 +306,14 @@ export function createReturnController(ports: ReturnControllerPorts) {
       if (binding.returnId !== session.returnId || binding.fingerprint !== session.fingerprint) {
         setSession({
           ...session,
-          message: "That approval does not match this return preview. Preview again.",
+          message: "That approval does not match this return. Review the return again.",
         });
         return;
       }
       setSession({
         ...session,
         approvalId: binding.approvalId,
-        message: "Manager approval is bound to this preview. Execute the same return identity.",
+        message: "Manager approval is attached to this return. Complete the same return.",
       });
     },
     async preview(): Promise<void> {
@@ -356,7 +356,7 @@ export function createReturnController(ports: ReturnControllerPorts) {
         stage: "previewing",
         inputError: undefined,
         approvalId: undefined,
-        message: "Loading the server return preview.",
+        message: "Loading the refund review.",
       });
       try {
         const outcome = await settle(() =>
@@ -396,8 +396,8 @@ export function createReturnController(ports: ReturnControllerPorts) {
           previewLines: mapPreviewLines(preview),
           complete: false,
           message: preview.approvalRequired
-            ? "This return needs a manager approval. Do not invent an approval id."
-            : "Review the server refund total and stock disposition.",
+            ? "Manager approval is required before you can continue."
+            : "Review the refund and stock action before completing.",
         });
       } finally {
         commandLock = false;
@@ -412,7 +412,7 @@ export function createReturnController(ports: ReturnControllerPorts) {
         setSession({
           ...session,
           stage: "approval_required",
-          message: "Manager approval is required. Do not invent an approval id.",
+          message: "Manager approval is required before you can continue.",
         });
         return;
       }
@@ -427,7 +427,7 @@ export function createReturnController(ports: ReturnControllerPorts) {
         ...session,
         stage: "executing",
         complete: false,
-        message: "Executing the accepted return identity. Do not start another return.",
+        message: "Completing this return. Do not start another return.",
       });
       try {
         const outcome = await settle(() => ports.returns.execute(request, context));
