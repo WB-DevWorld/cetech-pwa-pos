@@ -5,7 +5,7 @@ Updated 2026-09-18. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical sche
 ## Current authority
 
 - accepted `main`: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` — squash-merged `[R8] Safe returns and payment/register states (#69)`.
-- STG-01 candidate / live Preview baseline: `4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897` on `batch/stg-01-staging-runtime-acceptance`.
+- STG-01 candidate observed on `origin/batch/stg-01-staging-runtime-acceptance` at STG-06 freshness cutoff: `a02cd21875d0717adb6694d293b41575302b2415` (forward from previously recorded `4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897` by STG-02 route persistence + docs correction; this contributor branch already starts at that SHA).
 - STG-02 route persistence docs-corrected head: `a02cd21875d0717adb6694d293b41575302b2415` on `ws3/stg-02-route-session-persistence`. This STG-06 contributor branch starts exactly there.
 - Issue #4 remains OPEN; `pricingParityVerified=false`. Production promotion, live Paystack, real refund/restock and VitePOS deactivation are not authorized.
 - R9 PR #63 remains draft / must not merge while STG-01 is open.

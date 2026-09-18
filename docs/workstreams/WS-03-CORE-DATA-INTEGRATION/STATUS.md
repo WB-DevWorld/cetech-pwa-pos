@@ -6,11 +6,11 @@ Snapshot 2026-09-18. Protected `main` `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
 
 Mode: REMEDIATE. Owner `@wbdevworld` / WS3.
 Branch: `ws3/stg-06-quote-identity-register-authority` from exact start `a02cd21875d0717adb6694d293b41575302b2415`.
-Scope: persist rebuildable `pos_catalog_items` during catalog sync; translate POS quote IDs to Woo source IDs server-side; preserve last-known register/shift on transient refresh failure; related quote URL, shift-open idempotency, register error, rebuild-catalog observability. Not imported into `batch/stg-01-staging-runtime-acceptance` from this status file. Do not merge.
+Scope: persist rebuildable `pos_catalog_items` during catalog sync; translate POS quote IDs to Woo source IDs server-side; preserve last-known register/shift on transient refresh failure; related quote URL, shift-open idempotency, register error, rebuild-catalog observability. Implementation SHA `5119054a2059ff5903a50d8b96644b63c38fdd48`. Freshness FRESH_2; not imported into `batch/stg-01-staging-runtime-acceptance` from this status file. Do not merge.
 
 ## STG-01 integration (active, not this branch)
 
-Mode: INTEGRATE. Owner `@wbdevworld` / WS3. Integration base `acd4a2f009c58f734186cf9e44f278da93499a4b`. Combined candidate SHA `4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897`.
+Mode: INTEGRATE. Owner `@wbdevworld` / WS3. Integration base `acd4a2f009c58f734186cf9e44f278da93499a4b`. Combined candidate SHA observed at STG-06 freshness cutoff: `a02cd21875d0717adb6694d293b41575302b2415` (previously recorded `4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897`).
 
 
 Imported contributor sources (provenance recorded in CURRENT-WORK):
