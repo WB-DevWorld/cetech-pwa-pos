@@ -274,7 +274,7 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
   }
 
   return (
-    <div data-sell-restore-count={restoreCount}>
+    <div className="sell-runtime" data-sell-restore-count={restoreCount}>
       <SellScreen
         catalog={browseCatalog}
         customers={customers}

@@ -2,20 +2,19 @@
 
 import type { FormEvent } from "react";
 import { skuLabel } from "../../../ui/cashier-language";
+import { formatMoneyDisplay } from "../state/quotePresentation";
+import { productBadges, productStockCopy, stockStatusClass } from "../state/productPresentation";
 import type { SellProductView } from "../state/sellView";
+import { ProductBadgeList } from "./ProductBadge";
 
 export function ProductSearch({
   query,
   onQueryChange,
   onSearchSubmit,
-  onScan,
-  scanDisabled = false,
 }: {
   query: string;
   onQueryChange: (query: string) => void;
   onSearchSubmit: (query: string) => void;
-  onScan: (query: string) => void;
-  scanDisabled?: boolean;
 }) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -36,14 +35,11 @@ export function ProductSearch({
           id="product-search"
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
-          placeholder="Barcode, SKU or product name"
+          placeholder="Scan barcode or search products, SKU…"
           autoComplete="off"
           inputMode="text"
         />
       </div>
-      <button className="btn" type="button" onClick={() => onScan(query)} disabled={scanDisabled}>
-        Scan
-      </button>
       <button
         className="btn desktop-only"
         type="button"
@@ -64,18 +60,9 @@ export function ProductCard({
   onSelect: (item: SellProductView) => void;
 }) {
   const out = item.stockStatus === "out_of_stock";
-  const stockText =
-    item.stockStatus === "out_of_stock"
-      ? "Out of stock"
-      : item.stockStatus === "low_stock"
-        ? "Low stock"
-        : item.stockStatus === "backorder"
-          ? "Backorder"
-          : item.stockStatus === "in_stock"
-            ? "In stock"
-            : "Stock unknown";
-  const stockClass =
-    out ? "stock-line out" : item.stockStatus === "low_stock" || item.stockStatus === "backorder" ? `stock-line ${item.stockStatus === "backorder" ? "backorder" : "low"}` : "stock-line";
+  const stock = productStockCopy(item);
+  const badges = productBadges(item);
+  const price = item.displayPrice ? formatMoneyDisplay(item.displayPrice) : null;
   return (
     <button
       type="button"
@@ -83,12 +70,13 @@ export function ProductCard({
       onClick={() => onSelect(item)}
       disabled={out}
       aria-label={item.name}
+      title={item.name}
     >
+      <ProductBadgeList badges={badges} />
       <div className="product-name">{item.name}</div>
-      {skuLabel(item.sku) ? <div className="muted">{skuLabel(item.sku)}</div> : null}
-      <div className={stockClass}>
-        {stockText}
-      </div>
+      {skuLabel(item.sku) ? <div className="product-sku muted">{skuLabel(item.sku)}</div> : null}
+      <div className={stockStatusClass(item.stockStatus)}>{stock.text}</div>
+      {price ? <div className="product-price">{price}</div> : <div className="product-price product-price-empty" />}
     </button>
   );
 }

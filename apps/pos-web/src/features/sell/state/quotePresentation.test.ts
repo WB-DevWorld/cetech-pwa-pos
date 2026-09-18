@@ -6,6 +6,7 @@ import {
   formatMoneyDisplay,
   INTEGRATION_UNAVAILABLE,
   isCheckoutEligibilityReason,
+  quoteSnapshotAmountRows,
   type QuoteDisplayState,
 } from "./quotePresentation";
 
@@ -20,6 +21,7 @@ describe("FE-04 quote presentation", () => {
     expect(formatMoneyDisplay({ minor: 1250, currency: "GHS" })).toBe("GHS 12.50");
     expect(formatMoneyDisplay({ minor: 0, currency: "GHS" })).toBe("GHS 0.00");
     expect(formatMoneyDisplay({ minor: 100, currency: "GHS" })).toBe("GHS 1.00");
+    expect(formatMoneyDisplay({ minor: 895000, currency: "GHS" })).toBe("GHS 8,950.00");
   });
 
   test("missing copy does not fabricate a price", () => {
@@ -41,11 +43,24 @@ describe("FE-04 quote presentation", () => {
     expect(view.amounts).toBeUndefined();
   });
 
-  test("confirmed displays supplied snapshot values only", () => {
-    const view = describeQuoteDisplay({ status: "confirmed", revision: 2, quote: snapshot(4500) });
-    expect(view.message).toBe("Price ready");
-    expect(view.amounts?.map((row) => row.label)).toEqual(["Subtotal", "Tax", "Total"]);
-    expect(view.amounts?.map((row) => row.value)).toEqual(["GHS 43.00", "GHS 2.00", "GHS 45.00"]);
+  test("confirmed displays cashier confirmation without mixing in totals", () => {
+    const quote = { status: "confirmed" as const, revision: 2, quote: snapshot(4500) };
+    const view = describeQuoteDisplay(quote);
+    expect(view.message).toBe("Price confirmed");
+    expect(view.amounts).toBeUndefined();
+    expect(quoteSnapshotAmountRows(quote.quote).map((row) => row.label)).toEqual(["Subtotal", "Tax", "Total"]);
+    expect(quoteSnapshotAmountRows(quote.quote).map((row) => row.value)).toEqual(["GHS 43.00", "GHS 2.00", "GHS 45.00"]);
+  });
+
+  test("zero discount remains visible when the quote supplies it", () => {
+    const rows = quoteSnapshotAmountRows({
+      total: { minor: 3000, currency: "GHS" },
+      subtotal: { minor: 3000, currency: "GHS" },
+      discount: { minor: 0, currency: "GHS" },
+      tax: { minor: 0, currency: "GHS" },
+    });
+    expect(rows.map((row) => row.label)).toEqual(["Subtotal", "Discount", "Tax", "Total"]);
+    expect(rows.find((row) => row.label === "Discount")?.value).toBe("GHS 0.00");
   });
 
   test("changed discloses previous and current snapshots without replacing one", () => {

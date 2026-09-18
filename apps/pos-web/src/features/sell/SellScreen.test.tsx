@@ -8,6 +8,7 @@ import { SELL_TEST_CATALOG, SELL_TEST_CUSTOMERS } from "./state/sellTestCatalog"
 import {
   applyBarcodeScan,
   applyCatalogAvailability,
+  applyDraftStatus,
   applySelectCustomer,
   createSellWorkspace,
 } from "./state/sellWorkspace";
@@ -28,17 +29,23 @@ describe("SellScreen presentation", () => {
         createLineId: deps.createLineId,
       }),
     );
-    expect(html).toContain("Scan or search for a product");
+    expect(html).toContain("Scan barcode or search products, SKU");
     expect(html).toContain("Walk-in");
     expect(html).toContain("Your cart is empty");
     expect(html).toContain("Pay");
     expect(html).toContain("disabled");
     expect(html).toContain('id="product-search"');
-    expect(html).toContain("New sale");
+    expect(html).toContain('class="sr-only"');
+    expect(html).toContain(">Sell<");
+    expect(html).not.toContain("page-head");
+    expect(html).toContain("Clear");
+    expect(html).toContain("Cart");
+    expect(html).toContain("Rev 0");
+    expect(html).not.toContain(">Scan<");
+    expect(html).not.toContain("New sale");
     expect(html).not.toContain("demo-barcodes");
     expect(html).not.toContain("Demo controls");
     expect(html).not.toContain("pricingKey");
-    expect(html).not.toContain("GHS");
     expect(html).not.toContain("later task");
     expect(html).not.toContain("preparation pass");
     expect(html.toLowerCase()).not.toContain("adapter");
@@ -133,7 +140,81 @@ describe("SellScreen presentation", () => {
     expect(html).not.toContain("disabled");
   });
 
-  test("unavailable catalog disables Scan and hides the product grid", () => {
+  test("product cards show advisory display price, SKU, and structured badges only", () => {
+    const priced = SELL_TEST_CATALOG.find((product) => product.id === "p-hardener")!;
+    const html = renderToStaticMarkup(createElement(ProductCard, { item: priced, onSelect: () => undefined }));
+    expect(html).toContain("Epoxy Hardener 1L");
+    expect(html).toContain("SKU HDN-1L");
+    expect(html).toContain("In stock");
+    expect(html).toContain("GHS 155.00");
+    expect(html).toContain("product-price");
+    expect(html).not.toContain("Wholesale");
+    expect(html).not.toContain("Quantity price");
+    expect(html).not.toContain("High stock");
+  });
+
+  test("omits price when catalog displayPrice is absent and keeps the full name when clamped", () => {
+    const longName =
+      "Extra Long POS Product Name That Must Remain Intact For Accessibility Even When The Card Clamps Two Lines";
+    const html = renderToStaticMarkup(
+      createElement(ProductCard, {
+        item: {
+          id: "p-long",
+          name: longName,
+          sku: "LONG-1",
+          barcodes: ["111"],
+          kind: "simple",
+          stockStatus: "in_stock",
+        },
+        onSelect: () => undefined,
+      }),
+    );
+    expect(html).toContain(longName);
+    expect(html).toContain("product-name");
+    expect(html).not.toContain("GHS");
+    expect(html).not.toContain("product-badge");
+  });
+
+  test("variable products get a badge and out-of-stock cards stay readable and non-addable", () => {
+    const variable = SELL_TEST_CATALOG.find((product) => product.kind === "variable")!;
+    const variableHtml = renderToStaticMarkup(createElement(ProductCard, { item: variable, onSelect: () => undefined }));
+    expect(variableHtml).toContain("Variable product");
+    const out = renderToStaticMarkup(
+      createElement(ProductCard, {
+        item: {
+          id: "p-oos",
+          name: "3-Pole Contactor",
+          sku: "CON-32A",
+          barcodes: ["222"],
+          kind: "simple",
+          stockStatus: "out_of_stock",
+          displayPrice: { minor: 23500, currency: "GHS" },
+        },
+        onSelect: () => undefined,
+      }),
+    );
+    expect(out).toContain("Out of stock");
+    expect(out).toContain("disabled");
+    expect(out).toContain("GHS 235.00");
+    expect(out).toContain("3-Pole Contactor");
+  });
+
+  test("healthy local draft is an inline status, not a full-width banner", () => {
+    let state = createSellWorkspace(deps, SELL_TEST_CATALOG);
+    state = applyDraftStatus(state, { retainedLocally: true });
+    const html = renderToStaticMarkup(
+      createElement(SellScreen, {
+        catalog: SELL_TEST_CATALOG,
+        initialState: state,
+        draftStatus: { retainedLocally: true },
+      }),
+    );
+    expect(html).toContain("Saved on this device");
+    expect(html).not.toContain("This sale is saved on this device.");
+    expect(html).toContain("products-meta-draft");
+  });
+
+  test("unavailable catalog hides the product grid", () => {
     const html = renderToStaticMarkup(
       createElement(SellScreen, {
         catalog: SELL_TEST_CATALOG,
@@ -144,7 +225,7 @@ describe("SellScreen presentation", () => {
       }),
     );
     expect(html).toContain("couldn&#x27;t be loaded");
-    expect(html).toMatch(/<button class="btn" type="button" disabled="">Scan<\/button>/);
+    expect(html).not.toContain(">Scan<");
     expect(html).not.toContain("product-grid");
   });
 

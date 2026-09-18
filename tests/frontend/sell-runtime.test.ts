@@ -176,4 +176,26 @@ describe("FE-03 CatalogPort barcode and draft runtime", () => {
     expect(next?.lines).toHaveLength(0);
     expect(next?.customer).toEqual({ kind: "walkin" });
   });
+
+  test("catalogItemToSellView passes advisory displayPrice through unchanged", () => {
+    const view = catalogItemToSellView({
+      id: "p-display",
+      name: "Display priced item",
+      barcodes: ["001"],
+      kind: "simple",
+      stockStatus: "in_stock",
+      projectionUpdatedAt: "2026-09-13T20:00:00.000Z",
+      displayPrice: { minor: 15500, currency: "GHS" },
+    });
+    expect(view.displayPrice).toEqual({ minor: 15500, currency: "GHS" });
+    const omitted = catalogItemToSellView({
+      id: "p-none",
+      name: "No display price",
+      barcodes: [],
+      kind: "simple",
+      stockStatus: "in_stock",
+      projectionUpdatedAt: "2026-09-13T20:00:00.000Z",
+    });
+    expect(omitted.displayPrice).toBeUndefined();
+  });
 });

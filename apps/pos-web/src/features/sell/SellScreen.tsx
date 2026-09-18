@@ -7,6 +7,7 @@ import { CatalogStatusBanners } from "./components/CatalogStatus";
 import { CheckoutDialog } from "./components/CheckoutDialog";
 import { CustomerPicker } from "./components/CustomerPicker";
 import { ProductResults, ProductSearch } from "./components/ProductSearch";
+import { SellModal } from "./components/SellModal";
 import { VariationDialog } from "./components/VariationDialog";
 import { useBarcodeScanner } from "./hooks/useBarcodeScanner";
 import { canBeginNewSale, checkoutDialogOpen, type CheckoutSessionView } from "./state/checkoutSession";
@@ -153,6 +154,7 @@ export function SellScreen({
   );
   const [state, setState] = useState(() => initialState ?? createSellWorkspace(deps, catalog));
   const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const searchSeq = useRef(0);
   const barcodeSeq = useRef(0);
 
@@ -169,6 +171,7 @@ export function SellScreen({
 
   const modalOpen =
     customerPickerOpen ||
+    clearConfirmOpen ||
     displayed.notice?.kind === "chooser" ||
     displayed.notice?.kind === "collision" ||
     Boolean(checkoutSession && checkoutDialogOpen(checkoutSession.stage));
@@ -197,6 +200,7 @@ export function SellScreen({
       }
       if (event.key === "Escape") {
         setCustomerPickerOpen(false);
+        setClearConfirmOpen(false);
         setState((current) => (dismissNotice(current)));
       }
     }
@@ -253,12 +257,6 @@ export function SellScreen({
     });
   }
 
-  function handleScan(query: string) {
-    if (!catalogMutationAllowed) return;
-    if (query.trim().length === 0) return;
-    scanBarcode(query.trim());
-  }
-
   function handleSelectProduct(item: SellProductView) {
     if (!catalogMutationAllowed) return;
     onSelectProduct?.(item.id);
@@ -306,7 +304,19 @@ export function SellScreen({
     onCheckoutNewSale?.();
     onNewSale?.();
     setCustomerPickerOpen(false);
+    setClearConfirmOpen(false);
     setState((current) => (applyNewSale(current, catalog, deps)));
+  }
+
+  function handleClearRequest() {
+    if (checkoutSession && !canBeginNewSale(checkoutSession)) {
+      return;
+    }
+    if (displayed.lines.length === 0) {
+      handleNewSale();
+      return;
+    }
+    setClearConfirmOpen(true);
   }
 
   const itemCount = displayed.lines.length;
@@ -323,16 +333,13 @@ export function SellScreen({
     [quote, eligibility, displayed.cartRevision],
   );
 
+  const newSaleBlocked = Boolean(checkoutSession && !canBeginNewSale(checkoutSession));
+
   return (
     <div className="sell-workspace" id="sell-workspace">
-      <div inert={modalOpen ? true : undefined}>
-        <div className="page-head">
-          <div>
-            <h1>Sell</h1>
-            <p>Scan or search for a product</p>
-          </div>
-        </div>
-        <CatalogStatusBanners availability={displayed.catalogAvailability} draftStatus={displayed.draftStatus} />
+      <h1 className="sr-only">Sell</h1>
+      <div className="sell-workspace-body" inert={modalOpen ? true : undefined}>
+        <CatalogStatusBanners availability={displayed.catalogAvailability} />
         {displayed.notice?.kind === "unknown" ? (
           <div className="banner danger" role="alert">
             Product not found for barcode {displayed.notice.barcode}.
@@ -344,12 +351,17 @@ export function SellScreen({
               query={displayed.search.query}
               onQueryChange={handleQueryChange}
               onSearchSubmit={handleSearchSubmit}
-              onScan={handleScan}
-              scanDisabled={!catalogMutationAllowed}
             />
             <div className="products-meta">
-              <strong>Products</strong>
-              <span className="muted"> · {displayed.search.results.length} shown</span>
+              <div>
+                <strong>Products</strong>
+                <span className="muted"> · {displayed.search.results.length} shown</span>
+              </div>
+              {displayed.draftStatus.retainedLocally ? (
+                <span className="products-meta-draft" role="status">
+                  Saved on this device
+                </span>
+              ) : null}
             </div>
             {loading ? <p className="muted">Loading products…</p> : null}
             {searchError ? (
@@ -369,7 +381,7 @@ export function SellScreen({
             customer={displayed.selectedCustomer}
             mobileOpen={displayed.mobileCartOpen}
             onOpenCustomers={() => setCustomerPickerOpen(true)}
-            onNewSale={handleNewSale}
+            onClear={handleClearRequest}
             onIncrement={(lineId) => setState((current) => (applyQuantityIncrement(current, lineId)))}
             onDecrement={(lineId) => setState((current) => (applyQuantityDecrement(current, lineId)))}
             onQuantityChange={handleQuantityChange}
@@ -379,7 +391,7 @@ export function SellScreen({
             eligibility={presentedQuote.eligibility}
             checkoutReady={checkoutReady}
             checkoutInFlight={checkoutInFlight}
-            newSaleDisabled={Boolean(checkoutSession && !canBeginNewSale(checkoutSession))}
+            clearDisabled={newSaleBlocked}
             onPay={onPay}
           />
           <div className="mobile-cart-bar">
@@ -399,6 +411,20 @@ export function SellScreen({
           </div>
         </div>
       </div>
+      {clearConfirmOpen ? (
+        <SellModal titleId="clear-sale-title" onClose={() => setClearConfirmOpen(false)}>
+          <h2 id="clear-sale-title">Clear this sale?</h2>
+          <p className="muted">Items in the cart will be removed. Your shift stays open.</p>
+          <div className="dialog-actions">
+            <button type="button" className="btn" onClick={() => setClearConfirmOpen(false)}>
+              Cancel
+            </button>
+            <button type="button" className="btn" onClick={handleNewSale}>
+              Clear sale
+            </button>
+          </div>
+        </SellModal>
+      ) : null}
       {displayed.notice?.kind === "chooser" ? (
         <VariationDialog
           product={displayed.notice.product}

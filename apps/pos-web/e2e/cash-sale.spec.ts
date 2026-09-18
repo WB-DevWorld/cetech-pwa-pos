@@ -12,7 +12,7 @@ test("combined Sell UI completes a retail cash sale through mocked BFF routes ex
   await installCheckoutRoutes(page, counts, "walkin");
   await installAuthoritativeStaffSession(page);
   await page.goto("/sell");
-  await expect(page.getByRole("heading", { level: 1, name: "Sell" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator("#product-search")).toBeVisible({ timeout: 30_000 });
   await scanHardener(page);
   await expect(page.locator("[data-quote-status='confirmed']")).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole("button", { name: "Pay" })).toBeEnabled();
@@ -34,13 +34,14 @@ test("combined Sell UI completes a B2B cash sale using the authoritative quoted 
   await installCheckoutRoutes(page, counts, "b2b");
   await installAuthoritativeStaffSession(page);
   await page.goto("/sell");
-  await expect(page.getByRole("heading", { level: 1, name: "Sell" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator("#product-search")).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole("button", { name: /Epoxy Hardener/ })).toBeVisible({ timeout: 15_000 });
   await page.locator(".customer-chip").click();
   await page.getByRole("button", { name: /Buildworks Ltd/ }).click();
   await scanHardener(page);
   await expect(page.locator("[data-quote-status='confirmed']")).toBeVisible({ timeout: 15_000 });
-  await expect(page.locator("[data-quote-status='confirmed']")).toContainText("GHS 12.00");
+  await expect(page.locator("[data-quote-status='confirmed']")).toContainText("Price confirmed");
+  await expect(page.locator(".cart-totals")).toContainText("GHS 12.00");
   await page.getByRole("button", { name: "Pay" }).click();
   await expect(page.locator("[data-checkout-due='prepared']")).toContainText("GHS 12.00");
   await page.getByRole("button", { name: "Exact" }).click();
@@ -53,7 +54,7 @@ test("combined Sell UI completes a B2B cash sale using the authoritative quoted 
 
 async function scanHardener(page: Page): Promise<void> {
   await page.locator("#product-search").fill("0012345678901");
-  await page.getByRole("button", { name: "Scan" }).click();
+  await page.locator("#product-search").press("Enter");
 }
 
 async function installCheckoutRoutes(

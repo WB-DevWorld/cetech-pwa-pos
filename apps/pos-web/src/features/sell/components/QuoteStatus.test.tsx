@@ -7,7 +7,7 @@ import { INTEGRATION_UNAVAILABLE, type CheckoutEligibilityView, type QuoteDispla
 
 const emptyHandlers = {
   onOpenCustomers: () => undefined,
-  onNewSale: () => undefined,
+  onClear: () => undefined,
   onIncrement: () => undefined,
   onDecrement: () => undefined,
   onQuantityChange: () => undefined,
@@ -62,18 +62,17 @@ describe("QuoteStatus markup", () => {
     expect(html).not.toContain("GHS");
   });
 
-  test("confirmed shows supplied totals", () => {
+  test("confirmed shows Price confirmed without mixing totals into the status strip", () => {
     const html = renderQuote({
       status: "confirmed",
       revision: 2,
       quote: { total: { minor: 2599, currency: "GHS" }, tax: { minor: 99, currency: "GHS" } },
     });
     expect(html).toContain('data-quote-status="confirmed"');
-    expect(html).toContain("Price ready");
-    expect(html).toContain("GHS 25.99");
-    expect(html).toContain("Tax");
-    expect(html).not.toContain("Quoted tax");
-    expect(html).toContain("GHS 0.99");
+    expect(html).toContain("Price confirmed");
+    expect(html).not.toContain("Price ready");
+    expect(html).not.toContain("GHS 25.99");
+    expect(html).not.toContain("Subtotal");
   });
 
   test("changed keeps previous and current visible", () => {
@@ -192,5 +191,84 @@ describe("CartPanel eligibility presentation", () => {
     expect(html).toContain('data-eligibility-allowed="true"');
     expect(html).not.toMatch(/pay-btn[^>]*disabled/);
     expect(html).not.toContain("Review the price, then continue when payment is available.");
+    expect(html).toContain("Cart");
+    expect(html).toContain("Rev 2");
+    expect(html).toContain("Clear");
+    expect(html).toContain("Pay GHS 5.00");
+  });
+
+  test("Clear stays disabled when a new sale is blocked", () => {
+    const html = renderToStaticMarkup(
+      createElement(CartPanel, {
+        revision: 2,
+        lines: [
+          {
+            lineId: "line-1",
+            catalogItemId: "sku-1",
+            name: "Sample line",
+            quantity: "1",
+          },
+        ],
+        customer: null,
+        mobileOpen: false,
+        clearDisabled: true,
+        ...emptyHandlers,
+      }),
+    );
+    expect(html).toMatch(/cart-clear[^>]*disabled/);
+  });
+
+  test("confirmed cart keeps totals below lines including a zero discount", () => {
+    const html = renderToStaticMarkup(
+      createElement(CartPanel, {
+        revision: 14,
+        lines: [
+          {
+            lineId: "line-1",
+            catalogItemId: "sku-1",
+            name: "Flexible Copper Cable",
+            sku: "CAB-FLEX-15-RED",
+            variationLabel: "Red · 100m",
+            quantity: "2",
+          },
+        ],
+        customer: null,
+        mobileOpen: false,
+        quote: {
+          status: "confirmed",
+          revision: 14,
+          quote: {
+            total: { minor: 97000, currency: "GHS" },
+            subtotal: { minor: 97000, currency: "GHS" },
+            discount: { minor: 0, currency: "GHS" },
+            tax: { minor: 0, currency: "GHS" },
+            lines: [
+              {
+                lineId: "line-1",
+                unitPrice: { minor: 48500, currency: "GHS" },
+                total: { minor: 97000, currency: "GHS" },
+              },
+            ],
+          },
+        },
+        eligibility: { allowed: false, reason: "NO_ACTIVE_SHIFT", message: "Start your shift before taking payment." },
+        ...emptyHandlers,
+      }),
+    );
+    expect(html).toContain("Cart");
+    expect(html).toContain("Rev 14");
+    expect(html).toContain("Price confirmed");
+    expect(html).toContain("GHS 485.00 each");
+    expect(html).toContain("Subtotal");
+    expect(html).toContain("Discount");
+    expect(html).toContain("GHS 0.00");
+    expect(html).toContain("Tax");
+    expect(html).toContain("class=\"summary-row total\"");
+    expect(html).toContain("Pay GHS 970.00");
+    expect(html).toContain("Start your shift before taking payment.");
+    expect(html).toMatch(/pay-btn[^>]*disabled/);
+    expect(html).not.toContain("Barcode");
+    expect(html.indexOf("cart-lines")).toBeLessThan(html.indexOf("cart-totals"));
+    expect(html.indexOf("cart-totals")).toBeLessThan(html.indexOf("pay-btn"));
   });
 });

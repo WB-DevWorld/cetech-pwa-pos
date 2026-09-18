@@ -1,4 +1,4 @@
-import type { CatalogAvailability, DraftStatusView } from "../state/sellView";
+import type { CatalogAvailability } from "../state/sellView";
 
 export function catalogAvailabilityCopy(availability: CatalogAvailability): { tone: "info" | "warning" | "danger"; title: string; body: string } | null {
   switch (availability) {
@@ -33,30 +33,16 @@ export function catalogAvailabilityCopy(availability: CatalogAvailability): { to
   }
 }
 
-export function CatalogStatusBanners({
-  availability,
-  draftStatus,
-}: {
-  availability: CatalogAvailability;
-  draftStatus: DraftStatusView;
-}) {
+export function CatalogStatusBanners({ availability }: { availability: CatalogAvailability }) {
   const catalog = catalogAvailabilityCopy(availability);
+  if (!catalog) return null;
   return (
     <div className="sell-status-stack">
-      {catalog ? (
-        <div className={`banner ${catalog.tone}`} role="status">
-          <div>
-            <strong>{catalog.title}</strong> {catalog.body}
-          </div>
+      <div className={`banner ${catalog.tone}`} role="status">
+        <div>
+          <strong>{catalog.title}</strong> {catalog.body}
         </div>
-      ) : null}
-      {draftStatus.retainedLocally ? (
-        <div className="banner info" role="status">
-          <div>
-            <strong>This sale is saved on this device.</strong>
-          </div>
-        </div>
-      ) : null}
+      </div>
     </div>
   );
 }

@@ -11,6 +11,9 @@ export function catalogItemToSellView(item: CatalogItem): SellProductView {
     parentId: item.parentId,
     variationLabel: item.variationLabel,
     stockStatus: item.stockStatus as StockPresentation,
+    displayPrice: item.displayPrice
+      ? { minor: item.displayPrice.minor, currency: item.displayPrice.currency }
+      : undefined,
   };
 }
 

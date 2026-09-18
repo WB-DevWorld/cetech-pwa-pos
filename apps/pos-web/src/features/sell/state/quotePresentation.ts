@@ -138,13 +138,15 @@ export function formatMoneyDisplay(money: QuotePresentationMoney): string {
   const whole = Math.trunc(minor / 100);
   const frac = minor - whole * 100;
   const fracText = frac < 10 ? `0${frac}` : String(frac);
-  return `${money.currency} ${whole}.${fracText}`;
+  const wholeText = String(whole).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return `${money.currency} ${wholeText}.${fracText}`;
 }
 
-function snapshotAmountRows(snapshot: QuotePresentationSnapshot): QuoteAmountRow[] {
+/** Authoritative quote snapshot rows. Discount is shown when the quote supplies it, including zero. */
+export function quoteSnapshotAmountRows(snapshot: QuotePresentationSnapshot): QuoteAmountRow[] {
   const rows: QuoteAmountRow[] = [];
   if (snapshot.subtotal) rows.push({ label: "Subtotal", value: formatMoneyDisplay(snapshot.subtotal) });
-  if (snapshot.discount && snapshot.discount.minor !== 0) {
+  if (snapshot.discount) {
     rows.push({ label: "Discount", value: formatMoneyDisplay(snapshot.discount) });
   }
   if (snapshot.tax) rows.push({ label: "Tax", value: formatMoneyDisplay(snapshot.tax) });
@@ -173,8 +175,7 @@ export function describeQuoteDisplay(quote: QuoteDisplayState, options?: QuoteDi
     case "confirmed":
       return {
         tone: "confirmed",
-        message: "Price ready",
-        amounts: snapshotAmountRows(quote.quote),
+        message: "Price confirmed",
       };
     case "changed":
       return {

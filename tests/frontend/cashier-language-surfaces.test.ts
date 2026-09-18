@@ -20,7 +20,6 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 const PROHIBITED = [
   "INTEGRATION_UNAVAILABLE",
-  "Cart · Rev",
   "Quoted total",
   "Quoted subtotal",
   "Quoted discount",
@@ -59,7 +58,7 @@ function collectSource(dir: string): string {
 
 const emptyHandlers = {
   onOpenCustomers: () => undefined,
-  onNewSale: () => undefined,
+  onClear: () => undefined,
   onIncrement: () => undefined,
   onDecrement: () => undefined,
   onQuantityChange: () => undefined,
@@ -68,7 +67,7 @@ const emptyHandlers = {
 };
 
 describe("UX-01 cashier surfaces hide engineering vocabulary", () => {
-  test("confirmed quote uses ordinary labels, hides zero discount, and Pay uses the quote total", () => {
+  test("confirmed quote uses ordinary labels, shows zero discount, and Pay uses the quote total", () => {
     const html = renderToStaticMarkup(
       createElement(CartPanel, {
         revision: 1,
@@ -92,18 +91,20 @@ describe("UX-01 cashier surfaces hide engineering vocabulary", () => {
       }),
     );
     const primary = visiblePrimaryText(html);
-    expect(html).toContain("Sale");
-    expect(html).not.toContain("Cart · Rev");
-    expect(html).toContain("Price ready");
+    expect(html).toContain("Cart");
+    expect(html).toContain("Rev 1");
+    expect(html).toContain("Price confirmed");
+    expect(html).not.toContain("Price ready");
     expect(html).toContain("Subtotal");
+    expect(html).toContain("Discount");
     expect(html).toContain("Tax");
     expect(html).toContain("Total");
     expect(html).toContain("Pay GHS 30.00");
     expect(html).toContain("SKU 14985");
     expect(primary).not.toContain("Quoted total");
     expect(primary).not.toContain("Quoted discount");
-    expect(html).not.toMatch(/>Discount</);
-    expect(html).toContain('class="quote-amount-total"');
+    expect(html).toMatch(/>Discount</);
+    expect(html).toContain('class="summary-row total"');
     expect(html).toContain('aria-live="polite"');
   });
 
@@ -274,7 +275,7 @@ describe("UX-01 cashier surfaces hide engineering vocabulary", () => {
       collectSource(resolve(repoRoot, "apps/pos-web/src/features/sell/components")) +
       collectSource(resolve(repoRoot, "apps/pos-web/src/features/sell/state")) +
       collectSource(resolve(repoRoot, "apps/pos-web/src/ui/cashier-language"));
-    expect(source).not.toMatch(/displayPrice/);
+    expect(source).not.toMatch(/displayPrice\.minor\s*[+\-*/]/);
     expect(source).not.toMatch(/from ["']docs\/contracts/);
     expect(source).not.toContain("wc_get_price");
   });

@@ -10,11 +10,14 @@ import {
   applyCatalogAvailability,
   applyDraftStatus,
   applyMobileCartOpen,
+  applyProductSelect,
+  applyQuantityIncrement,
   applySelectCustomer,
   createSellWorkspace,
   type SellWorkspaceDeps,
 } from "../../../apps/pos-web/src/features/sell/state/sellWorkspace";
-import type { SellWorkspaceState } from "../../../apps/pos-web/src/features/sell/state/sellView";
+import type { SellProductView, SellWorkspaceState } from "../../../apps/pos-web/src/features/sell/state/sellView";
+import type { CheckoutEligibilityView, QuoteDisplayState } from "../../../apps/pos-web/src/features/sell/state/quotePresentation";
 
 export function findRepoRoot(): string {
   let dir = process.cwd();
@@ -56,21 +59,34 @@ const deps: SellWorkspaceDeps = {
   createLineId: () => "line-visual",
 };
 
-function wrap(state: SellWorkspaceState, extras?: { catalogAvailability?: SellWorkspaceState["catalogAvailability"]; draftStatus?: SellWorkspaceState["draftStatus"] }) {
+function wrap(
+  state: SellWorkspaceState,
+  extras?: {
+    catalog?: readonly SellProductView[];
+    catalogAvailability?: SellWorkspaceState["catalogAvailability"];
+    draftStatus?: SellWorkspaceState["draftStatus"];
+    quote?: QuoteDisplayState;
+    eligibility?: CheckoutEligibilityView;
+    checkoutReady?: boolean;
+  },
+) {
   const body = renderToStaticMarkup(
     createElement(AppShell, {
       activeRoute: "sell",
       registerName: "Front Counter 1",
       cashierDisplayName: "Staff member",
-      shiftOpen: true,
+      shiftOpen: extras?.eligibility && "reason" in extras.eligibility && extras.eligibility.reason === "NO_ACTIVE_SHIFT" ? false : true,
       online: extras?.catalogAvailability !== "offline" && extras?.catalogAvailability !== "offline_cached",
       attentionCount: 0,
       children: createElement(SellScreen, {
-        catalog: SELL_TEST_CATALOG,
+        catalog: extras?.catalog ?? SELL_TEST_CATALOG,
         customers: SELL_TEST_CUSTOMERS,
         initialState: state,
         catalogAvailability: extras?.catalogAvailability,
         draftStatus: extras?.draftStatus,
+        quote: extras?.quote,
+        eligibility: extras?.eligibility,
+        checkoutReady: extras?.checkoutReady,
         createCartId: deps.createCartId,
         createLineId: deps.createLineId,
       }),
@@ -79,10 +95,62 @@ function wrap(state: SellWorkspaceState, extras?: { catalogAvailability?: SellWo
   return documentFor("CETECH POS sell", body);
 }
 
+function confirmedQuote(state: SellWorkspaceState, minor: number): QuoteDisplayState {
+  const money = { minor, currency: "GHS" as const };
+  return {
+    status: "confirmed",
+    revision: state.cartRevision,
+    quote: {
+      total: money,
+      subtotal: money,
+      discount: { minor: 0, currency: "GHS" },
+      tax: { minor: 0, currency: "GHS" },
+      lines: state.lines.map((line) => ({
+        lineId: line.lineId,
+        unitPrice: money,
+        total: money,
+      })),
+    },
+  };
+}
+
 export function buildSellDesktopHarnessHtml(): string {
   let state = createSellWorkspace(deps, SELL_TEST_CATALOG);
   state = applyBarcodeScan(state, "0012345678901", SELL_TEST_CATALOG, deps);
-  return wrap(state);
+  return wrap(state, {
+    quote: confirmedQuote(state, 15500),
+    eligibility: { allowed: false, reason: "NO_ACTIVE_SHIFT", message: "Start your shift before taking payment." },
+  });
+}
+
+export function buildSellOpenShiftHarnessHtml(): string {
+  let state = createSellWorkspace(deps, SELL_TEST_CATALOG);
+  state = applyBarcodeScan(state, "0001112223334", SELL_TEST_CATALOG, deps);
+  const lineId = state.lines[0]?.lineId;
+  if (lineId) {
+    state = applyQuantityIncrement(state, lineId);
+  }
+  const money = { minor: 97000, currency: "GHS" as const };
+  const unit = { minor: 48500, currency: "GHS" as const };
+  return wrap(state, {
+    quote: {
+      status: "confirmed",
+      revision: state.cartRevision,
+      quote: {
+        total: money,
+        subtotal: money,
+        discount: { minor: 0, currency: "GHS" },
+        tax: { minor: 0, currency: "GHS" },
+        lines: state.lines.map((line) => ({
+          lineId: line.lineId,
+          unitPrice: unit,
+          total: money,
+        })),
+      },
+    },
+    eligibility: { allowed: true },
+    checkoutReady: true,
+  });
 }
 
 export function buildSellPhoneHarnessHtml(): string {
@@ -117,4 +185,40 @@ export function buildSellOfflineHarnessHtml(): string {
   state = applyCatalogAvailability(state, "offline_cached");
   state = applyDraftStatus(state, { retainedLocally: true });
   return wrap(state, { catalogAvailability: "offline_cached", draftStatus: { retainedLocally: true } });
+}
+
+function overflowCatalog(count: number): SellProductView[] {
+  return Array.from({ length: count }, (_, index) => ({
+    id: `p-overflow-${index}`,
+    name: `Overflow product ${index + 1} with a longer cashier-facing title`,
+    sku: `OV-${String(index + 1).padStart(3, "0")}`,
+    barcodes: [`9${String(index).padStart(12, "0")}`],
+    kind: "simple" as const,
+    stockStatus: "in_stock" as const,
+    displayPrice: { minor: 1000 + index, currency: "GHS" as const },
+  }));
+}
+
+export function buildSellOverflowProductsHarnessHtml(): string {
+  const catalog = overflowCatalog(40);
+  const state = createSellWorkspace(deps, catalog);
+  return wrap(state, { catalog });
+}
+
+export function buildSellOverflowCartHarnessHtml(): string {
+  const catalog = overflowCatalog(16);
+  let n = 0;
+  const lineDeps: SellWorkspaceDeps = {
+    createCartId: () => "cart-visual",
+    createLineId: () => `line-overflow-${++n}`,
+  };
+  let state = createSellWorkspace(lineDeps, catalog);
+  for (const item of catalog) {
+    state = applyProductSelect(state, item, catalog, lineDeps);
+  }
+  return wrap(state, {
+    catalog,
+    quote: confirmedQuote(state, 16000),
+    eligibility: { allowed: true },
+  });
 }

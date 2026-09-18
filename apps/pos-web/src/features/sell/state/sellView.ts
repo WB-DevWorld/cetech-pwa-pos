@@ -11,6 +11,11 @@ export type SellProductView = {
   readonly parentId?: string;
   readonly variationLabel?: string;
   readonly stockStatus: StockPresentation;
+  /** Advisory catalog display price. Never used as checkout or quote authority. */
+  readonly displayPrice?: {
+    readonly minor: number;
+    readonly currency: string;
+  };
 };
 
 export type CartLineView = {

@@ -47,7 +47,7 @@ test("client-side POS navigation keeps the authenticated staff runtime mounted",
   test.setTimeout(90_000);
   const harness = await installAuthoritativeStaffSession(page);
   await page.goto("/sell", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("heading", { name: "Sell" })).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator("#product-search")).toBeVisible({ timeout: 15_000 });
   await expectAuthoritativeShell(page);
   await expect(page.getByRole("banner").getByText("Front Counter")).toBeVisible();
 
@@ -74,7 +74,11 @@ test("client-side POS navigation keeps the authenticated staff runtime mounted",
 
   for (const { route, heading } of mounted) {
     await page.locator(`button.nav-btn[data-route="${route}"]`).click();
-    await expect(page.getByRole("heading", { name: heading })).toBeVisible({ timeout: 15_000 });
+    if (route === "sell") {
+      await expect(page.locator("#product-search")).toBeVisible({ timeout: 15_000 });
+    } else {
+      await expect(page.getByRole("heading", { name: heading })).toBeVisible({ timeout: 15_000 });
+    }
     await expectNoStaffAuthGate(page);
     await expectAuthoritativeShell(page);
     await expect(page.getByRole("banner").getByText("Front Counter")).toBeVisible();

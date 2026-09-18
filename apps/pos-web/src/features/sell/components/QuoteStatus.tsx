@@ -11,7 +11,10 @@ export function QuoteStatus({
   const view = describeQuoteDisplay(quote, { cartLineNames });
   return (
     <div className={`quote-status ${view.tone}`} data-quote-status={quote.status} data-quote-authority="supplied" role="status" aria-live="polite">
-      <div>{view.message}</div>
+      <div className="quote-status-message">
+        {view.tone === "confirmed" ? <span aria-hidden="true">✓</span> : null}
+        <span>{view.message}</span>
+      </div>
       {view.comparison ? (
         <dl className="quote-changed">
           <div>
@@ -22,16 +25,6 @@ export function QuoteStatus({
             <dt>{view.comparison.currentLabel}</dt>
             <dd>{view.comparison.current}</dd>
           </div>
-        </dl>
-      ) : null}
-      {view.amounts ? (
-        <dl className="quote-amounts">
-          {view.amounts.map((row) => (
-            <div key={row.label} className={row.emphasize ? "quote-amount-total" : undefined}>
-              <dt>{row.label}</dt>
-              <dd>{row.value}</dd>
-            </div>
-          ))}
         </dl>
       ) : null}
       {view.code || view.technicalMessage ? (

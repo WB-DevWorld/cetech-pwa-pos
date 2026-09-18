@@ -5,13 +5,13 @@ test("Sell runtime restores workspace once and cart edits do not restore again",
   await installAuthoritativeStaffSession(page);
   await page.goto("/sell");
   await expectAuthoritativeShell(page);
-  await expect(page.getByRole("heading", { level: 1, name: "Sell" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator("#product-search")).toBeVisible({ timeout: 30_000 });
   await expect(page.locator("[data-sell-restore-count]")).toHaveAttribute("data-sell-restore-count", "1");
   await expect(page.getByText("Loading catalog…")).toHaveCount(0);
   await expect(page.getByText("Loading products…")).toHaveCount(0);
 
   await page.locator("#product-search").fill("0012345678901");
-  await page.getByRole("button", { name: "Scan" }).click();
+  await page.locator("#product-search").press("Enter");
   const cart = page.getByRole("complementary", { name: "Current sale" });
   await expect(cart.getByText("Epoxy Hardener 1L")).toBeVisible();
   const qty = cart.locator(".qty-input");
@@ -23,12 +23,12 @@ test("Sell runtime restores workspace once and cart edits do not restore again",
     timeout: 3_000,
   }).toBe("1");
   await expect(qty).toHaveValue("2");
-  await expect(page.getByRole("heading", { level: 1, name: "Sell" })).toBeVisible();
+  await expect(page.locator("#product-search")).toBeVisible();
   await expect(page.getByText("Loading catalog…")).toHaveCount(0);
   await expect(page.getByText("Loading products…")).toHaveCount(0);
 
   await page.reload();
-  await expect(page.getByRole("heading", { level: 1, name: "Sell" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator("#product-search")).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole("complementary", { name: "Current sale" }).locator(".qty-input")).toHaveValue("2");
   await expect(page.locator("[data-sell-restore-count]")).toHaveAttribute("data-sell-restore-count", "1");
 });
@@ -65,11 +65,11 @@ test("same-revision quote revalidation reaches changed and blocks checkout", asy
 
   await installAuthoritativeStaffSession(page);
   await page.goto("/sell");
-  await expect(page.getByRole("heading", { level: 1, name: "Sell" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator("#product-search")).toBeVisible({ timeout: 30_000 });
   await page.locator("#product-search").fill("0012345678901");
-  await page.getByRole("button", { name: "Scan" }).click();
+  await page.locator("#product-search").press("Enter");
   await expect(page.locator("[data-quote-status='confirmed']")).toBeVisible({ timeout: 15_000 });
-  await expect(page.locator("[data-quote-status='confirmed']")).toContainText("GHS 15.00");
+  await expect(page.locator(".cart-totals")).toContainText("GHS 15.00");
 
   await page.context().setOffline(true);
   await expect(page.locator("[data-quote-status='offline']")).toBeVisible();
@@ -99,7 +99,7 @@ test("New Sale Cart B quote is accepted even when Cart A had a higher revision",
   await installIdentityQuotes(page, { delayNewCartMs: 800 });
   await installAuthoritativeStaffSession(page);
   await page.goto("/sell");
-  await expect(page.getByRole("heading", { level: 1, name: "Sell" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator("#product-search")).toBeVisible({ timeout: 30_000 });
   await scanHardener(page);
   const cart = page.getByRole("complementary", { name: "Current sale" });
   await expect(cart.getByText("Epoxy Hardener 1L")).toBeVisible();
@@ -107,27 +107,28 @@ test("New Sale Cart B quote is accepted even when Cart A had a higher revision",
     await page.getByRole("button", { name: "Increase quantity" }).click();
   }
   await expect(cart.locator(".qty-input")).toHaveValue("4");
-  await expect(cart).not.toContainText("Rev 4");
+  await expect(cart).toContainText("Cart · Rev 4");
   await expect(page.locator("[data-quote-status='confirmed']")).toBeVisible({ timeout: 15_000 });
-  await expect(page.locator("[data-quote-status='confirmed']")).toContainText("GHS 40.00");
+  await expect(page.locator(".cart-totals")).toContainText("GHS 40.00");
 
-  await page.getByRole("button", { name: "New sale" }).click();
+  await page.getByRole("button", { name: "Clear", exact: true }).click();
+  await page.getByRole("button", { name: "Clear sale" }).click();
   await expect(cart.getByText("Your cart is empty")).toBeVisible();
-  await expect(cart).not.toContainText("Rev 0");
+  await expect(cart).toContainText("Cart · Rev 0");
   await expect(page.locator("[data-quote-status='confirmed']")).toHaveCount(0);
   await expect(page.locator("[data-quote-status='changed']")).toHaveCount(0);
   await expect(page.getByText("GHS 40.00")).toHaveCount(0);
 
   await scanHardener(page);
   await expect(cart.getByText("Epoxy Hardener 1L")).toBeVisible();
-  await expect(cart).not.toContainText("Rev 1");
+  await expect(cart).toContainText("Cart · Rev 1");
   await expect(page.locator("[data-quote-status='quoting']")).toBeVisible();
   await expect(page.getByText("GHS 40.00")).toHaveCount(0);
   await expect(page.locator("[data-eligibility-allowed='false']")).toBeVisible();
   await expect(page.getByRole("button", { name: "Pay" })).toBeDisabled();
 
   await expect(page.locator("[data-quote-status='confirmed']")).toBeVisible({ timeout: 15_000 });
-  await expect(page.locator("[data-quote-status='confirmed']")).toContainText("GHS 15.00");
+  await expect(page.locator(".cart-totals")).toContainText("GHS 15.00");
   await expect(page.getByText("GHS 40.00")).toHaveCount(0);
   await expect(page.locator("[data-quote-status='changed']")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Pay" })).toBeEnabled();
@@ -137,21 +138,22 @@ test("equal revision across New Sale cannot reuse Cart A quote while Cart B is q
   await installIdentityQuotes(page, { delayNewCartMs: 800 });
   await installAuthoritativeStaffSession(page);
   await page.goto("/sell");
-  await expect(page.getByRole("heading", { level: 1, name: "Sell" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator("#product-search")).toBeVisible({ timeout: 30_000 });
   await scanHardener(page);
   const cart = page.getByRole("complementary", { name: "Current sale" });
   await expect(cart.getByText("Epoxy Hardener 1L")).toBeVisible();
-  await expect(cart).not.toContainText("Rev 1");
+  await expect(cart).toContainText("Cart · Rev 1");
   await expect(page.locator("[data-quote-status='confirmed']")).toBeVisible({ timeout: 15_000 });
-  await expect(page.locator("[data-quote-status='confirmed']")).toContainText("GHS 40.00");
+  await expect(page.locator(".cart-totals")).toContainText("GHS 40.00");
 
-  await page.getByRole("button", { name: "New sale" }).click();
+  await page.getByRole("button", { name: "Clear", exact: true }).click();
+  await page.getByRole("button", { name: "Clear sale" }).click();
   await expect(cart.getByText("Your cart is empty")).toBeVisible();
   await expect(page.getByText("GHS 40.00")).toHaveCount(0);
 
   await scanHardener(page);
   await expect(cart.getByText("Epoxy Hardener 1L")).toBeVisible();
-  await expect(cart).not.toContainText("Rev 1");
+  await expect(cart).toContainText("Cart · Rev 1");
   await expect(page.locator("[data-quote-status='quoting']")).toBeVisible();
   await expect(page.getByText("GHS 40.00")).toHaveCount(0);
   await expect(page.locator("[data-eligibility-allowed='false']")).toBeVisible();
@@ -159,7 +161,7 @@ test("equal revision across New Sale cannot reuse Cart A quote while Cart B is q
   await expect(page.getByRole("button", { name: "Pay" })).toBeDisabled();
 
   await expect(page.locator("[data-quote-status='confirmed']")).toBeVisible({ timeout: 15_000 });
-  await expect(page.locator("[data-quote-status='confirmed']")).toContainText("GHS 15.00");
+  await expect(page.locator(".cart-totals")).toContainText("GHS 15.00");
   await expect(page.getByText("GHS 40.00")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Pay" })).toBeEnabled();
 });
@@ -210,7 +212,7 @@ function quotePayload(
 
 async function scanHardener(page: Page): Promise<void> {
   await page.locator("#product-search").fill("0012345678901");
-  await page.getByRole("button", { name: "Scan" }).click();
+  await page.locator("#product-search").press("Enter");
 }
 
 async function installIdentityQuotes(page: Page, options: { delayNewCartMs?: number } = {}): Promise<void> {

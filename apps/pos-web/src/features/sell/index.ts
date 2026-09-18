@@ -10,6 +10,7 @@ export {
   describePayButton,
   describeQuoteDisplay,
   formatMoneyDisplay,
+  quoteSnapshotAmountRows,
   CHECKOUT_ELIGIBILITY_REASONS,
   INTEGRATION_UNAVAILABLE,
   type QuoteDisplayState,
@@ -22,6 +23,9 @@ export {
   applyQuoteResultForRevision,
   resolveQuotePresentation,
 } from "./state/quoteRevision";
+export { productBadges, productStockCopy } from "./state/productPresentation";
+export { ProductBadge, ProductBadgeList } from "./components/ProductBadge";
+export { CartTotals } from "./components/CartTotals";
 export { ProductSearch, ProductCard, ProductResults } from "./components/ProductSearch";
 export { VariationDialog } from "./components/VariationDialog";
 export { BarcodeCollisionDialog } from "./components/BarcodeCollisionDialog";
