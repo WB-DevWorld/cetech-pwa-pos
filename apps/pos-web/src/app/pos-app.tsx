@@ -27,7 +27,7 @@ import {
   recallActiveCartId,
   rememberActiveCartId,
 } from "../local";
-import type { CatalogProjectionAvailability } from "../local/catalog-sync";
+import type { CatalogProjectionAvailability, CatalogProjectionSyncResult } from "../local/catalog-sync";
 import {
   createBffStaffSessionGateway,
   createPublicSupabaseStaffAuthProvider,
@@ -271,6 +271,20 @@ export function PosRuntime({
     [fetchImpl],
   );
 
+  const onCatalogProjectionChange = useCallback((result: CatalogProjectionSyncResult) => {
+    setProjectionAvailability(result.availability);
+    setPorts((current) => {
+      if (!current) {
+        return current;
+      }
+      return {
+        ...current,
+        catalog: createLocalCatalogPort({ db: openPosLocalDatabase() }),
+        catalogAvailability: result.availability,
+      };
+    });
+  }, []);
+
   const onShiftChange = useCallback(
     (shift: Shift | null) => {
       runtime.applyShift(shift);
@@ -323,6 +337,7 @@ export function PosRuntime({
       cashierDisplayName={authority.session.displayName}
       shiftOpen={authority.shiftOpen}
       online={online}
+      liveMessage={authority.errorMessage}
       onNavigate={onNavigate}
       onLock={() => {
         void (async () => {
@@ -331,6 +346,11 @@ export function PosRuntime({
         })();
       }}
     >
+      {authority.errorMessage ? (
+        <p className="banner danger" role="status" data-register-authority-degraded="">
+          {authority.errorMessage} Last known register and shift stay visible until an authoritative result replaces them.
+        </p>
+      ) : null}
       {route === "sell" ? (
         ports ? (
           <>
@@ -372,6 +392,7 @@ export function PosRuntime({
           catalogAvailability={projectionAvailability}
           fetchImpl={fetchImpl}
           onNavigate={onNavigate}
+          onCatalogProjectionChange={onCatalogProjectionChange}
         />
       )}
     </AppShell>

@@ -8,6 +8,7 @@ import { parseCookieHeader } from "../auth/cookies";
 import type { StaffSessionStore } from "../auth/session-store";
 import { resolveCorrelationId } from "../http/correlation";
 import { httpStatusFor } from "../http/status";
+import type { CatalogProjectionStore } from "./catalog-projection-store";
 import type { CatalogBridge } from "./compose-catalog-bridge";
 import { mapBridgeCatalogItems } from "./map-bridge-catalog";
 
@@ -24,6 +25,7 @@ export type HandleCatalogSyncInput = {
   readonly appEnv?: string;
   readonly sessionStore: StaffSessionStore;
   readonly bridge?: CatalogBridge;
+  readonly projectionStore?: CatalogProjectionStore;
 };
 
 export type HandleCatalogSyncResponse = {
@@ -73,7 +75,25 @@ export async function handleCatalogSync(input: HandleCatalogSyncInput): Promise<
     const body = authFailure(producer.code, producer.message, correlation.correlationId);
     return { status: httpStatusFor(body.error.code), body, headers };
   }
+  if (!input.projectionStore) {
+    const body = authFailure(
+      "INTEGRATION_UNAVAILABLE",
+      "catalog projection store is unavailable",
+      correlation.correlationId,
+    );
+    return { status: httpStatusFor(body.error.code), body, headers };
+  }
   const items = mapBridgeCatalogItems(producer.page.items);
+  try {
+    await input.projectionStore.upsertRecords(stored.session.organizationId, items, input.now);
+  } catch {
+    const body = authFailure(
+      "INTEGRATION_UNAVAILABLE",
+      "catalog projection could not be persisted",
+      correlation.correlationId,
+    );
+    return { status: httpStatusFor(body.error.code), body, headers };
+  }
   const page: CatalogSyncPage = {
     policy,
     sourceSystem: "woocommerce",

@@ -14,11 +14,12 @@ import {
   type OperationalLoadState,
 } from "../ui/operational";
 import { POS_LOCAL_SCHEMA_CURRENT } from "../local";
-import type { CatalogProjectionAvailability } from "../local/catalog-sync";
+import type { CatalogProjectionAvailability, CatalogProjectionSyncResult } from "../local/catalog-sync";
 import { ensureCatalogProjection } from "../local/catalog-sync";
 import { resolveBrowserCatalogSourcePolicy } from "../core/catalog/source-policy";
 import { readOrCreateLocalDeviceId, type StaffRuntimeAuthority } from "../core/identity";
 import type { PosRoute } from "../ui/shell";
+import { catalogRebuildStatusText, type CatalogRebuildView } from "./catalog-rebuild-status";
 
 export function ApprovedWorkspaceScreens({
   route,
@@ -28,6 +29,7 @@ export function ApprovedWorkspaceScreens({
   catalogAvailability,
   fetchImpl,
   onNavigate,
+  onCatalogProjectionChange,
 }: {
   readonly route: PosRoute;
   readonly authority: StaffRuntimeAuthority;
@@ -36,6 +38,7 @@ export function ApprovedWorkspaceScreens({
   readonly catalogAvailability: CatalogProjectionAvailability | null;
   readonly fetchImpl?: typeof fetch;
   readonly onNavigate: (route: PosRoute) => void;
+  readonly onCatalogProjectionChange?: (result: CatalogProjectionSyncResult) => void;
 }) {
   if (route === "orders") {
     return (
@@ -74,6 +77,7 @@ export function ApprovedWorkspaceScreens({
         catalogAvailability={catalogAvailability}
         fetchImpl={fetchImpl}
         onNavigate={onNavigate}
+        onCatalogProjectionChange={onCatalogProjectionChange}
       />
     );
   }
@@ -83,6 +87,7 @@ export function ApprovedWorkspaceScreens({
         catalogAvailability={catalogAvailability}
         authority={authority}
         fetchImpl={fetchImpl}
+        onCatalogProjectionChange={onCatalogProjectionChange}
       />
     );
   }
@@ -135,16 +140,19 @@ function HealthWorkspace({
   catalogAvailability,
   fetchImpl,
   onNavigate,
+  onCatalogProjectionChange,
 }: {
   readonly authority: StaffRuntimeAuthority;
   readonly catalogAvailability: CatalogProjectionAvailability | null;
   readonly fetchImpl?: typeof fetch;
   readonly onNavigate: (route: PosRoute) => void;
+  readonly onCatalogProjectionChange?: (result: CatalogProjectionSyncResult) => void;
 }) {
   const [health, setHealth] = useState<StoreHealth | undefined>();
   const [state, setState] = useState<OperationalLoadState>("loading");
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
   const [showFix, setShowFix] = useState(false);
+  const [rebuild, setRebuild] = useState<CatalogRebuildView>({ phase: "idle" });
 
   const load = useCallback(async () => {
     const result = await fetchStoreHealth(fetchImpl);
@@ -167,15 +175,10 @@ function HealthWorkspace({
   }, [load]);
 
   const rebuildCatalog = useCallback(() => {
-    void ensureCatalogProjection({
-      policy: resolveBrowserCatalogSourcePolicy({
-        hostname: typeof window === "undefined" ? "localhost" : window.location.hostname,
-        nodeEnv: process.env.NODE_ENV,
-      }),
-      fetchImpl,
-      force: true,
-    });
-  }, [fetchImpl]);
+    void runCatalogRebuild({ fetchImpl, onCatalogProjectionChange, setRebuild });
+  }, [fetchImpl, onCatalogProjectionChange]);
+
+  const rebuildText = catalogRebuildStatusText(rebuild);
 
   return (
     <>
@@ -193,6 +196,15 @@ function HealthWorkspace({
         onOpenAttention={() => onNavigate("attention")}
         onRebuildCatalog={rebuildCatalog}
       />
+      {rebuildText ? (
+        <p
+          className={rebuild.phase === "failure" ? "banner danger" : "muted"}
+          role={rebuild.phase === "failure" ? "alert" : "status"}
+          data-catalog-rebuild-phase={rebuild.phase}
+        >
+          {rebuildText}
+        </p>
+      ) : null}
       {showFix ? (
         <FixAppPanel
           criticalOperationActive={false}
@@ -215,11 +227,14 @@ function AttentionWorkspace({
   catalogAvailability,
   authority,
   fetchImpl,
+  onCatalogProjectionChange,
 }: {
   readonly catalogAvailability: CatalogProjectionAvailability | null;
   readonly authority: StaffRuntimeAuthority;
   readonly fetchImpl?: typeof fetch;
+  readonly onCatalogProjectionChange?: (result: CatalogProjectionSyncResult) => void;
 }) {
+  const [rebuild, setRebuild] = useState<CatalogRebuildView>({ phase: "idle" });
   const items = useMemo(() => {
     const next: AttentionItemView[] = [];
     if (catalogAvailability === "unavailable" || catalogAvailability === "stale") {
@@ -256,6 +271,7 @@ function AttentionWorkspace({
   }, [authority.register, authority.shiftOpen, catalogAvailability]);
 
   return (
+    <>
     <NeedsAttentionScreen
       items={items}
       state="ready"
@@ -263,17 +279,57 @@ function AttentionWorkspace({
         if (id !== "catalog-projection") {
           return;
         }
-        void ensureCatalogProjection({
-          policy: resolveBrowserCatalogSourcePolicy({
-            hostname: typeof window === "undefined" ? "localhost" : window.location.hostname,
-            nodeEnv: process.env.NODE_ENV,
-          }),
-          fetchImpl,
-          force: true,
-        });
+        void runCatalogRebuild({ fetchImpl, onCatalogProjectionChange, setRebuild });
       }}
     />
+    {catalogRebuildStatusText(rebuild) ? (
+      <p
+        className={rebuild.phase === "failure" ? "banner danger" : "muted"}
+        role={rebuild.phase === "failure" ? "alert" : "status"}
+        data-catalog-rebuild-phase={rebuild.phase}
+      >
+        {catalogRebuildStatusText(rebuild)}
+      </p>
+    ) : null}
+    </>
   );
+}
+
+async function runCatalogRebuild(input: {
+  readonly fetchImpl?: typeof fetch;
+  readonly onCatalogProjectionChange?: (result: CatalogProjectionSyncResult) => void;
+  readonly setRebuild: (view: CatalogRebuildView) => void;
+}): Promise<void> {
+  input.setRebuild({ phase: "rebuilding" });
+  try {
+    const result = await ensureCatalogProjection({
+      policy: resolveBrowserCatalogSourcePolicy({
+        hostname: typeof window === "undefined" ? "localhost" : window.location.hostname,
+        nodeEnv: process.env.NODE_ENV,
+      }),
+      fetchImpl: input.fetchImpl,
+      force: true,
+    });
+    if (result.producerUnavailable && result.availability === "unavailable") {
+      input.setRebuild({
+        phase: "failure",
+        message: "catalog producer is unavailable",
+      });
+      input.onCatalogProjectionChange?.(result);
+      return;
+    }
+    input.setRebuild({
+      phase: "success",
+      itemCount: result.itemCount,
+      availability: result.availability,
+    });
+    input.onCatalogProjectionChange?.(result);
+  } catch (error) {
+    input.setRebuild({
+      phase: "failure",
+      message: error instanceof Error ? error.message : "catalog rebuild is unavailable",
+    });
+  }
 }
 
 async function fetchStoreHealth(fetchImpl?: typeof fetch): Promise<ApiResult<StoreHealth>> {

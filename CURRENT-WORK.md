@@ -6,7 +6,7 @@ Updated 2026-09-18. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical sche
 
 - accepted `main`: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` — squash-merged `[R8] Safe returns and payment/register states (#69)`.
 - STG-01 candidate / live Preview baseline: `4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897` on `batch/stg-01-staging-runtime-acceptance`.
-- Live Preview against real staging Supabase staff identity authenticates, resolves Staging Cashier / Register A, and truthfully shows no open shift. In-app route navigation incorrectly remounts `PosApp` and flashes Staff Sign-In / "Signing in...". That is an STG-06 acceptance blocker.
+- STG-02 route persistence docs-corrected head: `a02cd21875d0717adb6694d293b41575302b2415` on `ws3/stg-02-route-session-persistence`. This STG-06 contributor branch starts exactly there.
 - Issue #4 remains OPEN; `pricingParityVerified=false`. Production promotion, live Paystack, real refund/restock and VitePOS deactivation are not authorized.
 - R9 PR #63 remains draft / must not merge while STG-01 is open.
 
@@ -14,14 +14,14 @@ Updated 2026-09-18. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical sche
 human: @wbdevworld
 workstream: WS3
 mode: REMEDIATE
-task: STG-02 / STG-06 — persist authenticated staff runtime across POS route navigation
-branch: ws3/stg-02-route-session-persistence
-start SHA: 4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897
-allowed: apps/pos-web/src/app/**, apps/pos-web/e2e/**, tests/frontend/**, CURRENT-WORK.md, docs/workstreams/WS-03-CORE-DATA-INTEGRATION/**, docs/integration/evidence/**
-forbidden: main, R9, WS1 feature redesign, WS2 plugin, auth/CSRF/RLS weakening, credential persistence, fake sessions
+task: STG-06 — live quote identity mapping + register authority preservation
+branch: ws3/stg-06-quote-identity-register-authority
+start SHA: a02cd21875d0717adb6694d293b41575302b2415
+allowed: apps/pos-web/src/server/**, apps/pos-web/src/core/**, apps/pos-web/src/app/**, apps/pos-web/src/local/**, CURRENT-WORK.md, docs/workstreams/WS-03-CORE-DATA-INTEGRATION/**, docs/integration/evidence/**
+forbidden: main, R9, WS1 feature/ui redesign, WS2 plugin, auth/CSRF/RLS weakening, CatalogItem.id = Woo ID, sourceItemId in Sell UI contracts, B2BKing/WoodMart pricing in BFF/frontend, new pos_catalog_items migration unless schema is insufficient
 ```
 
-Senior instruction 2026-09-18 authorizes this WS3 contributor branch from the exact live STG-01 SHA. Do not modify `main`. Do not merge. Do not import/start R9. Review/merge remains independent human authority.
+Senior instruction 2026-09-18 authorizes this WS3 contributor branch from the exact SHA above. Do not modify `main`. Do not merge. Do not import/start R9. Review/merge remains independent human authority.
 
 ## STG-01 recovery context (retained)
 

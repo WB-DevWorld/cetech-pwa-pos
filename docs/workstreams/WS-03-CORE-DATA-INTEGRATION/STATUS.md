@@ -5,8 +5,8 @@ Snapshot 2026-09-18. Protected `main` `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
 ## Active contributor assignment
 
 Mode: REMEDIATE. Owner `@wbdevworld` / WS3.
-Branch: `ws3/stg-02-route-session-persistence` from exact STG-01 candidate `4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897`.
-Scope: persist authenticated staff/catalog runtime across App Router navigation. Not imported into `batch/stg-01-staging-runtime-acceptance` from this status file. Do not merge.
+Branch: `ws3/stg-06-quote-identity-register-authority` from exact start `a02cd21875d0717adb6694d293b41575302b2415`.
+Scope: persist rebuildable `pos_catalog_items` during catalog sync; translate POS quote IDs to Woo source IDs server-side; preserve last-known register/shift on transient refresh failure; related quote URL, shift-open idempotency, register error, rebuild-catalog observability. Not imported into `batch/stg-01-staging-runtime-acceptance` from this status file. Do not merge.
 
 ## STG-01 integration (active, not this branch)
 

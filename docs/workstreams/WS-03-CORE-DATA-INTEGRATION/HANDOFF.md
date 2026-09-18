@@ -1,4 +1,27 @@
-# WS3 current handoff — STG-02 route session persistence
+# WS3 current handoff — STG-06 quote identity + register authority
+
+Kind: TASK_COMPLETION. Date: 2026-09-18.
+
+Task / batch / workstream: STG-06 live quote identity + register authority / WS3.
+Owner / integration editor: `@wbdevworld` / WS3.
+Requested human reviewer: independent senior review; no self-approve.
+Mode: REMEDIATE.
+Branch: `ws3/stg-06-quote-identity-register-authority`
+Starting exact head: `a02cd21875d0717adb6694d293b41575302b2415`
+Start `origin/main`: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Start batch ref: `origin/batch/stg-01-staging-runtime-acceptance` = `4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897`
+Evidence: `docs/integration/evidence/STG-06-QUOTE-IDENTITY-REGISTER-AUTHORITY.md`
+
+Allowed: `apps/pos-web/src/server/**`, `apps/pos-web/src/core/**`, `apps/pos-web/src/app/**`, `apps/pos-web/src/local/**`, CURRENT-WORK, WS3 STATUS/HANDOFF, this evidence.
+Forbidden: `main`, R9, WS1 feature/ui redesign, WS2 plugin, auth/CSRF/RLS weakening, CatalogItem.id = Woo ID, sourceItemId in Sell UI contracts, B2BKing/WoodMart pricing in BFF/frontend, new catalog migration.
+
+Contracts changed: none. Database migrations: none. Architecture decisions: none. Existing `public.pos_catalog_items` is sufficient.
+
+Do not merge. Do not modify `main`. Do not import/start R9. Live Preview still needs this contributor SHA imported and redeployed before quote/register defects can close. `pricingParityVerified=false`. CP-04 / #4 remain open. Next exact action: independent review, then integrate into `batch/stg-01-staging-runtime-acceptance` and re-run STG-06 against the new Preview.
+
+---
+
+# WS3 previous handoff — STG-02 route session persistence
 
 Kind: TASK_COMPLETION. Date: 2026-09-18.
 

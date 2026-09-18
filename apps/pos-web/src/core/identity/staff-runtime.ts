@@ -62,6 +62,49 @@ function noticeFromFailure(result: ApiResult<unknown>): StaffRuntimeStatus {
   return "unavailable";
 }
 
+function isAuthClosed(status: StaffRuntimeStatus): boolean {
+  return status === "signed_out" || status === "expired" || status === "unauthorized";
+}
+
+function authClosedAuthority(
+  status: StaffRuntimeStatus,
+  errorMessage: string | undefined,
+): StaffRuntimeAuthority {
+  return {
+    ...idle,
+    status,
+    errorMessage,
+  };
+}
+
+function isRetryableRegisterFailure(result: ApiResult<unknown>): boolean {
+  if (result.ok) {
+    return false;
+  }
+  if (result.error.code === "AUTH_REQUIRED" || result.error.code === "FORBIDDEN") {
+    return false;
+  }
+  if (result.error.code === "NOT_FOUND") {
+    return false;
+  }
+  return result.error.code === "INTEGRATION_UNAVAILABLE" || result.error.retryable === true;
+}
+
+function canPreserveRegister(
+  previous: StaffRuntimeAuthority,
+  context: StaffSessionContext,
+  registerId: string,
+): boolean {
+  return (
+    previous.status === "ready" &&
+    previous.session?.actorId === context.session.actorId &&
+    previous.session?.organizationId === context.session.organizationId &&
+    previous.register?.id === registerId &&
+    previous.assignedRegisterIds[0] === registerId &&
+    context.assignedRegisterIds[0] === registerId
+  );
+}
+
 export function createStaffRuntimeController(input: {
   readonly gateway: StaffSessionBffGateway;
   readonly auth: StaffAuthProvider;
@@ -81,7 +124,10 @@ export function createStaffRuntimeController(input: {
     notify();
   }
 
-  async function loadRegister(context: StaffSessionContext): Promise<StaffRuntimeAuthority> {
+  async function loadRegister(
+    context: StaffSessionContext,
+    previous: StaffRuntimeAuthority,
+  ): Promise<StaffRuntimeAuthority> {
     const registerId = context.assignedRegisterIds[0];
     if (!registerId) {
       return {
@@ -96,30 +142,75 @@ export function createStaffRuntimeController(input: {
     }
     const registerResult = await input.registers.get(registerId);
     if (!registerResult.ok) {
+      const notice = noticeFromFailure(registerResult);
+      if (isAuthClosed(notice)) {
+        return authClosedAuthority(notice, registerResult.error.message);
+      }
+      if (registerResult.error.code === "NOT_FOUND") {
+        return {
+          status: "ready",
+          session: context.session,
+          assignedLocationIds: context.assignedLocationIds,
+          assignedRegisterIds: context.assignedRegisterIds,
+          register: null,
+          shift: null,
+          shiftOpen: false,
+          errorMessage: registerResult.error.message,
+        };
+      }
+      if (isRetryableRegisterFailure(registerResult) && canPreserveRegister(previous, context, registerId)) {
+        return {
+          status: "ready",
+          session: context.session,
+          assignedLocationIds: context.assignedLocationIds,
+          assignedRegisterIds: context.assignedRegisterIds,
+          register: previous.register,
+          shift: previous.shift,
+          shiftOpen: previous.shiftOpen,
+          errorMessage: registerResult.error.message,
+        };
+      }
       return {
-        status: noticeFromFailure(registerResult) === "signed_out" || noticeFromFailure(registerResult) === "expired"
-          ? noticeFromFailure(registerResult)
-          : "ready",
+        status: "ready",
         session: context.session,
         assignedLocationIds: context.assignedLocationIds,
         assignedRegisterIds: context.assignedRegisterIds,
         register: null,
         shift: null,
         shiftOpen: false,
-        errorMessage: registerResult.ok ? undefined : registerResult.error.message,
+        errorMessage: registerResult.error.message,
       };
     }
     const shiftResult = await input.registers.activeShift(registerId);
-    const shift = shiftResult.ok ? shiftResult.data : null;
+    if (!shiftResult.ok) {
+      const notice = noticeFromFailure(shiftResult);
+      if (isAuthClosed(notice)) {
+        return authClosedAuthority(notice, shiftResult.error.message);
+      }
+      const preserveShift =
+        isRetryableRegisterFailure(shiftResult) &&
+        previous.register?.id === registerResult.data.id &&
+        previous.shift !== null &&
+        previous.session?.actorId === context.session.actorId;
+      return {
+        status: "ready",
+        session: context.session,
+        assignedLocationIds: context.assignedLocationIds,
+        assignedRegisterIds: context.assignedRegisterIds,
+        register: registerResult.data,
+        shift: preserveShift ? previous.shift : null,
+        shiftOpen: preserveShift ? previous.shiftOpen : false,
+        errorMessage: shiftResult.error.message,
+      };
+    }
     return {
       status: "ready",
       session: context.session,
       assignedLocationIds: context.assignedLocationIds,
       assignedRegisterIds: context.assignedRegisterIds,
       register: registerResult.data,
-      shift,
-      shiftOpen: shiftIsOpen(shift),
-      errorMessage: shiftResult.ok ? undefined : shiftResult.error.message,
+      shift: shiftResult.data,
+      shiftOpen: shiftIsOpen(shiftResult.data),
     };
   }
 
@@ -132,7 +223,7 @@ export function createStaffRuntimeController(input: {
       });
       return;
     }
-    setState(await loadRegister(result.data));
+    setState(await loadRegister(result.data, state));
   }
 
   return {
@@ -180,11 +271,14 @@ export function createStaffRuntimeController(input: {
       }
       const current = state.session;
       setState(
-        await loadRegister({
-          session: current,
-          assignedLocationIds: state.assignedLocationIds,
-          assignedRegisterIds: state.assignedRegisterIds,
-        }),
+        await loadRegister(
+          {
+            session: current,
+            assignedLocationIds: state.assignedLocationIds,
+            assignedRegisterIds: state.assignedRegisterIds,
+          },
+          state,
+        ),
       );
     },
     applyShift(shift) {
@@ -199,6 +293,7 @@ export function createStaffRuntimeController(input: {
         ...state,
         shift,
         shiftOpen,
+        errorMessage: undefined,
       });
     },
   };

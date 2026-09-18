@@ -11,6 +11,8 @@ import {
 } from "./compose-catalog-bridge";
 import { handleCatalogSync } from "./handle-catalog-sync";
 import { mapBridgeCatalogItem } from "./map-bridge-catalog";
+import { createMemoryCatalogProjectionStore } from "./catalog-projection-store";
+import { quotesUrl } from "../quotes/compose-quote-bridge";
 
 const CORRELATION = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
 const CSRF = "csrf-catalog-token";
@@ -105,9 +107,10 @@ describe("STG-04 BFF catalog sync", () => {
     }
   });
 
-  test("maps producer items and forwards cursor/limit/modifiedAfter", async () => {
+  test("maps producer items, persists projection identity, and forwards cursor/limit/modifiedAfter", async () => {
     const { store, cookieHeader } = await staffCookies();
     let seen: { cursor?: string; limit?: number; modifiedAfter?: string } | undefined;
+    const projectionStore = createMemoryCatalogProjectionStore();
     const result = await handleCatalogSync({
       correlationIdHeader: CORRELATION,
       cookieHeader,
@@ -117,6 +120,7 @@ describe("STG-04 BFF catalog sync", () => {
       now: NOW,
       appEnv: "staging",
       sessionStore: store,
+      projectionStore,
       bridge: pageBridge([SIMPLE_DTO], "101", (query) => {
         seen = query;
       }),
@@ -132,6 +136,9 @@ describe("STG-04 BFF catalog sync", () => {
       const item = result.body.data.items[0] as CatalogSourceRecord;
       expect(item.posItemId).toBe(mapBridgeCatalogItem(SIMPLE_DTO)?.posItemId);
       expect(item.displayPrice).toBeUndefined();
+      const mapped = await projectionStore.loadByItemIds("org_a", [item.posItemId]);
+      expect(mapped[0]?.sourceItemId).toBe("101");
+      expect(JSON.stringify(mapped)).not.toContain("display");
       expect(JSON.stringify(result.body)).not.toContain("BRIDGE_USERNAME");
       expect(JSON.stringify(result.body)).not.toContain("BRIDGE_APPLICATION_PASSWORD");
     }
@@ -158,9 +165,18 @@ describe("STG-04 BFF catalog sync", () => {
     expect(result.status).toBe(400);
   });
 
-  test("catalogUrl stays on the CETECH POS Bridge namespace", () => {
+  test("catalogUrl and quotesUrl stay on the CETECH POS Bridge namespace without duplicating wp-json", () => {
     expect(catalogUrl("https://training.cetechbpa.com")).toBe(
       "https://training.cetechbpa.com/wp-json/cetech-pos/v1/catalog",
+    );
+    expect(quotesUrl("https://training.cetechbpa.com")).toBe(
+      "https://training.cetechbpa.com/wp-json/cetech-pos/v1/quotes",
+    );
+    expect(quotesUrl("https://training.cetechbpa.com/wp-json/cetech-pos/v1")).toBe(
+      "https://training.cetechbpa.com/wp-json/cetech-pos/v1/quotes",
+    );
+    expect(quotesUrl("https://training.cetechbpa.com/wp-json/cetech-pos/v1/quotes")).toBe(
+      "https://training.cetechbpa.com/wp-json/cetech-pos/v1/quotes",
     );
     expect(
       withCatalogQuery("https://training.cetechbpa.com/wp-json/cetech-pos/v1/catalog", {

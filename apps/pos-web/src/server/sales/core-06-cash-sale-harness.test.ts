@@ -170,6 +170,18 @@ async function setupSale(customer: QuoteRequest["customer"] = { kind: "walkin" }
     sessionStore: opened.sessionStore,
     allowedOrigins: [ORIGIN],
     snapshots: checkoutStore,
+    catalogIdentity: {
+      async loadByItemIds() {
+        return [
+          {
+            itemId: "p-hardener",
+            sourceSystem: "woocommerce",
+            sourceItemId: "101",
+            tombstoned: false,
+          },
+        ];
+      },
+    },
     bridge: {
       async postQuote(request, correlationId) {
         const quote = quoteFromRequest(request);

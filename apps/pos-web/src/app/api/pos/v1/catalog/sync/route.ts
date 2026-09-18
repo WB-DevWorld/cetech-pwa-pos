@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { readAppEnv } from "../../../../../../config/env";
 import { composeStaffSessionStore } from "../../../../../../server/auth/compose-session-store";
 import { composeCatalogBridge } from "../../../../../../server/catalog/compose-catalog-bridge";
+import { composeCatalogProjectionStore } from "../../../../../../server/catalog/catalog-projection-store";
 import { handleCatalogSync } from "../../../../../../server/catalog/handle-catalog-sync";
 import { createServerRestFetch } from "../../../../../../server/http/server-fetch";
 import { authFailure } from "../../../../../../server/auth/errors";
@@ -11,13 +12,15 @@ import { httpStatusFor } from "../../../../../../server/http/status";
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const fetchImpl = createServerRestFetch();
   let sessionStore;
+  let projectionStore;
   try {
     sessionStore = composeStaffSessionStore(process.env, fetchImpl);
+    projectionStore = composeCatalogProjectionStore(process.env, fetchImpl);
   } catch {
     const correlation = resolveCorrelationId(request.headers.get("x-correlation-id") ?? undefined);
     const body = authFailure(
       "INTEGRATION_UNAVAILABLE",
-      "durable staff session store is required",
+      "durable staff session and catalog projection stores are required",
       correlation.correlationId,
     );
     return NextResponse.json(body, {
@@ -35,6 +38,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     appEnv: readAppEnv(),
     sessionStore,
     bridge: composeCatalogBridge(process.env, fetchImpl),
+    projectionStore,
   });
   return NextResponse.json(result.body, {
     status: result.status,

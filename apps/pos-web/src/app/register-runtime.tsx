@@ -77,7 +77,9 @@ export function RegisterRuntimeScreen({
       if (cancelled) {
         return;
       }
-      onShiftChange(result.ok ? result.data : null);
+      if (result.ok) {
+        onShiftChange(result.data);
+      }
     })();
     return () => {
       cancelled = true;
@@ -94,6 +96,13 @@ export function RegisterRuntimeScreen({
           registers: [{ id: registerId, name: registerName, locationLabel }],
           selectedRegisterId: registerId,
           online: typeof navigator === "undefined" ? true : navigator.onLine,
+          errorMessage:
+            flow.session.inputError ??
+            (flow.session.message &&
+            flow.session.message !== "Select a register and open a shift before taking payment." &&
+            flow.session.message !== "Opening the register."
+              ? flow.session.message
+              : undefined),
           onSubmit: (input) => {
             void flow.controller?.open(input.openingFloatMinor);
           },
@@ -110,6 +119,13 @@ export function RegisterRuntimeScreen({
           void flow.controller?.report("X");
         }}
       />
+      {flow.session.message &&
+      flow.session.message !== "Select a register and open a shift before taking payment." &&
+      flow.session.status === "no_open_shift" ? (
+        <p className="banner danger" role="alert" data-register-command-error="">
+          {flow.session.message}
+        </p>
+      ) : null}
       {flow.session.status === "requires_attention" ? (
         <p className="muted" data-shift-variance-recorded="" role="status">
           Counted cash has been recorded. Variance requires attention. Manager/reconciliation
