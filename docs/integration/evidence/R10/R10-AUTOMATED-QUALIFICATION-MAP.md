@@ -21,6 +21,7 @@ The new R10 guard tests therefore live under the existing `tests/integration/pay
 
 | Matrix ID | Executable evidence | What it proves | Remaining runtime evidence |
 | --- | --- | --- | --- |
+| Q-TX-PRE | `tests/integration/sales/r10-fail-closed-prepare-guards.test.ts` | wrong register authority or missing CSRF is rejected before Woo order / stock-reservation attempt | accepted staging negative-path proof later |
 | Q-TX-00 | `tests/integration/sales/r10-fail-closed-finalize-guards.test.ts` | wrong register authority or missing CSRF is rejected before commercial finalizer / stock effect | accepted staging negative-path proof later |
 | Q-TX-01 | `apps/pos-web/src/server/sales/core-06-cash-sale-harness.test.ts` — duplicate prepare same key | one commercial order reused | accepted STG-01 path |
 | Q-TX-02 | same file — changed prepare body conflicts | changed semantic request cannot reuse idempotency key | accepted STG-01 path |
@@ -93,6 +94,11 @@ These remain runtime/device/release evidence, not unit-test substitutes:
 1. missing prepared sale → NOT_FOUND and `provider.initializeCount === 0`;
 2. unavailable staff-assignment authority → INTEGRATION_UNAVAILABLE and `provider.initializeCount === 0`;
 3. missing CSRF → FORBIDDEN and `provider.initializeCount === 0`.
+
+`tests/integration/sales/r10-fail-closed-prepare-guards.test.ts` adds the pre-commerce effect-boundary proof:
+
+1. wrong register assignment → FORBIDDEN with zero Woo-order / stock-reservation effects;
+2. missing CSRF → FORBIDDEN with zero Woo-order / stock-reservation effects.
 
 `tests/integration/sales/r10-fail-closed-finalize-guards.test.ts` adds the finalization effect-boundary proof:
 
