@@ -1,37 +1,83 @@
-# WS3 current handoff — R8-02 Emmanuel exact-head runtime remediation
+# WS3 current handoff — REC-01 receipt product-name / SKU
 
-Kind: TASK_COMPLETION. Date: 2026-09-17.
+Kind: TASK_COMPLETION. UTC: 2026-09-18T17:10:00Z (review remediation close; freshness fields filled after Pass 2 if run).
 
-Task / batch / workstream: R8-02 / PR #69 / WS3.
-Owner / integration editor: `@wbdevworld` / WS3.
-Requested human reviewers: Emmanuel (verify the two WS1/WS3 blockers) and Ben (confirm no regression to the previously approved WS2/WS3 surface). This agent does not approve, merge, or dismiss reviews.
-Mode: INTEGRATE / REMEDIATE.
-PR: #69. Do not request merge. Do not self-approve.
+Task / batch / workstream: REC-01 / WS3 contributor branch PR #80 (not a milestone merge).
+Owner / integration editor / requested human reviewer: `@wbdevworld` / WS3. Independent human review required before merge. This agent does not approve, merge, or dismiss reviews.
+Mode: IMPLEMENT.
+PR: #80. Do not merge main. Do not deploy production.
 
-Branch: `batch/r8-safe-returns-reconciliation`
-Starting exact head: `79dab6096466e00fd8289300038f07619868f539`
-Prior R8-02 head: `0fe28d353002ef8836eb2739ed9174517da7846b`
-Start `origin/main`: `1feb78db36f33e0254c0170396f30112d71577ea`
+Branch: `ws3/receipt-product-name-sku`
+Starting/base SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` (`origin/main` R8 #69)
+Review-remediation starting HEAD: `f9c7c2a415823a8911435e56ce650a00e1ef0b7b`
+Current/final task head SHA: recorded after the remediation commit (cannot be self-referential in this file)
+Allowed / forbidden paths and central leases: WS3 contracts, `apps/pos-web/src/core/**`, `apps/pos-web/src/server/**`, `apps/pos-web/src/app/api/**`, `supabase/**`, `docs/**`, `tests/contracts/**`, `tests/integration/**`. Forbidden: WS1 `ProductSearch.tsx` / `sell.css` / cart presentation; WS2 plugin; production deploy.
+Files changed: durable `intent_snapshot` journal field, prepare append-before-send, variation parent fail-closed, tests, ADR-016.
+Contracts changed: v1.0.0 additive unchanged this remediation (`ReceiptLine.displayName?`/`sku?`, `ReceiptSettings` already on the branch).
+Database migrations: `20260918140000_pos_receipt_settings.sql` (pending shared-staging). `20260918150000_pos_prepare_intent_snapshot.sql` and `20260918151000_pos_prepare_intent_immutable.sql` (local Docker pgTAP only). **Remote staging UNVERIFIED / not applied from this work. Production not touched.**
+Architecture decisions: ADR-016 updated for durable pre-commercial intent and mandatory variation parent presentation.
 
-Contracts changed: none. Frozen v1 return-refund and CloseShiftRequest wires unchanged. Optional `approvalId` remains schema-valid and non-authoritative for shift close.
-Database migrations: none. Prior `20260916220000` / `20260917090000` allocation history is preserved.
+## Review blockers closed
 
-## Blockers fixed (not dismissed)
+1. Sale-time presentation is bound to the existing `sale.prepare` `pos_pending_operations` row as `intent_snapshot` **before** `SalesPort.prepare`. Recovery loads that exact intent after `SalesPort.resolve`. It does not re-read catalog. Missing intent fails `REQUIRES_ATTENTION`. Intent write failure does not call `SalesPort.prepare`.
+2. Quoted variations require parent catalog presentation. Missing parent is `INTEGRATION_UNAVAILABLE` with prepare count 0. Variation SKU still wins; blank variation + parent SKU uses parent; both blank omits SKU legitimately.
 
-1. Historic return lookup uses durable `PosSaleRecord.orderLines[].orderLineId` via `GET /api/pos/v1/returns/history/{saleKey}`. Cross-org/unknown sales return `NOT_FOUND`. Unauthorized location is `FORBIDDEN`. Non-completed sales are not exposed. Receipt-index identities are gone from the production path.
-2. Non-zero shift variance stays `requires_attention` even when `approvalId` is a valid UUID. `closedAt` is set only for zero variance. R8 does not claim manager approval for shift variance.
+## Durable prepare-intent design
+
+- Column: `pos_pending_operations.intent_snapshot jsonb` (not `outcome`).
+- Kind: `sale.prepare.presentation`.
+- Bound to organization + operation=`sale.prepare` + idempotency key + request hash + transaction scope.
+- First-write-wins: atomic PostgREST `PATCH` where `intent_snapshot=is.null` (`return=representation`); loser re-reads the existing snapshot.
+- Database trigger `pos_prepare_intent_snapshot_immutable` rejects `A→B` and `A→NULL`.
+- Contains quote id/fingerprint, transaction id, line ids, full sale-time name, variation label, effective SKU, quote-derived line economics.
+- Not a fabricated `PreparedSale`.
+
+## Append-before-send order
+
+1. validate quote/register/shift/device/scope
+2. claim/bind idempotency
+3. load/validate sale presentation, or reuse existing intent
+4. durably persist/bind `intent_snapshot`
+5. mark sent, then `SalesPort.prepare`
+6. validate commercial response
+7. persist `PosSaleRecord` from the exact durable intent
+8. acknowledge idempotency
+
+## Receipt settings defaults
+
+| Field | Default | Bounds |
+| --- | --- | --- |
+| `shortenProductNames` | `false` | boolean |
+| `productNameMaxCharacters` | `40` | integer 1–256 |
+| `showSku` | `false` | boolean |
+
+Missing `pos_receipt_settings` row means those defaults. Shortening defaults OFF.
 
 ## Tests executed (local)
 
-See `docs/integration/evidence/R8-REVIEW-REMEDIATION.md` R8-02 review-spec close-out. 72 files / 671 tests; E2E 9 passed; return pgTAP 43/43; bridge 1555/0; parity 138/0/19 skip.
+- `pnpm --dir apps/pos-web lint` PASS
+- `pnpm --dir apps/pos-web typecheck` PASS
+- `pnpm --dir apps/pos-web test` PASS — 76 files / 712 tests
+- `pnpm --dir apps/pos-web build` PASS
+- `python scripts/verify_control_plane.py` PASS (82 schemas, 68 fixtures)
+- `python -m unittest discover -s tests/tooling -v` PASS — 48 OK
+- Local pgTAP `supabase/tests/prepare_intent_snapshot.sql`: 6/6 ok (BEGIN/ROLLBACK)
+- Local Docker additive apply of `20260918150000` only. No remote staging apply. No production.
 
-Remote effects performed: none (no Paystack, no Woo refund/restock, no production, no VitePOS change).
+Remote effects performed: none (no Paystack, no Woo sale/refund, no production, no VitePOS change).
+
+## Remaining / not done
+
+- Compact POS two-line UI: WS1, out of scope
+- Remote staging migration/sale/reprint for `20260918140000` and `20260918150000`: UNVERIFIED / senior shared-staging verification
+- Milestone PR / merge / production deploy: NOT AUTHORIZED
+- Unrelated untracked `doc/` preserved, not committed
 
 ## Next exact action
 
-Push this close-out commit. Wait for new exact-head `control-plane` and `control-plane-windows`. Then ADR-012 Pass 1 + Pass 2 only. Stop at `R8_REMEDIATION_READY_FOR_FINAL_REVIEW`. Fresh review on the NEW exact head is required from Emmanuel and Ben.
+Independent review of PR #80. Do not merge. Do not deploy production. Human senior applies shared-staging migrations when ready.
 
 Pass 3: NOT PERMITTED.
 Production promotion: NOT AUTHORIZED.
 Live electronic payment / live refund/restock: NOT AUTHORIZED.
-Merge of PR #69: NOT AUTHORIZED.
+Merge to main: NOT AUTHORIZED.

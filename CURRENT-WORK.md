@@ -1,24 +1,24 @@
 # Current work ledger
 
-Updated 2026-09-16. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
+Updated 2026-09-18. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
 
 ## Current authority
 
-- `main`: `1feb78db36f33e0254c0170396f30112d71577ea` — squash-merged `[R7] Verified electronic payment and reconciliation (#58)`. Protected. Post-merge CI run `35136321143` SUCCESS.
-- CD-01 chain remains in history: `#65` `a9db7ad…`, `#66` `97f6436…`, `#67` `6548906…`, `#68` `b85c5da…`. R6 remains `bd79c2901ce33c3177141d4244cc196be0a719d2`.
-- ADR-012, ADR-014 and accepted ADR-015 are active; ownership-preserving milestone execution remains required.
+- `main`: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` — squash-merged `[R8] Safe returns and payment/register states (#69)`. Protected. Observed 2026-09-18 via `git fetch origin`.
+- Previous accepted R7 remains in history: `1feb78db36f33e0254c0170396f30112d71577ea`. CD-01 chain `#65`–`#68`. R6 remains `bd79c2901ce33c3177141d4244cc196be0a719d2`.
+- ADR-012, ADR-014, accepted ADR-015, and ADR-016 (receipt product-name/SKU snapshot) are active; ownership-preserving milestone execution remains required.
 - Issue #4 remains **OPEN**. `pricingParityVerified=false`. Production promotion is not authorized.
 - Live Paystack / live electronic payment is not authorized. Live refund/restock is not authorized. VitePOS remains active.
-- R9 is **not** imported. CORE-07, FE-07, Store Health, new PWA lifecycle, and operational-close/Z-report work stay downstream.
+- R9 is **not** imported by this assignment. Compact POS two-line product-name wrapping is WS1 follow-on, not this WS3 foundation.
 
 ```text
 human: @wbdevworld
 workstream: WS3
-mode: INTEGRATE / REMEDIATE
-task: R8-02 — Emmanuel exact-head WS1/WS3 runtime remediation
+mode: IMPLEMENT
+task: REC-01 — receipt product-name / SKU snapshot and operational settings
 ```
 
-Ben `APPROVED` exact head `79dab6096466e00fd8289300038f07619868f539`. Emmanuel `CHANGES_REQUESTED` the same head. This assignment remediates Emmanuel's two runtime blockers (fabricated receipt `orderLineId`; invented shift-variance `approvalId`). Do not dismiss either review. Do not merge PR #69.
+Senior-authorized WS3 foundation. Branch `ws3/receipt-product-name-sku` from `origin/main` `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`. Do not merge main from this ledger. Do not deploy production. WS1 compact-UI / receipt-paper rendering is a later Ben task after this head is published.
 
 ## R6 closure (historical)
 
@@ -36,17 +36,22 @@ Preserved R7 evidence (no secrets):
 - `docs/integration/evidence/R7-PAY-01-CONCURRENCY.md` — monotonic payment/sale transitions.
 - `docs/integration/evidence/R7-PAY-01-MILESTONE-FRESHNESS.md`.
 
-R7 fail-closed rules remain in force on `main` and must not regress on the R8 candidate: browser callback is not payment truth; server verification binds reference / POS transaction / order / amount / currency; Paystack execution only when `PAYMENT_PROVIDER=paystack`, `PAYSTACK_MODE=test`, `sk_test_` present; refuse `sk_live_` and `NEXT_PUBLIC_PAYSTACK_SECRET`; verified payments and `finalizing`/`completed` sales are monotonic.
+R7 fail-closed rules remain in force on `main` and must not regress: browser callback is not payment truth; server verification binds reference / POS transaction / order / amount / currency; Paystack execution only when `PAYMENT_PROVIDER=paystack`, `PAYSTACK_MODE=test`, `sk_test_` present; refuse `sk_live_` and `NEXT_PUBLIC_PAYSTACK_SECRET`; verified payments and `finalizing`/`completed` sales are monotonic.
 
-## Active assignment — R8-02 runtime remediation
+## R8 — merged to protected main
 
-- Milestone PR: **#69** — `[R8] Safe returns and payment/register states`. Do not self-approve. Do not merge from this ledger.
-- Recovery/integration branch: `batch/r8-safe-returns-reconciliation`.
-- Starting exact head: `79dab6096466e00fd8289300038f07619868f539` (Ben APPROVED; Emmanuel CHANGES_REQUESTED).
-- First R8-02 replacement: `0fe28d353002ef8836eb2739ed9174517da7846b`. This close-out tightens lookup authorization (cross-org `NOT_FOUND`, unauthorized location, non-completed/unknown sale) without redesigning R8.
-- Prior R8-01 remediation (economicsVersion, persisted allocations, BFF composition, non-negative allocation migration) remains in history and must not be rewritten.
-- This assignment remediates Emmanuel's two WS1/WS3 runtime blockers: authorized historic return-sale lookup using durable `orderLines[].orderLineId`, and fail-closed shift variance that ignores invented `approvalId`.
-- Remediation evidence: `docs/integration/evidence/R8-REVIEW-REMEDIATION.md`.
+PR #69 squash-merged as `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`. R8-02 runtime remediation is historical. Do not reopen `batch/r8-safe-returns-reconciliation` for new work.
+
+## Active assignment — REC-01 receipt product-name / SKU
+
+- Contributor branch: `ws3/receipt-product-name-sku`.
+- Base: `origin/main` `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`.
+- Allowed: WS3 contracts, `apps/pos-web/src/core/**`, `apps/pos-web/src/server/**`, `apps/pos-web/src/app/api/**`, `supabase/**`, `docs/**`, `tests/contracts/**`, `tests/integration/**` as needed for this feature.
+- Forbidden: WS1 compact-UI / `ProductSearch.tsx` / `sell.css` / cart presentation; WS2 plugin; production deploy; merge to main from this ledger.
+- Contract: ADR-016 additive `ReceiptLine.displayName`/`sku` and `ReceiptSettings`. Quote pricing unchanged.
+- Migration: additive `20260918140000_pos_receipt_settings.sql`, `20260918150000_pos_prepare_intent_snapshot.sql`, and `20260918151000_pos_prepare_intent_immutable.sql`. Local Docker apply is for pgTAP only. Remote staging UNVERIFIED / not applied from this ledger. Production not touched.
+
+## R8 provenance (historical)
 
 Accepted contract:
 
@@ -59,32 +64,13 @@ Accepted owner implementations (historical provenance):
 - BR-08 / #60 WS2 source `dcf9098a331f878647e067fc78b3c05778f8f668` — CLOSED / COMPLETED.
 - FE-06 / #11 WS1 source `0ddde7c727337c4005e9878071817bbf826d41a2`; remediation includes `d3ddf0a7592845c710fe768b3645b9a9109693cb` — CLOSED / COMPLETED.
 
-Combined downstream receiver (pre-final-R7 rebase/reconcile):
-
-- branch: `batch/rt01-safe-returns-ws3-integrated`
-- BR-08 import: `79d9270a418ec958ffd716b7a20a8d1c213b5e8d`
-- FE-06 import: `bc521c598b834930d2fd6b56c8225b2b08a3ec2a`
-- exact integrated receiver: `d54a916946a6dcf0dfbc636d93528ac58a77ca1b`
-- accepted downstream head: `5fa875eb43c0b2f62b59b80a3dfa3812c2d1e190`
-- PR #62 combined CI `35017127991`: Linux + Windows SUCCESS.
-- post-integration receiver CI `35017460256`: Linux + Windows SUCCESS.
-
-Reconciliation evidence: `docs/integration/evidence/R8-FINAL-R7-RECONCILIATION.md`.
-
-Recommended independent review coverage (do not self-approve): Ben reviews WS2/WS3 integration portions, not his own FE-06 as independent coverage; Emmanuel reviews WS1/WS3 integration portions, not his own BR-08 as independent coverage.
-
 ## R8 safety boundaries retained
 
-- No real Woo refund or real stock disposition is authorized by this milestone.
+- No real Woo refund or real stock disposition is authorized by this assignment.
 - No live Paystack/provider refund or live electronic payment is authorized.
 - No production mutation, promotion, or VitePOS deactivation is authorized.
 - Historic sale economics remain authoritative for returns/refunds.
-- Tender refund, Woo commercial refund accounting and physical stock disposition remain independent effects with independent durable identities/idempotency and resolve paths.
-- Damaged, quarantine and not-physically-returned goods must not auto-restock sellable stock.
-- Unknown provider refund results use the existing refund/effect identity (`resolve`), not a second money effect.
-- `opened_resellable` / `defective` remain fail-closed without an approved tenant restock policy.
-- Concrete Paystack refund create remains fail-closed where the provider cannot satisfy the accepted durable idempotency/recovery contract.
 
 ## Next milestone boundary
 
-R9 (`batch/r9-pwa-recovery-operational-close`) remains downstream and is not part of this reconciliation. Do not merge PR #69 from this ledger. Controlled training refund/restock rehearsal remains a remaining gate if independently authorized later; it is not executed here.
+R9 (`batch/r9-pwa-recovery-operational-close`) remains downstream. Compact POS two-line product-name wrapping is a separate WS1 task after REC-01 is published. Do not merge this branch from this ledger. Production promotion is not authorized.

@@ -1137,5 +1137,71 @@
       "attempts": 1,
       "createdAt": "2026-09-15T12:00:00.000Z"
     }
+  },
+  {
+    "name": "receipt settings defaults are valid",
+    "schema": "ReceiptSettings",
+    "valid": true,
+    "value": {
+      "shortenProductNames": false,
+      "productNameMaxCharacters": 40,
+      "showSku": false
+    }
+  },
+  {
+    "name": "receipt settings max characters zero denied",
+    "schema": "ReceiptSettings",
+    "valid": false,
+    "value": {
+      "shortenProductNames": true,
+      "productNameMaxCharacters": 0,
+      "showSku": true
+    }
+  },
+  {
+    "name": "receipt line frozen display name and sku",
+    "schema": "ReceiptLine",
+    "valid": true,
+    "value": {
+      "name": "Armoured Cable 4-Core 25mm Copper Conductor",
+      "displayName": "Armoured Cable 4-\u2026",
+      "sku": "CBL-ARM-RED",
+      "variationLabel": "Red",
+      "quantity": "1",
+      "unitPrice": { "minor": 2900, "currency": "GHS" },
+      "subtotal": { "minor": 2900, "currency": "GHS" },
+      "discount": { "minor": 0, "currency": "GHS" },
+      "tax": { "minor": 0, "currency": "GHS" },
+      "total": { "minor": 2900, "currency": "GHS" }
+    }
+  },
+  {
+    "name": "legacy receipt line without displayName still valid",
+    "schema": "ReceiptLine",
+    "valid": true,
+    "value": {
+      "name": "p-hardener",
+      "quantity": "1",
+      "unitPrice": { "minor": 1500, "currency": "GHS" },
+      "subtotal": { "minor": 1500, "currency": "GHS" },
+      "discount": { "minor": 0, "currency": "GHS" },
+      "tax": { "minor": 0, "currency": "GHS" },
+      "total": { "minor": 1500, "currency": "GHS" }
+    }
+  },
+  {
+    "name": "receipt line empty sku denied",
+    "schema": "ReceiptLine",
+    "valid": false,
+    "value": {
+      "name": "Epoxy Hardener 1L",
+      "sku": "",
+      "quantity": "1",
+      "unitPrice": { "minor": 1500, "currency": "GHS" },
+      "subtotal": { "minor": 1500, "currency": "GHS" },
+      "discount": { "minor": 0, "currency": "GHS" },
+      "tax": { "minor": 0, "currency": "GHS" },
+      "total": { "minor": 1500, "currency": "GHS" }
+    }
   }
 ]

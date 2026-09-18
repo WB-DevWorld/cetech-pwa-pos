@@ -28,6 +28,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     allowedOrigins: staffAllowedOrigins(),
     checkoutStore: composed.runtime.store,
     salesPort: composed.runtime.salesPort,
+    receiptSettings: composed.runtime.receiptSettings,
     assignments: composed.assignments,
   });
   return NextResponse.json(result.body, { status: result.status, headers: result.headers });

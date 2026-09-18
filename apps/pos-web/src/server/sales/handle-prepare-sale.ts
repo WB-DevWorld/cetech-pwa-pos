@@ -6,6 +6,7 @@ import { apiFailure } from "../http/api-failure";
 import type { StaffSessionStore } from "../auth/session-store";
 import { httpStatusFor } from "../http/status";
 import type { CheckoutStore } from "../../core/checkout/types";
+import type { CatalogPresentationLookup } from "../../core/receipt/catalog-presentation";
 import { authorizeCheckoutMutation, mutationProtectionFrom } from "./authorize-checkout";
 import { guardStaffCommand, type CommandHttpHeaders } from "./guard-staff-command";
 import { prepareSale } from "./prepare-sale";
@@ -24,6 +25,7 @@ export type HandlePrepareSaleInput = {
   readonly allowedOrigins: readonly string[];
   readonly checkoutStore: CheckoutStore;
   readonly salesPort: Pick<SalesPort, "prepare" | "resolve">;
+  readonly catalogLookup: CatalogPresentationLookup;
   readonly assignments: StaffAssignmentDirectory;
 };
 
@@ -79,6 +81,7 @@ export async function handlePrepareSale(input: HandlePrepareSaleInput): Promise<
   const result = await prepareSale({
     store: input.checkoutStore,
     salesPort: input.salesPort,
+    catalogLookup: input.catalogLookup,
     actor: guard.session,
     request: input.body,
     context: { idempotencyKey: guard.idempotencyKey, correlationId: guard.correlationId },

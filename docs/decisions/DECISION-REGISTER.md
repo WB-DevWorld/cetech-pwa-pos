@@ -20,6 +20,7 @@ Current baseline established 2026-09-11 under explicit bootstrap authorization. 
 
 | [ADR-014](ADR/014.md) | Ownership-preserving milestone execution and cross-owner provisional-SHA handoff | CURRENT human direction; repository adoption pending correction review/merge | 2026-09-13 | Prevent integration queue from becoming cross-owner implementation authority | ADR-012 unqualified continuation / R5+ contributor-PR reuse only | Workflow/handoff only; v1 unchanged | WS1/2/3 |
 | [ADR-015](ADR/015.md) | Independent return money and stock-disposition wires | CONTRACT REFINEMENT CANDIDATE / AWAITING REQUIRED CONSUMER+PRODUCER REVIEW | 2026-09-15 | Preview-only bridge cannot execute safe independent refund and restock effects. PR #59 review required `PaymentPort.resolveRefund` and allocated `effectId`. | Decision Register UNRESOLVED refund bridge execution wires | ReturnPort, PaymentPort.refund, PaymentPort.resolveRefund, RefundLookup, BridgeReturnEffectsPort, historic snapshot, bridge commercial-refund/stock-disposition | WS1/2/3 |
+| [ADR-016](ADR/016.md) | Immutable receipt product-name and SKU snapshot | CURRENT for WS3 foundation; WS1 consumer review pending | 2026-09-18 | Sale-time catalog presentation frozen onto ReceiptLine; POS receipt settings; no catalog truncation | Prepare-time productId-as-name mapping | ReceiptLine, ReceiptSettings; v1.0.0 additive | WS3 now; WS1 later |
 
 | Fact/proposal | Status | Controlling treatment |
 | --- | --- | --- |
