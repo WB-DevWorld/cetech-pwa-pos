@@ -54,10 +54,11 @@ Historical PASS evidence is not silently promoted to current staging or producti
 ## Prepared R10 artifacts
 
 1. `QA-01-QUALIFICATION-MATRIX.md` — failure, security and invariant qualification map.
-2. `R10-EVIDENCE-TEMPLATE.md` — common evidence record for later execution.
-3. `docs/runbooks/R10-DEVICE-AND-PWA-REHEARSAL.md` — installed-device/update/recovery procedure.
-4. `docs/runbooks/R10-BACKUP-RESTORE-ROLLBACK.md` — recovery and rollback procedure.
-5. `docs/runbooks/R10-VITEPOS-CUTOVER-PILOT.md` — cutover/pilot/first-day procedure.
+2. `R10-AUTOMATED-QUALIFICATION-MAP.md` — maps R6–R8 executable tests to QA-01 matrix IDs and records remaining runtime-only gaps.
+3. `R10-EVIDENCE-TEMPLATE.md` — common evidence record for later execution.
+4. `docs/runbooks/R10-DEVICE-AND-PWA-REHEARSAL.md` — installed-device/update/recovery procedure.
+5. `docs/runbooks/R10-BACKUP-RESTORE-ROLLBACK.md` — recovery and rollback procedure.
+6. `docs/runbooks/R10-VITEPOS-CUTOVER-PILOT.md` — cutover/pilot/first-day procedure.
 
 ## Status vocabulary
 
