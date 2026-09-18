@@ -570,15 +570,24 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
       if (current) {
         return current;
       }
-      await patchPending(request, organizationId, operation, idempotencyKey, {
-        intent_snapshot: snapshot,
+      const result = await request({
+        path: `pos_pending_operations?organization_id=eq.${encodeURIComponent(organizationId)}&operation=eq.${encodeURIComponent(operation)}&idempotency_key=eq.${encodeURIComponent(idempotencyKey)}&intent_snapshot=is.null`,
+        method: "PATCH",
+        prefer: "return=representation",
+        body: { intent_snapshot: snapshot },
       });
-      const bound = await getPending(getRows, organizationId, operation, idempotencyKey);
-      const parsed = parseIntentSnapshot(bound?.intent_snapshot);
-      if (!parsed) {
-        throw new Error("durable checkout store rejected prepare intent");
+      if (result.status < 400) {
+        const written = firstIntentFromBody(result.body);
+        if (written) {
+          return written;
+        }
       }
-      return parsed;
+      const raced = await getPending(getRows, organizationId, operation, idempotencyKey);
+      const parsed = parseIntentSnapshot(raced?.intent_snapshot);
+      if (parsed) {
+        return parsed;
+      }
+      throw new Error("durable checkout store rejected prepare intent");
     },
 
     async getPrepareIntent(organizationId, operation, idempotencyKey) {
@@ -703,6 +712,21 @@ function mapCommandScope(row: RestRow): CommandScopeBinding | undefined {
 
 function parseIntentSnapshot(value: unknown): PrepareIntentSnapshot | undefined {
   return isPrepareIntentSnapshot(value) ? value : undefined;
+}
+
+function firstIntentFromBody(body: unknown): PrepareIntentSnapshot | undefined {
+  if (!Array.isArray(body)) {
+    return undefined;
+  }
+  for (const row of body) {
+    if (row !== null && typeof row === "object" && "intent_snapshot" in row) {
+      const parsed = parseIntentSnapshot((row as RestRow).intent_snapshot);
+      if (parsed) {
+        return parsed;
+      }
+    }
+  }
+  return undefined;
 }
 
 function claimFromRow(row: RestRow, requestHash: string): IdempotencyClaim {

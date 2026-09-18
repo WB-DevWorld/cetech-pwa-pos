@@ -49,7 +49,7 @@ PR #69 squash-merged as `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`. R8-02 runtim
 - Allowed: WS3 contracts, `apps/pos-web/src/core/**`, `apps/pos-web/src/server/**`, `apps/pos-web/src/app/api/**`, `supabase/**`, `docs/**`, `tests/contracts/**`, `tests/integration/**` as needed for this feature.
 - Forbidden: WS1 compact-UI / `ProductSearch.tsx` / `sell.css` / cart presentation; WS2 plugin; production deploy; merge to main from this ledger.
 - Contract: ADR-016 additive `ReceiptLine.displayName`/`sku` and `ReceiptSettings`. Quote pricing unchanged.
-- Migration: additive `20260918140000_pos_receipt_settings.sql` and additive `20260918150000_pos_prepare_intent_snapshot.sql`. Local Docker apply of receipt settings was previously done. The new `intent_snapshot` migration is **not** applied to remote staging from this ledger. Production not touched.
+- Migration: additive `20260918140000_pos_receipt_settings.sql`, `20260918150000_pos_prepare_intent_snapshot.sql`, and `20260918151000_pos_prepare_intent_immutable.sql`. Local Docker apply is for pgTAP only. Remote staging UNVERIFIED / not applied from this ledger. Production not touched.
 
 ## R8 provenance (historical)
 

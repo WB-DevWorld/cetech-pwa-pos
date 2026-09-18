@@ -14,7 +14,7 @@ Current/final task head SHA: recorded after the remediation commit (cannot be se
 Allowed / forbidden paths and central leases: WS3 contracts, `apps/pos-web/src/core/**`, `apps/pos-web/src/server/**`, `apps/pos-web/src/app/api/**`, `supabase/**`, `docs/**`, `tests/contracts/**`, `tests/integration/**`. Forbidden: WS1 `ProductSearch.tsx` / `sell.css` / cart presentation; WS2 plugin; production deploy.
 Files changed: durable `intent_snapshot` journal field, prepare append-before-send, variation parent fail-closed, tests, ADR-016.
 Contracts changed: v1.0.0 additive unchanged this remediation (`ReceiptLine.displayName?`/`sku?`, `ReceiptSettings` already on the branch).
-Database migrations: `20260918140000_pos_receipt_settings.sql` (pending shared-staging). **New** `20260918150000_pos_prepare_intent_snapshot.sql` (additive `pos_pending_operations.intent_snapshot jsonb`). Applied on **local** Docker `supabase_db_cetech-pwa-pos` only. **Remote staging UNVERIFIED / not applied from this work. Production not touched.**
+Database migrations: `20260918140000_pos_receipt_settings.sql` (pending shared-staging). `20260918150000_pos_prepare_intent_snapshot.sql` and `20260918151000_pos_prepare_intent_immutable.sql` (local Docker pgTAP only). **Remote staging UNVERIFIED / not applied from this work. Production not touched.**
 Architecture decisions: ADR-016 updated for durable pre-commercial intent and mandatory variation parent presentation.
 
 ## Review blockers closed
@@ -27,7 +27,8 @@ Architecture decisions: ADR-016 updated for durable pre-commercial intent and ma
 - Column: `pos_pending_operations.intent_snapshot jsonb` (not `outcome`).
 - Kind: `sale.prepare.presentation`.
 - Bound to organization + operation=`sale.prepare` + idempotency key + request hash + transaction scope.
-- Append-once: later binds return the original capture.
+- First-write-wins: atomic PostgREST `PATCH` where `intent_snapshot=is.null` (`return=representation`); loser re-reads the existing snapshot.
+- Database trigger `pos_prepare_intent_snapshot_immutable` rejects `A→B` and `A→NULL`.
 - Contains quote id/fingerprint, transaction id, line ids, full sale-time name, variation label, effective SKU, quote-derived line economics.
 - Not a fabricated `PreparedSale`.
 

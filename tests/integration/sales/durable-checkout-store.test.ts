@@ -13,6 +13,28 @@ const PREPARE_KEY = "66666666-6666-4666-8666-666666666666";
 const HASH_A = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const HASH_B = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
+function intentSnapshot(name: string, sku: string) {
+  return {
+    kind: "sale.prepare.presentation" as const,
+    quoteId: "quote-r6-1",
+    quoteFingerprint: "0123456789abcdef0123456789abcdef",
+    transactionId: TX,
+    lineIds: ["cccccccc-cccc-4ccc-8ccc-cccccccccccc"],
+    lines: [
+      {
+        name,
+        sku,
+        quantity: "1",
+        unitPrice: { minor: 2900, currency: "GHS" as const },
+        subtotal: { minor: 2900, currency: "GHS" as const },
+        discount: { minor: 0, currency: "GHS" as const },
+        tax: { minor: 0, currency: "GHS" as const },
+        total: { minor: 2900, currency: "GHS" as const },
+      },
+    ],
+  };
+}
+
 function restFrom(
   handler: (input: string, init: Parameters<PosRestFetch>[1]) => Promise<{ status: number; body?: unknown }>,
 ): PosRestFetch {
@@ -280,37 +302,135 @@ describe("R6-REM-01 durable checkout store", () => {
         transactionId: TX,
       }),
     ).toEqual({ kind: "acquired" });
-    const first = {
-      kind: "sale.prepare.presentation" as const,
-      quoteId: "quote-r6-1",
-      quoteFingerprint: "0123456789abcdef0123456789abcdef",
-      transactionId: TX,
-      lineIds: ["cccccccc-cccc-4ccc-8ccc-cccccccccccc"],
-      lines: [
-        {
-          name: "Training Product 49111",
-          sku: "SKU-49111",
-          quantity: "1",
-          unitPrice: { minor: 2900, currency: "GHS" as const },
-          subtotal: { minor: 2900, currency: "GHS" as const },
-          discount: { minor: 0, currency: "GHS" as const },
-          tax: { minor: 0, currency: "GHS" as const },
-          total: { minor: 2900, currency: "GHS" as const },
-        },
-      ],
-    };
+    const first = intentSnapshot("Training Product 49111", "SKU-49111");
+    const changed = intentSnapshot("CHANGED NAME", "CHANGED-SKU");
     await expect(store.bindPrepareIntent("org_a", "sale.prepare", PREPARE_KEY, first)).resolves.toEqual(first);
-    await expect(
-      store.bindPrepareIntent("org_a", "sale.prepare", PREPARE_KEY, {
-        ...first,
-        lines: [{ ...first.lines[0]!, name: "CHANGED NAME", sku: "CHANGED-SKU" }],
-      }),
-    ).resolves.toEqual(first);
+    await expect(store.bindPrepareIntent("org_a", "sale.prepare", PREPARE_KEY, first)).resolves.toEqual(first);
+    await expect(store.bindPrepareIntent("org_a", "sale.prepare", PREPARE_KEY, changed)).resolves.toEqual(first);
     expect(await store.getPrepareIntent("org_a", "sale.prepare", PREPARE_KEY)).toEqual(first);
     expect(await store.getPrepareIntent("org_b", "sale.prepare", PREPARE_KEY)).toBeUndefined();
     await store.acknowledgeIdempotency("org_a", "sale.prepare", PREPARE_KEY, { status: "prepared" });
     expect(await store.getPrepareIntent("org_a", "sale.prepare", PREPARE_KEY)).toEqual(first);
     expect(fake.tables.pos_pending_operations[0]?.outcome).toEqual({ status: "prepared" });
     expect(fake.tables.pos_pending_operations[0]?.intent_snapshot).toEqual(first);
+  });
+
+  test("concurrent A/B binds keep the first durable snapshot", async () => {
+    const fake = createFakePosgrest();
+    let armRace = false;
+    let pendingGets = 0;
+    let releaseGets!: () => void;
+    let releasedGets = false;
+    const bothObservedNull = new Promise<void>((resolve) => {
+      releaseGets = resolve;
+    });
+    let aPatched = false;
+    let releaseBPatch!: () => void;
+    const aPatchDone = new Promise<void>((resolve) => {
+      releaseBPatch = resolve;
+    });
+    const fetchImpl: PosRestFetch = async (input, init) => {
+      const method = (init.method ?? "GET").toUpperCase();
+      const url = String(input);
+      if (
+        armRace &&
+        method === "GET" &&
+        url.includes("pos_pending_operations") &&
+        url.includes("select=request_hash,status,outcome,intent_snapshot") &&
+        !releasedGets
+      ) {
+        pendingGets += 1;
+        if (pendingGets >= 2) {
+          releasedGets = true;
+          releaseGets();
+        }
+        await bothObservedNull;
+      }
+      if (armRace && method === "PATCH" && url.includes("intent_snapshot=is.null")) {
+        const body = init.body ? (JSON.parse(init.body) as { intent_snapshot?: { lines?: Array<{ name?: string }> } }) : {};
+        const name = body.intent_snapshot?.lines?.[0]?.name;
+        if (name === "PRESENTATION B" && !aPatched) {
+          await aPatchDone;
+        }
+        const result = await fake.fetchImpl(input, init);
+        if (name === "PRESENTATION A") {
+          aPatched = true;
+          releaseBPatch();
+        }
+        return result;
+      }
+      return fake.fetchImpl(input, init);
+    };
+    const storeA = createSupabaseCheckoutStore({
+      url: "https://example.supabase.co",
+      serviceRoleKey: "server-only-infrastructure",
+      fetchImpl,
+    });
+    const storeB = createSupabaseCheckoutStore({
+      url: "https://example.supabase.co",
+      serviceRoleKey: "server-only-infrastructure",
+      fetchImpl,
+    });
+    expect(
+      await storeA.claimIdempotency("org_a", "sale.prepare", PREPARE_KEY, HASH_A, "loc_a1", {
+        registerId: "reg_a",
+        shiftId: SHIFT_ID,
+        transactionId: TX,
+      }),
+    ).toEqual({ kind: "acquired" });
+    const snapshotA = intentSnapshot("PRESENTATION A", "SKU-A");
+    const snapshotB = intentSnapshot("PRESENTATION B", "SKU-B");
+    armRace = true;
+    const [boundA, boundB] = await Promise.all([
+      storeA.bindPrepareIntent("org_a", "sale.prepare", PREPARE_KEY, snapshotA),
+      storeB.bindPrepareIntent("org_a", "sale.prepare", PREPARE_KEY, snapshotB),
+    ]);
+    expect(boundA).toEqual(snapshotA);
+    expect(boundB).toEqual(snapshotA);
+    expect(fake.tables.pos_pending_operations[0]?.intent_snapshot).toEqual(snapshotA);
+    expect(await storeB.getPrepareIntent("org_a", "sale.prepare", PREPARE_KEY)).toEqual(snapshotA);
+  });
+
+  test("direct replace or clear of a bound intent is rejected and leaves A", async () => {
+    const fake = createFakePosgrest();
+    const store = createSupabaseCheckoutStore({
+      url: "https://example.supabase.co",
+      serviceRoleKey: "server-only-infrastructure",
+      fetchImpl: fake.fetchImpl,
+    });
+    expect(
+      await store.claimIdempotency("org_a", "sale.prepare", PREPARE_KEY, HASH_A, "loc_a1", {
+        registerId: "reg_a",
+        shiftId: SHIFT_ID,
+        transactionId: TX,
+      }),
+    ).toEqual({ kind: "acquired" });
+    const snapshotA = intentSnapshot("PRESENTATION A", "SKU-A");
+    await expect(store.bindPrepareIntent("org_a", "sale.prepare", PREPARE_KEY, snapshotA)).resolves.toEqual(snapshotA);
+    const replace = await fake.fetchImpl(
+      "https://example.supabase.co/rest/v1/pos_pending_operations?organization_id=eq.org_a&operation=eq.sale.prepare&idempotency_key=eq." +
+        PREPARE_KEY,
+      {
+        method: "PATCH",
+        headers: { Prefer: "return=representation" },
+        body: JSON.stringify({ intent_snapshot: intentSnapshot("PRESENTATION B", "SKU-B") }),
+      },
+    );
+    expect(replace.status).toBe(500);
+    expect(await replace.json()).toMatchObject({ code: "55000" });
+    const clear = await fake.fetchImpl(
+      "https://example.supabase.co/rest/v1/pos_pending_operations?organization_id=eq.org_a&operation=eq.sale.prepare&idempotency_key=eq." +
+        PREPARE_KEY,
+      {
+        method: "PATCH",
+        headers: { Prefer: "return=representation" },
+        body: JSON.stringify({ intent_snapshot: null }),
+      },
+    );
+    expect(clear.status).toBe(500);
+    expect(fake.tables.pos_pending_operations[0]?.intent_snapshot).toEqual(snapshotA);
+    await expect(store.bindPrepareIntent("org_a", "sale.prepare", PREPARE_KEY, intentSnapshot("PRESENTATION B", "SKU-B"))).resolves.toEqual(
+      snapshotA,
+    );
   });
 });

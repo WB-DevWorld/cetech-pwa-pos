@@ -1,10 +1,9 @@
--- Additive prepare-intent capture. Not an acknowledged outcome and not a fabricated sale.
--- sale.prepare stores sale-time presentation here BEFORE SalesPort.prepare.
+-- Additive prepare-intent capture and first-write-wins immutability.
 -- Not the mirrored RLS suite. Do not copy this file into tests/integration/rls/.
 
 BEGIN;
 
-SELECT plan(6);
+SELECT plan(15);
 
 SET ROLE anon;
 SELECT throws_ok(
@@ -43,7 +42,7 @@ SELECT set_config(
 SELECT lives_ok(
   $$ INSERT INTO pos_pending_operations (
        organization_id, location_id, register_id, shift_id, transaction_id,
-       operation, idempotency_key, request_hash, status, intent_snapshot
+       operation, idempotency_key, request_hash, status
      ) VALUES (
        'org_a', 'loc_a1', 'reg_a',
        current_setting('pos_test.intent_shift')::uuid,
@@ -51,24 +50,100 @@ SELECT lives_ok(
        'sale.prepare',
        '22222222-2222-4222-8222-222222222801',
        repeat('aa', 32),
-       'pending',
-       jsonb_build_object(
-         'kind', 'sale.prepare.presentation',
-         'quoteId', 'quote-1',
-         'quoteFingerprint', 'fp',
-         'transactionId', '11111111-1111-4111-8111-111111111801',
-         'lineIds', jsonb_build_array('line-1'),
-         'lines', '[]'::jsonb
-       )
+       'pending'
      ) $$,
-  'service_role can persist a prepare intent snapshot'
+  'service_role can insert a pending prepare row with null intent'
 );
+
 SELECT is(
-  (SELECT intent_snapshot->>'kind' FROM pos_pending_operations
+  (SELECT intent_snapshot FROM pos_pending_operations
     WHERE idempotency_key = '22222222-2222-4222-8222-222222222801'),
-  'sale.prepare.presentation',
-  'prepare intent snapshot kind persists independently of outcome'
+  NULL,
+  'new prepare journal row starts with null intent_snapshot'
 );
+
+SELECT lives_ok(
+  $$ UPDATE pos_pending_operations
+     SET intent_snapshot = jsonb_build_object(
+       'kind', 'sale.prepare.presentation',
+       'quoteId', 'quote-1',
+       'name', 'A'
+     )
+     WHERE idempotency_key = '22222222-2222-4222-8222-222222222801'
+       AND intent_snapshot IS NULL $$,
+  'NULL to snapshot A is allowed'
+);
+
+SELECT is(
+  (SELECT intent_snapshot->>'name' FROM pos_pending_operations
+    WHERE idempotency_key = '22222222-2222-4222-8222-222222222801'),
+  'A',
+  'first durable snapshot A is stored'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM pos_pending_operations
+    WHERE idempotency_key = '22222222-2222-4222-8222-222222222801'
+      AND intent_snapshot IS NULL),
+  0,
+  'compare-and-set for a second writer matches zero rows'
+);
+
+SELECT lives_ok(
+  $$ UPDATE pos_pending_operations
+     SET intent_snapshot = jsonb_build_object(
+       'kind', 'sale.prepare.presentation',
+       'quoteId', 'quote-1',
+       'name', 'B'
+     )
+     WHERE idempotency_key = '22222222-2222-4222-8222-222222222801'
+       AND intent_snapshot IS NULL $$,
+  'losing compare-and-set updates zero rows and does not throw'
+);
+
+SELECT is(
+  (SELECT intent_snapshot->>'name' FROM pos_pending_operations
+    WHERE idempotency_key = '22222222-2222-4222-8222-222222222801'),
+  'A',
+  'losing compare-and-set leaves snapshot A in place'
+);
+
+SELECT lives_ok(
+  $$ UPDATE pos_pending_operations
+     SET intent_snapshot = intent_snapshot
+     WHERE idempotency_key = '22222222-2222-4222-8222-222222222801' $$,
+  'same-value intent update is allowed'
+);
+
+SELECT throws_ok(
+  $$ UPDATE pos_pending_operations
+     SET intent_snapshot = jsonb_build_object(
+       'kind', 'sale.prepare.presentation',
+       'quoteId', 'quote-1',
+       'name', 'B'
+     )
+     WHERE idempotency_key = '22222222-2222-4222-8222-222222222801' $$,
+  '55000',
+  NULL,
+  'replacing snapshot A with B is rejected'
+);
+
+SELECT throws_ok(
+  $$ UPDATE pos_pending_operations
+     SET intent_snapshot = NULL
+     WHERE idempotency_key = '22222222-2222-4222-8222-222222222801' $$,
+  '55000',
+  NULL,
+  'clearing a bound intent_snapshot is rejected'
+);
+
+SELECT is(
+  (SELECT intent_snapshot->>'name' FROM pos_pending_operations
+    WHERE idempotency_key = '22222222-2222-4222-8222-222222222801'),
+  'A',
+  'rejected replace and clear leave snapshot A authoritative'
+);
+
 SELECT is(
   (SELECT outcome FROM pos_pending_operations
     WHERE idempotency_key = '22222222-2222-4222-8222-222222222801'),

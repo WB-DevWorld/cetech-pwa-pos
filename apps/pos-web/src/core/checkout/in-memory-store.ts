@@ -379,7 +379,10 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
       if (!row) {
         throw new Error("prepare intent requires a claimed operation");
       }
-      if (row.intentSnapshot && isPrepareIntentSnapshot(row.intentSnapshot)) {
+      if (row.intentSnapshot !== undefined) {
+        if (!isPrepareIntentSnapshot(row.intentSnapshot)) {
+          throw new Error("durable prepare intent is present but invalid");
+        }
         return row.intentSnapshot;
       }
       row.intentSnapshot = snapshot;

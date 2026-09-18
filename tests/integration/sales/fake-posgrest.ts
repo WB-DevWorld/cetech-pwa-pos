@@ -65,10 +65,33 @@ export function createFakePosgrest(options?: {
     }
     if (method === "PATCH") {
       const body = init.body ? (JSON.parse(String(init.body)) as Row) : {};
+      const updated: Row[] = [];
       for (const row of tables[table]) {
-        if (matches(row, filters)) {
-          applyMonotonicAssign(table, row, body);
+        if (!matches(row, filters)) {
+          continue;
         }
+        if (table === "pos_pending_operations" && Object.prototype.hasOwnProperty.call(body, "intent_snapshot")) {
+          const current = row.intent_snapshot;
+          const next = body.intent_snapshot;
+          if (current !== null && current !== undefined) {
+            if (next === null || next === undefined || JSON.stringify(current) !== JSON.stringify(next)) {
+              return jsonResponse(500, {
+                code: "55000",
+                message: "prepare intent snapshot is immutable once bound",
+              });
+            }
+            const rest = { ...body };
+            delete rest.intent_snapshot;
+            applyMonotonicAssign(table, row, rest);
+            updated.push(row);
+            continue;
+          }
+        }
+        applyMonotonicAssign(table, row, body);
+        updated.push(row);
+      }
+      if (prefer.includes("return=representation")) {
+        return jsonResponse(200, updated);
       }
       return jsonResponse(204, null);
     }
