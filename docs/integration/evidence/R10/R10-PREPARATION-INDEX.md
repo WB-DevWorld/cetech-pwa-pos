@@ -58,7 +58,9 @@ Historical PASS evidence is not silently promoted to current staging or producti
 3. `R10-EVIDENCE-TEMPLATE.md` — common evidence record for later execution.
 4. `docs/runbooks/R10-DEVICE-AND-PWA-REHEARSAL.md` — installed-device/update/recovery procedure.
 5. `docs/runbooks/R10-BACKUP-RESTORE-ROLLBACK.md` — recovery and rollback procedure.
-6. `docs/runbooks/R10-VITEPOS-CUTOVER-PILOT.md` — cutover/pilot/first-day procedure.
+6. `R10-FAILURE-INJECTION-PLAN.md` — exact outage/lost-response/failure points and required recovery invariants.
+7. `R10-GO-NO-GO.md` — explicit release blockers and final decision record.
+8. `docs/runbooks/R10-VITEPOS-CUTOVER-PILOT.md` — cutover/pilot/first-day procedure.
 
 ## Status vocabulary
 
