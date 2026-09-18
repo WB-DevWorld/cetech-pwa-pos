@@ -22,7 +22,7 @@ The new R10 guard tests therefore live under the existing `tests/integration/pay
 | Matrix ID | Executable evidence | What it proves | Remaining runtime evidence |
 | --- | --- | --- | --- |
 | Q-TX-PRE | `tests/integration/sales/r10-fail-closed-prepare-guards.test.ts` | wrong register authority or missing CSRF is rejected before Woo order / stock-reservation attempt | accepted staging negative-path proof later |
-| Q-TX-00 | `tests/integration/sales/r10-fail-closed-finalize-guards.test.ts` | wrong register authority or missing CSRF is rejected before commercial finalizer / stock effect | accepted staging negative-path proof later |
+| Q-TX-00 | `tests/integration/sales/r10-fail-closed-finalize-guards.test.ts` | wrong register authority, missing CSRF, or missing verified payment evidence is rejected before commercial finalizer / stock effect | accepted staging negative-path proof later |
 | Q-TX-01 | `apps/pos-web/src/server/sales/core-06-cash-sale-harness.test.ts` — duplicate prepare same key | one commercial order reused | accepted STG-01 path |
 | Q-TX-02 | same file — changed prepare body conflicts | changed semantic request cannot reuse idempotency key | accepted STG-01 path |
 | Q-TX-03 | same file — lost prepare response recovers existing Woo order | resolve-before-retry at commercial boundary | accepted STG-01 path |
@@ -115,7 +115,8 @@ These remain runtime/device/release evidence, not unit-test substitutes:
 `tests/integration/sales/r10-fail-closed-finalize-guards.test.ts` adds the finalization effect-boundary proof:
 
 1. wrong register assignment → FORBIDDEN with zero commercial payment-complete / stock effects;
-2. missing CSRF → FORBIDDEN with zero commercial payment-complete / stock effects.
+2. missing CSRF → FORBIDDEN with zero commercial payment-complete / stock effects;
+3. missing verified payment evidence → PAYMENT_NOT_VERIFIED with zero commercial payment-complete / stock effects.
 
 `tests/integration/returns/r10-fail-closed-return-effects.test.ts` adds the equivalent R8 effect-boundary proof:
 
