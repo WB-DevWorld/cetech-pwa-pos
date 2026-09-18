@@ -26,6 +26,13 @@ This matrix converts QA-01 / #29 into explicit evidence rows. It deliberately se
 | Q-TX-06 | Woo unavailable before prepare means no payment starts | Existing fail-closed design | Failure injection on accepted staging candidate | PREPARED |
 | Q-TX-07 | Supabase/POS durable store unavailable prevents unsafe new tender | Existing design/tests | Failure injection on accepted staging candidate | PREPARED |
 
+## Cash payment invariants
+
+| ID | Scenario / invariant | Existing evidence to reuse | Additional R10 evidence | Status |
+| --- | --- | --- | --- | --- |
+| Q-CASH-00 | Unauthorized or CSRF-invalid cash confirmation cannot create cash movement or payment evidence | R10 cash no-effect guards | Accepted staging negative-path proof | PREPARED |
+| Q-CASH-01 | Duplicate cash confirmation cannot create a second cash movement/tender | CORE-06/R6 evidence | Accepted staging cash-sale trace | PENDING_STG01 |
+
 ## Payment invariants
 
 | ID | Scenario / invariant | Existing evidence to reuse | Additional R10 evidence | Status |
