@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Money } from "../../../../../docs/contracts/domain.generated";
-import { orderStatusLabel, paymentStatusLabel } from "../../ui/cashier-language";
+import { orderStatusLabel, paymentStatusLabel, toCashierError } from "../../ui/cashier-language";
 
 export type OrdersWorkspaceState = "ready" | "loading" | "error" | "offline" | "degraded";
 export type OrderWorkspaceStatus = "completed" | "refunded" | "partially_refunded" | "payment_pending" | "needs_attention" | "cancelled";
@@ -140,7 +140,7 @@ export function OrdersScreen({
       {state === "error" ? (
         <div className="banner danger workspace-banner" role="alert">
           <strong>Orders could not be loaded.</strong>
-          <span>{errorMessage ?? "Order details are unavailable. Existing sales have not been changed."}</span>
+          <span>{errorMessage ? toCashierError({ message: errorMessage, domain: "orders" }).message : "Order details are unavailable. Existing sales have not been changed."}</span>
           {onRetry ? (
             <button className="btn small" type="button" onClick={onRetry}>
               Retry

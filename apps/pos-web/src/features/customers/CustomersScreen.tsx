@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { CustomerSummary } from "../../../../../docs/contracts/domain.generated";
+import { toCashierError } from "../../ui/cashier-language";
 
 export type CustomersWorkspaceState = "ready" | "loading" | "error" | "offline" | "degraded";
 
@@ -62,7 +63,7 @@ export function CustomersScreen({
       {state === "error" ? (
         <div className="banner danger workspace-banner" role="alert">
           <strong>Customers could not be loaded.</strong>
-          <span>{errorMessage ?? "Customer search is unavailable. You can continue as Walk-in from Sell."}</span>
+          <span>{errorMessage ? toCashierError({ message: errorMessage, domain: "customers" }).message : "Customer search is unavailable. You can continue as Walk-in from Sell."}</span>
           {onRetry ? (
             <button className="btn small" type="button" onClick={onRetry}>Retry</button>
           ) : null}

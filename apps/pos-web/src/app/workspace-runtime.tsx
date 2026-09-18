@@ -59,8 +59,8 @@ export function ApprovedWorkspaceScreens({
         settings={{
           deviceName: readOrCreateLocalDeviceId(),
           registerName: authority.register?.name ?? "No register assigned",
-          scannerLabel: "Connected scanner",
-          printerLabel: "Receipt printer",
+          scannerLabel: "Keyboard scanner input",
+          printerLabel: "Browser print",
           appearance: "system",
           buildId: "local-dev",
           contractVersion: "1.0.0",

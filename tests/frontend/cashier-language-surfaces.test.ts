@@ -11,6 +11,9 @@ import { idleElectronicPaymentSession } from "../../apps/pos-web/src/features/pa
 import { StoreHealthScreen, NeedsAttentionScreen, PassiveTabNotice } from "../../apps/pos-web/src/ui/operational/OperationalSurfaces";
 import { SettingsScreen } from "../../apps/pos-web/src/features/settings/SettingsScreen";
 import { LoginScreen } from "../../apps/pos-web/src/features/auth/LoginScreen";
+import { StaffAuthGate } from "../../apps/pos-web/src/app/staff-auth-gate";
+import { CustomersScreen } from "../../apps/pos-web/src/features/customers/CustomersScreen";
+import { OrdersScreen } from "../../apps/pos-web/src/features/orders/OrdersScreen";
 import { INTEGRATION_UNAVAILABLE } from "../../apps/pos-web/src/features/sell/state/quotePresentation";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -199,8 +202,9 @@ describe("UX-01 cashier surfaces hide engineering vocabulary", () => {
     );
     const settingsPrimary = visiblePrimaryText(settings);
     expect(settingsPrimary).toContain("This device");
-    expect(settingsPrimary).toContain("Connected scanner");
-    expect(settingsPrimary).toContain("Receipt printer");
+    expect(settingsPrimary).toContain("Keyboard scanner input");
+    expect(settingsPrimary).toContain("Browser print");
+    expect(settingsPrimary).not.toContain("Connected scanner");
     expect(settingsPrimary).not.toContain("API contract");
     expect(settingsPrimary).not.toContain("WS3");
     expect(settings).toContain("API contract");
@@ -214,6 +218,55 @@ describe("UX-01 cashier surfaces hide engineering vocabulary", () => {
     const attention = renderToStaticMarkup(createElement(NeedsAttentionScreen, { items: [] }));
     expect(attention).toContain("No issues need your attention.");
     expect(renderToStaticMarkup(createElement(PassiveTabNotice, { passive: true }))).toContain("This tab is read-only.");
+  });
+
+  test("raw backend messages never appear as primary copy on sign-in, settings, orders, or customers", () => {
+    const unsafe = [
+      "Supabase service role request failed",
+      "provider runtime returned invalid envelope",
+      "internal operation 123 failed",
+      "staff session store is unavailable",
+    ];
+    const login = renderToStaticMarkup(
+      createElement(StaffAuthGate, {
+        noticeState: "signed_out",
+        busy: false,
+        errorMessage: unsafe[0],
+        onSignIn: () => undefined,
+      }),
+    );
+    const loginPrimary = visiblePrimaryText(login);
+    expect(loginPrimary).toContain("Sign-in is temporarily unavailable");
+    expect(loginPrimary).not.toContain("Supabase service role request failed");
+
+    const settings = renderToStaticMarkup(
+      createElement(SettingsScreen, {
+        settings: {
+          deviceName: "Counter tablet 1",
+          registerName: "Register A",
+          scannerLabel: "Attached scanner (presentation only)",
+          printerLabel: "Receipt printer via PrintPort",
+          appearance: "system",
+          buildId: "abc",
+          contractVersion: "1.0.0",
+        },
+        state: "error",
+        errorMessage: unsafe[1],
+      }),
+    );
+    const settingsPrimary = visiblePrimaryText(settings);
+    expect(settingsPrimary).not.toContain("provider runtime returned invalid envelope");
+    expect(settingsPrimary).toContain("This action couldn't be completed");
+
+    const orders = renderToStaticMarkup(
+      createElement(OrdersScreen, { orders: [], state: "error", errorMessage: unsafe[2] }),
+    );
+    expect(visiblePrimaryText(orders)).not.toContain("internal operation 123 failed");
+
+    const customers = renderToStaticMarkup(
+      createElement(CustomersScreen, { customers: [], state: "error", errorMessage: unsafe[3] }),
+    );
+    expect(visiblePrimaryText(customers)).not.toContain("staff session store is unavailable");
   });
 
   test("frontend presentation source does not move pricing or stock authority into the browser", () => {

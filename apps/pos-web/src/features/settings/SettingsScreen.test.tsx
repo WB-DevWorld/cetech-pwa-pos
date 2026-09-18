@@ -5,7 +5,7 @@ import { SettingsScreen, type PosSettingsView } from "./SettingsScreen";
 const settings: PosSettingsView = {
   deviceName: "Counter tablet 1",
   registerName: "Main Counter",
-  scannerLabel: "Keyboard scanner",
+  scannerLabel: "Keyboard scanner input",
   printerLabel: "Browser print",
   appearance: "system",
   buildId: "build-r8",
@@ -19,7 +19,7 @@ describe("SettingsScreen", () => {
     expect(html).toContain("Device &amp; register");
     expect(html).toContain("Counter tablet 1");
     expect(html).toContain("Main Counter");
-    expect(html).toContain("Keyboard scanner");
+    expect(html).toContain("Keyboard scanner input");
     expect(html).toContain("Browser print");
     expect(html).toContain("Technical details");
     expect(html).toContain("View system status");

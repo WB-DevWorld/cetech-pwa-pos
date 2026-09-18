@@ -5,6 +5,7 @@ import type {
   ShiftReport,
 } from "../../../../../docs/contracts/domain.generated";
 import type { ApiResult, RegisterPort } from "../../../../../docs/contracts/ports";
+import { cashierErrorMessage } from "../../ui/cashier-language";
 import { parseDecimalToMinorUnits } from "./parseDecimalToMinorUnits";
 import {
   idleShiftWorkspace,
@@ -34,7 +35,10 @@ async function settle<T>(run: () => Promise<ApiResult<T>>): Promise<Settled<T>> 
   } catch (error) {
     return {
       kind: "unknown",
-      message: error instanceof Error ? error.message : "The register result is unknown.",
+      message: cashierErrorMessage(
+        { message: error instanceof Error ? error.message : undefined },
+        "register",
+      ),
     };
   }
 }
@@ -129,7 +133,7 @@ export function createRegisterController(ports: RegisterWorkspacePorts) {
     if (!active.value.ok) {
       setSession({
         ...session,
-        message: active.value.error.message,
+        message: cashierErrorMessage(active.value.error, "register"),
       });
       return;
     }
@@ -202,7 +206,7 @@ export function createRegisterController(ports: RegisterWorkspacePorts) {
         if (outcome.kind === "result" && !outcome.value.ok) {
           setSession({
             ...idleShiftWorkspace(),
-            message: outcome.value.error.message,
+            message: cashierErrorMessage(outcome.value.error, "register"),
             closeSucceeded: false,
           });
         }
@@ -271,7 +275,7 @@ export function createRegisterController(ports: RegisterWorkspacePorts) {
             closeSucceeded: false,
             expectedCash: undefined,
             variance: undefined,
-            message: outcome.value.error.message,
+            message: cashierErrorMessage(outcome.value.error, "register"),
           });
         }
       } finally {
@@ -310,7 +314,7 @@ export function createRegisterController(ports: RegisterWorkspacePorts) {
           return;
         }
         if (outcome.kind === "result" && !outcome.value.ok) {
-          setSession({ ...session, message: outcome.value.error.message });
+          setSession({ ...session, message: cashierErrorMessage(outcome.value.error, "register") });
         }
       } finally {
         commandLock = false;

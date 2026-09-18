@@ -1,5 +1,6 @@
 /**
  * Presentation-only error mapper. Canonical ApiErrorCode values stay unchanged.
+ * Raw backend/provider/server text is never cashier-safe by default.
  * Raw code/message are preserved for Technical details and logs.
  */
 
@@ -12,7 +13,10 @@ export type CashierErrorDomain =
   | "register"
   | "returns"
   | "orders"
+  | "customers"
   | "generic";
+
+export type CashierErrorSource = "backend" | "presentation";
 
 export type CashierErrorInput = {
   readonly code?: string;
@@ -20,6 +24,8 @@ export type CashierErrorInput = {
   readonly domain?: CashierErrorDomain;
   readonly cartLineNames?: readonly string[];
   readonly authoritativeOutOfStockName?: string;
+  /** Locally authored cashier copy. Never set this for backend/provider/server strings. */
+  readonly source?: CashierErrorSource;
 };
 
 export type CashierErrorView = {
@@ -74,6 +80,31 @@ export function describeUnavailableItems(input: {
   return "One or more items can't be sold right now. Remove unavailable items or refresh products and try again.";
 }
 
+export function domainFallback(domain: CashierErrorDomain): string {
+  switch (domain) {
+    case "quote":
+      return "Prices couldn't be checked. Check the connection and try again.";
+    case "catalog":
+      return "Products couldn't be loaded. Check the connection and try again.";
+    case "payment":
+      return "Payment couldn't be completed. Check the connection. Do not charge again if a payment may already have started.";
+    case "health":
+      return "System status couldn't be refreshed. Check the connection and try again.";
+    case "auth":
+      return "Sign-in is temporarily unavailable. Try again.";
+    case "register":
+      return "Register details couldn't be loaded. Check the connection and try again.";
+    case "returns":
+      return "This return couldn't be completed. Check the connection and try again.";
+    case "orders":
+      return "Orders couldn't be loaded. Check the connection and try again.";
+    case "customers":
+      return "Customer search is unavailable. You can continue as Walk-in from Sell.";
+    default:
+      return "This action couldn't be completed. Try again or contact a manager.";
+  }
+}
+
 function integrationUnavailableMessage(domain: CashierErrorDomain, input: CashierErrorInput): string {
   if (looksLikeProviderLineRejection(input.message) || input.code === "STOCK_CHANGED") {
     return describeUnavailableItems({
@@ -82,37 +113,32 @@ function integrationUnavailableMessage(domain: CashierErrorDomain, input: Cashie
       providerMessage: input.message,
     });
   }
-  if (domain === "quote") {
-    return "Prices couldn't be checked. Check the connection and try again.";
-  }
-  if (domain === "catalog") {
-    return "Products couldn't be loaded. Check the connection and try again.";
-  }
-  if (domain === "payment") {
-    return "Payment couldn't be completed. Check the connection. Do not charge again if a payment may already have started.";
-  }
-  if (domain === "health") {
-    return "System status couldn't be refreshed. Check the connection and try again.";
-  }
-  if (domain === "auth") {
-    return "Sign-in is temporarily unavailable. Try again.";
-  }
-  if (domain === "register") {
-    return "Register details couldn't be loaded. Check the connection and try again.";
-  }
-  if (domain === "returns") {
-    return "This return couldn't be completed. Check the connection and try again.";
-  }
-  if (domain === "orders") {
-    return "Orders couldn't be loaded. Check the connection and try again.";
-  }
-  return "This action couldn't be completed. Check the connection and try again.";
+  return domainFallback(domain);
+}
+
+export function cashierErrorMessage(
+  error: { readonly code?: string; readonly message?: string } | undefined,
+  domain: CashierErrorDomain,
+  extras?: Pick<CashierErrorInput, "cartLineNames" | "authoritativeOutOfStockName">,
+): string {
+  return toCashierError({
+    code: error?.code,
+    message: error?.message,
+    domain,
+    cartLineNames: extras?.cartLineNames,
+    authoritativeOutOfStockName: extras?.authoritativeOutOfStockName,
+  }).message;
 }
 
 export function toCashierError(input: CashierErrorInput): CashierErrorView {
   const domain = input.domain ?? "generic";
   const technical = { code: input.code, message: input.message };
   const code = input.code;
+
+  if (input.source === "presentation") {
+    const trimmed = input.message?.trim();
+    return { message: trimmed || domainFallback(domain), technical };
+  }
 
   if (code === "SHIFT_REQUIRED") {
     return { message: "Start your shift before taking payment.", technical };
@@ -146,7 +172,7 @@ export function toCashierError(input: CashierErrorInput): CashierErrorView {
         technical,
       };
     }
-    return { message: input.message?.trim() ? cashierSafeFallback(input.message) : "Check the details and try again.", technical };
+    return { message: "Check the details and try again.", technical };
   }
   if (code === "SHIFT_CONFLICT") {
     return { message: "This register already has an open shift. Refresh and continue from the current shift.", technical };
@@ -174,10 +200,7 @@ export function toCashierError(input: CashierErrorInput): CashierErrorView {
     return { message: integrationUnavailableMessage(domain, input), technical };
   }
 
-  if (input.message && !containsProhibitedCashierTerm(input.message)) {
-    return { message: cashierSafeFallback(input.message), technical };
-  }
-  return { message: integrationUnavailableMessage(domain, input), technical };
+  return { message: domainFallback(domain), technical };
 }
 
 export function containsProhibitedCashierTerm(text: string): boolean {
@@ -186,12 +209,4 @@ export function containsProhibitedCashierTerm(text: string): boolean {
       text,
     ) || /Cart\s*·\s*Rev/i.test(text)
   );
-}
-
-function cashierSafeFallback(message: string): string {
-  const trimmed = message.trim();
-  if (!trimmed || containsProhibitedCashierTerm(trimmed)) {
-    return "This action couldn't be completed. Try again or contact a manager.";
-  }
-  return trimmed;
 }

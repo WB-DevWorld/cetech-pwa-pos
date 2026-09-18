@@ -304,7 +304,7 @@ describe("FE-05 cash checkout and receipt UX", () => {
     await controller.startPrepare(quoteFixture());
     expect(cart.lines).toEqual(["kept-line"]);
     expect(controller.getSession().stage).toBe("prepare_failed");
-    expect(controller.getSession().message).toBe("Stock changed");
+    expect(controller.getSession().message).toBe("Prices couldn't be checked. Check the connection and try again.");
     expect(controller.getSession().saleCompleted).toBe(false);
     expect(ports.confirmCash).not.toHaveBeenCalled();
     expect(ports.finalize).not.toHaveBeenCalled();

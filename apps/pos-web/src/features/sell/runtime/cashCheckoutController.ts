@@ -16,6 +16,7 @@ import type {
   SalesPort,
 } from "../../../../../../docs/contracts/ports";
 import { parseDecimalToMinorUnits } from "../../register/parseDecimalToMinorUnits";
+import { cashierErrorMessage, withDoNotChargeAgain } from "../../../ui/cashier-language";
 import {
   canBeginNewSale,
   checkoutDismissAllowed,
@@ -121,7 +122,10 @@ async function settle<T>(run: () => Promise<ApiResult<T>>): Promise<Settled<T>> 
   } catch (error) {
     return {
       kind: "unknown",
-      message: error instanceof Error ? error.message : "The operation result is unknown.",
+      message: cashierErrorMessage(
+        { message: error instanceof Error ? error.message : undefined },
+        "generic",
+      ),
     };
   }
 }
@@ -219,13 +223,13 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       if (shouldResolveFailure(outcome.value)) {
         patch({
           stage: "resolving_sale",
-          message: outcome.value.error.message,
+          message: cashierErrorMessage(outcome.value.error, "generic"),
         });
         return;
       }
       patch({
         stage: session.saleCompleted ? "receipt_failed" : "prepare_failed",
-        message: outcome.value.error.message,
+        message: cashierErrorMessage(outcome.value.error, "quote"),
       });
       return;
     }
@@ -322,7 +326,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
     if (!outcome.value.ok) {
       patch({
         stage: "resolving_payment",
-        message: outcome.value.error.message,
+        message: withDoNotChargeAgain(cashierErrorMessage(outcome.value.error, "payment")),
       });
       return;
     }
@@ -394,7 +398,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
     if (outcome.kind === "result" && !outcome.value.ok) {
       patch({
         stage: "finalize_failed",
-        message: outcome.value.error.message,
+        message: cashierErrorMessage(outcome.value.error, "generic"),
       });
     }
   }
@@ -418,7 +422,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
         stage: "receipt_failed",
         saleCompleted: true,
         receipt: undefined,
-        message: outcome.value.error.message,
+        message: cashierErrorMessage(outcome.value.error, "generic"),
       });
       return;
     }
@@ -449,7 +453,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
         patch({
           stage: "receipt_ready",
           printStatus: "dialog_opened",
-          printMessage: result.message ?? "Print dialog opened.",
+          printMessage: "Print dialog opened.",
           message: "The sale is complete.",
         });
         return;
@@ -457,15 +461,15 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       patch({
         stage: "print_failed",
         printStatus: result.status,
-        printMessage: result.message ?? "Printing failed. The sale remains complete.",
-        message: result.message ?? "Printing failed. The sale remains complete.",
+        printMessage: "Printing failed. The sale remains complete.",
+        message: "Printing failed. The sale remains complete.",
       });
-    } catch (error) {
+    } catch {
       printAttempted = true;
       patch({
         stage: "print_failed",
         printStatus: "failed",
-        printMessage: error instanceof Error ? error.message : "Printing failed. The sale remains complete.",
+        printMessage: "Printing failed. The sale remains complete.",
         message: "Printing failed. The sale remains complete.",
       });
     }
@@ -547,7 +551,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
         if (outcome.kind === "result" && !outcome.value.ok) {
           patch({
             stage: "prepare_failed",
-            message: outcome.value.error.message,
+            message: cashierErrorMessage(outcome.value.error, "quote"),
             prepared: undefined,
           });
         }
@@ -614,7 +618,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
         if (outcome.kind === "result" && !outcome.value.ok) {
           patch({
             stage: "cash_failed",
-            message: outcome.value.error.message,
+            message: cashierErrorMessage(outcome.value.error, "payment"),
           });
         }
       } finally {

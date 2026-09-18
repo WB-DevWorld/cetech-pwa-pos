@@ -1,5 +1,6 @@
 import type { ApiFailure, RefundState } from "../../../../../docs/contracts/domain.generated";
 import type { ApiResult, PaymentPort } from "../../../../../docs/contracts/ports";
+import { cashierErrorMessage } from "../../ui/cashier-language";
 import {
   idleRefundReconciliation,
   type RefundReconciliationView,
@@ -19,7 +20,10 @@ async function settle<T>(run: () => Promise<ApiResult<T>>): Promise<Settled<T>> 
   } catch (error) {
     return {
       kind: "unknown",
-      message: error instanceof Error ? error.message : "The refund result is unknown.",
+      message: cashierErrorMessage(
+        { message: error instanceof Error ? error.message : undefined },
+        "payment",
+      ),
     };
   }
 }
@@ -77,7 +81,7 @@ export function createRefundReconciliationController(
         channel: session.channel,
         status: "unknown",
         amount: session.amount,
-        message: `${outcome.message} Keep refund ${boundRefundId}. Do not start another refund.`,
+        message: `${outcome.message} Keep this refund. Do not start another refund.`,
         warning: "Do not issue another refund.",
         resolveAllowed: true,
       });
@@ -90,7 +94,7 @@ export function createRefundReconciliationController(
         channel: session.channel,
         status: "unknown",
         amount: session.amount,
-        message: `${outcome.value.error.message} Keep refund ${boundRefundId}. Do not start another refund.`,
+        message: `${cashierErrorMessage(outcome.value.error, "payment")} Keep this refund. Do not start another refund.`,
         warning: "Do not issue another refund.",
         resolveAllowed: true,
       });
@@ -104,7 +108,7 @@ export function createRefundReconciliationController(
       setSession({
         refundId: boundRefundId,
         status: "unknown",
-        message: `${outcome.value.error.message} Keep refund ${boundRefundId}. Do not start another refund.`,
+        message: `${cashierErrorMessage(outcome.value.error, "payment")} Keep this refund. Do not start another refund.`,
         warning: "Do not issue another refund.",
         resolveAllowed: outcome.value.error.nextAction === "resolve",
       });

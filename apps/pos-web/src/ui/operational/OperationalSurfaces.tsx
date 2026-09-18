@@ -6,6 +6,7 @@ import {
   describeHealthCheckMessage,
   friendlyDeviceName,
   healthCheckLabel,
+  toCashierError,
   TechnicalDetails,
 } from "../cashier-language";
 
@@ -106,7 +107,7 @@ export function StoreHealthScreen({
       {state === "error" ? (
         <div className="banner danger operational-banner" role="alert">
           <strong>{"System status couldn't be refreshed."}</strong>
-          <span>{errorMessage ?? "Last known status can remain visible, but current connections are unverified."}</span>
+          <span>{errorMessage ? toCashierError({ message: errorMessage, domain: "health" }).message : "Last known status can remain visible, but current connections are unverified."}</span>
           {onRetry ? <button className="btn small" type="button" onClick={onRetry}>Retry</button> : null}
         </div>
       ) : null}
@@ -184,7 +185,7 @@ export function NeedsAttentionScreen({
       {state === "offline" ? <ConnectivityNotice state="offline" /> : null}
       {state === "degraded" ? <ConnectivityNotice state="degraded" /> : null}
       {state === "error" ? (
-        <div className="banner danger operational-banner" role="alert"><strong>Attention items could not be refreshed.</strong><span>{errorMessage ?? "Do not assume unresolved operations are cleared."}</span>{onRetryLoad ? <button className="btn small" type="button" onClick={onRetryLoad}>Retry</button> : null}</div>
+        <div className="banner danger operational-banner" role="alert"><strong>Attention items could not be refreshed.</strong><span>{errorMessage ? toCashierError({ message: errorMessage, domain: "generic" }).message : "Do not assume unresolved operations are cleared."}</span>{onRetryLoad ? <button className="btn small" type="button" onClick={onRetryLoad}>Retry</button> : null}</div>
       ) : null}
       {state === "loading" ? <div className="card card-pad operational-state" role="status"><div className="operational-spinner" aria-hidden="true" /><strong>Checking unresolved operations…</strong></div> : null}
       {state !== "loading" && state !== "error" && items.length === 0 ? (

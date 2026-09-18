@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { cashierErrorMessage } from "../../ui/cashier-language";
 import { ReturnFlow } from "./ReturnFlow";
 import { OUTSTANDING_RETURN_COPY, type HistoricReturnSaleView, type ReturnConditionView, type ReturnSessionView } from "./returnView";
 
@@ -48,7 +49,10 @@ export function ReturnsScreen({
         setLookupError("No original sale matched that search.");
       }
     } catch (error) {
-      setLookupError(error instanceof Error ? error.message : "Sale lookup failed.");
+      setLookupError(cashierErrorMessage(
+        { message: error instanceof Error ? error.message : undefined },
+        "returns",
+      ));
     } finally {
       setSearching(false);
     }

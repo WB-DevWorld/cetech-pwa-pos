@@ -60,6 +60,19 @@ export function healthCheckLabel(id: string): string {
   }
 }
 
+export const KEYBOARD_SCANNER_CAPABILITY = "Keyboard scanner input";
+export const BROWSER_PRINT_CAPABILITY = "Browser print";
+
+export function scannerCapabilityLabel(label?: string): string {
+  void label;
+  return KEYBOARD_SCANNER_CAPABILITY;
+}
+
+export function printerCapabilityLabel(label?: string): string {
+  void label;
+  return BROWSER_PRINT_CAPABILITY;
+}
+
 export function describeHealthCheckMessage(id: string, rawMessage: string, status: string): string {
   if (id === "bridge" || id === "commerce" || id === "bridge-contract" || id === "pricing") {
     if (/pricingParityVerified=true/i.test(rawMessage)) {
@@ -67,9 +80,6 @@ export function describeHealthCheckMessage(id: string, rawMessage: string, statu
     }
     if (/pricingParityVerified=false/i.test(rawMessage) && (id === "bridge-contract" || id === "pricing")) {
       return "Pending verification";
-    }
-    if (status === "healthy" && /wooDetected=true/i.test(rawMessage)) {
-      return "Connected";
     }
     if (status === "healthy") {
       return "Connected";
@@ -82,17 +92,10 @@ export function describeHealthCheckMessage(id: string, rawMessage: string, statu
     }
     return "Pending verification";
   }
-  if (containsRawHealthFlags(rawMessage)) {
-    if (status === "healthy") return "Connected";
-    if (status === "degraded") return "Needs attention";
-    if (status === "unavailable") return "Not connected";
-    return "Not verified yet";
-  }
-  return rawMessage;
-}
-
-function containsRawHealthFlags(message: string): boolean {
-  return /wooDetected=|woodmartDetected=|b2bkingDetected=|pricingParityVerified=/.test(message);
+  if (status === "healthy") return "Connected";
+  if (status === "degraded") return "Needs attention";
+  if (status === "unavailable") return "Not connected";
+  return "Not verified yet";
 }
 
 export function catalogRebuildCopy(input: {

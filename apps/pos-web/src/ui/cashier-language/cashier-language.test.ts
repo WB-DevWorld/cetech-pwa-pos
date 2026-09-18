@@ -5,6 +5,8 @@ import {
   describeQuoteFailure,
   describeUnavailableItems,
   healthCheckLabel,
+  printerCapabilityLabel,
+  scannerCapabilityLabel,
   skuLabel,
   toCashierError,
 } from "./index";
@@ -18,6 +20,27 @@ describe("toCashierError", () => {
     expect(toCashierError({ code: "PAYMENT_PENDING" }).message).toContain("Do not charge again");
     expect(toCashierError({ code: "INTEGRATION_UNAVAILABLE", domain: "quote" }).message).not.toContain("INTEGRATION_UNAVAILABLE");
     expect(toCashierError({ code: "SHIFT_REQUIRED" }).technical.code).toBe("SHIFT_REQUIRED");
+  });
+
+  test("does not print unknown backend messages as primary cashier copy", () => {
+    const unsafe = [
+      "Supabase service role request failed",
+      "provider runtime returned invalid envelope",
+      "internal operation 123 failed",
+      "staff session store is unavailable",
+    ];
+    for (const message of unsafe) {
+      const view = toCashierError({ message, domain: "auth" });
+      expect(view.message).not.toContain(message);
+      expect(view.message).toBe("Sign-in is temporarily unavailable. Try again.");
+      expect(view.technical.message).toBe(message);
+    }
+    expect(toCashierError({ message: unsafe[0], domain: "quote" }).message).toBe(
+      "Prices couldn't be checked. Check the connection and try again.",
+    );
+    expect(
+      toCashierError({ message: "Enter the counted cash.", source: "presentation" }).message,
+    ).toBe("Enter the counted cash.");
   });
 
   test("keeps domain-specific INTEGRATION_UNAVAILABLE copy", () => {
@@ -92,5 +115,12 @@ describe("labels", () => {
   test("catalog rebuild copy uses products language", () => {
     expect(catalogRebuildCopy({ phase: "success", itemCount: 155 })).toBe("Products updated — 155 items ready.");
     expect(catalogRebuildCopy({ phase: "rebuilding" })).toBe("Refreshing products…");
+  });
+
+  test("scanner and printer copy never claim a device is connected", () => {
+    expect(scannerCapabilityLabel("Attached scanner (presentation only)")).toBe("Keyboard scanner input");
+    expect(scannerCapabilityLabel("Connected scanner")).toBe("Keyboard scanner input");
+    expect(printerCapabilityLabel("Receipt printer via PrintPort")).toBe("Browser print");
+    expect(printerCapabilityLabel("Receipt printer")).toBe("Browser print");
   });
 });

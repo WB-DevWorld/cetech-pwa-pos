@@ -76,3 +76,7 @@ export function describePaymentState(status: string, nextAction?: string): Payme
 export function describePaymentUncertainty(): string {
   return "We haven't confirmed this payment yet. Do not charge again while we check its status.";
 }
+
+export function withDoNotChargeAgain(message: string): string {
+  return /do not charge again/i.test(message) ? message : `${message} ${DO_NOT_CHARGE_AGAIN}`;
+}

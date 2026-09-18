@@ -10,6 +10,7 @@ import type {
 } from "../../../../../docs/contracts/domain.generated";
 import type { ApiResult, ReturnPort } from "../../../../../docs/contracts/ports";
 import { parseQuantityInput } from "../sell/state/quantity";
+import { cashierErrorMessage } from "../../ui/cashier-language";
 import {
   idleReturnSession,
   OUTSTANDING_RETURN_COPY,
@@ -48,9 +49,19 @@ async function settle<T>(run: () => Promise<ApiResult<T>>): Promise<Settled<T>> 
   } catch (error) {
     return {
       kind: "unknown",
-      message: error instanceof Error ? error.message : "The return result is unknown.",
+      message: cashierErrorMessage(
+        { message: error instanceof Error ? error.message : undefined },
+        "returns",
+      ),
     };
   }
+}
+
+function keepThisReturn(message: string, outstanding = false): string {
+  const suffix = outstanding
+    ? `Keep this return. ${OUTSTANDING_RETURN_COPY}`
+    : "Keep this return. Do not start another return.";
+  return message.includes("Keep this return") ? message : `${message} ${suffix}`;
 }
 
 function shouldResolveFailure(failure: ApiFailure): boolean {
@@ -221,7 +232,7 @@ export function createReturnController(ports: ReturnControllerPorts) {
         ...session,
         stage: "resolving",
         complete: false,
-        message: `${outcome.message} Keep this return. Do not start another return.`,
+        message: keepThisReturn(outcome.message),
       });
       return;
     }
@@ -230,7 +241,7 @@ export function createReturnController(ports: ReturnControllerPorts) {
         ...session,
         stage: "resolving",
         complete: false,
-        message: `${outcome.value.error.message} Keep this return. Do not start another return.`,
+        message: keepThisReturn(cashierErrorMessage(outcome.value.error, "returns")),
       });
       return;
     }
@@ -246,7 +257,7 @@ export function createReturnController(ports: ReturnControllerPorts) {
           returnId,
           stage: "requires_attention",
           complete: false,
-          message: `${outcome.value.error.message} Keep this return. ${OUTSTANDING_RETURN_COPY}`,
+          message: keepThisReturn(cashierErrorMessage(outcome.value.error, "returns"), true),
         });
         return;
       }
@@ -254,7 +265,7 @@ export function createReturnController(ports: ReturnControllerPorts) {
         ...session,
         stage: "failed",
         complete: false,
-        message: outcome.value.error.message,
+        message: cashierErrorMessage(outcome.value.error, "returns"),
       });
     }
   }
@@ -378,7 +389,7 @@ export function createReturnController(ports: ReturnControllerPorts) {
           setSession({
             ...session,
             stage: "failed",
-            message: outcome.value.error.message,
+            message: cashierErrorMessage(outcome.value.error, "returns"),
             complete: false,
           });
           return;
@@ -444,7 +455,7 @@ export function createReturnController(ports: ReturnControllerPorts) {
             ...session,
             stage: "failed",
             complete: false,
-            message: outcome.value.error.message,
+            message: cashierErrorMessage(outcome.value.error, "returns"),
           });
         }
       } finally {

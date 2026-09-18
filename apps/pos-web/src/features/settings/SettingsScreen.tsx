@@ -1,6 +1,12 @@
 "use client";
 
-import { friendlyDeviceName, TechnicalDetails } from "../../ui/cashier-language";
+import {
+  friendlyDeviceName,
+  printerCapabilityLabel,
+  scannerCapabilityLabel,
+  toCashierError,
+  TechnicalDetails,
+} from "../../ui/cashier-language";
 
 export type SettingsWorkspaceState = "ready" | "loading" | "empty" | "offline" | "degraded" | "error";
 export type AppearancePreference = "system" | "light" | "dark";
@@ -23,16 +29,6 @@ export interface SettingsScreenProps {
   readonly onAppearanceChange?: (appearance: AppearancePreference) => void;
   readonly onOpenStoreHealth?: () => void;
   readonly onRetry?: () => void;
-}
-
-function scannerCopy(label: string): string {
-  if (/presentation only|printport|ws3/i.test(label)) return "Connected scanner";
-  return label;
-}
-
-function printerCopy(label: string): string {
-  if (/printport|ws3|presentation only/i.test(label)) return "Receipt printer";
-  return label;
 }
 
 export function SettingsScreen({
@@ -60,7 +56,7 @@ export function SettingsScreen({
       ) : null}
       {state === "error" ? (
         <div className="banner danger workspace-banner" role="alert">
-          <strong>Settings could not be fully loaded.</strong><span>{errorMessage ?? "Current device settings are shown where available."}</span>
+          <strong>Settings could not be fully loaded.</strong><span>{errorMessage ? toCashierError({ message: errorMessage, domain: "generic" }).message : "Current device settings are shown where available."}</span>
           {onRetry ? <button className="btn small" type="button" onClick={onRetry}>Retry</button> : null}
         </div>
       ) : null}
@@ -76,8 +72,8 @@ export function SettingsScreen({
           <h2 id="device-register-title">Device & register</h2>
           <div className="settings-value"><span className="label">Device</span><strong>{friendlyDeviceName(settings.deviceName)}</strong></div>
           <div className="settings-value"><span className="label">Register</span><strong>{settings.registerName}</strong></div>
-          <div className="settings-value"><span className="label">Scanner</span><span>{scannerCopy(settings.scannerLabel)}</span></div>
-          <div className="settings-value"><span className="label">Printer</span><span>{printerCopy(settings.printerLabel)}</span></div>
+          <div className="settings-value"><span className="label">Scanner</span><span>{scannerCapabilityLabel(settings.scannerLabel)}</span></div>
+          <div className="settings-value"><span className="label">Printer</span><span>{printerCapabilityLabel(settings.printerLabel)}</span></div>
         </section>
 
         <section className="card card-pad stack" aria-labelledby="appearance-title">

@@ -38,6 +38,7 @@ import {
   type StaffRuntimeController,
 } from "../core/identity";
 import type { AuthNoticeState } from "../features/auth";
+import { toCashierError } from "../ui/cashier-language";
 import type { Shift } from "../../../../docs/contracts/domain.generated";
 
 export function PosApp({
@@ -292,6 +293,13 @@ export function PosRuntime({
     [runtime],
   );
 
+  const cashierAuthorityError = authority.errorMessage
+    ? toCashierError({
+        message: authority.errorMessage,
+        domain: authority.status === "ready" ? "register" : "auth",
+      }).message
+    : undefined;
+
   const authNotice: AuthNoticeState =
     authority.status === "expired"
       ? "expired"
@@ -337,7 +345,7 @@ export function PosRuntime({
       cashierDisplayName={authority.session.displayName}
       shiftOpen={authority.shiftOpen}
       online={online}
-      liveMessage={authority.errorMessage}
+      liveMessage={cashierAuthorityError}
       onNavigate={onNavigate}
       onLock={() => {
         void (async () => {
@@ -346,9 +354,9 @@ export function PosRuntime({
         })();
       }}
     >
-      {authority.errorMessage ? (
+      {cashierAuthorityError ? (
         <p className="banner danger" role="status" data-register-authority-degraded="">
-          {authority.errorMessage} Last known register and shift stay visible until we get an updated result.
+          {cashierAuthorityError} Last known register and shift stay visible until we get an updated result.
         </p>
       ) : null}
       {route === "sell" ? (

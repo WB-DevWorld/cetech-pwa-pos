@@ -30,7 +30,7 @@ Internal engineering detail belongs in logs, data attributes, diagnostics, or an
 | Historical sale | Original sale |
 | Preview / execute return | Review return / Complete return |
 | Blind cash count | Count drawer cash |
-| X / Z reports | View shift summary (X report) / End-of-shift report (Z report) |
+| Scanner / printer | Keyboard scanner input / Browser print. Never claim a device is connected unless runtime proves it. |
 
 Prefer short sentences, ordinary retail language, and one word for one concept.
 
@@ -47,6 +47,10 @@ Do not restore synthetic staging customers such as Ada Boateng or Buildworks Ltd
 ## Error-writing pattern
 
 Use a presentation mapper (`toCashierError`, `describeQuoteFailure`, `describePaymentState`). Never print a raw `ApiErrorCode` as the primary message. Preserve the raw code and message for diagnostics.
+
+Raw backend, provider, or server messages are **not** cashier-safe by default. Primary UI must use an explicitly mapped canonical code/domain message or a domain-specific safe fallback. Do not use a denylist to decide whether arbitrary backend text is safe.
+
+Locally authored cashier copy may pass through only when `source: "presentation"` is set. Never mark backend/provider/server strings as presentation-safe.
 
 Pattern:
 
