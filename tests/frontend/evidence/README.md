@@ -101,3 +101,18 @@ The presentation components and pure cart/barcode rules are reusable. CORE-04 in
 | `sell-unknown-barcode.png` | 1440×900 | Unknown barcode alert |
 | `sell-customer.png` | 1440×900 | Selected b2b customer + Wholesale display |
 | `sell-offline.png` | 1440×900 | Offline cached catalog + saved draft banners |
+
+## UX-02 local integrated Sell runtime evidence
+
+`ux-02-runtime-*.png` are **local integrated `/sell` captures** from the production Next start on this worktree with the e2e staff-session harness. They are not the Vitest HTML harness and they are **not deployed staging**.
+
+| File | Viewport | Runtime state |
+| --- | --- | --- |
+| `ux-02-runtime-closed-1920x901.png` | 1920×901 | Closed shift; search-first; four-column cards; advisory `displayPrice` on seed products that have one |
+| `ux-02-runtime-open-1917x870.png` | 1917×870 | Open shift; Hardener card `GHS 155.00` vs quote line/total `GHS 15.00`; Price confirmed; pinned Pay |
+| `ux-02-runtime-compact-1172.png` | 1172×800 | Compact desktop two-pane |
+| `ux-02-runtime-tablet-1024.png` | 1024×768 | Tablet two-pane |
+| `ux-02-runtime-tablet-768.png` | 768×1024 | Cart overlay / View Cart / Pay |
+| `ux-02-runtime-phone-390.png` | 390×844 | Phone overlay |
+
+The yellow “Products may be out of date” strip on open-shift captures is the mocked catalog-sync 401 → synthetic seed path in this local harness. It is not deployed Woo/bridge evidence.

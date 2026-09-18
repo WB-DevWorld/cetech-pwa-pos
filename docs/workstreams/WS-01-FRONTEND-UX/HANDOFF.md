@@ -1,3 +1,79 @@
+# WS1 current handoff — UX-02 Sell alignment closeout (TASK_COMPLETION FRESH_2)
+
+Kind / UTC: TASK_COMPLETION / 2026-09-18T23:45:00Z
+Handoff kind: DEPENDENCY_READY
+Task / batch / workstream: UX-02 / Sell demo visual-interaction alignment closeout / WS1 with temporary senior WS2/WS3 path authorization
+Owner / integration editor / requested human reviewer: Senior/user `@wbdevworld` is temporary implementation authority on this branch only. WS3 independently reviews/imports. Do not self-approve. Do not merge.
+Branch: `ws1/ux-02-sell-demo-alignment`
+Starting/base SHA: `7918bafc4163f4919bad6da8ae1f5de9bed30558`
+Previous UI implementation SHA: `da5eaa33907576c61e1deebfc01bfe38bfd7a772`
+Pre-handoff closeout implementation SHA: `b93549aa761a47c962997089b9842d73e808cfef`
+Commit(s) / contributor source SHAs: `da5eaa33907576c61e1deebfc01bfe38bfd7a772`, `b93549aa761a47c962997089b9842d73e808cfef`
+Allowed / forbidden paths and central leases (temporary senior exception, expires at staging-integration handoff): existing WS1 UX-02 Sell (`apps/pos-web/src/features/**`, `tests/frontend/**`, WS1 STATUS/HANDOFF); advisory catalog `displayPrice` producer (`wordpress/cetech-pos-bridge/**`, `tests/bridge/test-catalog.php`); provider-neutral catalog mapping (`apps/pos-web/src/server/catalog/map-bridge-catalog.ts` and associated catalog tests); local cashier-seed advisory list prices; directly necessary Sell E2E (`apps/pos-web/e2e/**`); `CURRENT-WORK.md` exception record. Forbidden: unrelated WS2/WS3 work; B2BKing/WoodMart/customer-specific catalog pricing; protected `main`; production promotion; shared `batch/stg-01-staging-runtime-acceptance` edits.
+Files changed: WordPress catalog engine advisory `displayPrice`; bridge catalog tests; `map-bridge-catalog.ts` Money-envelope mapping via `listPriceMinor`/`listPriceCurrency`; catalog sync/cashier-seed/Sell presentation tests; local seed advisory prices; Sell layout/runtime visual e2e; local integrated runtime PNGs; CURRENT-WORK exception; this STATUS/HANDOFF.
+Contracts changed: none. Existing `CatalogItem.displayPrice?: Money` is now produced and mapped; quote/prepare/finalize authority is unchanged.
+Database migrations: none. Durable Postgres catalog identity rows still persist `display_price_minor`/`display_currency` as null.
+Architecture decisions: none. Advisory catalog display price is not checkout authority.
+Completed/current/remaining tasks: UX-02 Sell alignment plus live advisory display-price path complete on this branch. Remaining: WS3 staging import; deployed staging visual acceptance; numeric stock counts; commercial badge metadata. Temporary senior exception expires after this handoff.
+Dependencies (accepted / provisional SHA / prep-only / blocked): start SHA / batch `origin/batch/stg-01-staging-runtime-acceptance` `7918bafc4163f4919bad6da8ae1f5de9bed30558`. `origin/main` `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` is an ancestor; not consumed.
+Tests executed:
+- `python scripts/verify_control_plane.py` → PASS (exit 0)
+- `pnpm --dir apps/pos-web lint` → exit 0
+- `pnpm --dir apps/pos-web typecheck` → exit 0
+- `pnpm --dir apps/pos-web test` → 95 files, 800 passed, exit 0
+- `pnpm --dir apps/pos-web build` → exit 0
+- `pnpm --dir apps/pos-web test:e2e` → 14 passed, exit 0
+- `pnpm --dir apps/pos-web exec playwright test --config ../../tests/frontend/visual/playwright.config.ts` → 19 passed, exit 0
+- `php tests/bridge/run.php` → 1671 passed, 0 failed, exit 0
+- `git diff --check` → clean
+Runtime verification and tested combined SHA/environment: required suite on the closeout implementation tree in this worktree. Local integrated `/sell` screenshots captured. Not live Woo quote, Paystack, or deployed staging visual acceptance.
+Remote effects performed: none (no merge; no production; contributor branch push not performed in this evidence commit).
+Assumptions / limitations / unresolved risks: `CatalogItem.displayPrice` is advisory/visual only. Cart line `QuoteLine.unitPrice` and quote totals remain authoritative. Numeric availability is not in the current catalog contract. Commercial badges are not inferred from names/SKUs. Durable identity persist still nulls display prices; Sell uses local/runtime projection from sync/seed. Deployed staging visual acceptance has not occurred. PR must not be merged onto protected main or edited into `batch/stg-01-staging-runtime-acceptance` except by the integration editor.
+Next exact action: WS3 independently reviews/imports `b93549aa761a47c962997089b9842d73e808cfef`. Exception expires. Reassignment after handoff: NONE.
+
+Freshness protocol:
+START_FRESHNESS_SNAPSHOT UTC: 2026-09-18T23:20:00Z
+Start main SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Start batch ref/SHA: `origin/batch/stg-01-staging-runtime-acceptance` `7918bafc4163f4919bad6da8ae1f5de9bed30558`
+Applicable contracts / ADRs / ownership / queue revision: frozen v1.0.0; ADR-012; ADR-014; CURRENT-WORK temporary senior UX-02 closeout exception
+
+Pass 1 fetch UTC / success evidence: 2026-09-18T23:40:00Z `git fetch origin --prune` succeeded
+Pass 1 main SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Pass 1 batch SHA: `7918bafc4163f4919bad6da8ae1f5de9bed30558`
+Relevant upstream paths and dependency/authority effects: `origin/main` is an ancestor of HEAD; batch tip equals start SHA `7918baf` and is an ancestor of HEAD
+Classification per change: main — IRRELEVANT (SAME / no arrivals). Batch — SAME / COMPATIBLE (no arrivals; start SHA is the batch tip).
+Actions taken / reconciliation commits: none. Did not merge or consume `origin/main` or the batch branch.
+Tests rerun / tested combined SHA: required suite on `b93549aa761a47c962997089b9842d73e808cfef`
+
+Pass 2 fetch UTC / success evidence: 2026-09-18T23:47:00Z `git fetch origin --prune` succeeded; `origin/main` still `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`; batch still `7918bafc4163f4919bad6da8ae1f5de9bed30558`
+Pass 2 main SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Pass 2 batch SHA: `7918bafc4163f4919bad6da8ae1f5de9bed30558`
+Relevant upstream paths and dependency/authority effects: none since Pass 1 at time of writing
+Classification per change: no arrivals — IRRELEVANT on main; SAME / COMPATIBLE on batch
+Actions taken / reconciliation commits: none
+Tests rerun / tested combined SHA: no upstream arrivals; tested SHA remains `b93549aa761a47c962997089b9842d73e808cfef`
+
+Final freshness status: FRESH_2
+Delivery status: READY_FOR_INTEGRATION
+Final task head SHA: recorded after this evidence commit in the session report (cannot be embedded in its own commit)
+Known post-cutoff risk / integration editor follow-up: import this branch; do not treat missing numeric stock or commercial badges as defects; do not treat local runtime screenshots as deployed staging acceptance; durable catalog identity remains price-null by design
+Pass 3: NOT PERMITTED for this assignment.
+Review/merge/release status and limitations: not merged; `main` not modified; shared batch branch not edited; no production promotion.
+Metrics delta for CURRENT-WORK: temporary UX-02 closeout exception recorded; STG-06 authority text otherwise unchanged.
+
+Acting human / workstream / mode: senior/user `@wbdevworld` / temporary integration-implementation authority / IMPLEMENT
+Declared task owner / actual implementing human / workstream: Ben / `@Ben-001-sys` remains WS1 owner; this closeout is a temporary senior exception on this branch only
+Source contributor branch / full source SHA(s): `ws1/ux-02-sell-demo-alignment` / `b93549aa761a47c962997089b9842d73e808cfef`
+Imported SHA(s) / exact tested combined integration SHA: none / `b93549aa761a47c962997089b9842d73e808cfef`
+Receiving human / workstream / acknowledgment checkpoint: WS3 / senior integration editor
+Review finding / severity / owning task / fix source/import SHAs: none / UX-02 closeout
+Explicit senior reassignment authority / scope / expiry: CURRENT-WORK “Temporary senior UX-02 closeout”; WS1 Sell + advisory displayPrice producer/mapper + necessary e2e; expires at staging-integration handoff
+Remote effects allowed (not inferred from this handoff): contributor branch push only, when the owner requests it
+Next exact action for receiving owner: review/import `b93549aa761a47c962997089b9842d73e808cfef`; keep POST `/quotes` and prepare/finalize authoritative; do not treat this handoff as production approval
+Other independently authorized same-owner work: WAITING_FOR_OWNER
+
+## Previous current handoff — UX-02 Sell demo-alignment (TASK_COMPLETION FRESH_2)
+
 # WS1 current handoff — UX-02 Sell demo-alignment (TASK_COMPLETION FRESH_2)
 
 Kind / UTC: TASK_COMPLETION / 2026-09-18T23:10:44Z
