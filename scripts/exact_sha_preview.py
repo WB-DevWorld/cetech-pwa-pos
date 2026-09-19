@@ -2,7 +2,9 @@
 
 Runs only from protected main. Candidate application code is never checked out
 and never built in this process. The Vercel token is used only for HTTPS calls
-to Vercel. No production/staging-alias promotion.
+to Vercel. Candidate source is executed remotely by Vercel Preview, so exact-head
+independent approvals are required before any deployment request. No
+production/staging-alias promotion.
 """
 from __future__ import annotations
 
@@ -20,6 +22,8 @@ CI_WORKFLOW_PATH = ".github/workflows/ci.yml"
 CI_WORKFLOW_NAME = "CI"
 REQUIRED_JOBS = ("control-plane", "control-plane-windows")
 GITHUB_ACTIONS_APP_SLUG = "github-actions"
+REQUIRED_PREVIEW_REVIEWERS = ("Ben-001-sys", "Emmanuel-coder-prog")
+INTEGRATION_EDITOR_LOGINS = frozenset({"wbdevworld"})
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 PR_RE = re.compile(r"^[1-9][0-9]*$")
 POLL_SECONDS = 10
@@ -119,6 +123,100 @@ def require_main(github_ref: str, github_repository: str) -> None:
         fail("Exact SHA Preview may only run from protected main.")
     if github_repository != EXPECTED_REPO:
         fail(f"Exact SHA Preview may only run in {EXPECTED_REPO}.")
+
+
+def review_login(review: dict) -> str:
+    return str((review.get("user") or {}).get("login") or "")
+
+
+def review_sha(review: dict) -> str:
+    return str(review.get("commit_id") or "").strip().lower()
+
+
+def review_sort_key(review: dict):
+    return (str(review.get("submitted_at") or ""), int(review.get("id") or 0))
+
+
+def is_blocked_substitute(login: str, author_login: str | None = None) -> bool:
+    blocked = set(INTEGRATION_EDITOR_LOGINS)
+    if author_login:
+        blocked.add(author_login.lower())
+    return login.lower() in blocked
+
+
+def latest_effective_exact_head_state(reviews: list[dict], login: str, sha: str) -> str | None:
+    state = None
+    wanted = login.lower()
+    for review in sorted(reviews, key=review_sort_key):
+        if review_login(review).lower() != wanted:
+            continue
+        current = str(review.get("state") or "").upper()
+        if current not in {"APPROVED", "CHANGES_REQUESTED"}:
+            continue
+        if review_sha(review) != sha:
+            continue
+        state = current
+    return state
+
+
+def missing_exact_head_approvals(
+    reviews: list[dict],
+    sha: str,
+    required: tuple[str, ...] = REQUIRED_PREVIEW_REVIEWERS,
+    author_login: str | None = None,
+) -> list[str]:
+    missing: list[str] = []
+    for login in required:
+        if is_blocked_substitute(login, author_login):
+            missing.append(login)
+            continue
+        if latest_effective_exact_head_state(reviews, login, sha) != "APPROVED":
+            missing.append(login)
+    return missing
+
+
+def fetch_pr_reviews(pr_number: str, token: str, api: str, repo: str) -> list[dict]:
+    reviews: list[dict] = []
+    for page in range(1, 11):
+        chunk = github_json(f"/pulls/{pr_number}/reviews?per_page=100&page={page}", token, api, repo)
+        if not isinstance(chunk, list):
+            fail("GitHub PR reviews response was not a list.")
+        reviews.extend(chunk)
+        if len(chunk) < 100:
+            return reviews
+    return reviews
+
+
+def verify_review_authorization(
+    reviews: list[dict],
+    sha: str,
+    author_login: str | None = None,
+    required: tuple[str, ...] = REQUIRED_PREVIEW_REVIEWERS,
+) -> None:
+    missing = missing_exact_head_approvals(reviews, sha, required, author_login)
+    if missing:
+        named = ", ".join(f"`{login}`" for login in missing)
+        fail(
+            "REVIEW_AUTHORIZATION_REQUIRED: missing exact-head APPROVED reviews from: " + named,
+            "REVIEW_AUTHORIZATION_REQUIRED",
+        )
+
+
+def build_id_report(sha: str, request_supplied: bool, runtime_observed: str | None = None) -> list[str]:
+    request = (
+        f"- BUILD_ID request: VERIFIED that the trusted deployment request supplied `{sha}`."
+        if request_supplied
+        else "- BUILD_ID request: NOT VERIFIED."
+    )
+    if runtime_observed == sha:
+        runtime = f"- Running application BUILD_ID: VERIFIED (`{sha}`)."
+    else:
+        runtime = "- Running application BUILD_ID: PENDING RUNTIME VERIFICATION."
+    return [
+        f"- Git source SHA: VERIFIED (`{sha}`) from Vercel deployment metadata.",
+        request,
+        runtime,
+    ]
 
 
 def verify_pull_request(pull: dict, sha: str, pr_number: str) -> str:
@@ -365,10 +463,23 @@ def verify_github(env: dict[str, str]) -> dict[str, str]:
     jobs_succeeded(jobs)
     checks = github_json(f"/commits/{sha}/check-runs?per_page=100", token, api, repo).get("check_runs") or []
     github_actions_checks_succeeded(checks)
-    return {"sha": sha, "pr_number": pr_number, "head_ref": head_ref}
+    author_login = str((pull.get("user") or {}).get("login") or "")
+    reviews = fetch_pr_reviews(pr_number, token, api, repo)
+    verify_review_authorization(reviews, sha, author_login=author_login)
+    return {
+        "sha": sha,
+        "pr_number": pr_number,
+        "head_ref": head_ref,
+        "review_authorization": "granted",
+    }
 
 
-def deploy_and_verify(env: dict[str, str], verified: dict[str, str], sleeper=time.sleep) -> dict[str, str]:
+def deploy_and_verify(env: dict[str, str], verified: dict[str, str], sleeper=time.sleep) -> dict:
+    if verified.get("review_authorization") != "granted":
+        fail(
+            "REVIEW_AUTHORIZATION_REQUIRED: exact-head independent approvals are required before any Vercel deployment request.",
+            "REVIEW_AUTHORIZATION_REQUIRED",
+        )
     token = env.get("VERCEL_TOKEN") or ""
     team_id = env.get("VERCEL_ORG_ID") or ""
     project_id = env.get("VERCEL_PROJECT_ID") or ""
@@ -453,17 +564,15 @@ def deploy_and_verify(env: dict[str, str], verified: dict[str, str], sleeper=tim
         url = "https://" + url
     env_map = parse_env_map(deployment.get("env"))
     env_map.update(parse_env_map(deployment.get("build")))
-    build_id_state = "requested"
-    if env_map.get("BUILD_ID") == sha:
-        build_id_state = "matched"
-    elif "BUILD_ID" in env_map:
-        build_id_state = "listed"
+    if "BUILD_ID" in env_map and env_map["BUILD_ID"] not in (None, sha):
+        fail("Deployment BUILD_ID does not equal the candidate SHA.", "IDENTITY_MISMATCH")
     return {
         "deployment_id": deployment_id,
         "url": url,
         "sha": sha,
         "target": str(deployment.get("target") or "preview"),
-        "build_id_state": build_id_state,
+        "build_id_request_supplied": True,
+        "runtime_build_id": None,
     }
 
 
@@ -484,24 +593,29 @@ def main(argv: list[str] | None = None, env: dict[str, str] | None = None) -> in
         write_summary([
             "### CETECH POS exact SHA Preview",
             "",
-            "**DEPLOYED_PREVIEW**",
+            "**PREVIEW_CREATED**",
             "",
             f"- Candidate SHA: `{result['sha']}`",
             f"- Verified open PR: #{verified['pr_number']}",
+            f"- Exact-head reviewers: `{REQUIRED_PREVIEW_REVIEWERS[0]}`, `{REQUIRED_PREVIEW_REVIEWERS[1]}`",
             f"- Vercel Preview: {result['url']}",
             f"- Deployment id: `{result['deployment_id']}`",
             f"- Target: `{result['target']}`",
-            f"- Git source SHA: `{result['sha']}`",
-            f"- BUILD_ID: `{result['sha']}` ({result['build_id_state']})",
+            *build_id_report(
+                result["sha"],
+                request_supplied=bool(result.get("build_id_request_supplied")),
+                runtime_observed=result.get("runtime_build_id"),
+            ),
             "- Shared staging alias: not moved",
             "- Production promotion: refused",
             "",
             "Candidate application code was not checked out and was not built in GitHub Actions. "
-            "Vercel built the Git source remotely. This does not authorize production promotion, "
-            "shared-staging alias movement, electronic-payment execution, refund/restock effects, "
-            "or VitePOS cutover.",
+            "Vercel built the Git source remotely after exact-head independent approval. "
+            "This is permission only to enter controlled Preview acceptance. It is not merge "
+            "authorization, production promotion, shared-staging alias movement, "
+            "electronic-payment execution, refund/restock effects, or VitePOS cutover.",
         ])
-        print(f"DEPLOYED_PREVIEW {result['url']}")
+        print(f"PREVIEW_CREATED {result['url']}")
         return 0
     except PreviewError as error:
         print(str(error), file=sys.stderr)

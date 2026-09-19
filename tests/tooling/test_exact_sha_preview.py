@@ -1,5 +1,7 @@
 """Security and identity guards for exact-SHA Git-source Preview."""
 from pathlib import Path
+from unittest.mock import patch
+import io
 import sys
 import unittest
 
@@ -7,18 +9,123 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 from exact_sha_preview import (
     PreviewError,
+    REQUIRED_PREVIEW_REVIEWERS,
+    build_id_report,
     create_payload,
+    deploy_and_verify,
     github_actions_checks_succeeded,
     jobs_succeeded,
+    main,
+    missing_exact_head_approvals,
     production_hosts,
     project_git_link,
     require_main,
     select_ci_run,
+    verify_github,
     verify_preview_identity,
     verify_pull_request,
+    verify_review_authorization,
 )
 
 SHA = "7e9da309bddbccdabf41b8ba753351e8697041d9"
+OLD_SHA = "f9c7c2aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+REPO = "WB-DevWorld/cetech-pwa-pos"
+ENV = {
+    "GITHUB_REF": "refs/heads/main",
+    "GITHUB_REPOSITORY": REPO,
+    "CANDIDATE_SHA": SHA,
+    "PR_NUMBER": "80",
+    "GH_TOKEN": "test-github-token",
+    "GITHUB_API_URL": "https://api.github.com",
+}
+
+
+def review(login, state, sha, submitted_at, review_id, body=""):
+    return {
+        "id": review_id,
+        "user": {"login": login},
+        "state": state,
+        "commit_id": sha,
+        "submitted_at": submitted_at,
+        "body": body,
+    }
+
+
+def both_exact_head_approvals():
+    return [
+        review("Ben-001-sys", "APPROVED", SHA, "2026-09-19T18:00:00Z", 11),
+        review("Emmanuel-coder-prog", "APPROVED", SHA, "2026-09-19T18:01:00Z", 12),
+    ]
+
+
+def github_json_fixture(reviews, author="wbdevworld"):
+    def github_json(path, token, api, repo, accept="application/vnd.github+json"):
+        if "check-runs" in path:
+            return {
+                "check_runs": [
+                    {
+                        "name": "control-plane",
+                        "status": "completed",
+                        "conclusion": "success",
+                        "completed_at": "2026-09-19T17:30:00Z",
+                        "app": {"slug": "github-actions"},
+                    },
+                    {
+                        "name": "control-plane-windows",
+                        "status": "completed",
+                        "conclusion": "success",
+                        "completed_at": "2026-09-19T17:30:00Z",
+                        "app": {"slug": "github-actions"},
+                    },
+                ]
+            }
+        if path.startswith(f"/commits/{SHA}"):
+            return {"sha": SHA}
+        if path.startswith("/pulls/80/reviews"):
+            return reviews
+        if path.startswith("/pulls/80"):
+            return {
+                "state": "open",
+                "user": {"login": author},
+                "head": {
+                    "sha": SHA,
+                    "ref": "ws3/receipt-product-name-sku",
+                    "repo": {"full_name": REPO},
+                },
+                "base": {"repo": {"full_name": REPO}},
+            }
+        if path.startswith("/actions/runs?"):
+            return {
+                "workflow_runs": [
+                    {
+                        "id": 1,
+                        "name": "CI",
+                        "path": ".github/workflows/ci.yml",
+                        "status": "completed",
+                        "conclusion": "success",
+                    }
+                ]
+            }
+        if "/jobs" in path:
+            return {
+                "jobs": [
+                    {
+                        "name": "control-plane",
+                        "status": "completed",
+                        "conclusion": "success",
+                        "completed_at": "b",
+                    },
+                    {
+                        "name": "control-plane-windows",
+                        "status": "completed",
+                        "conclusion": "success",
+                        "completed_at": "b",
+                    },
+                ]
+            }
+        raise AssertionError(f"unexpected GitHub path {path}")
+
+    return github_json
 
 
 class ExactShaPreviewTests(unittest.TestCase):
@@ -172,6 +279,166 @@ class ExactShaPreviewTests(unittest.TestCase):
             "targets": {"production": {"alias": ["cetech-pos-staging.vercel.app"]}},
         })
         self.assertIn("cetech-pos-staging.vercel.app", hosts)
+
+    def test_both_exact_head_approvals_satisfy_the_gate(self):
+        self.assertEqual(("Ben-001-sys", "Emmanuel-coder-prog"), REQUIRED_PREVIEW_REVIEWERS)
+        reviews = both_exact_head_approvals()
+        self.assertEqual([], missing_exact_head_approvals(reviews, SHA, author_login="wbdevworld"))
+        verify_review_authorization(reviews, SHA, author_login="wbdevworld")
+
+    def test_approval_from_only_ben_fails(self):
+        reviews = [review("Ben-001-sys", "APPROVED", SHA, "2026-09-19T18:00:00Z", 11)]
+        with self.assertRaises(PreviewError) as caught:
+            verify_review_authorization(reviews, SHA, author_login="wbdevworld")
+        self.assertEqual("REVIEW_AUTHORIZATION_REQUIRED", caught.exception.summary)
+        self.assertIn("`Emmanuel-coder-prog`", str(caught.exception))
+        self.assertNotIn("`Ben-001-sys`", str(caught.exception))
+
+    def test_approval_from_only_emmanuel_fails(self):
+        reviews = [review("Emmanuel-coder-prog", "APPROVED", SHA, "2026-09-19T18:00:00Z", 12)]
+        with self.assertRaises(PreviewError) as caught:
+            verify_review_authorization(reviews, SHA, author_login="wbdevworld")
+        self.assertEqual("REVIEW_AUTHORIZATION_REQUIRED", caught.exception.summary)
+        self.assertIn("`Ben-001-sys`", str(caught.exception))
+        self.assertNotIn("`Emmanuel-coder-prog`", str(caught.exception))
+
+    def test_approval_on_an_old_sha_fails(self):
+        reviews = [
+            review("Ben-001-sys", "APPROVED", OLD_SHA, "2026-09-19T17:00:00Z", 1),
+            review("Emmanuel-coder-prog", "APPROVED", OLD_SHA, "2026-09-19T17:01:00Z", 2),
+        ]
+        with self.assertRaises(PreviewError) as caught:
+            verify_review_authorization(reviews, SHA, author_login="wbdevworld")
+        self.assertEqual("REVIEW_AUTHORIZATION_REQUIRED", caught.exception.summary)
+        self.assertIn("`Ben-001-sys`", str(caught.exception))
+        self.assertIn("`Emmanuel-coder-prog`", str(caught.exception))
+
+    def test_old_changes_requested_then_exact_head_approved_succeeds(self):
+        reviews = [
+            review("Ben-001-sys", "CHANGES_REQUESTED", OLD_SHA, "2026-09-19T16:00:00Z", 1),
+            review("Emmanuel-coder-prog", "CHANGES_REQUESTED", OLD_SHA, "2026-09-19T16:01:00Z", 2),
+            review("Ben-001-sys", "APPROVED", SHA, "2026-09-19T18:00:00Z", 11),
+            review("Emmanuel-coder-prog", "APPROVED", SHA, "2026-09-19T18:01:00Z", 12),
+        ]
+        verify_review_authorization(reviews, SHA, author_login="wbdevworld")
+
+    def test_exact_head_approved_then_later_exact_head_changes_requested_fails(self):
+        reviews = [
+            review("Ben-001-sys", "APPROVED", SHA, "2026-09-19T18:00:00Z", 11),
+            review("Emmanuel-coder-prog", "APPROVED", SHA, "2026-09-19T18:01:00Z", 12),
+            review("Ben-001-sys", "CHANGES_REQUESTED", SHA, "2026-09-19T19:00:00Z", 21),
+        ]
+        with self.assertRaises(PreviewError) as caught:
+            verify_review_authorization(reviews, SHA, author_login="wbdevworld")
+        self.assertEqual("REVIEW_AUTHORIZATION_REQUIRED", caught.exception.summary)
+        self.assertIn("`Ben-001-sys`", str(caught.exception))
+        self.assertNotIn("`Emmanuel-coder-prog`", str(caught.exception))
+
+    def test_unrelated_user_approval_does_not_count(self):
+        reviews = [
+            review("unrelated-reviewer", "APPROVED", SHA, "2026-09-19T18:00:00Z", 99),
+            review("Ben-001-sys", "APPROVED", SHA, "2026-09-19T18:01:00Z", 11),
+        ]
+        with self.assertRaises(PreviewError) as caught:
+            verify_review_authorization(reviews, SHA, author_login="wbdevworld")
+        self.assertEqual("REVIEW_AUTHORIZATION_REQUIRED", caught.exception.summary)
+        self.assertIn("`Emmanuel-coder-prog`", str(caught.exception))
+        self.assertNotIn("unrelated-reviewer", str(caught.exception))
+
+    def test_author_and_integration_editor_do_not_substitute(self):
+        reviews = [
+            review("wbdevworld", "APPROVED", SHA, "2026-09-19T18:00:00Z", 3),
+            review("Ben-001-sys", "APPROVED", SHA, "2026-09-19T18:01:00Z", 11),
+        ]
+        with self.assertRaises(PreviewError) as caught:
+            verify_review_authorization(reviews, SHA, author_login="wbdevworld")
+        self.assertEqual("REVIEW_AUTHORIZATION_REQUIRED", caught.exception.summary)
+        self.assertIn("`Emmanuel-coder-prog`", str(caught.exception))
+        self.assertNotIn("`Ben-001-sys`", str(caught.exception))
+        self.assertNotIn("wbdevworld", str(caught.exception))
+
+    def test_vercel_deploy_is_not_invoked_when_review_authorization_fails(self):
+        reviews = [
+            review(
+                "Ben-001-sys",
+                "COMMENTED",
+                SHA,
+                "2026-09-19T18:00:00Z",
+                11,
+                body="do-not-print-this-review-body",
+            )
+        ]
+        with patch("exact_sha_preview.github_json", side_effect=github_json_fixture(reviews)), \
+             patch("exact_sha_preview.deploy_and_verify") as deploy, \
+             patch("exact_sha_preview.request_json") as vercel, \
+             patch("sys.stderr", new_callable=io.StringIO) as stderr:
+            code = main(["deploy"], env=dict(ENV))
+        self.assertEqual(1, code)
+        deploy.assert_not_called()
+        vercel.assert_not_called()
+        text = stderr.getvalue()
+        self.assertIn("REVIEW_AUTHORIZATION_REQUIRED", text)
+        self.assertIn("`Ben-001-sys`", text)
+        self.assertIn("`Emmanuel-coder-prog`", text)
+        self.assertNotIn("do-not-print-this-review-body", text)
+
+    def test_deploy_and_verify_refuses_without_granted_review_authorization(self):
+        with patch("exact_sha_preview.request_json") as vercel:
+            with self.assertRaises(PreviewError) as caught:
+                deploy_and_verify(
+                    {"VERCEL_TOKEN": "token", "VERCEL_ORG_ID": "org", "VERCEL_PROJECT_ID": "prj"},
+                    {"sha": SHA, "head_ref": "ws3/receipt-product-name-sku", "pr_number": "80"},
+                )
+        self.assertEqual("REVIEW_AUTHORIZATION_REQUIRED", caught.exception.summary)
+        vercel.assert_not_called()
+
+    def test_build_id_summary_distinguishes_requested_from_runtime_verified(self):
+        lines = build_id_report(SHA, request_supplied=True, runtime_observed=None)
+        text = "\n".join(lines)
+        self.assertIn(f"Git source SHA: VERIFIED (`{SHA}`) from Vercel deployment metadata.", text)
+        self.assertIn(
+            f"BUILD_ID request: VERIFIED that the trusted deployment request supplied `{SHA}`.",
+            text,
+        )
+        self.assertIn("Running application BUILD_ID: PENDING RUNTIME VERIFICATION.", text)
+        self.assertNotIn("DEPLOYED_PREVIEW", text)
+        captured = []
+        with patch(
+            "exact_sha_preview.verify_github",
+            return_value={
+                "sha": SHA,
+                "pr_number": "80",
+                "head_ref": "ws3/receipt-product-name-sku",
+                "review_authorization": "granted",
+            },
+        ), patch(
+            "exact_sha_preview.deploy_and_verify",
+            return_value={
+                "deployment_id": "dpl_example",
+                "url": "https://example.vercel.app",
+                "sha": SHA,
+                "target": "preview",
+                "build_id_request_supplied": True,
+                "runtime_build_id": None,
+            },
+        ), patch("exact_sha_preview.write_summary", side_effect=lambda rows: captured.extend(rows)), \
+             patch("exact_sha_preview.write_output"):
+            code = main(["deploy"], env=dict(ENV))
+        self.assertEqual(0, code)
+        summary = "\n".join(captured)
+        self.assertIn("PREVIEW_CREATED", summary)
+        self.assertIn("PENDING RUNTIME VERIFICATION", summary)
+        self.assertIn("trusted deployment request supplied", summary)
+        self.assertNotIn("DEPLOYED_PREVIEW", summary)
+
+    def test_github_verify_grants_review_authorization_when_both_approve(self):
+        with patch(
+            "exact_sha_preview.github_json",
+            side_effect=github_json_fixture(both_exact_head_approvals()),
+        ):
+            verified = verify_github(dict(ENV))
+        self.assertEqual("granted", verified["review_authorization"])
+        self.assertEqual(SHA, verified["sha"])
 
 
 if __name__ == "__main__":
