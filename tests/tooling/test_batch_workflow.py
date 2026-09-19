@@ -56,9 +56,10 @@ class BatchWorkflowTests(unittest.TestCase):
         self.assertIn('--environment=preview', deploy)
         self.assertIn('cetech-pos-shared-staging', deploy)
 
-    def test_exact_sha_preview_is_manual_main_only_and_preview_only(self):
+    def test_exact_sha_preview_is_manual_main_only_git_source_and_preview_only(self):
         preview = (ROOT / '.github/workflows/deploy-exact-sha-preview.yml').read_text(
             encoding='utf-8')
+        script = (ROOT / 'scripts/exact_sha_preview.py').read_text(encoding='utf-8')
         self.assertNotIn('pull_request_target:', preview)
         self.assertRegex(preview, r'(?m)^  workflow_dispatch:\s*$')
         self.assertNotRegex(preview, r'(?m)^  pull_request:')
@@ -66,19 +67,36 @@ class BatchWorkflowTests(unittest.TestCase):
         self.assertIn("github.ref == 'refs/heads/main'", preview)
         self.assertIn('candidate_sha:', preview)
         self.assertIn('pr_number:', preview)
+        self.assertRegex(
+            preview,
+            r'(?ms)pr_number:.*?required: true',
+        )
         self.assertIn('environment: staging', preview)
-        self.assertIn('--environment=preview', preview)
-        self.assertIn('BUILD_ID', preview)
-        self.assertIn('vercel deploy --prebuilt', preview)
-        self.assertIn('persist-credentials: false', preview)
+        self.assertIn('ref: ${{ github.sha }}', preview)
+        self.assertNotIn('ref: ${{ env.CANDIDATE_SHA }}', preview)
         self.assertIn('exact-sha-preview-', preview)
         self.assertNotIn('cetech-pos-shared-staging', preview)
         self.assertNotIn('vars.VERCEL_STAGING_ALIAS', preview)
+        self.assertNotIn('VERCEL_STAGING_ALIAS', preview)
         self.assertNotIn('vercel alias set', preview)
         self.assertNotIn('--environment=production', preview)
         self.assertNotRegex(preview, r'vercel deploy[^\n]*--prod')
+        self.assertNotIn('vercel build', preview)
+        self.assertNotIn('vercel deploy', preview)
+        self.assertNotIn('vercel pull', preview)
         self.assertIn('vercel@59.17.0', preview)
         self.assertIn('actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683', preview)
+        self.assertIn('scripts/exact_sha_preview.py', preview)
+        self.assertIn('/v13/deployments', script)
+        self.assertIn('gitSource', script)
+        self.assertIn('BUILD_ID', script)
+        self.assertIn('GIT_SOURCE_UNAVAILABLE', script)
+        self.assertNotIn('--prod', script)
+        self.assertNotIn('vercel build', script)
+        self.assertNotIn('pull_request_target', script)
+        self.assertNotIn('"target": "production"', script)
+        self.assertNotIn("'target': 'production'", script)
+        self.assertNotIn('"target": "staging"', script)
 
 
 if __name__ == '__main__':

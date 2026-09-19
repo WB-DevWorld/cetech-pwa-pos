@@ -223,25 +223,35 @@ Provider-managed PR previews may be reconsidered later with an explicit safe-cre
 
 Use this only when an immutable Vercel Preview of a CI-green candidate SHA is required **without** merging that candidate to `main` and **without** moving the shared staging alias.
 
-The trusted workflow is `.github/workflows/deploy-exact-sha-preview.yml` on protected `main`. `workflow_dispatch` is the invocation method; the workflow file on `main` is the deployment authority. Do not add `pull_request_target`. Do not dispatch from a contributor branch.
+Automatic Vercel Git previews may be disabled while GitHub Actions owns shared staging. That does **not** by itself prove a targeted Git-source deployment is impossible. Vercel can still create a Preview from a Git commit SHA when the project remains linked to `WB-DevWorld/cetech-pwa-pos`:
+
+- Dashboard: Project → Deployments → Create Deployment → commit SHA
+- REST: `POST /v13/deployments` with `gitSource.type=github` and the exact `sha`, omitting `target` so the deployment is Preview
+
+Do not change Vercel Git settings merely to test that path. Do not use a local `vercel build --token` of unmerged candidate code: that executes candidate build scripts in a process that holds the deployment credential.
+
+The trusted workflow is `.github/workflows/deploy-exact-sha-preview.yml` plus `scripts/exact_sha_preview.py` on protected `main`. `workflow_dispatch` is the invocation method. Do not add `pull_request_target`. Do not dispatch from a contributor branch.
 
 Inputs:
 
 - `candidate_sha` (required): full 40-character commit SHA
-- `pr_number` (optional): open same-repository PR whose **current** head must equal `candidate_sha`
+- `pr_number` (required): open same-repository PR whose **current** head must equal `candidate_sha`
 
 The job:
 
-1. refuses to run unless the dispatch ref is `main`;
-2. verifies the SHA exists in this repository;
-3. refuses fork-only SHAs;
-4. if `pr_number` is supplied, verifies that PR is open, same-repository, and currently at that SHA;
-5. verifies required checks `control-plane` and `control-plane-windows` succeeded for that exact SHA;
-6. checks out the exact SHA with `persist-credentials: false`;
-7. uses GitHub environment `staging` secrets only inside the runner (`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`);
-8. runs `vercel pull --environment=preview`, `vercel build` with `BUILD_ID=<candidate_sha>`, and `vercel deploy --prebuilt` to an immutable Preview;
-9. smokes `/` on that immutable URL with authenticated `vercel curl`;
-10. records the SHA and Preview URL in the job summary.
+1. refuses to run unless the dispatch ref is `main` in `WB-DevWorld/cetech-pwa-pos`;
+2. checks out the trusted dispatch SHA (`github.sha` / main), never the candidate SHA;
+3. verifies the candidate SHA exists in this repository;
+4. requires an open PR whose head and base repositories are exactly `WB-DevWorld/cetech-pwa-pos` and whose current head equals `candidate_sha` (forks are rejected);
+5. verifies required jobs `control-plane` and `control-plane-windows` succeeded on a GitHub Actions workflow run of `.github/workflows/ci.yml` named `CI` for that SHA, not merely any check run using those names;
+6. uses GitHub environment `staging` secrets only inside the runner for HTTPS calls to Vercel (`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`);
+7. confirms the existing Vercel project is Git-linked to `WB-DevWorld/cetech-pwa-pos`;
+8. creates a Vercel Preview with `POST /v13/deployments` from that Git source and `BUILD_ID=<candidate_sha>` (no `target`, no `--prod`, no production/staging alias assignment);
+9. polls until `READY` or `ERROR`;
+10. proves Preview target, Git source SHA, requested `BUILD_ID`, and that protected production aliases were not assigned;
+11. smokes `/` on the immutable URL with authenticated `vercel curl`.
+
+If the Vercel project is not Git-linked, or the Git-source API cannot address the exact SHA, the job stops with `GIT_SOURCE_UNAVAILABLE`. It does **not** fall back to checking out candidate code or running `vercel build --token`.
 
 It does **not** assign a production alias, does **not** pass `--prod`, and does **not** consume or move `VERCEL_STAGING_ALIAS`. It uses a distinct concurrency group so it cannot cancel shared Staging CD.
 
