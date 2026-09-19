@@ -57,6 +57,7 @@ export function PwaLifecycleRuntime({
         initialReleasePolicy,
         onReleasePolicy: setReleasePolicy,
         onUpdateReady: () => {
+          setActivationDecision(null);
           setUpdateDialogDismissed(false);
           setUpdateReady(true);
         },
@@ -87,12 +88,13 @@ export function PwaLifecycleRuntime({
   }, [lifecycle, updateReady]);
 
   const updateSafety: UpdateSafetyView =
-    activationDecision?.safe === true
-      ? "safe"
-      : activationDecision && !activationDecision.safe &&
-          activationDecision.reasons.every((reason) => reason === "PASSIVE_WINDOW")
-        ? "defer"
-        : "blocked_critical";
+    activationDecision === null
+      ? "defer"
+      : activationDecision.safe
+        ? "safe"
+        : activationDecision.reasons.every((reason) => reason === "PASSIVE_WINDOW")
+          ? "defer"
+          : "blocked_critical";
 
   const api = useMemo<PwaLifecycleApi>(
     () => ({
