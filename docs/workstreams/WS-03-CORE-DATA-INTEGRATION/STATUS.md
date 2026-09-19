@@ -1,21 +1,34 @@
 # WS3 current status
 
-Snapshot 2026-09-18. Protected `main` `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` is accepted/merged R8 PR #69. Active contributor work is REC-01 on `ws3/receipt-product-name-sku`. Do not merge this branch from this status file. Do not deploy production.
+Snapshot 2026-09-18. Protected `main` `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` is accepted/merged R8 PR #69. STG-01 / #70 remains the active P0 recovery gate. R9 PR #63 must not merge while STG-01 is open.
 
-## REC-01 (active)
+## Active contributor assignment
 
-Mode: IMPLEMENT. Owner `@wbdevworld` / WS3. Branch `ws3/receipt-product-name-sku` from `origin/main` `778348c…`.
+Mode: REMEDIATE. Owner `@wbdevworld` / WS3.
+Branch: `ws3/stg-06-quote-identity-register-authority` from exact start `a02cd21875d0717adb6694d293b41575302b2415`.
+Scope: persist rebuildable `pos_catalog_items` during catalog sync; translate POS quote IDs to Woo source IDs server-side; preserve last-known register/shift on transient refresh failure; related quote URL, shift-open idempotency, register error, rebuild-catalog observability. Implementation SHA `5119054a2059ff5903a50d8b96644b63c38fdd48`. Freshness FRESH_2; not imported into `batch/stg-01-staging-runtime-acceptance` from this status file. Do not merge.
 
-Additive `ReceiptLine.displayName`/`sku`, `ReceiptSettings`, sale-time catalog presentation snapshot, `pos_receipt_settings`, additive `pos_pending_operations.intent_snapshot` bound before `SalesPort.prepare`, and first-write-wins immutability (`intent_snapshot IS NULL` CAS plus trigger). Compact POS wrapping remains WS1. Remote staging apply UNVERIFIED; production not touched.
+## STG-01 integration (active, not this branch)
 
-## R8 (historical)
+Mode: INTEGRATE. Owner `@wbdevworld` / WS3. Integration base `acd4a2f009c58f734186cf9e44f278da93499a4b`. Combined candidate SHA observed at STG-06 freshness cutoff: `a02cd21875d0717adb6694d293b41575302b2415` (previously recorded `4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897`).
 
-PR #69 squash-merged as `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`. R8-02 runtime remediation is historical. Do not reopen `batch/r8-safe-returns-reconciliation` for new work.
 
-## R7 (historical)
+Imported contributor sources (provenance recorded in CURRENT-WORK):
 
-PR #58 squash-merged as `1feb78db36f33e0254c0170396f30112d71577ea`. Paystack TEST sandbox evidence remains `docs/integration/evidence/R7-PAY-01-SANDBOX.md` (Woo **49449**). Live Paystack is still not authorized.
+| Task | Source SHA | Imported SHA | Classification |
+| --- | --- | --- | --- |
+| STG-02 / #71 | `8a6aba2ce82ebe265a154f89999c2caab7a08beb` | `9bfb535ca86f7bd27108b3a82c6876e4b5f19c81` | staff session/CSRF/register authority |
+| STG-05 / #74 | `4d549167f7d6dcecf0eff24f35e1f24a3429d3d8` | `7cab23415d622cef7369ddc03e007e6576cc4ce7` | WS2 catalog producer `GET /catalog` |
+| STG-04 / #73 | `01e4438d3553c633e7b0234de44743ff4cea2368` | `981722e7c8ff6ea7163532f03218f59ea2b9e20d` | BFF catalog sync / staging refuses synthetic seed |
+| STG-03 / FE-07 | `169f8155fe4cb34b6fe27db3bb6b445a13ade712` | `8073ef59dbf481160387000886b0b7da4a25d237` | WS1 presentation; WS3 mounts |
+| STG-07 / #76 | `4a978b9a67291c34c34f6cb75fddf31d14a7cbdd` | same | CD summary quoting only |
 
-## Remaining disposition
+Mounted routes: `/sell` `/orders` `/customers` `/returns` `/register` `/health` `/attention` `/settings`. Generic R4 placeholder is gone for those paths. Combined local tests are green except Windows `supabase db reset` (cmd.exe heredoc) and GNU Make `command -v` (Docker PHP lint + host PHP runners used).
 
-Independent review of REC-01 after the published contributor head. Ben/WS1 consumes frozen `displayName ?? name` and optional `sku` later. Compact two-line POS UI is a separate frontend task. Production, live Paystack, live refund/restock, and VitePOS deactivation remain NOT AUTHORIZED.
+Composition rule: mounted POS keeps STG-02 staff authority **and** STG-04 catalog authority. STG-04 contributor `CURRENT-WORK.md` was not accepted onto this integration ledger.
+
+STG-05 plugin is deployed on training Woo; authenticated bridge health/catalog/quote are verified (product 14985 equal 3000 GHS minor totals prove customer-context routing, not B2B parity). `BLOCKED_TRAINING_PLUGIN_NOT_DEPLOYED_STG05` is not current truth. Live Preview catalog is blocked by BFF service-identity denial (`bridge denied the BFF service identity`). Cash-sale acceptance is pending. `pricingParityVerified=false`. CP-04 / issue #4 remains OPEN. Do not close #70/#25/#54. Do not merge. Do not start R10.
+
+## R8 (historical / accepted on main)
+
+PR #69 squash-merged as `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`. Production, live Paystack, live refund/restock, and VitePOS deactivation remain NOT AUTHORIZED.

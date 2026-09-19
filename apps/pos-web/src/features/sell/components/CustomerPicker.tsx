@@ -45,7 +45,7 @@ export function CustomerPicker({
         <button type="button" className={selectedId === null ? "btn block selected" : "btn block"} onClick={onClear}>
           <span className="dialog-choice">
             <strong>Walk-in</strong>
-            <span className="muted">Default customer — no selected account</span>
+            <span className="muted">Continue without a customer account</span>
           </span>
         </button>
         {results.map((customer) => {

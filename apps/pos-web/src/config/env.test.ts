@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { readServerEnv, staffAllowedOrigins } from "./env";
+import { readPublicStaffAuthEnv, readServerEnv, staffAllowedOrigins } from "./env";
 
 describe("preview origin resolution", () => {
   it("prefers APP_ORIGIN over platform metadata", () => {
@@ -51,5 +51,23 @@ describe("preview origin resolution", () => {
 
     expect(readServerEnv(env).appOrigin).toBe("http://localhost:3000");
     expect(staffAllowedOrigins(env)).toEqual(["http://localhost:3000"]);
+  });
+
+  it("reads only publishable browser Auth env and rejects service-role values", () => {
+    expect(
+      readPublicStaffAuthEnv({
+        NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-public-key",
+      }),
+    ).toEqual({
+      url: "https://example.supabase.co",
+      publishableKey: "anon-public-key",
+    });
+    expect(
+      readPublicStaffAuthEnv({
+        NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: "service_role_placeholder",
+      }),
+    ).toBeNull();
   });
 });

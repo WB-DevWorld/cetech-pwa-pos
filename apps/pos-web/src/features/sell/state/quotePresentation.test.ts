@@ -6,6 +6,7 @@ import {
   formatMoneyDisplay,
   INTEGRATION_UNAVAILABLE,
   isCheckoutEligibilityReason,
+  quoteSnapshotAmountRows,
   type QuoteDisplayState,
 } from "./quotePresentation";
 
@@ -20,11 +21,12 @@ describe("FE-04 quote presentation", () => {
     expect(formatMoneyDisplay({ minor: 1250, currency: "GHS" })).toBe("GHS 12.50");
     expect(formatMoneyDisplay({ minor: 0, currency: "GHS" })).toBe("GHS 0.00");
     expect(formatMoneyDisplay({ minor: 100, currency: "GHS" })).toBe("GHS 1.00");
+    expect(formatMoneyDisplay({ minor: 895000, currency: "GHS" })).toBe("GHS 8,950.00");
   });
 
   test("missing copy does not fabricate a price", () => {
     const view = describeQuoteDisplay({ status: "missing" });
-    expect(view.message).toBe("Prices will be confirmed after an item is added.");
+    expect(view.message).toBe("Prices will be ready after an item is added.");
     expect(view.amounts).toBeUndefined();
     expect(view.comparison).toBeUndefined();
   });
@@ -35,17 +37,30 @@ describe("FE-04 quote presentation", () => {
     expect(view.tone).toBe("quoting");
   });
 
-  test("stale explains that existing pricing is no longer current", () => {
+  test("stale asks the cashier to check the price again", () => {
     const view = describeQuoteDisplay({ status: "stale" });
-    expect(view.message).toMatch(/no longer current/i);
-    expect(view.message).toMatch(/refresh/i);
+    expect(view.message).toBe("Price needs to be checked again.");
     expect(view.amounts).toBeUndefined();
   });
 
-  test("confirmed displays supplied snapshot values only", () => {
-    const view = describeQuoteDisplay({ status: "confirmed", revision: 2, quote: snapshot(4500) });
+  test("confirmed displays cashier confirmation without mixing in totals", () => {
+    const quote = { status: "confirmed" as const, revision: 2, quote: snapshot(4500) };
+    const view = describeQuoteDisplay(quote);
     expect(view.message).toBe("Price confirmed");
-    expect(view.amounts?.map((row) => row.value)).toEqual(["GHS 45.00", "GHS 43.00", "GHS 2.00"]);
+    expect(view.amounts).toBeUndefined();
+    expect(quoteSnapshotAmountRows(quote.quote).map((row) => row.label)).toEqual(["Subtotal", "Tax", "Total"]);
+    expect(quoteSnapshotAmountRows(quote.quote).map((row) => row.value)).toEqual(["GHS 43.00", "GHS 2.00", "GHS 45.00"]);
+  });
+
+  test("zero discount remains visible when the quote supplies it", () => {
+    const rows = quoteSnapshotAmountRows({
+      total: { minor: 3000, currency: "GHS" },
+      subtotal: { minor: 3000, currency: "GHS" },
+      discount: { minor: 0, currency: "GHS" },
+      tax: { minor: 0, currency: "GHS" },
+    });
+    expect(rows.map((row) => row.label)).toEqual(["Subtotal", "Discount", "Tax", "Total"]);
+    expect(rows.find((row) => row.label === "Discount")?.value).toBe("GHS 0.00");
   });
 
   test("changed discloses previous and current snapshots without replacing one", () => {
@@ -63,18 +78,18 @@ describe("FE-04 quote presentation", () => {
 
   test("expired is explicit and blocks pay copy independently of totals", () => {
     const view = describeQuoteDisplay({ status: "expired" });
-    expect(view.message).toBe("Price expired");
+    expect(view.message).toBe("Price needs to be checked again.");
     expect(view.amounts).toBeUndefined();
   });
 
-  test("offline states that connection is required for authoritative pricing and checkout", () => {
+  test("offline states that a connection is required to check prices and take payment", () => {
     const view = describeQuoteDisplay({ status: "offline" });
     expect(view.message).toMatch(/connection is required/i);
-    expect(view.message).toMatch(/authoritative pricing/i);
+    expect(view.message).toMatch(/check prices/i);
     expect(view.message).toMatch(/browsing/i);
   });
 
-  test("failed renders INTEGRATION_UNAVAILABLE and the supplied message", () => {
+  test("failed maps INTEGRATION_UNAVAILABLE to cashier copy and keeps the code for diagnostics", () => {
     const view = describeQuoteDisplay({
       status: "failed",
       revision: 1,
@@ -82,7 +97,8 @@ describe("FE-04 quote presentation", () => {
       message: "Pricing unavailable — cart saved",
     });
     expect(view.code).toBe("INTEGRATION_UNAVAILABLE");
-    expect(view.message).toBe("Pricing unavailable — cart saved");
+    expect(view.message).not.toContain("INTEGRATION_UNAVAILABLE");
+    expect(view.technicalMessage).toBe("Pricing unavailable — cart saved");
   });
 
   test("PRICING_UNAVAILABLE is not a failed QuoteState code or checkout eligibility reason", () => {
@@ -133,12 +149,12 @@ describe("FE-04 checkout eligibility presentation", () => {
     const pay = describePayButton({
       allowed: false,
       reason: "QUOTE_REQUIRED",
-      message: "Checkout is unavailable until prices are confirmed.",
+      message: "Checkout is unavailable until the price is ready.",
     });
     expect(pay.disabled).toBe(true);
     expect(pay.eligibilityAllowed).toBe(false);
     expect(pay.eligibilityReason).toBe("QUOTE_REQUIRED");
-    expect(pay.reason).toBe("Checkout is unavailable until prices are confirmed.");
+    expect(pay.reason).toBe("Checkout is unavailable until the price is ready.");
   });
 
   test("QUOTE_STALE keeps Pay disabled with the supplied reason", () => {
@@ -156,10 +172,10 @@ describe("FE-04 checkout eligibility presentation", () => {
     const pay = describePayButton({
       allowed: false,
       reason: "QUOTE_EXPIRED",
-      message: "Price expired",
+      message: "Price needs to be checked again.",
     });
     expect(pay.eligibilityReason).toBe("QUOTE_EXPIRED");
-    expect(pay.reason).toBe("Price expired");
+    expect(pay.reason).toBe("Price needs to be checked again.");
   });
 
   test("CONNECTION_REQUIRED keeps Pay disabled with the supplied reason", () => {
@@ -176,14 +192,15 @@ describe("FE-04 checkout eligibility presentation", () => {
     const pay = describePayButton({ allowed: true });
     expect(pay.disabled).toBe(true);
     expect(pay.eligibilityAllowed).toBe(true);
-    expect(pay.reason).toMatch(/Payment is not available/i);
+    expect(pay.reason).toMatch(/payment is available/i);
   });
 
   test("Pay becomes actionable only when eligibility is allowed and checkout runtime is ready", () => {
-    const pay = describePayButton({ allowed: true }, { checkoutReady: true });
+    const pay = describePayButton({ allowed: true }, { checkoutReady: true, confirmedTotal: { minor: 3000, currency: "GHS" } });
     expect(pay.disabled).toBe(false);
     expect(pay.eligibilityAllowed).toBe(true);
     expect(pay.reason).toBe("");
+    expect(pay.label).toBe("Pay GHS 30.00");
   });
 
   test("Pay stays disabled while a checkout command is in flight", () => {

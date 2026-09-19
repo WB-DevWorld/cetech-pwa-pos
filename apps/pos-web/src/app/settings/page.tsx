@@ -1,5 +1,1 @@
-import { PosApp } from "../pos-app";
-
-export default function SettingsPage() {
-  return <PosApp route="settings" />;
-}
+export { default } from "../pos-route-slot";

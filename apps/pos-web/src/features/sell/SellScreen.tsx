@@ -7,13 +7,17 @@ import { CatalogStatusBanners } from "./components/CatalogStatus";
 import { CheckoutDialog } from "./components/CheckoutDialog";
 import { CustomerPicker } from "./components/CustomerPicker";
 import { ProductResults, ProductSearch } from "./components/ProductSearch";
+import { SellModal } from "./components/SellModal";
+import { SellToast } from "./components/SellToast";
 import { VariationDialog } from "./components/VariationDialog";
 import { useBarcodeScanner } from "./hooks/useBarcodeScanner";
 import { canBeginNewSale, checkoutDialogOpen, type CheckoutSessionView } from "./state/checkoutSession";
 import { formatMoneyDisplay, type CheckoutEligibilityView, type QuoteDisplayState } from "./state/quotePresentation";
 import type { ElectronicPaymentSessionView, ElectronicTenderView } from "../payments/electronicPaymentView";
+import type { TenderAvailabilityView } from "./components/TenderChoice";
 import { resolveQuotePresentation } from "./state/quoteRevision";
 import { isDigitBarcodeQuery } from "./state/barcodeResolution";
+import { bindLocalGeneration } from "./runtime/productDisplayPriceCache";
 import type {
   CatalogAvailability,
   CatalogSearchState,
@@ -25,6 +29,7 @@ import type {
 import {
   applyBarcodeScan,
   applyCatalogSearchResults,
+  applyVisibleSearchResults,
   applyClearCustomer,
   applyMobileCartOpen,
   applyNameSearch,
@@ -40,6 +45,7 @@ import {
   applyVariationSelect,
   catalogMutationAllowed as isCatalogMutationAllowed,
   createSellWorkspace,
+  decideNextSaleCustomer,
   dismissNotice,
   type SellWorkspaceDeps,
 } from "./state/sellWorkspace";
@@ -83,19 +89,24 @@ export type SellScreenProps = {
   onPrintReceipt?: () => void;
   onCheckoutNewSale?: () => void;
   onDismissCheckout?: () => void;
+  onSelectCash?: () => void;
+  onBackToPaymentChoice?: () => void;
+  onCancelPreparedSale?: () => void;
+  onSelectElectronic?: (tender: ElectronicTenderView) => void;
+  tenderAvailability?: TenderAvailabilityView;
   electronicSession?: ElectronicPaymentSessionView;
   electronicInFlight?: boolean;
-  electronicTender?: ElectronicTenderView;
-  onElectronicTenderChange?: (tender: ElectronicTenderView) => void;
-  onPresentElectronic?: () => void;
   onResolveElectronic?: () => void;
-  onContinueWaitingElectronic?: () => void;
   onContactManager?: () => void;
   searchCatalog?: (query: string) => Promise<readonly SellProductView[]>;
   resolveBarcodeCatalog?: (barcode: string) => Promise<readonly SellProductView[]>;
   loadVariations?: (parentId: string) => Promise<readonly SellProductView[]>;
   onCustomerQueryChange?: (query: string) => void;
   onWorkspaceChange?: (state: SellWorkspaceState) => void;
+  initialCashReceived?: string;
+  catalogProjectionGeneration?: number;
+  nextSaleCustomer?: CustomerSearchResultView | null;
+  onNextSaleCustomerApplied?: (customer: CustomerSearchResultView) => void;
 };
 
 export function SellScreen({
@@ -130,19 +141,24 @@ export function SellScreen({
   onPrintReceipt,
   onCheckoutNewSale,
   onDismissCheckout,
+  onSelectCash,
+  onBackToPaymentChoice,
+  onCancelPreparedSale,
+  onSelectElectronic,
+  tenderAvailability,
   electronicSession,
   electronicInFlight = false,
-  electronicTender,
-  onElectronicTenderChange,
-  onPresentElectronic,
   onResolveElectronic,
-  onContinueWaitingElectronic,
   onContactManager,
   searchCatalog,
   resolveBarcodeCatalog,
   loadVariations,
   onCustomerQueryChange,
   onWorkspaceChange,
+  initialCashReceived,
+  catalogProjectionGeneration,
+  nextSaleCustomer,
+  onNextSaleCustomerApplied,
 }: SellScreenProps) {
   const deps = useMemo<SellWorkspaceDeps>(
     () => ({
@@ -153,12 +169,57 @@ export function SellScreen({
   );
   const [state, setState] = useState(() => initialState ?? createSellWorkspace(deps, catalog));
   const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const searchSeq = useRef(0);
   const barcodeSeq = useRef(0);
+  const observedProjectionGenerationRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     onWorkspaceChange?.(state);
   }, [onWorkspaceChange, state]);
+
+  useEffect(() => {
+    const decision = decideNextSaleCustomer({
+      next: nextSaleCustomer,
+      lineCount: state.lines.length,
+      selectedCustomerId: state.selectedCustomer?.id,
+    });
+    if (decision === "idle" || decision === "pending" || !nextSaleCustomer) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      if (decision === "consume") {
+        onNextSaleCustomerApplied?.(nextSaleCustomer);
+        return;
+      }
+      setState((current) => {
+        if (current.lines.length > 0 || current.selectedCustomer?.id === nextSaleCustomer.id) {
+          return current;
+        }
+        return applySelectCustomer(current, nextSaleCustomer);
+      });
+      onNextSaleCustomerApplied?.(nextSaleCustomer);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [nextSaleCustomer, onNextSaleCustomerApplied, state.lines.length, state.selectedCustomer?.id]);
+
+  useEffect(() => {
+    const generation = catalogProjectionGeneration ?? 0;
+    if (!bindLocalGeneration(observedProjectionGenerationRef, generation)) {
+      return;
+    }
+    if (!searchCatalog) {
+      return;
+    }
+    const query = state.search.query;
+    const seq = ++searchSeq.current;
+    void searchCatalog(query).then((results) => {
+      if (seq !== searchSeq.current) {
+        return;
+      }
+      setState((current) => applyVisibleSearchResults(current, query, results));
+    });
+  }, [catalogProjectionGeneration, searchCatalog, state.search.query]);
 
   const displayed: SellWorkspaceState = {
     ...state,
@@ -169,6 +230,7 @@ export function SellScreen({
 
   const modalOpen =
     customerPickerOpen ||
+    clearConfirmOpen ||
     displayed.notice?.kind === "chooser" ||
     displayed.notice?.kind === "collision" ||
     Boolean(checkoutSession && checkoutDialogOpen(checkoutSession.stage));
@@ -177,6 +239,17 @@ export function SellScreen({
   const closeNotice = useCallback(() => {
     setState((current) => dismissNotice(current));
   }, []);
+
+  useEffect(() => {
+    if (displayed.notice?.kind !== "unknown") {
+      return;
+    }
+    const barcode = displayed.notice.barcode;
+    const timer = window.setTimeout(() => {
+      setState((current) => (current.notice?.kind === "unknown" && current.notice.barcode === barcode ? dismissNotice(current) : current));
+    }, 6000);
+    return () => window.clearTimeout(timer);
+  }, [displayed.notice]);
 
   const closeCustomerPicker = useCallback(() => {
     setCustomerPickerOpen(false);
@@ -197,6 +270,7 @@ export function SellScreen({
       }
       if (event.key === "Escape") {
         setCustomerPickerOpen(false);
+        setClearConfirmOpen(false);
         setState((current) => (dismissNotice(current)));
       }
     }
@@ -253,12 +327,6 @@ export function SellScreen({
     });
   }
 
-  function handleScan(query: string) {
-    if (!catalogMutationAllowed) return;
-    if (query.trim().length === 0) return;
-    scanBarcode(query.trim());
-  }
-
   function handleSelectProduct(item: SellProductView) {
     if (!catalogMutationAllowed) return;
     onSelectProduct?.(item.id);
@@ -306,7 +374,19 @@ export function SellScreen({
     onCheckoutNewSale?.();
     onNewSale?.();
     setCustomerPickerOpen(false);
+    setClearConfirmOpen(false);
     setState((current) => (applyNewSale(current, catalog, deps)));
+  }
+
+  function handleClearRequest() {
+    if (checkoutSession && !canBeginNewSale(checkoutSession)) {
+      return;
+    }
+    if (displayed.lines.length === 0) {
+      handleNewSale();
+      return;
+    }
+    setClearConfirmOpen(true);
   }
 
   const itemCount = displayed.lines.length;
@@ -323,42 +403,42 @@ export function SellScreen({
     [quote, eligibility, displayed.cartRevision],
   );
 
+  const newSaleBlocked = Boolean(checkoutSession && !canBeginNewSale(checkoutSession));
+
   return (
     <div className="sell-workspace" id="sell-workspace">
-      <div inert={modalOpen ? true : undefined}>
-        <div className="page-head">
-          <div>
-            <h1>Sell</h1>
-            <p>Scan a barcode or choose a product.</p>
-          </div>
-        </div>
-        <CatalogStatusBanners availability={displayed.catalogAvailability} draftStatus={displayed.draftStatus} />
-        {displayed.notice?.kind === "unknown" ? (
-          <div className="banner danger" role="alert">
-            Product not found for barcode {displayed.notice.barcode}.
-          </div>
-        ) : null}
+      <h1 className="sr-only">Sell</h1>
+      {displayed.notice?.kind === "unknown" ? (
+        <SellToast title="Product not found for barcode" detail={displayed.notice.barcode} />
+      ) : null}
+      <div className="sell-workspace-body" inert={modalOpen ? true : undefined}>
+        <CatalogStatusBanners availability={displayed.catalogAvailability} />
         <div className="sell-layout">
           <section className="sell-products" aria-label="Products">
             <ProductSearch
               query={displayed.search.query}
               onQueryChange={handleQueryChange}
               onSearchSubmit={handleSearchSubmit}
-              onScan={handleScan}
-              scanDisabled={!catalogMutationAllowed}
             />
             <div className="products-meta">
-              <strong>Products</strong>
-              <span className="muted"> · {displayed.search.results.length} shown</span>
+              <div>
+                <strong>Products</strong>
+                <span className="muted"> · {displayed.search.results.length} shown</span>
+              </div>
+              {displayed.draftStatus.retainedLocally ? (
+                <span className="products-meta-draft" role="status">
+                  Saved on this device
+                </span>
+              ) : null}
             </div>
-            {loading ? <p className="muted">Loading catalog…</p> : null}
+            {loading ? <p className="muted">Loading products…</p> : null}
             {searchError ? (
               <div className="banner danger" role="alert">
-                Catalog search is unavailable. Try again.
+                Product search is unavailable. Try again.
               </div>
             ) : null}
             {catalogBlocked ? (
-              <p className="muted">Catalog is unavailable. Reconnect or try again.</p>
+              <p className="muted">{"Products couldn't be loaded. Check the connection and try again."}</p>
             ) : loading || searchError ? null : (
               <ProductResults items={displayed.search.results} onSelect={handleSelectProduct} />
             )}
@@ -369,7 +449,7 @@ export function SellScreen({
             customer={displayed.selectedCustomer}
             mobileOpen={displayed.mobileCartOpen}
             onOpenCustomers={() => setCustomerPickerOpen(true)}
-            onNewSale={handleNewSale}
+            onClear={handleClearRequest}
             onIncrement={(lineId) => setState((current) => (applyQuantityIncrement(current, lineId)))}
             onDecrement={(lineId) => setState((current) => (applyQuantityDecrement(current, lineId)))}
             onQuantityChange={handleQuantityChange}
@@ -379,7 +459,7 @@ export function SellScreen({
             eligibility={presentedQuote.eligibility}
             checkoutReady={checkoutReady}
             checkoutInFlight={checkoutInFlight}
-            newSaleDisabled={Boolean(checkoutSession && !canBeginNewSale(checkoutSession))}
+            clearDisabled={newSaleBlocked}
             onPay={onPay}
           />
           <div className="mobile-cart-bar">
@@ -390,7 +470,7 @@ export function SellScreen({
               <div className="muted">
                 {presentedQuote.quote?.status === "confirmed"
                   ? formatMoneyDisplay(presentedQuote.quote.quote.total)
-                  : "Price pending"}
+                  : "Checking price…"}
               </div>
             </div>
             <button type="button" className="btn primary" onClick={() => setState((current) => (applyMobileCartOpen(current, true)))}>
@@ -399,6 +479,20 @@ export function SellScreen({
           </div>
         </div>
       </div>
+      {clearConfirmOpen ? (
+        <SellModal titleId="clear-sale-title" onClose={() => setClearConfirmOpen(false)}>
+          <h2 id="clear-sale-title">Clear this sale?</h2>
+          <p className="muted">Items in the cart will be removed. Your shift stays open.</p>
+          <div className="dialog-actions">
+            <button type="button" className="btn" onClick={() => setClearConfirmOpen(false)}>
+              Cancel
+            </button>
+            <button type="button" className="btn" onClick={handleNewSale}>
+              Clear sale
+            </button>
+          </div>
+        </SellModal>
+      ) : null}
       {displayed.notice?.kind === "chooser" ? (
         <VariationDialog
           product={displayed.notice.product}
@@ -437,14 +531,16 @@ export function SellScreen({
           onPrint={() => onPrintReceipt?.()}
           onNewSale={handleNewSale}
           onDismiss={() => onDismissCheckout?.()}
+          onSelectCash={onSelectCash}
+          onBackToPaymentChoice={onBackToPaymentChoice}
+          onCancelPreparedSale={onCancelPreparedSale}
+          onSelectElectronic={onSelectElectronic}
+          tenderAvailability={tenderAvailability}
           electronicSession={electronicSession}
           electronicInFlight={electronicInFlight}
-          electronicTender={electronicTender}
-          onElectronicTenderChange={onElectronicTenderChange}
-          onPresentElectronic={onPresentElectronic}
           onResolveElectronic={onResolveElectronic}
-          onContinueWaitingElectronic={onContinueWaitingElectronic}
           onContactManager={onContactManager}
+          initialCashReceived={initialCashReceived}
         />
       ) : null}
     </div>

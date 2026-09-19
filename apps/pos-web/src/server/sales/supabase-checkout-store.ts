@@ -343,6 +343,22 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
       return row ? asSale(row.record) : undefined;
     },
 
+    async listRecentSales(input) {
+      const limit = Math.min(Math.max(input.limit ?? 80, 1), 200);
+      const onlyLocation = input.locationIds?.length === 1 ? input.locationIds[0] : undefined;
+      const locationFilter = onlyLocation ? `&location_id=eq.${encodeURIComponent(onlyLocation)}` : "";
+      const rows = await getRows(
+        `pos_checkout_sales?organization_id=eq.${encodeURIComponent(input.organizationId)}${locationFilter}&select=record,location_id,updated_at&order=updated_at.desc&limit=${limit}`,
+      );
+      const allowed = input.locationIds && input.locationIds.length > 0 ? new Set(input.locationIds) : undefined;
+      return rows.flatMap((row) => {
+        const sale = asSale(row.record);
+        if (!sale) return [];
+        if (allowed && !allowed.has(sale.locationId)) return [];
+        return [sale];
+      });
+    },
+
     async saveSale(sale) {
       await upsertSale(sale, request);
     },
@@ -410,6 +426,53 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
         }
       }
       throw new Error("durable checkout store rejected payment");
+    },
+
+    async listUncertainPayments(input) {
+      const limit = Math.min(Math.max(input.limit ?? 80, 1), 200);
+      const onlyLocation = input.locationIds?.length === 1 ? input.locationIds[0] : undefined;
+      const locationFilter = onlyLocation ? `&location_id=eq.${encodeURIComponent(onlyLocation)}` : "";
+      const rows = await getRows(
+        `pos_checkout_payments?organization_id=eq.${encodeURIComponent(input.organizationId)}${locationFilter}&status=in.(initializing,awaiting_customer,pending,reconciling,requires_attention)&select=${PAYMENT_SELECT},location_id&limit=${limit}`,
+      );
+      const allowed = input.locationIds && input.locationIds.length > 0 ? new Set(input.locationIds) : undefined;
+      return rows.flatMap((row) => {
+        if (allowed && typeof row.location_id === "string" && !allowed.has(row.location_id)) return [];
+        const payment = mapPayment(row);
+        return payment ? [payment] : [];
+      });
+    },
+
+    async listAttentionShifts(input) {
+      const limit = Math.min(Math.max(input.limit ?? 40, 1), 100);
+      const onlyLocation = input.locationIds?.length === 1 ? input.locationIds[0] : undefined;
+      const locationFilter = onlyLocation ? `&location_id=eq.${encodeURIComponent(onlyLocation)}` : "";
+      const rows = await getRows(
+        `pos_shifts?organization_id=eq.${encodeURIComponent(input.organizationId)}${locationFilter}&status=eq.requires_attention&select=id,organization_id,location_id,register_id,device_id,cashier_id,status,opening_float_minor,opening_float_currency,opened_at,closed_at,expected_cash_minor,expected_cash_currency,counted_cash_minor,counted_cash_currency,z_report_id&limit=${limit}`,
+      );
+      const allowed = input.locationIds && input.locationIds.length > 0 ? new Set(input.locationIds) : undefined;
+      return rows.flatMap((row) => {
+        const shift = mapShift(row);
+        if (!shift) return [];
+        if (allowed && !allowed.has(shift.locationId)) return [];
+        return [shift];
+      });
+    },
+
+    async listAttentionOperations(input) {
+      const limit = Math.min(Math.max(input.limit ?? 40, 1), 100);
+      const onlyLocation = input.locationIds?.length === 1 ? input.locationIds[0] : undefined;
+      const locationFilter = onlyLocation ? `&location_id=eq.${encodeURIComponent(onlyLocation)}` : "";
+      const rows = await getRows(
+        `pos_pending_operations?organization_id=eq.${encodeURIComponent(input.organizationId)}${locationFilter}&status=in.(requires_attention,response_unknown,sent)&select=organization_id,location_id,register_id,shift_id,transaction_id,operation&limit=${limit}`,
+      );
+      const allowed = input.locationIds && input.locationIds.length > 0 ? new Set(input.locationIds) : undefined;
+      return rows.flatMap((row) => {
+        const scope = mapCommandScope(row);
+        if (!scope) return [];
+        if (allowed && !allowed.has(scope.locationId)) return [];
+        return [scope];
+      });
     },
 
     async saveProviderEvent(event) {

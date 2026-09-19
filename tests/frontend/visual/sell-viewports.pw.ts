@@ -35,12 +35,12 @@ function assertTwoPaneSplit(products: { x: number; y: number; width: number; hei
 test.describe("FE-03 isolated Sell visual harness", () => {
   test("desktop Sell workspace keeps products left and cart right on the same row", async ({ page }) => {
     await openHarness(page, readEvidence("sell-desktop.html"), { width: 1440, height: 900 });
-    await expect(page.getByRole("heading", { name: "Sell" })).toBeVisible();
-    await expect(page.getByLabel("Scan barcode or search products")).toBeVisible();
-    await expect(page.getByRole("complementary", { name: "Current cart" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Sell" })).toHaveCount(1);
+    await expect(page.getByLabel("Barcode, SKU or product name")).toBeVisible();
+    await expect(page.getByRole("complementary", { name: "Current sale" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Pay" })).toBeDisabled();
     await expect(page.getByText("Demo controls")).toHaveCount(0);
-    const search = page.getByLabel("Scan barcode or search products");
+    const search = page.getByLabel("Barcode, SKU or product name");
     const box = await search.boundingBox();
     expect(box).toBeTruthy();
     expect(box!.height).toBeGreaterThanOrEqual(44);
@@ -67,7 +67,7 @@ test.describe("FE-03 isolated Sell visual harness", () => {
 
   test("phone Sell workspace uses the cart overlay, not a squeezed desktop split", async ({ page }) => {
     await openHarness(page, readEvidence("sell-phone.html"), { width: 390, height: 844 });
-    const cart = page.getByRole("complementary", { name: "Current cart" });
+    const cart = page.getByRole("complementary", { name: "Current sale" });
     await expect(cart).toBeVisible();
     await expect(page.getByRole("button", { name: "Back" })).toBeVisible();
     const back = page.getByRole("button", { name: "Back" });
@@ -81,13 +81,15 @@ test.describe("FE-03 isolated Sell visual harness", () => {
     await openHarness(page, readEvidence("sell-variation.html"), { width: 1440, height: 900 });
     await expect(page.getByRole("heading", { name: "Choose variation" })).toBeVisible();
     await expect(page.getByRole("button", { name: /Red/ })).toBeVisible();
-    await expect(page.getByText("GHS")).toHaveCount(0);
+    await expect(page.locator(".sell-dialog")).not.toContainText("GHS");
     await page.screenshot({ path: resolve(evidenceDir, "sell-variation.png"), fullPage: true });
   });
 
-  test("unknown barcode is announced as an alert", async ({ page }) => {
+  test("unknown barcode is a non-blocking toast", async ({ page }) => {
     await openHarness(page, readEvidence("sell-unknown-barcode.html"), { width: 1440, height: 900 });
-    await expect(page.getByRole("alert")).toContainText("9999999999999");
+    await expect(page.locator("[data-sell-toast='unknown-barcode']")).toContainText("Product not found for barcode");
+    await expect(page.locator("[data-sell-toast='unknown-barcode']")).toContainText("9999999999999");
+    await expect(page.locator(".sell-dialog")).toHaveCount(0);
     await page.screenshot({ path: resolve(evidenceDir, "sell-unknown-barcode.png"), fullPage: true });
   });
 
@@ -101,8 +103,8 @@ test.describe("FE-03 isolated Sell visual harness", () => {
 
   test("offline cached catalog copy stays operator-facing", async ({ page }) => {
     await openHarness(page, readEvidence("sell-offline.html"), { width: 1440, height: 900 });
-    await expect(page.getByText("Cached catalog is available")).toBeVisible();
-    await expect(page.getByText("Cart draft is saved on this device.")).toBeVisible();
+    await expect(page.getByText("Saved products are available")).toBeVisible();
+    await expect(page.getByText("Saved on this device")).toBeVisible();
     await expect(page.getByText("later task")).toHaveCount(0);
     await expect(page.getByText("adapter")).toHaveCount(0);
     await page.screenshot({ path: resolve(evidenceDir, "sell-offline.png"), fullPage: true });

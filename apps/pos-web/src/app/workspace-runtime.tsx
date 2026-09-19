@@ -1,0 +1,528 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { CustomerPort, PrintPort, ReceiptPort } from "../../../../docs/contracts/ports";
+import type { CustomerSummary, StoreHealth } from "../../../../docs/contracts/domain.generated";
+import { OrdersScreen, OrderDetailDialog, type OrderDetailView, type OrderListItemView } from "../features/orders";
+import { CustomersScreen } from "../features/customers";
+import { loadCustomerSearchPresentation } from "../features/customers/loadCustomerSearch";
+import { SettingsScreen, type AppearancePreference } from "../features/settings";
+import { applyAppearance, readStoredAppearance } from "../features/settings/appearance";
+import {
+  KEYBOARD_SCANNER_CAPABILITY,
+  BROWSER_PRINT_CAPABILITY,
+  toCashierError,
+} from "../ui/cashier-language";
+import {
+  FixAppPanel,
+  NeedsAttentionScreen,
+  StoreHealthScreen,
+  type AttentionItemView,
+  type OperationalLoadState,
+} from "../ui/operational";
+import { POS_LOCAL_SCHEMA_CURRENT } from "../local";
+import type { CatalogProjectionAvailability, CatalogProjectionSyncResult } from "../local/catalog-sync";
+import { ensureCatalogProjection } from "../local/catalog-sync";
+import { resolveBrowserCatalogSourcePolicy } from "../core/catalog/source-policy";
+import { readOrCreateLocalDeviceId, type StaffRuntimeAuthority } from "../core/identity";
+import type { PosRoute } from "../ui/shell";
+import { catalogRebuildStatusText, type CatalogRebuildView } from "./catalog-rebuild-status";
+import {
+  fetchCustomerDirectory,
+  fetchOrderDetail,
+  fetchOrderHistory,
+  fetchStoreHealth,
+} from "./operational-client";
+
+export function ApprovedWorkspaceScreens({
+  route,
+  authority,
+  customers,
+  online,
+  catalogAvailability,
+  fetchImpl,
+  appearance,
+  buildId,
+  attentionItems,
+  attentionCount,
+  attentionState,
+  onNavigate,
+  onCatalogProjectionChange,
+  onUseCustomer,
+  onAppearanceChange,
+  onRebuildSuccess,
+  onRetryAttention,
+  selectedCustomerId,
+  receipts,
+  printer,
+  onStartReturn,
+  onResolveAttention,
+  recoveringItemId,
+}: {
+  readonly route: PosRoute;
+  readonly authority: StaffRuntimeAuthority;
+  readonly customers: CustomerPort;
+  readonly online: boolean;
+  readonly catalogAvailability: CatalogProjectionAvailability | null;
+  readonly fetchImpl?: typeof fetch;
+  readonly appearance: AppearancePreference;
+  readonly buildId?: string;
+  readonly attentionItems: readonly AttentionItemView[];
+  readonly attentionCount: number;
+  readonly attentionState: OperationalLoadState;
+  readonly onNavigate: (route: PosRoute) => void;
+  readonly onCatalogProjectionChange?: (result: CatalogProjectionSyncResult) => void;
+  readonly onUseCustomer: (customer: CustomerSummary) => void;
+  readonly onAppearanceChange: (appearance: AppearancePreference) => void;
+  readonly onRebuildSuccess: () => void;
+  readonly onRetryAttention: () => void;
+  readonly selectedCustomerId?: string;
+  readonly receipts?: ReceiptPort;
+  readonly printer?: PrintPort;
+  readonly onStartReturn?: (saleId: string) => void;
+  readonly onResolveAttention?: (item: AttentionItemView) => void;
+  readonly recoveringItemId?: string | null;
+}) {
+  if (route === "orders") {
+    return (
+      <OrdersWorkspace
+        online={online}
+        fetchImpl={fetchImpl}
+        onNavigate={onNavigate}
+        receipts={receipts}
+        printer={printer}
+        onStartReturn={onStartReturn}
+      />
+    );
+  }
+  if (route === "customers") {
+    return (
+      <CustomersWorkspace
+        customers={customers}
+        online={online}
+        fetchImpl={fetchImpl}
+        selectedCustomerId={selectedCustomerId}
+        onUseCustomer={onUseCustomer}
+      />
+    );
+  }
+  if (route === "settings") {
+    return (
+      <SettingsScreen
+        settings={{
+          deviceName: readOrCreateLocalDeviceId(),
+          registerName: authority.register?.name ?? "No register assigned",
+          scannerLabel: KEYBOARD_SCANNER_CAPABILITY,
+          printerLabel: BROWSER_PRINT_CAPABILITY,
+          appearance,
+          buildId: buildId ?? "Unverified",
+          contractVersion: "1.0.0",
+          localSchemaVersion: String(POS_LOCAL_SCHEMA_CURRENT),
+        }}
+        state={online ? "ready" : "offline"}
+        onAppearanceChange={onAppearanceChange}
+        onOpenStoreHealth={() => onNavigate("health")}
+      />
+    );
+  }
+  if (route === "health") {
+    return (
+      <HealthWorkspace
+        catalogAvailability={catalogAvailability}
+        fetchImpl={fetchImpl}
+        online={online}
+        attentionCount={attentionCount}
+        onNavigate={onNavigate}
+        onCatalogProjectionChange={onCatalogProjectionChange}
+        onRebuildSuccess={onRebuildSuccess}
+      />
+    );
+  }
+  if (route === "attention") {
+    return (
+      <AttentionWorkspace
+        items={attentionItems}
+        state={attentionState}
+        fetchImpl={fetchImpl}
+        onCatalogProjectionChange={onCatalogProjectionChange}
+        onRetryLoad={onRetryAttention}
+        onResolveAttention={onResolveAttention}
+        recoveringItemId={recoveringItemId}
+        onRebuildSuccess={onRebuildSuccess}
+      />
+    );
+  }
+  return null;
+}
+
+function OrdersWorkspace({
+  online,
+  fetchImpl,
+  onNavigate,
+  receipts,
+  printer,
+  onStartReturn,
+}: {
+  readonly online: boolean;
+  readonly fetchImpl?: typeof fetch;
+  readonly onNavigate: (route: PosRoute) => void;
+  readonly receipts?: ReceiptPort;
+  readonly printer?: PrintPort;
+  readonly onStartReturn?: (saleId: string) => void;
+}) {
+  const [orders, setOrders] = useState<readonly OrderListItemView[]>([]);
+  const [state, setState] = useState<"ready" | "loading" | "error" | "offline">("loading");
+  const [detail, setDetail] = useState<OrderDetailView | undefined>();
+  const [detailOpen, setDetailOpen] = useState(false);
+
+  const load = useCallback(async () => {
+    setState("loading");
+    const result = await fetchOrderHistory("", fetchImpl);
+    if (!result.ok) {
+      setState("error");
+      return;
+    }
+    setOrders(result.data.items);
+    setState(online ? "ready" : "offline");
+  }, [fetchImpl, online]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void load();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [load]);
+
+  return (
+    <>
+      <OrdersScreen
+        orders={orders}
+        state={state}
+        onRetry={() => {
+          void load();
+        }}
+        onNewSale={() => onNavigate("sell")}
+        onSelectOrder={(orderId) => {
+          void (async () => {
+            const result = await fetchOrderDetail(orderId, fetchImpl);
+            if (!result.ok) {
+              return;
+            }
+            setDetail(result.data);
+            setDetailOpen(true);
+          })();
+        }}
+      />
+      <OrderDetailDialog
+        open={detailOpen}
+        order={detail}
+        onClose={() => setDetailOpen(false)}
+        onReprint={
+          receipts && printer
+            ? (order) => {
+                void (async () => {
+                  const receipt = await receipts.getByTransaction(order.id);
+                  if (!receipt.ok) {
+                    return;
+                  }
+                  await printer.print({ receiptId: receipt.data.id, reason: "reprint" });
+                })();
+              }
+            : undefined
+        }
+        onStartReturn={
+          onStartReturn
+            ? (order) => {
+                setDetailOpen(false);
+                onStartReturn(order.saleId ?? order.id);
+              }
+            : undefined
+        }
+      />
+    </>
+  );
+}
+
+function CustomersWorkspace({
+  customers,
+  online,
+  fetchImpl,
+  selectedCustomerId,
+  onUseCustomer,
+}: {
+  readonly customers: CustomerPort;
+  readonly online: boolean;
+  readonly fetchImpl?: typeof fetch;
+  readonly selectedCustomerId?: string;
+  readonly onUseCustomer: (customer: CustomerSummary) => void;
+}) {
+  const [rows, setRows] = useState<readonly CustomerSummary[]>([]);
+  const [commercialContextById, setCommercialContextById] = useState<Readonly<Record<string, string>>>({});
+  const [state, setState] = useState<"ready" | "loading" | "error" | "offline">("loading");
+
+  const loadGeneration = useRef(0);
+
+  const load = useCallback(async (query = "") => {
+    const generation = ++loadGeneration.current;
+    const result = await loadCustomerSearchPresentation({
+      query,
+      remoteSearch: (needle: string) => fetchCustomerDirectory(needle, fetchImpl),
+      localSearch: (needle: string) => customers.search(needle),
+    });
+    if (generation !== loadGeneration.current) {
+      return;
+    }
+    if (!result.ok) {
+      setState("error");
+      return;
+    }
+    setRows(result.customers);
+    setCommercialContextById(result.commercialContextById);
+    setState(online ? "ready" : "offline");
+  }, [customers, fetchImpl, online]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void load("");
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [load]);
+
+  return (
+    <CustomersScreen
+      customers={rows}
+      state={state}
+      selectedCustomerId={selectedCustomerId}
+      commercialContextById={commercialContextById}
+      onRetry={() => {
+        void load("");
+      }}
+      onSearchQueryChange={(query) => {
+        void load(query);
+      }}
+      onUseCustomer={onUseCustomer}
+    />
+  );
+}
+
+function HealthWorkspace({
+  catalogAvailability,
+  fetchImpl,
+  online,
+  attentionCount,
+  onNavigate,
+  onCatalogProjectionChange,
+  onRebuildSuccess,
+}: {
+  readonly catalogAvailability: CatalogProjectionAvailability | null;
+  readonly fetchImpl?: typeof fetch;
+  readonly online: boolean;
+  readonly attentionCount: number;
+  readonly onNavigate: (route: PosRoute) => void;
+  readonly onCatalogProjectionChange?: (result: CatalogProjectionSyncResult) => void;
+  readonly onRebuildSuccess: () => void;
+}) {
+  const [health, setHealth] = useState<StoreHealth | undefined>();
+  const [state, setState] = useState<OperationalLoadState>("loading");
+  const [errorMessage, setErrorMessage] = useState<string | undefined>();
+  const [showFix, setShowFix] = useState(false);
+  const [rebuild, setRebuild] = useState<CatalogRebuildView>({ phase: "idle" });
+
+  const load = useCallback(async () => {
+    const result = await fetchStoreHealth(fetchImpl);
+    if (!result.ok) {
+      setHealth(undefined);
+      setState("error");
+      setErrorMessage(toCashierError({ code: result.error.code, message: result.error.message, domain: "health" }).message);
+      return;
+    }
+    setHealth(result.data);
+    setState(online ? "ready" : "offline");
+    setErrorMessage(undefined);
+  }, [fetchImpl, online]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void load();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [load]);
+
+  const rebuildCatalog = useCallback(() => {
+    void runCatalogRebuild({
+      fetchImpl,
+      onCatalogProjectionChange,
+      setRebuild,
+      onSuccess: onRebuildSuccess,
+    });
+  }, [fetchImpl, onCatalogProjectionChange, onRebuildSuccess]);
+
+  const rebuildText = catalogRebuildStatusText(rebuild);
+
+  return (
+    <>
+      <StoreHealthScreen
+        health={health}
+        state={state}
+        errorMessage={errorMessage}
+        deviceName={readOrCreateLocalDeviceId()}
+        appVersion={health?.buildId}
+        localSchemaVersion={String(POS_LOCAL_SCHEMA_CURRENT)}
+        online={online}
+        catalogAvailability={catalogAvailability}
+        electronicPaymentsAvailable={false}
+        attentionCountOverride={attentionCount}
+        onRetry={() => {
+          void load();
+        }}
+        onFixApp={() => setShowFix(true)}
+        onOpenAttention={() => onNavigate("attention")}
+        onRebuildCatalog={rebuildCatalog}
+      />
+      {rebuild.phase === "failure" && rebuildText ? (
+        <p className="banner danger" role="alert" data-catalog-rebuild-phase={rebuild.phase}>
+          {rebuildText}
+        </p>
+      ) : null}
+      {showFix ? (
+        <FixAppPanel
+          criticalOperationActive={false}
+          onCheckHealth={() => {
+            void load();
+          }}
+          onRebuildCatalog={rebuildCatalog}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function AttentionWorkspace({
+  items,
+  state,
+  fetchImpl,
+  onCatalogProjectionChange,
+  onRetryLoad,
+  onResolveAttention,
+  recoveringItemId,
+  onRebuildSuccess,
+}: {
+  readonly items: readonly AttentionItemView[];
+  readonly state: OperationalLoadState;
+  readonly fetchImpl?: typeof fetch;
+  readonly onCatalogProjectionChange?: (result: CatalogProjectionSyncResult) => void;
+  readonly onRetryLoad: () => void;
+  readonly onResolveAttention?: (item: AttentionItemView) => void;
+  readonly recoveringItemId?: string | null;
+  readonly onRebuildSuccess: () => void;
+}) {
+  return (
+    <NeedsAttentionScreen
+      items={items}
+      state={state}
+      recoveringItemId={recoveringItemId}
+      onRetryLoad={onRetryLoad}
+      onRetryItem={(id) => {
+        if (id !== "catalog-projection") {
+          return;
+        }
+        void runCatalogRebuild({
+          fetchImpl,
+          onCatalogProjectionChange,
+          setRebuild: () => undefined,
+          onSuccess: onRebuildSuccess,
+        });
+      }}
+      onResolveItem={(id) => {
+        const item = items.find((row) => row.id === id);
+        if (item) {
+          onResolveAttention?.(item);
+        }
+      }}
+    />
+  );
+}
+
+export function clientAttentionExtras(input: {
+  readonly catalogAvailability: CatalogProjectionAvailability | null;
+  readonly authority: StaffRuntimeAuthority;
+}): readonly AttentionItemView[] {
+  const next: AttentionItemView[] = [];
+  if (input.catalogAvailability === "unavailable" || input.catalogAvailability === "stale") {
+    next.push({
+      id: "catalog-projection",
+      title: input.catalogAvailability === "unavailable" ? "Products couldn't be loaded" : "Products may be out of date",
+      summary:
+        input.catalogAvailability === "unavailable"
+          ? "Products are not available on this device yet. Saved carts are kept."
+          : "The product list may be older than the last successful update. Search still uses saved products.",
+      typeLabel: "Products",
+      severity: input.catalogAvailability === "unavailable" ? "critical" : "medium",
+      retryAllowed: true,
+      resolveAllowed: false,
+      reviewAllowed: false,
+      recoverKind: "catalog",
+    });
+  }
+  if (!input.authority.register) {
+    next.push({
+      id: "register-unassigned",
+      title: "No register assigned",
+      summary: "This staff session has no permitted register. Open/close shift stays blocked until assignment exists.",
+      typeLabel: "Register",
+      severity: "medium",
+      recoverKind: "register",
+    });
+  } else if (!input.authority.shiftOpen) {
+    next.push({
+      id: "shift-closed",
+      title: "No open shift",
+      summary: "Checkout stays blocked until an assigned register has an open shift. Use Register; do not invent a shift.",
+      typeLabel: "Register",
+      severity: "low",
+      recoverKind: "register",
+    });
+  }
+  return next;
+}
+
+async function runCatalogRebuild(input: {
+  readonly fetchImpl?: typeof fetch;
+  readonly onCatalogProjectionChange?: (result: CatalogProjectionSyncResult) => void;
+  readonly setRebuild: (view: CatalogRebuildView) => void;
+  readonly onSuccess?: () => void;
+}): Promise<void> {
+  input.setRebuild({ phase: "rebuilding" });
+  try {
+    const result = await ensureCatalogProjection({
+      policy: resolveBrowserCatalogSourcePolicy({
+        hostname: typeof window === "undefined" ? "localhost" : window.location.hostname,
+        nodeEnv: process.env.NODE_ENV,
+      }),
+      fetchImpl: input.fetchImpl,
+      force: true,
+    });
+    if (result.producerUnavailable && result.availability === "unavailable") {
+      input.setRebuild({
+        phase: "failure",
+        message: "catalog producer is unavailable",
+      });
+      input.onCatalogProjectionChange?.(result);
+      return;
+    }
+    input.setRebuild({
+      phase: "success",
+      itemCount: result.itemCount,
+      availability: result.availability,
+    });
+    input.onCatalogProjectionChange?.(result);
+    input.onSuccess?.();
+  } catch (error) {
+    input.setRebuild({
+      phase: "failure",
+      message: error instanceof Error ? error.message : "catalog rebuild is unavailable",
+    });
+  }
+}
+
+export { readStoredAppearance, applyAppearance };

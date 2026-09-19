@@ -2,6 +2,7 @@ import {
   type CheckoutEligibilityView,
   type QuoteDisplayState,
 } from "./quotePresentation";
+import { describeQuoteFailure } from "../../../ui/cashier-language";
 
 export type QuotePresentationInput = {
   readonly quote?: QuoteDisplayState;
@@ -41,35 +42,39 @@ export function checkoutEligibilityForQuote(quote: QuoteDisplayState): CheckoutE
       return {
         allowed: false,
         reason: "QUOTE_REQUIRED",
-        message: quote.status === "quoting" ? "Updating price…" : "Checkout is unavailable until prices are confirmed.",
+        message: quote.status === "quoting" ? "Updating price…" : "Checkout is unavailable until the price is ready.",
       };
     case "stale":
       return {
         allowed: false,
         reason: "QUOTE_STALE",
-        message: "Current pricing is no longer current. Refresh is required before payment.",
+        message: "Price needs to be checked again.",
       };
     case "expired":
-      return { allowed: false, reason: "QUOTE_EXPIRED", message: "Price expired" };
+      return { allowed: false, reason: "QUOTE_EXPIRED", message: "Price needs to be checked again." };
     case "offline":
       return {
         allowed: false,
         reason: "CONNECTION_REQUIRED",
-        message: "Connection is required for authoritative pricing and checkout.",
+        message: "A connection is required to check prices and take payment.",
       };
     case "failed":
-      return { allowed: false, reason: "QUOTE_REQUIRED", message: quote.message };
+      return {
+        allowed: false,
+        reason: "QUOTE_REQUIRED",
+        message: describeQuoteFailure({ code: quote.code, message: quote.message }).message,
+      };
     case "changed":
       return {
         allowed: false,
         reason: "QUOTE_REQUIRED",
-        message: "Price changed. Review the previous and current quoted totals before continuing.",
+        message: "Price changed. Review the old and new total before continuing.",
       };
     case "confirmed":
       return {
         allowed: false,
         reason: "QUOTE_REQUIRED",
-        message: "Price confirmation is required before payment.",
+        message: "Checkout is unavailable until the price is ready.",
       };
   }
 }

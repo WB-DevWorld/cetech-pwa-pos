@@ -48,6 +48,10 @@ export type HistoricReturnSaleView = {
   readonly orderReference: string;
   readonly currency: string;
   readonly lines: readonly HistoricReturnLineView[];
+  readonly customerLabel?: string;
+  readonly createdAt?: string;
+  readonly total?: ReturnMoneyView;
+  readonly itemSummary?: string;
 };
 
 export type ReturnLineDraftView = {
@@ -109,7 +113,7 @@ export function idleReturnSession(): ReturnSessionView {
     lines: [],
     previewLines: [],
     refundIdentities: [],
-    message: "Look up a historical sale. Refund amounts come from the return preview, not today's catalog.",
+    message: "Find the original sale, choose the items being returned, and review the refund before completing.",
     complete: false,
     identityLocked: false,
   };
@@ -144,13 +148,13 @@ export function conditionLabel(condition: ReturnConditionView): string {
 }
 
 export function dispositionLabel(disposition: StockDispositionView): string {
-  return disposition === "restock_sellable" ? "Restock as sellable" : "No automatic restock";
+  return disposition === "restock_sellable" ? "Return to sellable stock" : "Do not return to sellable stock";
 }
 
 export function dispositionPolicyLabel(policy: DispositionPolicyView): string {
-  if (policy === "automatic_sellable_restock") return "Automatic sellable restock";
-  if (policy === "mandatory_no_automatic_restock") return "Mandatory: no automatic restock";
-  return "Tenant policy required — follow the server disposition";
+  if (policy === "automatic_sellable_restock") return "Return to sellable stock";
+  if (policy === "mandatory_no_automatic_restock") return "Do not return to sellable stock";
+  return "Follow the required stock action";
 }
 
 export function presentsAutomaticSellableRestock(
@@ -195,38 +199,38 @@ export function canPresentReturnComplete(session: Pick<ReturnSessionView, "stage
 
 export function unresolvedEffectLabels(session: ReturnSessionView): readonly string[] {
   const labels: string[] = [];
-  if (effectIsBlocking(session.providerRefund)) labels.push("provider refund");
+  if (effectIsBlocking(session.providerRefund)) labels.push("payment refund");
   if (effectIsBlocking(session.cashRefund)) labels.push("cash refund");
-  if (effectIsBlocking(session.commercialRefund)) labels.push("commercial refund");
-  if (effectIsBlocking(session.stockDisposition)) labels.push("stock disposition");
+  if (effectIsBlocking(session.commercialRefund)) labels.push("order refund");
+  if (effectIsBlocking(session.stockDisposition)) labels.push("stock update");
   return labels;
 }
 
 export function describeReturnStage(stage: ReturnStageView): { readonly title: string; readonly status: string } {
   switch (stage) {
     case "idle":
-      return { title: "Returns", status: "Look up a historical sale to start a return." };
+      return { title: "Returns", status: "Find the original sale to start a return." };
     case "selecting":
-      return { title: "Select return lines", status: "Choose quantities, reasons, and conditions. Preview before refund." };
+      return { title: "Select return items", status: "Choose quantities, reasons, and conditions. Review the refund before completing." };
     case "previewing":
-      return { title: "Previewing return", status: "Loading the server return preview. Refund totals are server-owned." };
+      return { title: "Reviewing return", status: "Loading the refund review." };
     case "previewed":
-      return { title: "Return preview", status: "Review the server refund total and stock disposition before executing." };
+      return { title: "Review return", status: "Review the refund and stock action before completing." };
     case "approval_required":
-      return { title: "Approval required", status: "This return needs a manager approval. Do not invent an approval." };
+      return { title: "Approval required", status: "Manager approval is required before you can continue." };
     case "executing":
-      return { title: "Executing return", status: OUTSTANDING_RETURN_COPY };
+      return { title: "Completing return", status: OUTSTANDING_RETURN_COPY };
     case "resolving":
-      return { title: "Checking return", status: `${OUTSTANDING_RETURN_COPY} Resolve the same return identity.` };
+      return { title: "Checking return", status: `${OUTSTANDING_RETURN_COPY} Check the same return.` };
     case "completed":
-      return { title: "Return complete", status: "The server marked every required return effect complete." };
+      return { title: "Return complete", status: "Return completed successfully." };
     case "in_progress":
-      return { title: "Return in progress", status: `${OUTSTANDING_RETURN_COPY} Independent return effects are still running.` };
+      return { title: "Return in progress", status: `${OUTSTANDING_RETURN_COPY} Some refund or stock updates are still pending.` };
     case "refund_pending":
-      return { title: "Refund pending", status: `${OUTSTANDING_RETURN_COPY} A refund effect is still pending.` };
+      return { title: "Refund pending", status: `${OUTSTANDING_RETURN_COPY} A refund is still pending.` };
     case "requires_attention":
-      return { title: "Return needs attention", status: `${OUTSTANDING_RETURN_COPY} Escalate this return. Do not start a replacement return.` };
+      return { title: "Return needs attention", status: `${OUTSTANDING_RETURN_COPY} Escalate this return. Do not start another return.` };
     case "failed":
-      return { title: "Return failed", status: "The return could not be previewed or executed. The sale is unchanged." };
+      return { title: "Return failed", status: "The return could not be reviewed or completed. The sale is unchanged." };
   }
 }

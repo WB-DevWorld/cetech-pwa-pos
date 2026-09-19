@@ -1,7 +1,4 @@
-/**
- * FE-06 electronic payment presentation. Discriminants match frozen PaymentState
- * for cashier copy only; they are not PaymentPort and not provider truth.
- */
+import { describePaymentState, DO_NOT_CHARGE_AGAIN } from "../../ui/cashier-language";
 
 export type ElectronicTenderView = "mobile_money" | "card" | "external_electronic";
 
@@ -41,13 +38,13 @@ export type ElectronicPaymentSessionView = {
   readonly browserCallbackIsNotTruth: boolean;
 };
 
-export const DO_NOT_CHARGE_AGAIN = "Do not charge again.";
+export { DO_NOT_CHARGE_AGAIN } from "../../ui/cashier-language";
 
 export function idleElectronicPaymentSession(): ElectronicPaymentSessionView {
   return {
     status: "idle",
     nextAction: "present_payment",
-    message: "Present electronic payment only when the server asks to present payment.",
+    message: "Choose a payment method, then start payment.",
     doNotChargeAgain: false,
     verified: false,
     presentAllowed: true,
@@ -80,11 +77,13 @@ export function describeElectronicPayment(
   readonly resolveAllowed: boolean;
   readonly verified: boolean;
 } {
+  const copy = describePaymentState(status, nextAction);
   const waitOrResolve = paymentInstructsWaitOrResolve(status, nextAction);
   if (status === "verified") {
     return {
-      title: "Payment verified",
-      message: "The server verified this payment. Do not present another tender.",
+      title: copy.title,
+      message: copy.message,
+      warning: copy.warning,
       doNotChargeAgain: true,
       contactManager: nextAction === "contact_manager",
       presentAllowed: false,
@@ -94,9 +93,9 @@ export function describeElectronicPayment(
   }
   if (status === "requires_attention" || nextAction === "contact_manager") {
     return {
-      title: "Payment needs manager review",
-      message: "Escalate this payment to a manager. Do not retry or charge again.",
-      warning: DO_NOT_CHARGE_AGAIN,
+      title: copy.title,
+      message: copy.message,
+      warning: copy.warning,
       doNotChargeAgain: true,
       contactManager: true,
       presentAllowed: false,
@@ -104,21 +103,10 @@ export function describeElectronicPayment(
       verified: false,
     };
   }
-  if (status === "failed") {
+  if (status === "failed" || status === "cancelled") {
     return {
-      title: "Payment failed",
-      message: "This electronic payment failed. It is not pending. Do not treat a browser callback as success.",
-      doNotChargeAgain: false,
-      contactManager: false,
-      presentAllowed: nextAction === "present_payment",
-      resolveAllowed: nextAction === "resolve" || nextAction === "wait",
-      verified: false,
-    };
-  }
-  if (status === "cancelled") {
-    return {
-      title: "Payment cancelled",
-      message: "This electronic payment was cancelled. It is not pending.",
+      title: copy.title,
+      message: copy.message,
       doNotChargeAgain: false,
       contactManager: false,
       presentAllowed: nextAction === "present_payment",
@@ -127,25 +115,10 @@ export function describeElectronicPayment(
     };
   }
   if (waitOrResolve || status === "pending" || status === "reconciling" || status === "initializing" || status === "awaiting_customer") {
-    const title =
-      status === "reconciling"
-        ? "Reconciling payment"
-        : status === "awaiting_customer"
-          ? "Awaiting customer"
-          : status === "initializing"
-            ? "Initializing payment"
-            : "Payment pending";
     return {
-      title,
-      message:
-        status === "awaiting_customer"
-          ? "Waiting for the customer to complete payment. Do not charge again."
-          : status === "initializing"
-            ? "Payment is initializing. Do not charge again."
-            : status === "reconciling"
-              ? "Payment status is being reconciled. Do not charge again."
-              : "Payment is still pending. Do not charge again.",
-      warning: DO_NOT_CHARGE_AGAIN,
+      title: copy.title,
+      message: copy.message,
+      warning: copy.warning ?? DO_NOT_CHARGE_AGAIN,
       doNotChargeAgain: true,
       contactManager: false,
       presentAllowed: false,
@@ -154,11 +127,8 @@ export function describeElectronicPayment(
     };
   }
   return {
-    title: "Electronic payment",
-    message:
-      nextAction === "present_payment"
-        ? "The server says this payment may be presented. Present only this payment identity."
-        : "Electronic payment is idle.",
+    title: copy.title,
+    message: copy.message,
     doNotChargeAgain: false,
     contactManager: false,
     presentAllowed: nextAction === "present_payment" || status === "idle",

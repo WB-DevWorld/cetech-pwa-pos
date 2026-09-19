@@ -41,8 +41,9 @@ describe("CheckoutDialog stages", () => {
     });
     expect(cash).toContain('data-checkout-stage="cash"');
     expect(cash).toContain("Confirm cash");
+    expect(cash).toContain("Back");
+    expect(cash).toContain("Change due");
     expect(cash).toContain('data-checkout-dismissable="false"');
-    expect(cash).not.toContain(">Back<");
     expect(cash).not.toContain("Keep cart");
     expect(cash).not.toContain("receipt-paper");
     const confirming = render({ ...idleCheckoutSession(), stage: "confirming_cash", message: "Confirming cash payment." });
@@ -51,7 +52,7 @@ describe("CheckoutDialog stages", () => {
     expect(confirming).not.toContain("receipt-paper");
     const finalizing = render({ ...idleCheckoutSession(), stage: "finalizing", message: "Finalizing the sale." });
     expect(finalizing).toContain('data-checkout-stage="finalizing"');
-    expect(finalizing).toContain("Finalizing sale");
+    expect(finalizing).toContain("Completing sale…");
     expect(finalizing).not.toContain("receipt-paper");
     expect(finalizing).not.toContain("Confirm cash");
   });
@@ -119,5 +120,29 @@ describe("CheckoutDialog stages", () => {
     const prepareFailed = render({ ...idleCheckoutSession(), stage: "prepare_failed", message: "Stock changed" });
     expect(prepareFailed).toContain('data-checkout-dismissable="true"');
     expect(prepareFailed).toContain("Keep cart");
+  });
+
+  test("successful prepare shows Choose payment rather than Cash", () => {
+    const html = render({
+      ...idleCheckoutSession(),
+      stage: "choose_payment",
+      prepared: {
+        transactionId: "tx",
+        saleId: "sale",
+        orderReference: "POS-woo-1",
+        quoteFingerprint: "fp",
+        total: { minor: 1_000_033_400, currency: "GHS" },
+      },
+    });
+    expect(html).toContain("Choose payment");
+    expect(html).toContain("POS-woo-1");
+    expect(html).toContain("GHS 10,000,334.00");
+    expect(html).toContain('data-tender="cash"');
+    expect(html).toContain('data-tender="mobile_money"');
+    expect(html).toContain("Not available in this environment");
+    expect(html).toContain("Cancel prepared sale");
+    expect(html).not.toContain("Confirm cash");
+    expect(html).not.toContain("Demo controls");
+    expect(html).not.toContain("Simulated");
   });
 });

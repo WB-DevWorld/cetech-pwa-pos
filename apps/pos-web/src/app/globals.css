@@ -7,3 +7,29 @@ body {
   margin: 0;
   min-height: 100%;
 }
+
+.staff-auth-gate {
+  min-height: 100vh;
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: 16px;
+  padding: 20px 20px 32px;
+}
+
+.staff-auth-gate .auth-screen {
+  min-height: auto;
+  padding: 0;
+  background: none;
+}
+
+.staff-auth-gate .field {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.staff-auth-gate .field input {
+  min-height: 44px;
+  padding: 8px 12px;
+}

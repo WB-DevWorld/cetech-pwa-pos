@@ -13,7 +13,7 @@ import { composeSalesBridge } from "./compose-sales-bridge";
 import { createMockSalesPort, createQuoteSnapshotSalesPort, type MockSalesPort } from "./mock-sales-port";
 import { createSupabaseCheckoutStore } from "./supabase-checkout-store";
 
-export type CheckoutSalesPort = Pick<SalesPort, "prepare" | "resolve" | "confirmPayment">;
+export type CheckoutSalesPort = Pick<SalesPort, "prepare" | "resolve" | "confirmPayment" | "cancel">;
 
 export type CheckoutPresentationRuntime = {
   readonly catalogLookup: CatalogPresentationLookup;

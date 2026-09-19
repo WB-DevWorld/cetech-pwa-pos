@@ -1,12 +1,20 @@
 /**
- * FE-04 PREP_ONLY presentation view-models.
+ * FE-04 presentation view-models.
  * These are not production contracts. Discriminants match frozen v1 QuoteState /
  * CheckoutEligibility so cashiers see the same states; they are not PricingPort.
  */
 
+import { describeQuoteFailure } from "../../../ui/cashier-language";
+
 export type QuotePresentationMoney = {
   readonly minor: number;
   readonly currency: string;
+};
+
+export type QuotePresentationLine = {
+  readonly lineId: string;
+  readonly unitPrice: QuotePresentationMoney;
+  readonly total: QuotePresentationMoney;
 };
 
 export type QuotePresentationSnapshot = {
@@ -14,10 +22,31 @@ export type QuotePresentationSnapshot = {
   readonly subtotal?: QuotePresentationMoney;
   readonly discount?: QuotePresentationMoney;
   readonly tax?: QuotePresentationMoney;
+  readonly lines?: readonly QuotePresentationLine[];
 };
 
-/** PREP_ONLY failed-quote code. Not the canonical ApiErrorCode union; QuoteProblem-only codes are excluded. */
-export type FailedQuoteCodeView = "INTEGRATION_UNAVAILABLE";
+/** Failed-quote presentation codes match frozen ApiErrorCode. QuoteProblem-only codes are excluded. */
+export const FAILED_QUOTE_CODES = [
+  "VALIDATION_ERROR",
+  "AUTH_REQUIRED",
+  "FORBIDDEN",
+  "NOT_FOUND",
+  "QUOTE_CHANGED",
+  "QUOTE_EXPIRED",
+  "STOCK_CHANGED",
+  "SHIFT_REQUIRED",
+  "SHIFT_CONFLICT",
+  "PAYMENT_PENDING",
+  "PAYMENT_NOT_VERIFIED",
+  "INTEGRATION_UNAVAILABLE",
+  "IDEMPOTENCY_CONFLICT",
+  "OPERATION_IN_PROGRESS",
+  "REQUIRES_ATTENTION",
+  "RATE_LIMITED",
+  "UNSUPPORTED_VERSION",
+] as const;
+
+export type FailedQuoteCodeView = (typeof FAILED_QUOTE_CODES)[number];
 
 export type QuoteDisplayState =
   | { readonly status: "missing" }
@@ -53,16 +82,24 @@ export type CheckoutEligibilityView =
   | { readonly allowed: true }
   | { readonly allowed: false; readonly reason: CheckoutEligibilityReasonView; readonly message: string };
 
+export type QuoteAmountRow = {
+  readonly label: string;
+  readonly value: string;
+  readonly emphasize?: boolean;
+};
+
 export type QuoteStatusView = {
   readonly tone: "muted" | "quoting" | "stale" | "expired" | "offline" | "confirmed" | "changed" | "failed";
   readonly message: string;
-  readonly amounts?: readonly { readonly label: string; readonly value: string }[];
+  readonly amounts?: readonly QuoteAmountRow[];
   readonly comparison?: { readonly previousLabel: string; readonly previous: string; readonly currentLabel: string; readonly current: string };
   readonly code?: string;
+  readonly technicalMessage?: string;
 };
 
 export type PayButtonView = {
   readonly disabled: boolean;
+  readonly label: string;
   readonly reason: string;
   readonly eligibilityAllowed: boolean;
   readonly eligibilityReason?: CheckoutEligibilityReasonView;
@@ -71,15 +108,25 @@ export type PayButtonView = {
 export type PayButtonOptions = {
   readonly checkoutReady?: boolean;
   readonly inFlight?: boolean;
+  readonly confirmedTotal?: QuotePresentationMoney;
+};
+
+export type QuoteDisplayOptions = {
+  readonly cartLineNames?: readonly string[];
 };
 
 export const INTEGRATION_UNAVAILABLE: FailedQuoteCodeView = "INTEGRATION_UNAVAILABLE";
 
-const LIVE_PAYMENT_BLOCKED_REASON = "Review confirmed prices. Payment is not available on this screen.";
+const LIVE_PAYMENT_BLOCKED_REASON = "Review the price, then continue when payment is available.";
 const CHECKOUT_IN_PROGRESS_REASON = "Checkout is in progress.";
+const PRICE_NOT_READY_REASON = "Checkout is unavailable until the price is ready.";
 
 export function isCheckoutEligibilityReason(value: string): value is CheckoutEligibilityReasonView {
   return (CHECKOUT_ELIGIBILITY_REASONS as readonly string[]).includes(value);
+}
+
+export function isFailedQuoteCode(value: string): value is FailedQuoteCodeView {
+  return (FAILED_QUOTE_CODES as readonly string[]).includes(value);
 }
 
 /** Display formatting of a supplied Money snapshot. Does not compute commercial totals. */
@@ -91,58 +138,69 @@ export function formatMoneyDisplay(money: QuotePresentationMoney): string {
   const whole = Math.trunc(minor / 100);
   const frac = minor - whole * 100;
   const fracText = frac < 10 ? `0${frac}` : String(frac);
-  return `${money.currency} ${whole}.${fracText}`;
+  const wholeText = String(whole).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return `${money.currency} ${wholeText}.${fracText}`;
 }
 
-function snapshotAmountRows(snapshot: QuotePresentationSnapshot): { readonly label: string; readonly value: string }[] {
-  const rows: { label: string; value: string }[] = [{ label: "Quoted total", value: formatMoneyDisplay(snapshot.total) }];
-  if (snapshot.subtotal) rows.push({ label: "Quoted subtotal", value: formatMoneyDisplay(snapshot.subtotal) });
-  if (snapshot.discount) rows.push({ label: "Quoted discount", value: formatMoneyDisplay(snapshot.discount) });
-  if (snapshot.tax) rows.push({ label: "Quoted tax", value: formatMoneyDisplay(snapshot.tax) });
+/** Authoritative quote snapshot rows. Discount is shown when the quote supplies it, including zero. */
+export function quoteSnapshotAmountRows(snapshot: QuotePresentationSnapshot): QuoteAmountRow[] {
+  const rows: QuoteAmountRow[] = [];
+  if (snapshot.subtotal) rows.push({ label: "Subtotal", value: formatMoneyDisplay(snapshot.subtotal) });
+  if (snapshot.discount) {
+    rows.push({ label: "Discount", value: formatMoneyDisplay(snapshot.discount) });
+  }
+  if (snapshot.tax) rows.push({ label: "Tax", value: formatMoneyDisplay(snapshot.tax) });
+  rows.push({ label: "Total", value: formatMoneyDisplay(snapshot.total), emphasize: true });
   return rows;
 }
 
-export function describeQuoteDisplay(quote: QuoteDisplayState): QuoteStatusView {
+export function describeQuoteDisplay(quote: QuoteDisplayState, options?: QuoteDisplayOptions): QuoteStatusView {
   switch (quote.status) {
     case "missing":
-      return { tone: "muted", message: "Prices will be confirmed after an item is added." };
+      return { tone: "muted", message: "Prices will be ready after an item is added." };
     case "quoting":
       return { tone: "quoting", message: "Updating price…" };
     case "stale":
       return {
         tone: "stale",
-        message: "Current pricing is no longer current. Refresh is required before payment.",
+        message: "Price needs to be checked again.",
       };
     case "expired":
-      return { tone: "expired", message: "Price expired" };
+      return { tone: "expired", message: "Price needs to be checked again." };
     case "offline":
       return {
         tone: "offline",
-        message: "Connection is required for authoritative pricing and checkout. You can keep browsing and editing the cart.",
+        message: "A connection is required to check prices and take payment. You can keep browsing and editing the cart.",
       };
     case "confirmed":
       return {
         tone: "confirmed",
         message: "Price confirmed",
-        amounts: snapshotAmountRows(quote.quote),
       };
     case "changed":
       return {
         tone: "changed",
-        message: "Price changed. Review the previous and current quoted totals before continuing.",
+        message: "Price changed. Review the old and new total before continuing.",
         comparison: {
-          previousLabel: "Previous quoted total",
+          previousLabel: "Previous total",
           previous: formatMoneyDisplay(quote.previous.total),
-          currentLabel: "Current quoted total",
+          currentLabel: "New total",
           current: formatMoneyDisplay(quote.current.total),
         },
       };
-    case "failed":
+    case "failed": {
+      const mapped = describeQuoteFailure({
+        code: quote.code,
+        message: quote.message,
+        cartLineNames: options?.cartLineNames,
+      });
       return {
         tone: "failed",
-        message: quote.message,
+        message: mapped.message,
         code: quote.code,
+        technicalMessage: quote.message,
       };
+    }
   }
 }
 
@@ -154,16 +212,19 @@ export function describePayButton(
   eligibility: CheckoutEligibilityView | undefined,
   options?: PayButtonOptions,
 ): PayButtonView {
+  const label = options?.confirmedTotal ? `Pay ${formatMoneyDisplay(options.confirmedTotal)}` : "Pay";
   if (!eligibility) {
     return {
       disabled: true,
-      reason: "Checkout is unavailable until prices are confirmed.",
+      label,
+      reason: PRICE_NOT_READY_REASON,
       eligibilityAllowed: false,
     };
   }
   if (!eligibility.allowed) {
     return {
       disabled: true,
+      label,
       reason: eligibility.message,
       eligibilityAllowed: false,
       eligibilityReason: eligibility.reason,
@@ -172,6 +233,7 @@ export function describePayButton(
   if (!options?.checkoutReady) {
     return {
       disabled: true,
+      label,
       reason: LIVE_PAYMENT_BLOCKED_REASON,
       eligibilityAllowed: true,
     };
@@ -179,12 +241,14 @@ export function describePayButton(
   if (options.inFlight) {
     return {
       disabled: true,
+      label,
       reason: CHECKOUT_IN_PROGRESS_REASON,
       eligibilityAllowed: true,
     };
   }
   return {
     disabled: false,
+    label,
     reason: "",
     eligibilityAllowed: true,
   };

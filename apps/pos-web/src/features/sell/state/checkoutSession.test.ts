@@ -30,9 +30,9 @@ describe("FE-05 checkout session helpers", () => {
   });
 
   test("a prepared sale cannot be dismissed or replaced with a new sale", () => {
-    const cash = {
+    const choose = {
       ...idleCheckoutSession(),
-      stage: "cash" as const,
+      stage: "choose_payment" as const,
       prepared: {
         transactionId: "tx",
         saleId: "sale",
@@ -41,20 +41,25 @@ describe("FE-05 checkout session helpers", () => {
         total: { minor: 1500, currency: "GHS" },
       },
     };
+    const cash = { ...choose, stage: "cash" as const };
     const cashFailed = { ...cash, stage: "cash_failed" as const };
+    expect(hasOutstandingPreparedSale(choose)).toBe(true);
     expect(hasOutstandingPreparedSale(cash)).toBe(true);
     expect(checkoutDismissAllowed(cash)).toBe(false);
     expect(checkoutDismissAllowed(cashFailed)).toBe(false);
     expect(canBeginNewSale(cash)).toBe(false);
-    expect(canBeginNewSale(cashFailed)).toBe(false);
+    expect(canBeginNewSale(choose)).toBe(false);
     expect(checkoutDismissAllowed({ ...idleCheckoutSession(), stage: "prepare_failed" })).toBe(true);
   });
 
   test("dialog and in-flight flags stay distinct", () => {
     expect(checkoutDialogOpen("idle")).toBe(false);
+    expect(checkoutDialogOpen("choose_payment")).toBe(true);
     expect(checkoutDialogOpen("cash")).toBe(true);
     expect(checkoutCommandInFlight("cash")).toBe(false);
+    expect(checkoutCommandInFlight("choose_payment")).toBe(false);
     expect(checkoutCommandInFlight("preparing")).toBe(true);
+    expect(checkoutCommandInFlight("cancelling")).toBe(true);
     expect(checkoutCommandInFlight("finalizing")).toBe(true);
   });
 });

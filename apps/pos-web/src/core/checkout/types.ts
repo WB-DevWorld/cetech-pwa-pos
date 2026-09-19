@@ -208,11 +208,31 @@ export interface CheckoutStore {
   seedPreparedSale(input: SeedPreparedSaleInput): Promise<PosSaleRecord>;
   getSale(transactionId: Uuid): Promise<PosSaleRecord | undefined>;
   getSaleBySaleId(organizationId: Id, saleId: Id): Promise<PosSaleRecord | undefined>;
+  listRecentSales(input: {
+    readonly organizationId: Id;
+    readonly locationIds?: readonly Id[];
+    readonly limit?: number;
+  }): Promise<readonly PosSaleRecord[]>;
   saveSale(sale: PosSaleRecord): Promise<void>;
   getPayment(paymentId: Uuid): Promise<StoredPayment | undefined>;
   getPaymentForTransaction(transactionId: Uuid): Promise<StoredPayment | undefined>;
   getPaymentByProviderReference(provider: string, reference: string): Promise<StoredPayment | undefined>;
   savePayment(payment: StoredPayment): Promise<void>;
+  listUncertainPayments(input: {
+    readonly organizationId: Id;
+    readonly locationIds?: readonly Id[];
+    readonly limit?: number;
+  }): Promise<readonly StoredPayment[]>;
+  listAttentionShifts(input: {
+    readonly organizationId: Id;
+    readonly locationIds?: readonly Id[];
+    readonly limit?: number;
+  }): Promise<readonly StoredShift[]>;
+  listAttentionOperations(input: {
+    readonly organizationId: Id;
+    readonly locationIds?: readonly Id[];
+    readonly limit?: number;
+  }): Promise<readonly CommandScopeBinding[]>;
   saveProviderEvent(event: StoredProviderEvent): Promise<"inserted" | "duplicate">;
   getProviderEvent(provider: string, fingerprint: string): Promise<StoredProviderEvent | undefined>;
   getReceipt(transactionId: Uuid): Promise<ReceiptSnapshot | undefined>;

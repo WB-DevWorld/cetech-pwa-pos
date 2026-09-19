@@ -10,6 +10,7 @@ export type TransitionalCatalogInput = {
   readonly posItemId: Id;
   readonly sourceItemId: string;
   readonly sourceVersion: string;
+  readonly sourceSystem?: string;
   readonly name: string;
   readonly sku?: string;
   readonly barcodes?: ReadonlyArray<string | number>;
@@ -18,6 +19,7 @@ export type TransitionalCatalogInput = {
   readonly variationLabel?: string;
   readonly listPriceMinor?: number;
   readonly listPriceCurrency?: string;
+  readonly purchasable?: boolean;
   readonly catalogStockStatus?: CatalogItem["stockStatus"];
   readonly sourceUpdatedAt: string;
   readonly deleted?: boolean;
@@ -29,8 +31,8 @@ export function mapTransitionalCatalogItem(input: TransitionalCatalogInput): Cat
   const barcodes = (input.barcodes ?? []).map((code) => preserveBarcode(String(code))).filter((code) => code.length > 0);
   return {
     posItemId: input.posItemId,
-    sourceSystem: SOURCE_SYSTEM,
-    sourceItemId: input.sourceItemId,
+    sourceSystem: input.sourceSystem ?? SOURCE_SYSTEM,
+    sourceItemId: String(input.sourceItemId),
     sourceVersion: input.sourceVersion,
     name: input.name,
     sku: input.sku === undefined ? undefined : preserveBarcode(String(input.sku)),
@@ -42,6 +44,7 @@ export function mapTransitionalCatalogItem(input: TransitionalCatalogInput): Cat
       input.listPriceMinor !== undefined && input.listPriceCurrency
         ? { minor: input.listPriceMinor, currency: input.listPriceCurrency }
         : undefined,
+    purchasable: input.purchasable,
     stockStatus: input.catalogStockStatus ?? "unknown",
     sourceUpdatedAt: input.sourceUpdatedAt,
     deleted: input.deleted,

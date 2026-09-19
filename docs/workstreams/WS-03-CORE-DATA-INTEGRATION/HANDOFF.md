@@ -1,83 +1,101 @@
-# WS3 current handoff — REC-01 receipt product-name / SKU
+# WS3 current handoff — STG-06 quote identity + register authority
 
-Kind: TASK_COMPLETION. UTC: 2026-09-18T17:10:00Z (review remediation close; freshness fields filled after Pass 2 if run).
+Kind: TASK_COMPLETION. Date: 2026-09-18.
 
-Task / batch / workstream: REC-01 / WS3 contributor branch PR #80 (not a milestone merge).
-Owner / integration editor / requested human reviewer: `@wbdevworld` / WS3. Independent human review required before merge. This agent does not approve, merge, or dismiss reviews.
-Mode: IMPLEMENT.
-PR: #80. Do not merge main. Do not deploy production.
+Task / batch / workstream: STG-06 live quote identity + register authority / WS3.
+Owner / integration editor: `@wbdevworld` / WS3.
+Requested human reviewer: independent senior review; no self-approve.
+Mode: REMEDIATE.
+Branch: `ws3/stg-06-quote-identity-register-authority`
+Starting exact head: `a02cd21875d0717adb6694d293b41575302b2415`
+Implementation SHA (pre-evidence): `5119054a2059ff5903a50d8b96644b63c38fdd48`
+Start `origin/main`: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Freshness cutoff `origin/main`: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` at `2026-09-18T12:25:31Z`
+Freshness cutoff batch: `origin/batch/stg-01-staging-runtime-acceptance` = `a02cd21875d0717adb6694d293b41575302b2415`
+Originally declared implementation batch: `4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897` (COMPATIBLE; already ancestor)
+Evidence: `docs/integration/evidence/STG-06-QUOTE-IDENTITY-REGISTER-AUTHORITY.md`
+Freshness: FRESH_2. Delivery: READY_FOR_INTEGRATION. Pass 3 not permitted.
 
-Branch: `ws3/receipt-product-name-sku`
-Starting/base SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` (`origin/main` R8 #69)
-Review-remediation starting HEAD: `f9c7c2a415823a8911435e56ce650a00e1ef0b7b`
-Current/final task head SHA: recorded after the remediation commit (cannot be self-referential in this file)
-Allowed / forbidden paths and central leases: WS3 contracts, `apps/pos-web/src/core/**`, `apps/pos-web/src/server/**`, `apps/pos-web/src/app/api/**`, `supabase/**`, `docs/**`, `tests/contracts/**`, `tests/integration/**`. Forbidden: WS1 `ProductSearch.tsx` / `sell.css` / cart presentation; WS2 plugin; production deploy.
-Files changed: durable `intent_snapshot` journal field, prepare append-before-send, variation parent fail-closed, tests, ADR-016.
-Contracts changed: v1.0.0 additive unchanged this remediation (`ReceiptLine.displayName?`/`sku?`, `ReceiptSettings` already on the branch).
-Database migrations: `20260918140000_pos_receipt_settings.sql` (pending shared-staging). `20260918150000_pos_prepare_intent_snapshot.sql` and `20260918151000_pos_prepare_intent_immutable.sql` (local Docker pgTAP only). **Remote staging UNVERIFIED / not applied from this work. Production not touched.**
-Architecture decisions: ADR-016 updated for durable pre-commercial intent and mandatory variation parent presentation.
+Allowed: `apps/pos-web/src/server/**`, `apps/pos-web/src/core/**`, `apps/pos-web/src/app/**`, `apps/pos-web/src/local/**`, CURRENT-WORK, WS3 STATUS/HANDOFF, this evidence.
+Forbidden: `main`, R9, WS1 feature/ui redesign, WS2 plugin, auth/CSRF/RLS weakening, CatalogItem.id = Woo ID, sourceItemId in Sell UI contracts, B2BKing/WoodMart pricing in BFF/frontend, new catalog migration.
 
-## Review blockers closed
+Contracts changed: none. Database migrations: none. Architecture decisions: none. Existing `public.pos_catalog_items` is sufficient.
 
-1. Sale-time presentation is bound to the existing `sale.prepare` `pos_pending_operations` row as `intent_snapshot` **before** `SalesPort.prepare`. Recovery loads that exact intent after `SalesPort.resolve`. It does not re-read catalog. Missing intent fails `REQUIRES_ATTENTION`. Intent write failure does not call `SalesPort.prepare`.
-2. Quoted variations require parent catalog presentation. Missing parent is `INTEGRATION_UNAVAILABLE` with prepare count 0. Variation SKU still wins; blank variation + parent SKU uses parent; both blank omits SKU legitimately.
+Do not merge. Do not modify `main`. Do not import/start R9. Live Preview still needs this contributor SHA imported and redeployed before quote/register defects can close. `pricingParityVerified=false`. CP-04 / #4 remain open. Next exact action: independent review, then integrate into `batch/stg-01-staging-runtime-acceptance` and re-run STG-06 against the new Preview. The final task head is the evidence commit after `5119054`; record it from `git rev-parse HEAD` after that commit, not inside it.
 
-## Durable prepare-intent design
+---
 
-- Column: `pos_pending_operations.intent_snapshot jsonb` (not `outcome`).
-- Kind: `sale.prepare.presentation`.
-- Bound to organization + operation=`sale.prepare` + idempotency key + request hash + transaction scope.
-- First-write-wins: atomic PostgREST `PATCH` where `intent_snapshot=is.null` (`return=representation`); loser re-reads the existing snapshot.
-- Database trigger `pos_prepare_intent_snapshot_immutable` rejects `A→B` and `A→NULL`.
-- Contains quote id/fingerprint, transaction id, line ids, full sale-time name, variation label, effective SKU, quote-derived line economics.
-- Not a fabricated `PreparedSale`.
+# WS3 previous handoff — STG-02 route session persistence
 
-## Append-before-send order
+Kind: TASK_COMPLETION. Date: 2026-09-18.
 
-1. validate quote/register/shift/device/scope
-2. claim/bind idempotency
-3. load/validate sale presentation, or reuse existing intent
-4. durably persist/bind `intent_snapshot`
-5. mark sent, then `SalesPort.prepare`
-6. validate commercial response
-7. persist `PosSaleRecord` from the exact durable intent
-8. acknowledge idempotency
+Task / batch / workstream: STG-02 route persistence / STG-06 live navigation blocker / WS3.
+Owner / integration editor: `@wbdevworld` / WS3.
+Requested human reviewer: independent senior review; no self-approve.
+Mode: REMEDIATE.
+Branch: `ws3/stg-02-route-session-persistence`
+Starting exact head: `4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897`
+Start `origin/main`: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Start batch ref: `origin/batch/stg-01-staging-runtime-acceptance` = `4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897`
+Evidence: `docs/integration/evidence/STG-02-ROUTE-SESSION-PERSISTENCE.md`
 
-## Receipt settings defaults
+Allowed: `apps/pos-web/src/app/**`, `apps/pos-web/e2e/**`, `tests/frontend/**`, CURRENT-WORK, WS3 STATUS/HANDOFF, this evidence. Forbidden: `main`, R9, WS1 Sell redesign, WS2 plugin, auth/CSRF/RLS weakening.
 
-| Field | Default | Bounds |
-| --- | --- | --- |
-| `shortenProductNames` | `false` | boolean |
-| `productNameMaxCharacters` | `40` | integer 1–256 |
-| `showSku` | `false` | boolean |
+Contracts changed: none. Database migrations: none. Architecture decisions: none.
 
-Missing `pos_receipt_settings` row means those defaults. Shortening defaults OFF.
+Do not merge. Do not modify `main`. Do not import/start R9. Current verified training/bridge truth: STG-05 plugin is deployed on `https://training.cetechbpa.com`; authenticated health/catalog/quote PASS as recorded in the evidence file. Do not treat `BLOCKED_TRAINING_PLUGIN_NOT_DEPLOYED_STG05` as current. Live Preview catalog is blocked by BFF→WordPress `bridge denied the BFF service identity`. Cash-sale acceptance, `pricingParityVerified=false`, and CP-04 / #4 remain open. Next exact action: integrate this contributor SHA into `batch/stg-01-staging-runtime-acceptance` after independent review, then re-run STG-06 against the new Preview.
 
-## Tests executed (local)
+---
 
-- `pnpm --dir apps/pos-web lint` PASS
-- `pnpm --dir apps/pos-web typecheck` PASS
-- `pnpm --dir apps/pos-web test` PASS — 76 files / 712 tests
-- `pnpm --dir apps/pos-web build` PASS
-- `python scripts/verify_control_plane.py` PASS (82 schemas, 68 fixtures)
-- `python -m unittest discover -s tests/tooling -v` PASS — 48 OK
-- Local pgTAP `supabase/tests/prepare_intent_snapshot.sql`: 6/6 ok (BEGIN/ROLLBACK)
-- Local Docker additive apply of `20260918150000` only. No remote staging apply. No production.
+# WS3 previous handoff — STG-01 integration composition
 
-Remote effects performed: none (no Paystack, no Woo sale/refund, no production, no VitePOS change).
+Kind: PROGRESS_CHECKPOINT. Date: 2026-09-17. Historical snapshot; the `BLOCKED_TRAINING_PLUGIN_NOT_DEPLOYED_STG05` line below is superseded by the 2026-09-18 current handoff above.
 
-## Remaining / not done
 
-- Compact POS two-line UI: WS1, out of scope
-- Remote staging migration/sale/reprint for `20260918140000` and `20260918150000`: UNVERIFIED / senior shared-staging verification
-- Milestone PR / merge / production deploy: NOT AUTHORIZED
-- Unrelated untracked `doc/` preserved, not committed
 
-## Next exact action
+Task / batch / workstream: STG-01 / #70 / WS3.
+Owner / integration editor: `@wbdevworld` / WS3.
+Requested human reviewer: independent senior review; no self-approve.
+Mode: INTEGRATE.
+Branch: `batch/stg-01-staging-runtime-acceptance`
+Starting exact head: `acd4a2f009c58f734186cf9e44f278da93499a4b`
+Start `origin/main`: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+STG-02 source/imported: `8a6aba2ce82ebe265a154f89999c2caab7a08beb` / `9bfb535ca86f7bd27108b3a82c6876e4b5f19c81`
+STG-05 source/imported: `4d549167f7d6dcecf0eff24f35e1f24a3429d3d8` / `7cab23415d622cef7369ddc03e007e6576cc4ce7`
+STG-04 source/imported: `01e4438d3553c633e7b0234de44743ff4cea2368` / `981722e7c8ff6ea7163532f03218f59ea2b9e20d`
+Ben source/imported: `169f8155fe4cb34b6fe27db3bb6b445a13ade712` / `8073ef59dbf481160387000886b0b7da4a25d237`
+STG-07 SHA: `4a978b9a67291c34c34f6cb75fddf31d14a7cbdd`
+Composition SHA: `6df4e1edc503aa2ab0fe37f2f26a9177e6726177`
 
-Independent review of PR #80. Do not merge. Do not deploy production. Human senior applies shared-staging migrations when ready.
+This file is the integration snapshot. It does not erase STG-02 or STG-04 contributor evidence files.
 
-Pass 3: NOT PERMITTED.
-Production promotion: NOT AUTHORIZED.
-Live electronic payment / live refund/restock: NOT AUTHORIZED.
-Merge to main: NOT AUTHORIZED.
+## Combined semantics
+
+- Staff: restore/establish BFF session; CSRF cookie + `x-csrf-token`; cashier/register/shift from server; fail closed when unsigned/expired.
+- Catalog: staging `provider_required` never seeds `CASHIER_SEED_CATALOG`; BFF `/api/pos/v1/catalog/sync`; local search/scan; stale/unavailable without clearing carts/journal. Localhost/test remain `synthetic_permitted`.
+- Workspaces: WS3 mounts Ben Orders/Customers/Settings/Health/Attention. Orders is truthful empty (no frozen list port). Health uses `/api/pos/v1/health`. Attention actions only for catalog-projection retry; no last-resort IndexedDB wipe.
+- Bridge: imported STG-05 producer; training deploy still pending.
+
+Contracts changed: none. Database migrations: none. Architecture decisions: none.
+
+Local combined tests: control-plane PASS; pos-web lint/typecheck/735 unit/build/11 e2e PASS; host PHP bridge 1614 passed; parity 138 passed / 19 skipped; Docker PHP `-l` PASS; `git diff --check` clean. Windows `npx supabase db reset --yes --local` BLOCKED (cmd.exe heredoc). GNU Make `command -v` not used; Docker PHP lint + host PHP runners substituted.
+
+`BLOCKED_TRAINING_PLUGIN_NOT_DEPLOYED_STG05`. Do not claim live catalog/quote/cash or final STG-01 PASS.
+
+Do not merge to main. Do not close #70/#25/#54. Do not merge R9 #63. Independent human review required.
+Next exact action: STG-06 / #75 functional staging against the immutable Vercel deployment of this combined SHA after CI is green.
+
+## Previous contributor handoff — STG-02 session/CSRF/register composition
+
+Kind: TASK_COMPLETION. Date: 2026-09-17.
+Branch: `ws3/stg-02-session-runtime-composition`
+Source SHA: `8a6aba2ce82ebe265a154f89999c2caab7a08beb`
+Evidence: `docs/integration/evidence/STG-02-SESSION-RUNTIME.md`
+
+## Previous contributor handoff — STG-04 training catalog projection
+
+Kind: TASK_COMPLETION. Date: 2026-09-17.
+Branch: `ws3/stg-04-training-catalog-projection`
+Source SHA: `01e4438d3553c633e7b0234de44743ff4cea2368`
+Evidence: `docs/integration/evidence/STG-04-TRAINING-CATALOG.md`
+STG-04 `CURRENT-WORK.md` was not imported.

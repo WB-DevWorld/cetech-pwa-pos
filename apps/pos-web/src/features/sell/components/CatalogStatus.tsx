@@ -1,4 +1,4 @@
-import type { CatalogAvailability, DraftStatusView } from "../state/sellView";
+import type { CatalogAvailability } from "../state/sellView";
 
 export function catalogAvailabilityCopy(availability: CatalogAvailability): { tone: "info" | "warning" | "danger"; title: string; body: string } | null {
   switch (availability) {
@@ -7,56 +7,42 @@ export function catalogAvailabilityCopy(availability: CatalogAvailability): { to
     case "stale":
       return {
         tone: "warning",
-        title: "Catalog may be out of date.",
-        body: "Reconnect to refresh before checkout.",
+        title: "Products may be out of date.",
+        body: "Refresh products before checkout.",
       };
     case "offline":
       return {
         tone: "warning",
         title: "Offline.",
-        body: "You can keep browsing and editing the cart. Connection is required to confirm pricing and complete this sale.",
+        body: "You can keep browsing and editing the cart. A connection is required to check prices and complete this sale.",
       };
     case "offline_cached":
       return {
         tone: "info",
         title: "Offline.",
-        body: "Cached catalog is available. Connection is required to confirm pricing and complete this sale.",
+        body: "Saved products are available. A connection is required to check prices and complete this sale.",
       };
     case "unavailable":
       return {
         tone: "danger",
-        title: "Catalog is unavailable.",
-        body: "Reconnect or try again.",
+        title: "Products couldn't be loaded.",
+        body: "Check the connection and try again.",
       };
     default:
       return null;
   }
 }
 
-export function CatalogStatusBanners({
-  availability,
-  draftStatus,
-}: {
-  availability: CatalogAvailability;
-  draftStatus: DraftStatusView;
-}) {
+export function CatalogStatusBanners({ availability }: { availability: CatalogAvailability }) {
   const catalog = catalogAvailabilityCopy(availability);
+  if (!catalog) return null;
   return (
     <div className="sell-status-stack">
-      {catalog ? (
-        <div className={`banner ${catalog.tone}`} role="status">
-          <div>
-            <strong>{catalog.title}</strong> {catalog.body}
-          </div>
+      <div className={`banner ${catalog.tone}`} role="status">
+        <div>
+          <strong>{catalog.title}</strong> {catalog.body}
         </div>
-      ) : null}
-      {draftStatus.retainedLocally ? (
-        <div className="banner info" role="status">
-          <div>
-            <strong>Cart draft is saved on this device.</strong>
-          </div>
-        </div>
-      ) : null}
+      </div>
     </div>
   );
 }

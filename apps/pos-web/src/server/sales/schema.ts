@@ -1,4 +1,5 @@
 import type {
+  CancelSaleRequest,
   CashPaymentRequest,
   CloseShiftRequest,
   FinalizeSaleRequest,
@@ -16,6 +17,10 @@ import { validateCanonicalDef } from "../quotes/canonical-schema";
 
 export function isPrepareSaleRequest(value: unknown): value is PrepareSaleRequest {
   return validateCanonicalDef("PrepareSaleRequest", value);
+}
+
+export function isCancelSaleRequest(value: unknown): value is CancelSaleRequest {
+  return validateCanonicalDef("CancelSaleRequest", value);
 }
 
 export function isPreparedSale(value: unknown): value is PreparedSale {
