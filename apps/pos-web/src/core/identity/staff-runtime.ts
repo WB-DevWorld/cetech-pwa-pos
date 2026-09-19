@@ -4,6 +4,11 @@ import type { StaffAuthProvider, StaffSignInRequest } from "./staff-auth-provide
 import { StaffAuthError } from "./staff-auth-provider";
 import type { StaffSessionBffGateway } from "./bff-staff-session-gateway";
 import type { StaffSessionContext } from "./staff-session-context";
+import {
+  createLocalSelectedRegisterStore,
+  resolveSelectedRegisterId,
+  type SelectedRegisterStore,
+} from "./selected-register-preference";
 
 export type StaffRuntimeStatus =
   | "restoring"
@@ -18,6 +23,8 @@ export type StaffRuntimeAuthority = {
   readonly session: Session | null;
   readonly assignedLocationIds: readonly string[];
   readonly assignedRegisterIds: readonly string[];
+  readonly assignedRegisters: readonly Register[];
+  readonly selectedRegisterId: string | null;
   readonly register: Register | null;
   readonly shift: Shift | null;
   readonly shiftOpen: boolean;
@@ -31,6 +38,7 @@ export type StaffRuntimeController = {
   signIn(request?: StaffSignInRequest): Promise<void>;
   signOut(): Promise<void>;
   refreshRegister(): Promise<void>;
+  selectRegister(registerId: string): Promise<boolean>;
   applyShift(shift: Shift | null): void;
 };
 
@@ -39,6 +47,8 @@ const idle: StaffRuntimeAuthority = {
   session: null,
   assignedLocationIds: [],
   assignedRegisterIds: [],
+  assignedRegisters: [],
+  selectedRegisterId: null,
   register: null,
   shift: null,
   shiftOpen: false,
@@ -93,25 +103,47 @@ function isRetryableRegisterFailure(result: ApiResult<unknown>): boolean {
 function canPreserveRegister(
   previous: StaffRuntimeAuthority,
   context: StaffSessionContext,
-  registerId: string,
+  selectedRegisterId: string,
 ): boolean {
   return (
     previous.status === "ready" &&
     previous.session?.actorId === context.session.actorId &&
     previous.session?.organizationId === context.session.organizationId &&
-    previous.register?.id === registerId &&
-    previous.assignedRegisterIds[0] === registerId &&
-    context.assignedRegisterIds[0] === registerId
+    previous.register?.id === selectedRegisterId &&
+    previous.selectedRegisterId === selectedRegisterId &&
+    context.assignedRegisterIds.includes(selectedRegisterId)
   );
+}
+
+function readyWithoutRegister(
+  context: StaffSessionContext,
+  assignedRegisters: readonly Register[],
+  selectedRegisterId: string | null,
+  errorMessage?: string,
+): StaffRuntimeAuthority {
+  return {
+    status: "ready",
+    session: context.session,
+    assignedLocationIds: context.assignedLocationIds,
+    assignedRegisterIds: context.assignedRegisterIds,
+    assignedRegisters,
+    selectedRegisterId,
+    register: null,
+    shift: null,
+    shiftOpen: false,
+    errorMessage,
+  };
 }
 
 export function createStaffRuntimeController(input: {
   readonly gateway: StaffSessionBffGateway;
   readonly auth: StaffAuthProvider;
   readonly registers: RegisterPort;
+  readonly selectedRegisterStore?: SelectedRegisterStore;
 }): StaffRuntimeController {
   let state: StaffRuntimeAuthority = idle;
   const listeners = new Set<() => void>();
+  const selectedRegisterStore = input.selectedRegisterStore ?? createLocalSelectedRegisterStore();
 
   function notify(): void {
     for (const listener of listeners) {
@@ -124,94 +156,105 @@ export function createStaffRuntimeController(input: {
     notify();
   }
 
-  async function loadRegister(
+  async function loadAssignedRegisters(ids: readonly string[]): Promise<Register[]> {
+    const loaded = await Promise.all(ids.map((id) => input.registers.get(id)));
+    const registers: Register[] = [];
+    loaded.forEach((result, index) => {
+      if (result.ok && result.data.id === ids[index]) {
+        registers.push(result.data);
+      }
+    });
+    return registers;
+  }
+
+  async function hydrateSelectedRegister(
     context: StaffSessionContext,
     previous: StaffRuntimeAuthority,
+    selectedRegisterId: string,
+    assignedRegisters: readonly Register[],
   ): Promise<StaffRuntimeAuthority> {
-    const registerId = context.assignedRegisterIds[0];
-    if (!registerId) {
-      return {
-        status: "ready",
-        session: context.session,
-        assignedLocationIds: context.assignedLocationIds,
-        assignedRegisterIds: context.assignedRegisterIds,
-        register: null,
-        shift: null,
-        shiftOpen: false,
-      };
-    }
-    const registerResult = await input.registers.get(registerId);
+    const registerResult = await input.registers.get(selectedRegisterId);
     if (!registerResult.ok) {
       const notice = noticeFromFailure(registerResult);
       if (isAuthClosed(notice)) {
         return authClosedAuthority(notice, registerResult.error.message);
       }
       if (registerResult.error.code === "NOT_FOUND") {
-        return {
-          status: "ready",
-          session: context.session,
-          assignedLocationIds: context.assignedLocationIds,
-          assignedRegisterIds: context.assignedRegisterIds,
-          register: null,
-          shift: null,
-          shiftOpen: false,
-          errorMessage: registerResult.error.message,
-        };
+        selectedRegisterStore.clear(context.session.organizationId, context.session.actorId);
+        return readyWithoutRegister(context, assignedRegisters, null, registerResult.error.message);
       }
-      if (isRetryableRegisterFailure(registerResult) && canPreserveRegister(previous, context, registerId)) {
+      if (isRetryableRegisterFailure(registerResult) && canPreserveRegister(previous, context, selectedRegisterId)) {
         return {
           status: "ready",
           session: context.session,
           assignedLocationIds: context.assignedLocationIds,
           assignedRegisterIds: context.assignedRegisterIds,
+          assignedRegisters,
+          selectedRegisterId,
           register: previous.register,
           shift: previous.shift,
           shiftOpen: previous.shiftOpen,
           errorMessage: registerResult.error.message,
         };
       }
-      return {
-        status: "ready",
-        session: context.session,
-        assignedLocationIds: context.assignedLocationIds,
-        assignedRegisterIds: context.assignedRegisterIds,
-        register: null,
-        shift: null,
-        shiftOpen: false,
-        errorMessage: registerResult.error.message,
-      };
+      return readyWithoutRegister(context, assignedRegisters, selectedRegisterId, registerResult.error.message);
     }
-    const shiftResult = await input.registers.activeShift(registerId);
+    const shiftResult = await input.registers.activeShift(selectedRegisterId);
     if (!shiftResult.ok) {
       const notice = noticeFromFailure(shiftResult);
       if (isAuthClosed(notice)) {
         return authClosedAuthority(notice, shiftResult.error.message);
       }
+      const sameRegister = previous.register?.id === registerResult.data.id;
       const preserveShift =
         isRetryableRegisterFailure(shiftResult) &&
-        previous.register?.id === registerResult.data.id &&
+        sameRegister &&
         previous.shift !== null &&
+        previous.shift.registerId === selectedRegisterId &&
         previous.session?.actorId === context.session.actorId;
       return {
         status: "ready",
         session: context.session,
         assignedLocationIds: context.assignedLocationIds,
         assignedRegisterIds: context.assignedRegisterIds,
+        assignedRegisters,
+        selectedRegisterId,
         register: registerResult.data,
         shift: preserveShift ? previous.shift : null,
         shiftOpen: preserveShift ? previous.shiftOpen : false,
         errorMessage: shiftResult.error.message,
       };
     }
+    const shift =
+      shiftResult.data && shiftResult.data.registerId !== selectedRegisterId ? null : shiftResult.data;
     return {
       status: "ready",
       session: context.session,
       assignedLocationIds: context.assignedLocationIds,
       assignedRegisterIds: context.assignedRegisterIds,
+      assignedRegisters,
+      selectedRegisterId,
       register: registerResult.data,
-      shift: shiftResult.data,
-      shiftOpen: shiftIsOpen(shiftResult.data),
+      shift,
+      shiftOpen: shiftIsOpen(shift),
     };
+  }
+
+  async function loadRegister(
+    context: StaffSessionContext,
+    previous: StaffRuntimeAuthority,
+  ): Promise<StaffRuntimeAuthority> {
+    const assignedRegisters = await loadAssignedRegisters(context.assignedRegisterIds);
+    const selectedRegisterId = resolveSelectedRegisterId({
+      assignedRegisterIds: context.assignedRegisterIds,
+      organizationId: context.session.organizationId,
+      actorId: context.session.actorId,
+      store: selectedRegisterStore,
+    });
+    if (!selectedRegisterId) {
+      return readyWithoutRegister(context, assignedRegisters, null);
+    }
+    return hydrateSelectedRegister(context, previous, selectedRegisterId, assignedRegisters);
   }
 
   async function applyContext(result: ApiResult<StaffSessionContext>): Promise<void> {
@@ -281,8 +324,27 @@ export function createStaffRuntimeController(input: {
         ),
       );
     },
-    applyShift(shift) {
+    async selectRegister(registerId) {
       if (!state.session) {
+        return false;
+      }
+      if (!state.assignedRegisterIds.includes(registerId)) {
+        return false;
+      }
+      const context: StaffSessionContext = {
+        session: state.session,
+        assignedLocationIds: state.assignedLocationIds,
+        assignedRegisterIds: state.assignedRegisterIds,
+      };
+      selectedRegisterStore.write(state.session.organizationId, state.session.actorId, registerId);
+      setState(await hydrateSelectedRegister(context, state, registerId, state.assignedRegisters));
+      return state.selectedRegisterId === registerId;
+    },
+    applyShift(shift) {
+      if (!state.session || !state.register) {
+        return;
+      }
+      if (shift && shift.registerId !== state.register.id) {
         return;
       }
       const shiftOpen = shiftIsOpen(shift);

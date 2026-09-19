@@ -51,6 +51,21 @@ describe("OpenRegisterForm", () => {
     expect(html).toContain('role="alert"');
   });
 
+  test("requires an explicit choice when multiple registers are assigned and none is selected", () => {
+    const html = renderToStaticMarkup(
+      createElement(OpenRegisterForm, {
+        registers,
+        selectedRegisterId: "",
+        online: true,
+        onSubmit: () => undefined,
+      }),
+    );
+    expect(html).toContain("Select a register");
+    expect(html).toContain("Front Counter 1");
+    expect(html).toContain("Spare Counter");
+    expect(html).toContain("disabled");
+  });
+
   test("shows submitting state", () => {
     const html = renderToStaticMarkup(
       createElement(OpenRegisterForm, {

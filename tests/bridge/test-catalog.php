@@ -136,9 +136,16 @@ function stg05_loader( $products ) {
 			$matched[] = $product;
 		}
 		$has_more = count( $matched ) > $limit;
+		$page     = array_slice( $matched, 0, $limit );
+		$last     = end( $page );
+		$next     = null;
+		if ( $has_more && is_object( $last ) && method_exists( $last, 'get_id' ) ) {
+			$next = (string) $last->get_id();
+		}
 		return array(
-			'products' => array_slice( $matched, 0, $limit ),
-			'hasMore'  => $has_more,
+			'products'   => $page,
+			'hasMore'    => $has_more,
+			'nextCursor' => $next,
 		);
 	};
 }
@@ -397,10 +404,35 @@ $engine = stg05_engine(
 $page   = $engine->page( null, 2, null );
 br01_assert_eq( 2, count( $page['items'] ), 'page respects limit' );
 br01_assert_eq( '101', $page['items'][0]['sourceItemId'], 'first page starts at lowest id' );
-br01_assert_eq( '102', $page['nextCursor'], 'nextCursor is last included sourceItemId' );
+br01_assert_eq( '102', $page['nextCursor'], 'nextCursor is last consumed source id' );
 $page2 = $engine->page( '200', 20, null );
 br01_assert_eq( '201', $page2['items'][0]['sourceItemId'], 'cursor is exclusive' );
 br01_assert_eq( null, $page2['nextCursor'], 'final page has no nextCursor' );
+
+$unsupported_a = stg05_product( 301, array( 'type' => 'grouped', 'name' => 'Bundle A' ) );
+$unsupported_b = stg05_product( 302, array( 'type' => 'grouped', 'name' => 'Bundle B' ) );
+$supported     = stg05_product( 303, array( 'name' => 'Simple After Unsupported', 'sku' => 'AFTER' ) );
+$empty_page_engine = stg05_engine( array( $unsupported_a, $unsupported_b, $supported ) );
+$empty_mapped = $empty_page_engine->page( null, 2, null );
+br01_assert_eq( 0, count( $empty_mapped['items'] ), 'unsupported source page may emit zero mapped items' );
+br01_assert_eq( '302', $empty_mapped['nextCursor'], 'source cursor still advances after unmappable rows' );
+$page_after_empty = $empty_page_engine->page( $empty_mapped['nextCursor'], 2, null );
+br01_assert_eq( 1, count( $page_after_empty['items'] ), 'consumer fetches the next source page' );
+br01_assert_eq( '303', $page_after_empty['items'][0]['sourceItemId'], 'supported simple after unsupported page is included' );
+br01_assert_eq( null, $page_after_empty['nextCursor'], 'final source page after empty mapped page completes' );
+
+$missing_product_engine = new Cetech_Pos_Bridge_Catalog_Engine(
+	static function () {
+		return array(
+			'products'   => array(),
+			'hasMore'    => true,
+			'nextCursor' => '103',
+		);
+	}
+);
+$missing_page = $missing_product_engine->page( null, 3, null );
+br01_assert_eq( 0, count( $missing_page['items'] ), 'wc_get_product null page emits no items' );
+br01_assert_eq( '103', $missing_page['nextCursor'], 'cursor still advances when source IDs were consumed but products were discarded' );
 
 $unauth = stg05_dispatch( $engine, array( 'X-Correlation-ID' => $catalog_correlation ), array(), new Cetech_Pos_Bridge_Test_Environment() );
 $unauth_payload = br01_payload( $unauth );

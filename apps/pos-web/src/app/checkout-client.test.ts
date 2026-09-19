@@ -66,5 +66,41 @@ describe("CORE-06 browser checkout client", () => {
     expect(calls[0]?.headers.get("idempotency-key")).toBe(KEY);
     expect(calls[0]?.headers.get("x-correlation-id")).toBe(CORR);
     expect(calls[3]?.headers.get("idempotency-key")).toBeNull();
+    expect(JSON.parse(calls[0]?.body ?? "{}")).toMatchObject({
+      registerId: LOCAL_CHECKOUT_SCOPE.registerId,
+      shiftId: LOCAL_CHECKOUT_SCOPE.shiftId,
+      deviceId: LOCAL_CHECKOUT_SCOPE.deviceId,
+    });
+  });
+
+  test("selected-register checkout scope is sent on prepare instead of a hardcoded fallback", async () => {
+    const calls: Array<string> = [];
+    const fetchImpl: typeof fetch = async (input, init) => {
+      calls.push(typeof init?.body === "string" ? init.body : "");
+      return new Response(
+        JSON.stringify({ ok: true, correlationId: CORR, data: { transactionId: TX, status: "prepared" } }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    };
+    const scope = { registerId: "reg_b", shiftId: "shift-b", deviceId: "device-b" };
+    const ports = createBrowserCashCheckoutPorts({ fetchImpl, scope });
+    await ports.checkout.prepare(
+      {
+        transactionId: TX,
+        registerId: scope.registerId,
+        shiftId: scope.shiftId,
+        deviceId: scope.deviceId,
+        quoteId: "quote-retail-1",
+        quoteFingerprint: "0123456789abcdef0123456789abcdef",
+      },
+      { idempotencyKey: KEY, correlationId: CORR },
+    );
+    expect(ports.scope).toEqual(scope);
+    expect(JSON.parse(calls[0] ?? "{}")).toMatchObject({
+      registerId: "reg_b",
+      shiftId: "shift-b",
+      deviceId: "device-b",
+    });
+    expect(ports.scope.registerId).not.toBe("reg-front-1");
   });
 });

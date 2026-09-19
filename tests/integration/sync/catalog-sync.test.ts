@@ -121,7 +121,8 @@ describe("STG-04 catalog projection sync", () => {
     const second = await ensureCatalogProjection({
       db,
       policy: "provider_required",
-      force: true,
+      force: false,
+      minRefreshIntervalMs: 0,
       fetchPage: async (query) => {
         queries.push({ cursor: query.cursor, modifiedAfter: query.modifiedAfter });
         return successPage([
@@ -152,7 +153,8 @@ describe("STG-04 catalog projection sync", () => {
     await ensureCatalogProjection({
       db,
       policy: "provider_required",
-      force: true,
+      force: false,
+      minRefreshIntervalMs: 0,
       fetchPage: async () =>
         successPage([
           dto({
@@ -328,5 +330,126 @@ describe("STG-04 catalog projection sync", () => {
     const search = engine.search({ query: "bulk item 1234" });
     expect(search.items.some((item) => item.id === "item-0001234")).toBe(true);
     expect(buildMs).toBeLessThan(5_000);
+  });
+
+  test("empty mapped first page still continues when the source cursor advances", async () => {
+    const db = uniqueDb();
+    const queries: Array<{ cursor?: string; modifiedAfter?: string }> = [];
+    const pages = new Map<string | undefined, { items: unknown[]; next: string | null }>([
+      [undefined, { items: [], next: "302" }],
+      ["302", { items: [dto({ sourceItemId: "303", name: "Simple After Unsupported" })], next: null }],
+    ]);
+    const result = await ensureCatalogProjection({
+      db,
+      policy: "provider_required",
+      force: true,
+      fetchPage: async (query) => {
+        queries.push({ cursor: query.cursor, modifiedAfter: query.modifiedAfter });
+        const page = pages.get(query.cursor);
+        return successPage(page?.items ?? [], page?.next ?? null);
+      },
+    });
+    expect(result.availability).toBe("fresh");
+    expect(result.itemCount).toBe(1);
+    expect(queries.map((query) => query.cursor)).toEqual([undefined, "302"]);
+    const port = createLocalCatalogPort({ db, correlationId: () => CORRELATION });
+    const found = await port.search({ query: "After Unsupported" });
+    expect(found.ok && found.data.items[0]?.name).toBe("Simple After Unsupported");
+  });
+
+  test("force rebuild removes a previously projected item that the provider no longer emits", async () => {
+    const db = uniqueDb();
+    const drafts = createCartDraftStore(db);
+    const cartId = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
+    await drafts.save({
+      cartId,
+      revision: 4,
+      customer: { kind: "walkin" },
+      locationId: "loc_a1",
+      lines: [{ lineId: "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff", productId: "p-keep", quantity: "1" }],
+      updatedAt: "2026-09-17T12:00:00.000Z",
+    });
+    await ensureCatalogProjection({
+      db,
+      policy: "provider_required",
+      force: true,
+      fetchPage: async () =>
+        successPage([
+          dto({ sourceItemId: "A", name: "Product A", sku: "SKU-A" }),
+          dto({ sourceItemId: "B", name: "Product B", sku: "SKU-B" }),
+        ]),
+    });
+    const queries: Array<{ cursor?: string; modifiedAfter?: string }> = [];
+    const rebuilt = await ensureCatalogProjection({
+      db,
+      policy: "provider_required",
+      force: true,
+      fetchPage: async (query) => {
+        queries.push({ cursor: query.cursor, modifiedAfter: query.modifiedAfter });
+        return successPage([dto({ sourceItemId: "A", name: "Product A", sku: "SKU-A" })]);
+      },
+    });
+    expect(rebuilt.availability).toBe("fresh");
+    expect(rebuilt.itemCount).toBe(1);
+    expect(queries[0]?.cursor).toBeUndefined();
+    expect(queries.every((query) => query.modifiedAfter === undefined)).toBe(true);
+    const port = createLocalCatalogPort({ db, correlationId: () => CORRELATION });
+    const kept = await port.search({ query: "Product A" });
+    const gone = await port.search({ query: "Product B" });
+    expect(kept.ok && kept.data.items).toHaveLength(1);
+    expect(gone.ok && gone.data.items).toEqual([]);
+    expect((await drafts.load(cartId))?.revision).toBe(4);
+  });
+
+  test("force=false with a provider watermark still uses incremental modifiedAfter", async () => {
+    const db = uniqueDb();
+    await ensureCatalogProjection({
+      db,
+      policy: "provider_required",
+      force: true,
+      fetchPage: async () =>
+        successPage([dto({ sourceItemId: "1", name: "One", sourceUpdatedAt: "2026-09-17T12:00:00.000Z" })]),
+    });
+    const queries: Array<{ cursor?: string; modifiedAfter?: string }> = [];
+    await ensureCatalogProjection({
+      db,
+      policy: "provider_required",
+      force: false,
+      minRefreshIntervalMs: 0,
+      fetchPage: async (query) => {
+        queries.push({ cursor: query.cursor, modifiedAfter: query.modifiedAfter });
+        return successPage([
+          dto({
+            sourceItemId: "1",
+            name: "One still",
+            sourceUpdatedAt: "2026-09-17T12:30:00.000Z",
+            sourceVersion: "2026-09-17T12:30:00.000Z:1",
+          }),
+        ]);
+      },
+    });
+    expect(queries).toHaveLength(1);
+    expect(queries[0]?.modifiedAfter).toBe("2026-09-17T12:00:00.000Z");
+    expect(queries[0]?.cursor).toBeUndefined();
+  });
+
+  test("repeated catalog cursors fail closed instead of looping", async () => {
+    const db = uniqueDb();
+    let fetches = 0;
+    const result = await ensureCatalogProjection({
+      db,
+      policy: "provider_required",
+      force: true,
+      fetchPage: async () => {
+        fetches += 1;
+        if (fetches > 8) {
+          throw new Error("catalog cursor loop was not bounded");
+        }
+        return successPage([dto({ sourceItemId: "1" })], "1");
+      },
+    });
+    expect(fetches).toBeLessThanOrEqual(3);
+    expect(result.availability).toBe("unavailable");
+    expect(result.producerUnavailable).toBe(true);
   });
 });

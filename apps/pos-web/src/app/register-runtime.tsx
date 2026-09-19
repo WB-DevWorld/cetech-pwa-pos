@@ -4,13 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   RegisterScreen,
   createRegisterController,
+  type RegisterChoice,
   type RegisterController,
   type RegisterWorkspacePorts,
 } from "../features/register";
 import { idleShiftWorkspace, shouldAnnounceRegisterOpened, type ShiftWorkspaceView } from "../features/register/shiftView";
 import type { RegisterPort } from "../../../../docs/contracts/ports";
 import type { Shift } from "../../../../docs/contracts/domain.generated";
-import { LOCAL_CHECKOUT_SCOPE, createBrowserRegisterPort } from "./checkout-client";
+import { createBrowserRegisterPort } from "./checkout-client";
 
 export function useRegisterFlow(ports: RegisterWorkspacePorts | undefined): {
   readonly ready: boolean;
@@ -47,24 +48,34 @@ export function useRegisterFlow(ports: RegisterWorkspacePorts | undefined): {
 export function RegisterRuntimeScreen({
   register,
   registerId,
-  registerName = registerId,
+  registerChoices = [],
+  registerName = registerId ?? "Register",
   locationLabel = "Assigned location",
   deviceId,
   currency,
+  onSelectRegister,
   onShiftChange,
   onOpened,
 }: {
   readonly register: RegisterPort;
-  readonly registerId: string;
+  readonly registerId: string | null;
+  readonly registerChoices?: readonly RegisterChoice[];
   readonly registerName?: string;
   readonly locationLabel?: string;
   readonly deviceId: string;
   readonly currency: string;
+  readonly onSelectRegister?: (registerId: string) => void;
   readonly onShiftChange?: (shift: Shift | null) => void;
   readonly onOpened?: () => void;
 }) {
+  const choices =
+    registerChoices.length > 0
+      ? registerChoices
+      : registerId
+        ? [{ id: registerId, name: registerName, locationLabel }]
+        : [];
   const ports = useMemo(
-    () => ({ register, registerId, deviceId, currency }),
+    () => (registerId ? { register, registerId, deviceId, currency } : undefined),
     [register, registerId, deviceId, currency],
   );
   const flow = useRegisterFlow(ports);
@@ -79,7 +90,7 @@ export function RegisterRuntimeScreen({
   }, [flow.session.status, onOpened]);
 
   useEffect(() => {
-    if (!onShiftChange) {
+    if (!onShiftChange || !registerId) {
       return;
     }
     let cancelled = false;
@@ -97,27 +108,36 @@ export function RegisterRuntimeScreen({
     };
   }, [flow.session.shiftId, flow.session.status, onShiftChange, register, registerId]);
 
+  const openForm = {
+    registers: choices,
+    selectedRegisterId: registerId ?? "",
+    onRegisterChange: onSelectRegister,
+    online: typeof navigator === "undefined" ? true : navigator.onLine,
+    errorMessage:
+      flow.session.inputError ??
+      (flow.session.message &&
+      flow.session.message !== "Select a register and open a shift before taking payment." &&
+      flow.session.message !== "Opening the register."
+        ? flow.session.message
+        : undefined),
+    onSubmit: registerId
+      ? (input: { openingFloatMinor: number }) => {
+          void flow.controller?.open(input.openingFloatMinor);
+        }
+      : undefined,
+  };
+
+  if (!registerId) {
+    return <RegisterScreen openForm={openForm} session={idleShiftWorkspace()} inFlight={false} />;
+  }
+
   if (!flow.ready || !flow.controller) {
     return <p className="muted">Loading register…</p>;
   }
   return (
     <>
       <RegisterScreen
-        openForm={{
-          registers: [{ id: registerId, name: registerName, locationLabel }],
-          selectedRegisterId: registerId,
-          online: typeof navigator === "undefined" ? true : navigator.onLine,
-          errorMessage:
-            flow.session.inputError ??
-            (flow.session.message &&
-            flow.session.message !== "Select a register and open a shift before taking payment." &&
-            flow.session.message !== "Opening the register."
-              ? flow.session.message
-              : undefined),
-          onSubmit: (input) => {
-            void flow.controller?.open(input.openingFloatMinor);
-          },
-        }}
+        openForm={openForm}
         session={flow.session}
         inFlight={flow.inFlight}
         onOpen={(openingFloatMinor) => {
@@ -148,16 +168,21 @@ export function RegisterRuntimeScreen({
   );
 }
 
-export function createProductionRegisterRuntime(options?: { readonly fetchImpl?: typeof fetch }): {
+export function createProductionRegisterRuntime(input: {
+  readonly registerId: string;
+  readonly deviceId: string;
+  readonly fetchImpl?: typeof fetch;
+  readonly currency?: string;
+}): {
   readonly register: RegisterPort;
   readonly registerId: string;
   readonly deviceId: string;
   readonly currency: string;
 } {
   return {
-    register: createBrowserRegisterPort({ fetchImpl: options?.fetchImpl }),
-    registerId: LOCAL_CHECKOUT_SCOPE.registerId,
-    deviceId: LOCAL_CHECKOUT_SCOPE.deviceId,
-    currency: "GHS",
+    register: createBrowserRegisterPort({ fetchImpl: input.fetchImpl }),
+    registerId: input.registerId,
+    deviceId: input.deviceId,
+    currency: input.currency ?? "GHS",
   };
 }

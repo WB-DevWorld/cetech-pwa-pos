@@ -167,7 +167,7 @@ export function createBrowserPrintPort(): PrintPort {
 }
 
 export function createBrowserCashCheckoutPorts(
-  options: BrowserCheckoutOptions & { readonly scope?: CashCheckoutScope } = {},
+  options: BrowserCheckoutOptions & { readonly scope: CashCheckoutScope },
 ): CashCheckoutPorts {
   return {
     checkout: createBrowserCheckoutUseCases(options),
@@ -175,7 +175,7 @@ export function createBrowserCashCheckoutPorts(
     sales: createBrowserSalesResolvePort(options),
     receipts: createBrowserReceiptPort(options),
     printer: createBrowserPrintPort(),
-    scope: options.scope ?? LOCAL_CHECKOUT_SCOPE,
+    scope: options.scope,
   };
 }
 

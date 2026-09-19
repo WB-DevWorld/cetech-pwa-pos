@@ -38,18 +38,29 @@ final class Cetech_Pos_Bridge_Catalog_Engine {
 		$products = isset( $loaded['products'] ) && is_array( $loaded['products'] ) ? $loaded['products'] : array();
 		$has_more = ! empty( $loaded['hasMore'] );
 		$items    = array();
-		$last_id  = null;
+		$loader_cursor = null;
+		if ( isset( $loaded['nextCursor'] ) ) {
+			$loader_cursor = self::as_id_string( $loaded['nextCursor'] );
+		}
+		$last_consumed = null;
 		foreach ( $products as $product ) {
+			$source_id = is_object( $product ) && method_exists( $product, 'get_id' ) ? self::as_id_string( $product->get_id() ) : null;
+			if ( $source_id !== null ) {
+				$last_consumed = $source_id;
+			}
 			$mapped = self::map_product( $product );
 			if ( $mapped === null ) {
 				continue;
 			}
 			$items[] = $mapped;
-			$last_id = $mapped['sourceItemId'];
+		}
+		$next_cursor = null;
+		if ( $has_more ) {
+			$next_cursor = $loader_cursor !== null ? $loader_cursor : $last_consumed;
 		}
 		return array(
 			'items'      => $items,
-			'nextCursor' => $has_more ? $last_id : null,
+			'nextCursor' => $next_cursor,
 		);
 	}
 
@@ -264,16 +275,22 @@ final class Cetech_Pos_Bridge_Catalog_Engine {
 		if ( $has_more ) {
 			array_pop( $ids );
 		}
-		$products = array();
+		$products       = array();
+		$last_source_id = null;
 		foreach ( $ids as $id ) {
+			$source_id = self::as_id_string( $id );
+			if ( $source_id !== null ) {
+				$last_source_id = $source_id;
+			}
 			$product = wc_get_product( $id );
 			if ( is_object( $product ) ) {
 				$products[] = $product;
 			}
 		}
 		return array(
-			'products' => $products,
-			'hasMore'  => $has_more,
+			'products'   => $products,
+			'hasMore'    => $has_more,
+			'nextCursor' => $has_more ? $last_source_id : null,
 		);
 	}
 

@@ -143,6 +143,7 @@ export async function ensureCatalogProjection(options: {
     fetchPage,
     now: at,
     existing: await inspectLocalCatalogProjection(db),
+    force: Boolean(options.force),
   });
 
   if (providerResult.ok) {
@@ -222,21 +223,24 @@ async function syncFromProducer(input: {
   readonly fetchPage: CatalogSyncPageFetcher;
   readonly now: Date;
   readonly existing: Awaited<ReturnType<typeof inspectLocalCatalogProjection>>;
+  readonly force: boolean;
 }): Promise<
   | { readonly ok: true; readonly result: CatalogProjectionSyncResult }
   | { readonly ok: false; readonly fetchedPages: number }
 > {
   const existingState = await readCatalogSyncState(input.db);
   const incremental =
+    !input.force &&
     input.existing.sourceMode === "provider" &&
     Boolean(existingState?.bootstrapComplete) &&
     Boolean(existingState?.modifiedAfter);
   let cursor: string | undefined;
   const modifiedAfter = incremental ? existingState?.modifiedAfter : undefined;
   let fetchedPages = 0;
-  let watermark = existingState?.modifiedAfter;
+  let watermark = incremental ? existingState?.modifiedAfter : undefined;
   let wrote = false;
   const bootstrapRecords: CatalogSourceRecord[] = [];
+  const seenCursors = new Set<string>();
 
   while (true) {
     const page = await input.fetchPage({
@@ -260,8 +264,12 @@ async function syncFromProducer(input: {
     }
     const next = page.data.nextCursor;
     if (!next) {
-      if (!incremental && bootstrapRecords.length > 0) {
-        await rebuildCatalogProjection(bootstrapRecords, latestSourceVersion(bootstrapRecords), input.db);
+      if (!incremental) {
+        await rebuildCatalogProjection(
+          bootstrapRecords,
+          latestSourceVersion(bootstrapRecords) || existingState?.modifiedAfter || "force-rebuild",
+          input.db,
+        );
         wrote = true;
       }
       if (!wrote && input.existing.sourceMode !== "provider") {
@@ -294,6 +302,10 @@ async function syncFromProducer(input: {
         },
       };
     }
+    if (seenCursors.has(next) || next === cursor) {
+      return { ok: false, fetchedPages };
+    }
+    seenCursors.add(next);
     cursor = next;
   }
 }

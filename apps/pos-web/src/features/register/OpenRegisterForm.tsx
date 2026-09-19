@@ -44,8 +44,9 @@ export function OpenRegisterForm({
   const [localError, setLocalError] = useState<string | null>(null);
 
   const floatValue = openingFloat ?? uncontrolledFloat;
-  const registerId = selectedRegisterId ?? uncontrolledRegister;
+  const registerId = selectedRegisterId !== undefined ? selectedRegisterId : uncontrolledRegister;
   const canSubmit = online && !submitting && Boolean(registerId) && Boolean(onSubmit);
+  const needsExplicitChoice = registerId === "" && registers.length > 1;
 
   function handleFloatChange(value: string) {
     setLocalError(null);
@@ -92,6 +93,7 @@ export function OpenRegisterForm({
               disabled={submitting || registers.length === 0}
             >
               {registers.length === 0 ? <option value="">No registers available</option> : null}
+              {needsExplicitChoice ? <option value="">Select a register</option> : null}
               {registers.map((register) => (
                 <option key={register.id} value={register.id}>
                   {register.locationLabel ? `${register.name} · ${register.locationLabel}` : register.name}

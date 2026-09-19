@@ -33,6 +33,7 @@ import {
 import type { CatalogProjectionAvailability, CatalogProjectionSyncResult } from "../local/catalog-sync";
 import { catalogProjectionSyncApplied } from "../local/catalog-sync";
 import {
+  checkoutScopeFromStaffAuthority,
   createBffStaffSessionGateway,
   createPublicSupabaseStaffAuthProvider,
   createStaffIdentityPort,
@@ -98,6 +99,8 @@ export function PosRuntime({
     session: null,
     assignedLocationIds: [],
     assignedRegisterIds: [],
+    assignedRegisters: [],
+    selectedRegisterId: null,
     register: null,
     shift: null,
     shiftOpen: false,
@@ -228,13 +231,9 @@ export function PosRuntime({
     ) => {
       const db = openPosLocalDatabase();
       const locationId = current.register?.locationId ?? current.assignedLocationIds[0] ?? CASHIER_SEED_LOCATION_ID;
-      const registerId = current.register?.id;
-      const shiftId = current.shiftOpen ? current.shift?.id : undefined;
       const deviceId = current.shift?.deviceId ?? readOrCreateLocalDeviceId();
-      const checkout = createBrowserCashCheckoutPorts({
-        fetchImpl,
-        ...(registerId && shiftId ? { scope: { registerId, shiftId, deviceId } } : {}),
-      });
+      const scope = checkoutScopeFromStaffAuthority(current, deviceId);
+      const checkout = scope ? createBrowserCashCheckoutPorts({ fetchImpl, scope }) : null;
       setProjectionAvailability(availability);
       setPorts({
         catalog: createLocalCatalogPort({ db }),
@@ -245,12 +244,12 @@ export function PosRuntime({
         locationId,
         pricing: createBrowserPricingPort({ fetchImpl }),
         shiftOpen: current.shiftOpen,
-        checkout: checkout.checkout,
-        payments: checkout.payments,
-        sales: checkout.sales,
-        receipts: checkout.receipts,
-        printer: checkout.printer,
-        checkoutScope: registerId && shiftId ? checkout.scope : undefined,
+        checkout: checkout?.checkout,
+        payments: checkout?.payments,
+        sales: checkout?.sales,
+        receipts: checkout?.receipts,
+        printer: checkout?.printer,
+        checkoutScope: checkout?.scope,
         catalogAvailability: availability,
         catalogProjectionGeneration,
       });
@@ -427,7 +426,6 @@ export function PosRuntime({
     );
   }
 
-  const registerId = authority.register?.id;
   const deviceId = authority.shift?.deviceId ?? readOrCreateLocalDeviceId();
   const extras = clientAttentionExtras({ catalogAvailability: projectionAvailability, authority });
   const attentionItems = [...serverAttention, ...extras];
@@ -485,14 +483,25 @@ export function PosRuntime({
       ) : route === "returns" ? (
         <ReturnsRuntimeScreen returns={returns} lookup={lookup} initialSaleId={pendingReturnSaleId} />
       ) : route === "register" ? (
-        registerId ? (
+        authority.assignedRegisterIds.length > 0 ? (
           <RegisterRuntimeScreen
             register={registerPort}
-            registerId={registerId}
-            registerName={authority.register?.name ?? registerId}
+            registerId={authority.selectedRegisterId}
+            registerChoices={authority.assignedRegisterIds.map((id) => {
+              const record = authority.assignedRegisters.find((item) => item.id === id);
+              return {
+                id,
+                name: record?.name ?? id,
+                locationLabel: record && !isUuidLike(record.locationId) ? record.locationId : undefined,
+              };
+            })}
+            registerName={authority.register?.name ?? authority.selectedRegisterId ?? "Register"}
             locationLabel={isUuidLike(authority.register?.locationId) ? undefined : authority.register?.locationId}
             deviceId={deviceId}
             currency={authority.register?.currency ?? "GHS"}
+            onSelectRegister={(id) => {
+              void runtime.selectRegister(id);
+            }}
             onShiftChange={onShiftChange}
             onOpened={() => {
               showToast({ title: "Register opened." });

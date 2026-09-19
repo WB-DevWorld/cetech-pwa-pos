@@ -20,6 +20,16 @@ const authority: StaffRuntimeAuthority = {
   },
   assignedLocationIds: ["loc_a1"],
   assignedRegisterIds: ["reg_a"],
+  assignedRegisters: [
+    {
+      id: "reg_a",
+      name: "Front Counter",
+      locationId: "loc_a1",
+      currency: "GHS",
+      status: "active",
+    },
+  ],
+  selectedRegisterId: "reg_a",
   register: {
     id: "reg_a",
     name: "Front Counter",

@@ -2,6 +2,23 @@
 
 Updated 2026-09-19. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
 
+## Temporary senior STG-01 final review-fix — ACTIVE
+
+Senior/user `@wbdevworld` authorizes Cursor working with the senior/user to make ONLY the minimum WS3 + WS2 changes required to resolve Ben's two exact review blockers on exact reviewed head `33d3748b525dfea2e4979e58e795516df27aa552`, directly on existing `batch/stg-01-staging-runtime-acceptance` / PR #77. This does **not** permanently alter `OWNERSHIP.md`. Authority expires at final review-fix handoff.
+
+```text
+human: @wbdevworld
+workstream: WS3 (+ bounded WS2 catalog source-row pagination)
+mode: IMPLEMENT (review-fix)
+task: STG-01 final review-fix — assigned-register selection/persistence + Woo catalog pagination/convergence
+branch: batch/stg-01-staging-runtime-acceptance
+reviewed SHA: 33d3748b525dfea2e4979e58e795516df27aa552
+origin/main: 778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5
+allowed WS3: selected-register runtime state; authorized register choice; selected-register persistence; checkout/register composition; relevant tests; catalog full-rebuild vs incremental mode; catalog sync tests; CURRENT-WORK / handoff evidence
+allowed WS2: wordpress/cetech-pos-bridge catalog source-row pagination cursor; tests/bridge catalog pagination regression
+forbidden: another contributor branch; UX-02/03/04 reopen; electronic capability; R9/R10/REC-01; pricing/quote engine; payment; refund/restock; customer; unrelated Sell UI; Woo order behavior; frozen-contract churn unless unavoidable; production promotion; merging PR #77; protected main
+```
+
 ## Temporary senior UX-04 review-fix — EXPIRED / CLOSED
 
 Bounded review remediation on existing `ws1/ux-04-operational-workspaces-demo-alignment` from reviewed SHA `b36720093477f38e58f3cfc1132da8aa61887ffe`. Senior/user `@wbdevworld` reauthorized only the minimum existing UX-04 WS1/WS3/WS2 read paths to (1) recover the same payment/sale identity from Needs Attention Check / Recover and (2) stop customer search from replacing the local customer cache, plus truthful name/company/phone search. This does not permanently change `OWNERSHIP.md`. Do not reuse. Do not create another feature branch. Do not mutate PR #77 or `batch/stg-01-staging-runtime-acceptance`. Do not merge main. Do not redesign UX-04. Do not reopen UX-02/UX-03.
