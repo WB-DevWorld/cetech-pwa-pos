@@ -55,6 +55,19 @@ describe("operational recovery surfaces", () => {
     expect(html).not.toContain("Retry safely");
   });
 
+  test("Check / Recover is disabled while recovery is in flight", () => {
+    const html = renderToStaticMarkup(
+      <NeedsAttentionScreen
+        items={[{ id: "a1", title: "Payment status uncertain", summary: "Resolve the existing payment before retrying.", typeLabel: "Payment", severity: "critical", transactionReference: "tx-1", resolveAllowed: true }]}
+        recoveringItemId="a1"
+        onResolveItem={() => undefined}
+      />,
+    );
+    expect(html).toContain("Check / Recover");
+    expect(html).toContain("disabled");
+    expect(html).toContain('aria-busy="true"');
+  });
+
   test("Update Ready blocks activation when critical work exists and allows a safe state", () => {
     const blocked = renderToStaticMarkup(<UpdateReadyDialog open safety="blocked_critical" currentBuild="r8" onLater={() => undefined} onApply={() => undefined} />);
     expect(blocked).toContain("Update blocked by active transaction.");

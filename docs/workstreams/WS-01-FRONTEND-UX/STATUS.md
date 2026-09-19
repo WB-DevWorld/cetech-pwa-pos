@@ -1,5 +1,11 @@
 # WS1 current status
 
+Snapshot 2026-09-19. UX-04 review-fix on `ws1/ux-04-operational-workspaces-demo-alignment` from reviewed SHA `b36720093477f38e58f3cfc1132da8aa61887ffe`. Check / Recover now calls PaymentPort.resolve / SalesPort.resolve for the same transaction/payment identity. Customer search is BFF read-through and no longer replaces IndexedDB. Woo customer search matches name, billing company, and billing phone. Temporary UX-04 review-fix authority is EXPIRED / CLOSED. PR #77 / shared STG-01 / `main` were not modified. Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION**. Do not merge; do not import into STG-01 as part of this closeout.
+
+## Previous snapshot (historical; current section above controls)
+
+# WS1 current status
+
 Snapshot 2026-09-19. UX-04 operational workspaces (Orders, Customers, Returns discovery, Register, Store Health, Needs Attention, Settings, shared toast/attention count) on `ws1/ux-04-operational-workspaces-demo-alignment` from UX-03-containing STG-01 `c857b097bca5b4eaaed4a4de0e33826639a91809`. Contributor implementation is independently reviewable; PR #77 / shared STG-01 / `main` were not modified. Temporary UX-04 authority is EXPIRED / CLOSED. Freshness **FRESH_2** after two-pass fetch. Delivery **READY_FOR_INTEGRATION**. Do not merge; do not import into STG-01 as part of this closeout.
 
 ## Previous snapshot (historical; current section above controls)

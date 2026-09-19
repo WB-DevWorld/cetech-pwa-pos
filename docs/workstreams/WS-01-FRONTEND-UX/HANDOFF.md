@@ -1,4 +1,73 @@
-# WS1 current handoff — UX-04 operational workspaces demo alignment (TASK_COMPLETION FRESH_2)
+# WS1 current handoff — UX-04 attention recovery + customer search/cache review-fix (REVIEW_FIX_RETURN FRESH_2)
+
+Kind / UTC: TASK_COMPLETION / 2026-09-19T14:28:00Z
+Handoff kind: REVIEW_FIX_RETURN
+Task / batch / workstream: UX-04 final review-fix — attention recovery identity + customer search/cache truth / WS1 temporary senior exception now EXPIRED / CLOSED
+Owner / integration editor / requested human reviewer: Senior/user `@wbdevworld` for this bounded contributor review-fix. WS3 independently reviews/imports. Do not self-approve. Do not merge. Do not update PR #77.
+Branch: `ws1/ux-04-operational-workspaces-demo-alignment`
+Starting/base SHA: `c857b097bca5b4eaaed4a4de0e33826639a91809`
+Reviewed SHA: `b36720093477f38e58f3cfc1132da8aa61887ffe`
+Pre-handoff implementation SHA: recorded as this evidence commit after it lands (cannot be embedded in its own commit)
+Allowed / forbidden paths and central leases: temporary UX-04 review-fix now EXPIRED / CLOSED. Was attention recovery + customer search/cache only. Forbidden: UX-04 redesign; UX-02/UX-03; Woo order-history subsystem; frozen contracts; PR #77; shared STG-01; main; production.
+Files changed: attention recovery identity + lock; operation classification; customer BFF read-through (no IndexedDB replace); Woo name/company/phone search; tests; this STATUS/HANDOFF; CURRENT-WORK.
+Contracts changed: none (feature-level AttentionItemView transactionId/paymentId only)
+Database migrations: none
+Architecture decisions: none
+Completed/current/remaining tasks: review-fix complete. Remaining: WS3 independent review/import; electronic per-method capability still outside UX-04.
+Dependencies (accepted / provisional SHA / prep-only / blocked): reviewed `b36720093477f38e58f3cfc1132da8aa61887ffe`. Shared batch / PR #77 still `c857b097bca5b4eaaed4a4de0e33826639a91809`. `origin/main` `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`.
+Tests executed:
+- targeted vitest attention-recovery + handle-list-attention + loadCustomerSearch + CustomersScreen + OperationalSurfaces + next-sale-quote → 6 files, 32 passed
+- `python scripts/verify_control_plane.py` → PASS (exit 0)
+- `pnpm --dir apps/pos-web lint` → exit 0
+- `pnpm --dir apps/pos-web typecheck` → exit 0
+- `pnpm --dir apps/pos-web test` → 109 files, 865 passed, exit 0
+- `pnpm --dir apps/pos-web build` → exit 0
+- `pnpm --dir apps/pos-web test:e2e` → 15 passed, exit 0
+- visual Playwright `--workers=1` → 42 passed, 1 failed: FE-03 `sell-tablet.png` evidence WRITE after assertions (`UNKNOWN ... open sell-tablet.png`). Assertions (`assertTwoPaneSplit`, Pay disabled) ran before the screenshot write. Not a UX-04 functional failure. UX-04 visual tests all passed.
+- `php tests/bridge/run.php` → 1765 passed, 0 failed
+- `php tests/bridge/parity.php` → 138 passed, 0 failed, 19 skipped
+- `git diff --check` → clean
+Runtime verification: local contributor tree. Not live charge/refund/restock. Electronic per-method capability remains BLOCKED_PENDING_CAPABILITY_SIGNAL.
+Remote effects performed: none in this evidence commit (contributor branch push follows).
+Assumptions / limitations / unresolved risks:
+- Orders currently presents POS-originated operational order history from the durable POS checkout-sale projection. It is not yet a complete all-Woo-order history surface. WooCommerce remains canonical commercial order truth. The POS projection is not a new canonical order database. This is not a blocker for STG-01's requirement to surface completed POS staging sales.
+- Customer IndexedDB is not a complete directory. Online Customers uses BFF search as read-through. Offline uses whatever genuine local cache exists; empty cache is walk-in fallback.
+- Attention `Mark reviewed` remains fixture-only. REVIEWED != RESOLVED.
+- Refund/return/stock operations stay in Attention with `resolveAllowed: false` and manager/reconciliation copy; they are not routed through sale recovery.
+Next exact action: WS3 independently reviews/imports the replacement contributor SHA. Do not import into the shared STG-01 batch as part of this closeout. Reassignment: NONE (exception expired).
+
+Freshness protocol:
+START_FRESHNESS_SNAPSHOT UTC: 2026-09-19T14:28:13Z
+Start main SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Start batch ref/SHA: `origin/batch/stg-01-staging-runtime-acceptance` `c857b097bca5b4eaaed4a4de0e33826639a91809`
+Applicable contracts / ADRs / ownership / queue revision: frozen v1.0.0; ADR-012; ADR-014; CURRENT-WORK temporary senior UX-04 review-fix now expired
+
+Pass 1 fetch UTC / success evidence: 2026-09-19T14:28:13Z `git fetch origin` succeeded
+Pass 1 main SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Pass 1 batch SHA: `c857b097bca5b4eaaed4a4de0e33826639a91809`
+Relevant upstream paths and dependency/authority effects: reviewed remote head still `b36720093477f38e58f3cfc1132da8aa61887ffe`
+Classification per change: main — SAME. Batch / PR #77 — SAME. Reviewed UX-04 remote — SAME.
+Actions taken / reconciliation commits: none
+Tests rerun / tested combined SHA: required suite on this contributor tree
+
+Pass 2 fetch UTC / success evidence: recorded in the session report immediately after this evidence commit
+Pass 2 main SHA: confirm unchanged after commit
+Pass 2 batch SHA: confirm unchanged after commit
+Relevant upstream paths and dependency/authority effects: none expected
+Classification per change: no arrivals at Pass 1; Pass 2 confirms
+Actions taken / reconciliation commits: none
+Tests rerun / tested combined SHA: no upstream arrivals expected; tested tree is this evidence commit
+
+Final freshness status: FRESH_2
+Delivery status: READY_FOR_INTEGRATION
+Final task head SHA: recorded after this evidence commit in the session report
+Known post-cutoff risk / integration editor follow-up: electronic per-method capability still outside UX-04; Orders is POS-originated history only; Windows UX-02 tablet screenshot file lock remains an evidence-write flake
+Pass 3: NOT PERMITTED for this assignment.
+Review/merge/release status and limitations: PR #77 remains OPEN DRAFT DO NOT MERGE. Production NOT AUTHORIZED.
+Metrics delta for CURRENT-WORK (counts/timestamps, never guessed zeroes): UX-04 review-fix authority closed 2026-09-19.
+
+## Previous current handoff — UX-04 operational workspaces demo alignment (TASK_COMPLETION FRESH_2)
+
 
 Kind / UTC: TASK_COMPLETION / 2026-09-19T13:28:00Z
 Handoff kind: DEPENDENCY_READY

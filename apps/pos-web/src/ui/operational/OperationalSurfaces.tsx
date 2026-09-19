@@ -18,6 +18,8 @@ export type AttentionItemView = {
   readonly typeLabel: string;
   readonly severity: AttentionSeverityView;
   readonly transactionReference?: string;
+  readonly transactionId?: string;
+  readonly paymentId?: string;
   readonly retryAllowed?: boolean;
   readonly resolveAllowed?: boolean;
   readonly reviewAllowed?: boolean;
@@ -218,6 +220,7 @@ export interface NeedsAttentionScreenProps {
   readonly items: readonly AttentionItemView[];
   readonly state?: OperationalLoadState;
   readonly errorMessage?: string;
+  readonly recoveringItemId?: string | null;
   readonly onRetryLoad?: () => void;
   readonly onRetryItem?: (id: string) => void;
   readonly onResolveItem?: (id: string) => void;
@@ -228,6 +231,7 @@ export function NeedsAttentionScreen({
   items,
   state = "ready",
   errorMessage,
+  recoveringItemId,
   onRetryLoad,
   onRetryItem,
   onResolveItem,
@@ -275,7 +279,11 @@ export function NeedsAttentionScreen({
       {state !== "loading" && items.length > 0 ? (
         <div className="operational-attention-list">
           {items.map((item) => (
-            <article className={`card operational-attention-item severity-${item.severity}`} key={item.id}>
+            <article
+              className={`card operational-attention-item severity-${item.severity}`}
+              key={item.id}
+              aria-busy={recoveringItemId === item.id}
+            >
               <div className="operational-attention-head">
                 <div>
                   <strong>{item.title}</strong>
@@ -293,7 +301,17 @@ export function NeedsAttentionScreen({
               <p>{item.summary}</p>
               <div className="operational-actions">
                 {item.resolveAllowed && onResolveItem ? (
-                  <button className="btn" type="button" onClick={() => onResolveItem(item.id)}>
+                  <button
+                    className="btn"
+                    type="button"
+                    disabled={Boolean(recoveringItemId)}
+                    onClick={() => {
+                      if (recoveringItemId) {
+                        return;
+                      }
+                      onResolveItem(item.id);
+                    }}
+                  >
                     Check / Recover
                   </button>
                 ) : null}

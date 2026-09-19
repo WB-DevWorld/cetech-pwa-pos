@@ -2,6 +2,24 @@
 
 Updated 2026-09-19. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
 
+## Temporary senior UX-04 review-fix — EXPIRED / CLOSED
+
+Bounded review remediation on existing `ws1/ux-04-operational-workspaces-demo-alignment` from reviewed SHA `b36720093477f38e58f3cfc1132da8aa61887ffe`. Senior/user `@wbdevworld` reauthorized only the minimum existing UX-04 WS1/WS3/WS2 read paths to (1) recover the same payment/sale identity from Needs Attention Check / Recover and (2) stop customer search from replacing the local customer cache, plus truthful name/company/phone search. This does not permanently change `OWNERSHIP.md`. Do not reuse. Do not create another feature branch. Do not mutate PR #77 or `batch/stg-01-staging-runtime-acceptance`. Do not merge main. Do not redesign UX-04. Do not reopen UX-02/UX-03.
+
+```text
+human: @wbdevworld
+workstream: WS1 (+ bounded WS3 attention recovery wiring; smallest read-only WS2 customer search) — EXPIRED / CLOSED
+mode: IMPLEMENT (review-fix)
+task: UX-04 final review-fix — attention recovery identity + customer search/cache truth
+branch: ws1/ux-04-operational-workspaces-demo-alignment
+reviewed SHA: b36720093477f38e58f3cfc1132da8aa61887ffe
+base / STG-01: c857b097bca5b4eaaed4a4de0e33826639a91809
+was allowed WS1: apps/pos-web/src/ui/operational/**, apps/pos-web/src/features/customers/**, tests/frontend/**, docs/workstreams/WS-01-FRONTEND-UX/**
+was allowed bounded WS3: apps/pos-web/src/app/pos-app.tsx, workspace-runtime.tsx, attention-recovery*, operational-client.ts, apps/pos-web/src/server/attention/**, CURRENT-WORK.md
+was allowed optional WS2: wordpress/cetech-pos-bridge/includes/class-customers-engine.php + tests/bridge/test-customers.php (read-only search fields only)
+forbidden: UX-04 redesign; UX-02/UX-03 Sell/payment redesign; Woo order-history subsystem; Woo/B2BKing/WoodMart pricing; frozen contracts; customer/order/payment/refund/stock mutation; PR #77; shared STG-01 batch; protected main; production deploy
+```
+
 ## Temporary senior UX-04 authority — EXPIRED / CLOSED
 
 Closed on contributor branch `ws1/ux-04-operational-workspaces-demo-alignment` after the UX-04 operational-workspace handoff. Base remained `origin/batch/stg-01-staging-runtime-acceptance` `c857b097bca5b4eaaed4a4de0e33826639a91809` (accepted UX-03-containing STG-01 / PR #77 head). This does not permanently change `OWNERSHIP.md`. Do not reuse. Do not mutate PR #77 or `batch/stg-01-staging-runtime-acceptance`. Do not merge main. Do not deploy production.

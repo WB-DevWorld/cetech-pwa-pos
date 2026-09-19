@@ -30,6 +30,9 @@ export function CustomersScreen({
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
+    if (onSearchQueryChange) {
+      return customers;
+    }
     const needle = query.trim().toLocaleLowerCase();
     if (!needle) return customers;
     return customers.filter((customer) =>
@@ -39,7 +42,7 @@ export function CustomersScreen({
         .toLocaleLowerCase()
         .includes(needle),
     );
-  }, [customers, query]);
+  }, [customers, onSearchQueryChange, query]);
 
   return (
     <section className="customers-workspace workspace-surface" aria-labelledby="customers-title">

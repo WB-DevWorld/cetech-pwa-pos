@@ -6,9 +6,12 @@ import { SellRuntimeScreen, type SellSessionPorts } from "../features/sell";
 import { createBrowserPricingPort } from "../features/sell/runtime/pricingClient";
 import {
   createBrowserCashCheckoutPorts,
+  createBrowserPaymentPort,
   createBrowserRegisterPort,
   createBrowserReturnPort,
+  createBrowserSalesResolvePort,
 } from "./checkout-client";
+import { createAttentionRecoveryLock, runAttentionRecovery } from "./attention-recovery";
 import { RegisterRuntimeScreen } from "./register-runtime";
 import { ReturnsRuntimeScreen, createBrowserHistoricReturnSaleLookup } from "./returns-runtime";
 import { StaffAuthGate } from "./staff-auth-gate";
@@ -121,6 +124,10 @@ export function PosRuntime({
   );
 
   const registerPort = useMemo(() => createBrowserRegisterPort({ fetchImpl }), [fetchImpl]);
+  const paymentPort = useMemo(() => createBrowserPaymentPort({ fetchImpl }), [fetchImpl]);
+  const salesPort = useMemo(() => createBrowserSalesResolvePort({ fetchImpl }), [fetchImpl]);
+  const attentionRecoveryLock = useRef(createAttentionRecoveryLock());
+  const [recoveringItemId, setRecoveringItemId] = useState<string | null>(null);
   const runtime = useMemo<StaffRuntimeController>(
     () =>
       createStaffRuntimeController({
@@ -162,8 +169,10 @@ export function PosRuntime({
     }, 4500);
   }, []);
 
-  const loadAttention = useCallback(async () => {
-    setAttentionState("loading");
+  const loadAttention = useCallback(async (mode: "full" | "refresh" = "full") => {
+    if (mode === "full") {
+      setAttentionState("loading");
+    }
     const result = await fetchAttentionInbox(fetchImpl);
     if (!result.ok) {
       setServerAttention([]);
@@ -536,14 +545,24 @@ export function PosRuntime({
             setPendingReturnSaleId(saleId);
             onNavigate("returns");
           }}
+          recoveringItemId={recoveringItemId}
           onResolveAttention={(item: AttentionItemView) => {
-            if (item.recoverKind === "payment" || item.recoverKind === "sale") {
-              onNavigate("sell");
-            } else if (item.recoverKind === "register" || item.recoverKind === "shift") {
+            if (item.recoverKind === "register" || item.recoverKind === "shift") {
               onNavigate("register");
-            } else if (item.recoverKind === "catalog") {
-              onNavigate("health");
+              return;
             }
+            if (item.recoverKind === "catalog") {
+              onNavigate("health");
+              return;
+            }
+            void runAttentionRecovery({
+              item,
+              lock: attentionRecoveryLock.current,
+              ports: { payments: paymentPort, sales: salesPort },
+              reload: () => loadAttention("refresh"),
+              onStart: (id) => setRecoveringItemId(id),
+              onFinish: (id) => setRecoveringItemId((current) => (current === id ? null : current)),
+            });
           }}
         />
       )}

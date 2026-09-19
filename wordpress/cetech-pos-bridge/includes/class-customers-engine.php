@@ -94,31 +94,85 @@ final class Cetech_Pos_Bridge_Customers_Engine {
 		return $item;
 	}
 
-	public static function load_woo_customers( $query, $limit ) {
-		if ( ! function_exists( 'get_users' ) ) {
-			return 'unavailable';
-		}
-		$args = array(
+	public static function woo_user_queries( $query, $limit ) {
+		$trimmed = is_string( $query ) ? trim( $query ) : '';
+		$base    = array(
 			'number'   => $limit,
 			'role__in' => array( 'customer', 'subscriber' ),
 			'orderby'  => 'display_name',
 			'order'    => 'ASC',
 		);
-		$trimmed = is_string( $query ) ? trim( $query ) : '';
+		$queries   = array();
+		$standard  = $base;
 		if ( $trimmed !== '' ) {
-			$args['search']         = '*' . $trimmed . '*';
-			$args['search_columns'] = array( 'user_login', 'user_email', 'display_name' );
+			$standard['search']         = '*' . $trimmed . '*';
+			$standard['search_columns'] = array( 'user_login', 'user_email', 'display_name' );
 		}
-		$users = get_users( $args );
-		if ( ! is_array( $users ) ) {
+		$queries[] = $standard;
+		if ( $trimmed !== '' ) {
+			$meta            = $base;
+			$meta['meta_query'] = array(
+				'relation' => 'OR',
+				array(
+					'key'     => 'billing_company',
+					'value'   => $trimmed,
+					'compare' => 'LIKE',
+				),
+				array(
+					'key'     => 'billing_phone',
+					'value'   => $trimmed,
+					'compare' => 'LIKE',
+				),
+			);
+			$queries[] = $meta;
+		}
+		return $queries;
+	}
+
+	/**
+	 * @param array<int,object|array<string,mixed>> $users
+	 * @param int $limit
+	 * @return array<int,object|array<string,mixed>>
+	 */
+	public static function merge_users_by_id( $users, $limit ) {
+		$by_id = array();
+		foreach ( $users as $user ) {
+			$id = self::user_id( $user );
+			if ( $id === null || isset( $by_id[ $id ] ) ) {
+				continue;
+			}
+			$by_id[ $id ] = $user;
+			if ( count( $by_id ) >= $limit ) {
+				break;
+			}
+		}
+		return array_values( $by_id );
+	}
+
+	public static function load_woo_customers( $query, $limit ) {
+		if ( ! function_exists( 'get_users' ) ) {
 			return 'unavailable';
 		}
-		$enriched = array();
-		foreach ( $users as $user ) {
+		$users = array();
+		foreach ( self::woo_user_queries( $query, $limit ) as $args ) {
+			$batch = get_users( $args );
+			if ( ! is_array( $batch ) ) {
+				return 'unavailable';
+			}
+			foreach ( $batch as $user ) {
+				$users[] = $user;
+			}
+		}
+		$merged    = self::merge_users_by_id( $users, $limit );
+		$enriched  = array();
+		foreach ( $merged as $user ) {
 			$id = is_object( $user ) && isset( $user->ID ) ? (int) $user->ID : 0;
+			if ( $id === 0 && is_array( $user ) && isset( $user['ID'] ) ) {
+				$id = (int) $user['ID'];
+			}
 			$row = array(
 				'ID'            => $id,
-				'display_name'  => is_object( $user ) && isset( $user->display_name ) ? (string) $user->display_name : '',
+				'display_name'  => is_object( $user ) && isset( $user->display_name ) ? (string) $user->display_name : ( is_array( $user ) && isset( $user['display_name'] ) ? (string) $user['display_name'] : '' ),
 				'billing_company' => function_exists( 'get_user_meta' ) ? (string) get_user_meta( $id, 'billing_company', true ) : '',
 				'billing_phone'   => function_exists( 'get_user_meta' ) ? (string) get_user_meta( $id, 'billing_phone', true ) : '',
 				'b2bking_b2buser' => function_exists( 'get_user_meta' ) ? (string) get_user_meta( $id, 'b2bking_b2buser', true ) : '',

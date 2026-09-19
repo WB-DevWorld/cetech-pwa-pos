@@ -48,4 +48,20 @@ describe("CustomersScreen", () => {
     expect(withoutContext).not.toContain("Trade account");
     expect(withoutContext).not.toContain("Group A");
   });
+
+  test("keeps name, company or phone search copy", () => {
+    expect(render()).toContain("Name, company or phone");
+  });
+
+  test("remote search results are not re-filtered against masked phone", () => {
+    const html = renderToStaticMarkup(
+      <CustomersScreen
+        customers={[{ id: "retail-1", kind: "retail", displayName: "Adwoa Mensah", phoneMasked: "*** 0123" }]}
+        onSearchQueryChange={() => undefined}
+      />,
+    );
+    expect(html).toContain("Adwoa Mensah");
+    expect(html).toContain("*** 0123");
+    expect(html).not.toContain("0241234567");
+  });
 });

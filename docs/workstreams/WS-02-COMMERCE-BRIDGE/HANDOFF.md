@@ -1,15 +1,17 @@
 # WS2 current handoff — UX-04 bounded read-only customers (contributor SHA on WS1 branch)
 
 Kind / UTC: TASK_COMPLETION / 2026-09-19 (bounded UX-04 exception; not a WS2 ownership transfer)
-Task / batch / workstream: UX-04 smallest read-only customer search / WS2 files landed on `ws1/ux-04-operational-workspaces-demo-alignment`
+Task / batch / workstream: UX-04 smallest read-only customer search / WS2 files on `ws1/ux-04-operational-workspaces-demo-alignment`
 Owner / actual implementer: WS2 owner unchanged (`@Emmanuel-coder-prog`); implementing human `@wbdevworld` under UX-04 temporary authority now EXPIRED / CLOSED
 Requested human reviewer: WS2 owner for the read-only `GET /customers` addition; WS3 for STG-01 import. Do not self-approve. Do not merge.
 Allowed: `wordpress/cetech-pos-bridge/**` + `tests/bridge/**` read-only customer listing. No quote/price/prepare/finalize/cancel/refund/restock/payment mutation.
 Contracts changed: **NONE**. No B2BKing/WoodMart price calculation. `commercialContext` is an optional presentation label only.
-Verification: `php tests/bridge/run.php` **1752 passed, 0 failed**.
+Customer search fields: authenticated `GET /customers` now matches `user_login` / `user_email` / `display_name` plus `billing_company` / `billing_phone` (OR meta query), merged/deduped by user ID, limit respected.
+Verification: `php tests/bridge/run.php` **1765 passed, 0 failed**. `php tests/bridge/parity.php` **138 passed, 0 failed, 19 skipped**.
 Delivery: independently reviewable as part of the UX-04 contributor SHA. Do not treat as general WS2 reassignment.
 
 ## Previous current handoff — STG-05 / #74 training catalog producer (TASK_COMPLETION)
+
 
 Kind / UTC: TASK_COMPLETION / 2026-09-17
 Task / batch / workstream: STG-05 / issue #74 VERIFY TRAINING WOO BRIDGE CATALOG, QUOTE AND CASH-SALE PRODUCER PATHS — STG-01; WS2

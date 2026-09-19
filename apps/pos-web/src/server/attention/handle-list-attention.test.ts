@@ -121,9 +121,12 @@ describe("UX-04 attention read model", () => {
     expect(result.body.data.count).toBe(1);
     const item = result.body.data.items[0];
     expect(item?.id).toBe(`payment:${PAYMENT}`);
+    expect(item?.transactionId).toBe(TX);
+    expect(item?.paymentId).toBe(PAYMENT);
     expect(item?.transactionReference).toBe("TX-PENDING-1");
     expect(item?.reviewAllowed).toBe(false);
     expect(item?.resolveAllowed).toBe(true);
+    expect(item?.recoverKind).toBe("payment");
     expect(item?.summary).toContain("Do not charge the customer again");
   });
 
@@ -146,5 +149,113 @@ describe("UX-04 attention read model", () => {
     });
     expect(items[0]?.reviewAllowed).toBe(false);
     expect(items[0]?.resolveAllowed).toBe(true);
+    expect(items[0]?.transactionId).toBe(TX);
+    expect(items[0]?.paymentId).toBe(PAYMENT);
+  });
+
+  test("verified payments leave the durable queue", () => {
+    const items = composeAttentionItems({
+      payments: [
+        {
+          paymentId: PAYMENT,
+          transactionId: TX,
+          saleId: "sale-attn",
+          tender: "mobile_money",
+          status: "verified",
+          amount: ghs(1000),
+          actorId: "cashier_a",
+        },
+      ],
+      sales: [],
+      shifts: [],
+      operations: [],
+    });
+    expect(items).toEqual([]);
+  });
+
+  test("sale attention carries the same transaction identity", () => {
+    const items = composeAttentionItems({
+      payments: [],
+      sales: [
+        {
+          organizationId: "org_a",
+          locationId: "loc_a1",
+          locationName: "Main",
+          registerId: "reg_a1",
+          registerName: "Front",
+          deviceId: DEVICE,
+          shiftId: SHIFT,
+          cashierId: "cashier_a",
+          cashierName: "Cashier A",
+          customer: { kind: "walkin" },
+          customerLabel: "Walk-in",
+          prepared: prepared(),
+          lines: [],
+          subtotal: ghs(1000),
+          discount: ghs(0),
+          tax: ghs(0),
+          status: "requires_attention",
+          commercialConfirmed: false,
+        },
+      ],
+      shifts: [],
+      operations: [],
+    });
+    expect(items[0]?.recoverKind).toBe("sale");
+    expect(items[0]?.transactionId).toBe(TX);
+    expect(items[0]?.resolveAllowed).toBe(true);
+  });
+
+  test("payment operations recover as payments and refund operations do not recover as sales", () => {
+    const paymentOp = composeAttentionItems({
+      payments: [],
+      sales: [],
+      shifts: [],
+      operations: [
+        {
+          organizationId: "org_a",
+          locationId: "loc_a1",
+          registerId: "reg_a1",
+          transactionId: TX,
+          operation: "payment.initialize",
+        },
+      ],
+    });
+    expect(paymentOp[0]?.recoverKind).toBe("payment");
+    expect(paymentOp[0]?.resolveAllowed).toBe(true);
+    expect(paymentOp[0]?.transactionId).toBe(TX);
+
+    const refundOp = composeAttentionItems({
+      payments: [],
+      sales: [],
+      shifts: [],
+      operations: [
+        {
+          organizationId: "org_a",
+          locationId: "loc_a1",
+          registerId: "reg_a1",
+          transactionId: TX,
+          operation: "payment.refund",
+        },
+      ],
+    });
+    expect(refundOp[0]?.recoverKind).toBe("return");
+    expect(refundOp[0]?.resolveAllowed).toBe(false);
+
+    const stockOp = composeAttentionItems({
+      payments: [],
+      sales: [],
+      shifts: [],
+      operations: [
+        {
+          organizationId: "org_a",
+          locationId: "loc_a1",
+          transactionId: TX,
+          operation: "bridge.stock_disposition",
+        },
+      ],
+    });
+    expect(stockOp[0]?.recoverKind).toBe("return");
+    expect(stockOp[0]?.resolveAllowed).toBe(false);
   });
 });

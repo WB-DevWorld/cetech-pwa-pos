@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { CustomerPort, PrintPort, ReceiptPort } from "../../../../docs/contracts/ports";
 import type { CustomerSummary, StoreHealth } from "../../../../docs/contracts/domain.generated";
 import { OrdersScreen, OrderDetailDialog, type OrderDetailView, type OrderListItemView } from "../features/orders";
 import { CustomersScreen } from "../features/customers";
+import { loadCustomerSearchPresentation } from "../features/customers/loadCustomerSearch";
 import { SettingsScreen, type AppearancePreference } from "../features/settings";
 import { applyAppearance, readStoredAppearance } from "../features/settings/appearance";
 import {
@@ -20,7 +21,6 @@ import {
   type OperationalLoadState,
 } from "../ui/operational";
 import { POS_LOCAL_SCHEMA_CURRENT } from "../local";
-import { replaceLocalCustomers } from "../local/customer-store";
 import type { CatalogProjectionAvailability, CatalogProjectionSyncResult } from "../local/catalog-sync";
 import { ensureCatalogProjection } from "../local/catalog-sync";
 import { resolveBrowserCatalogSourcePolicy } from "../core/catalog/source-policy";
@@ -32,7 +32,6 @@ import {
   fetchOrderDetail,
   fetchOrderHistory,
   fetchStoreHealth,
-  toCustomerSummaries,
 } from "./operational-client";
 
 export function ApprovedWorkspaceScreens({
@@ -58,6 +57,7 @@ export function ApprovedWorkspaceScreens({
   printer,
   onStartReturn,
   onResolveAttention,
+  recoveringItemId,
 }: {
   readonly route: PosRoute;
   readonly authority: StaffRuntimeAuthority;
@@ -81,6 +81,7 @@ export function ApprovedWorkspaceScreens({
   readonly printer?: PrintPort;
   readonly onStartReturn?: (saleId: string) => void;
   readonly onResolveAttention?: (item: AttentionItemView) => void;
+  readonly recoveringItemId?: string | null;
 }) {
   if (route === "orders") {
     return (
@@ -146,6 +147,7 @@ export function ApprovedWorkspaceScreens({
         onCatalogProjectionChange={onCatalogProjectionChange}
         onRetryLoad={onRetryAttention}
         onResolveAttention={onResolveAttention}
+        recoveringItemId={recoveringItemId}
         onRebuildSuccess={onRebuildSuccess}
       />
     );
@@ -258,25 +260,24 @@ function CustomersWorkspace({
   const [commercialContextById, setCommercialContextById] = useState<Readonly<Record<string, string>>>({});
   const [state, setState] = useState<"ready" | "loading" | "error" | "offline">("loading");
 
+  const loadGeneration = useRef(0);
+
   const load = useCallback(async (query = "") => {
-    const remote = await fetchCustomerDirectory(query, fetchImpl);
-    if (remote.ok) {
-      const mapped = toCustomerSummaries(remote.data.items);
-      setRows(mapped.customers);
-      setCommercialContextById(mapped.commercialContextById);
-      if (mapped.customers.length > 0) {
-        await replaceLocalCustomers(mapped.customers);
-      }
-      setState(online ? "ready" : "offline");
+    const generation = ++loadGeneration.current;
+    const result = await loadCustomerSearchPresentation({
+      query,
+      remoteSearch: (needle: string) => fetchCustomerDirectory(needle, fetchImpl),
+      localSearch: (needle: string) => customers.search(needle),
+    });
+    if (generation !== loadGeneration.current) {
       return;
     }
-    const local = await customers.search(query);
-    if (!local.ok) {
+    if (!result.ok) {
       setState("error");
       return;
     }
-    setRows(local.data);
-    setCommercialContextById({});
+    setRows(result.customers);
+    setCommercialContextById(result.commercialContextById);
     setState(online ? "ready" : "offline");
   }, [customers, fetchImpl, online]);
 
@@ -403,6 +404,7 @@ function AttentionWorkspace({
   onCatalogProjectionChange,
   onRetryLoad,
   onResolveAttention,
+  recoveringItemId,
   onRebuildSuccess,
 }: {
   readonly items: readonly AttentionItemView[];
@@ -411,12 +413,14 @@ function AttentionWorkspace({
   readonly onCatalogProjectionChange?: (result: CatalogProjectionSyncResult) => void;
   readonly onRetryLoad: () => void;
   readonly onResolveAttention?: (item: AttentionItemView) => void;
+  readonly recoveringItemId?: string | null;
   readonly onRebuildSuccess: () => void;
 }) {
   return (
     <NeedsAttentionScreen
       items={items}
       state={state}
+      recoveringItemId={recoveringItemId}
       onRetryLoad={onRetryLoad}
       onRetryItem={(id) => {
         if (id !== "catalog-projection") {
