@@ -1,4 +1,7 @@
 import { describe, expect, test } from "vitest";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { cashTenderSuggestions, ceilMinorToStep } from "../../apps/pos-web/src/features/sell/state/cashTenderSuggestions";
 import { cashConfirmEnabled, evaluateCashReceived } from "../../apps/pos-web/src/features/sell/state/cashChange";
 import { deriveVariableDisplayPrice, formatProductDisplayPrice } from "../../apps/pos-web/src/features/sell/state/variableDisplayPrice";
@@ -6,6 +9,8 @@ import { loadAllCatalogChildren } from "../../apps/pos-web/src/features/sell/run
 import type { CatalogItem } from "../../docs/contracts/domain.generated";
 import type { ApiResult, CatalogPort } from "../../docs/contracts/ports";
 import type { CatalogPage } from "../../docs/contracts/domain.generated";
+
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 function money(minor: number, currency = "GHS") {
   return { minor, currency };
@@ -189,5 +194,133 @@ describe("UX-03 variable range enrichment", () => {
       min: money(6_500),
       max: money(56_700),
     });
+  });
+});
+
+describe("UX-03 variable price cache invalidation", () => {
+  const parent = {
+    id: "parent",
+    name: "Variable parent",
+    barcodes: [] as string[],
+    kind: "variable" as const,
+    stockStatus: "in_stock" as const,
+  };
+
+  function catalogWithChildren(minors: Array<number | undefined>): CatalogPort {
+    return {
+      async search(): Promise<ApiResult<CatalogPage>> {
+        return {
+          ok: true,
+          data: { items: minors.map((minor, index) => child(`c${index}`, minor)) },
+          correlationId: "00000000-0000-4000-8000-000000000004",
+        };
+      },
+    };
+  }
+
+  test("generation change discards a cached range after the projection rebuilds", async () => {
+    const { enrichSellProductPrices } = await import("../../apps/pos-web/src/features/sell/runtime/catalogLookup");
+    const { bindPriceCacheToGeneration } = await import(
+      "../../apps/pos-web/src/features/sell/runtime/productDisplayPriceCache"
+    );
+    const { formatProductDisplayPrice } = await import(
+      "../../apps/pos-web/src/features/sell/state/variableDisplayPrice"
+    );
+    const format = (value: { minor: number; currency: string }) =>
+      `${value.currency} ${(value.minor / 100).toFixed(2)}`;
+    const cache = new Map();
+    const observed = { current: undefined as number | undefined };
+
+    bindPriceCacheToGeneration(cache, observed, 1);
+    const first = await enrichSellProductPrices(catalogWithChildren([6_500, 56_700]), [parent], cache);
+    expect(formatProductDisplayPrice(first[0]?.priceView, format)).toBe("GHS 65.00 – GHS 567.00");
+
+    const stale = await enrichSellProductPrices(catalogWithChildren([10_000, 20_000]), [parent], cache);
+    expect(formatProductDisplayPrice(stale[0]?.priceView, format)).toBe("GHS 65.00 – GHS 567.00");
+
+    expect(bindPriceCacheToGeneration(cache, observed, 2)).toBe(true);
+    expect(cache.size).toBe(0);
+    const fresh = await enrichSellProductPrices(catalogWithChildren([10_000, 20_000]), [parent], cache);
+    expect(formatProductDisplayPrice(fresh[0]?.priceView, format)).toBe("GHS 100.00 – GHS 200.00");
+  });
+
+  test("generation change discards a cached Price unavailable after children become priced", async () => {
+    const { enrichSellProductPrices } = await import("../../apps/pos-web/src/features/sell/runtime/catalogLookup");
+    const { bindPriceCacheToGeneration } = await import(
+      "../../apps/pos-web/src/features/sell/runtime/productDisplayPriceCache"
+    );
+    const cache = new Map();
+    const observed = { current: undefined as number | undefined };
+    bindPriceCacheToGeneration(cache, observed, 1);
+    const unavailable = await enrichSellProductPrices(catalogWithChildren([undefined, undefined]), [parent], cache);
+    expect(unavailable[0]?.priceView).toEqual({ kind: "unavailable" });
+
+    expect(bindPriceCacheToGeneration(cache, observed, 2)).toBe(true);
+    const recovered = await enrichSellProductPrices(catalogWithChildren([10_000, 20_000]), [parent], cache);
+    expect(recovered[0]?.priceView).toEqual({
+      kind: "range",
+      min: money(10_000),
+      max: money(20_000),
+    });
+  });
+});
+
+describe("UX-03 electronic tender fail-closed selection", () => {
+  test("checks the selected tender's own availability, not any electronic method", async () => {
+    const { electronicTenderAvailable } = await import(
+      "../../apps/pos-web/src/features/sell/components/TenderChoice"
+    );
+    const mixed = { cash: true as const, mobileMoney: false, card: true, externalElectronic: false };
+    expect(electronicTenderAvailable("card", mixed)).toBe(true);
+    expect(electronicTenderAvailable("mobile_money", mixed)).toBe(false);
+    expect(electronicTenderAvailable("external_electronic", mixed)).toBe(false);
+    const source = readFileSync(resolve(repoRoot, "apps/pos-web/src/features/sell/runtime/SellRuntimeScreen.tsx"), "utf8");
+    expect(source).toContain("electronicTenderAvailable(tender, tenderAvailability)");
+    expect(source).not.toContain(
+      "!tenderAvailability.mobileMoney && !tenderAvailability.card && !tenderAvailability.externalElectronic",
+    );
+  });
+});
+
+describe("UX-03 catalog projection generation wiring", () => {
+  test("min-interval skip does not count as an applied projection", async () => {
+    const { catalogProjectionSyncApplied } = await import("../../apps/pos-web/src/local/catalog-sync");
+    expect(
+      catalogProjectionSyncApplied({
+        availability: "fresh",
+        sourceMode: "provider",
+        itemCount: 10,
+        fetchedPages: 0,
+        usedSyntheticSeed: false,
+        producerUnavailable: false,
+      }),
+    ).toBe(false);
+    expect(
+      catalogProjectionSyncApplied({
+        availability: "fresh",
+        sourceMode: "provider",
+        itemCount: 10,
+        fetchedPages: 2,
+        usedSyntheticSeed: false,
+        producerUnavailable: false,
+      }),
+    ).toBe(true);
+    expect(
+      catalogProjectionSyncApplied({
+        availability: "fresh",
+        sourceMode: "synthetic",
+        itemCount: 4,
+        fetchedPages: 0,
+        usedSyntheticSeed: true,
+        producerUnavailable: true,
+      }),
+    ).toBe(true);
+  });
+
+  test("pos-app passes catalogProjectionGeneration after applied syncs", () => {
+    const source = readFileSync(resolve(repoRoot, "apps/pos-web/src/app/pos-app.tsx"), "utf8");
+    expect(source).toContain("catalogProjectionGeneration");
+    expect(source).toContain("catalogProjectionSyncApplied");
+    expect(source).toContain("bumpCatalogProjectionGeneration");
   });
 });

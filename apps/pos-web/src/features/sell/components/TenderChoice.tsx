@@ -18,6 +18,22 @@ export const DEFAULT_TENDER_AVAILABILITY: TenderAvailabilityView = {
   externalElectronic: false,
 };
 
+export function electronicTenderAvailable(
+  tender: TenderChoiceId,
+  availability: TenderAvailabilityView,
+): boolean {
+  if (tender === "cash") {
+    return availability.cash;
+  }
+  if (tender === "mobile_money") {
+    return availability.mobileMoney;
+  }
+  if (tender === "card") {
+    return availability.card;
+  }
+  return availability.externalElectronic;
+}
+
 const METHODS: ReadonlyArray<{
   readonly id: TenderChoiceId;
   readonly title: string;

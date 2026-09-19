@@ -28,6 +28,7 @@ import {
   rememberActiveCartId,
 } from "../local";
 import type { CatalogProjectionAvailability, CatalogProjectionSyncResult } from "../local/catalog-sync";
+import { catalogProjectionSyncApplied } from "../local/catalog-sync";
 import {
   createBffStaffSessionGateway,
   createPublicSupabaseStaffAuthProvider,
@@ -40,6 +41,16 @@ import {
 import type { AuthNoticeState } from "../features/auth";
 import { toCashierError } from "../ui/cashier-language";
 import type { Shift } from "../../../../docs/contracts/domain.generated";
+
+function bumpCatalogProjectionGeneration(
+  generationRef: { current: number },
+  result: CatalogProjectionSyncResult | "applied",
+): number {
+  if (result === "applied" || catalogProjectionSyncApplied(result)) {
+    generationRef.current += 1;
+  }
+  return generationRef.current;
+}
 
 export function PosApp({
   route,
@@ -71,6 +82,7 @@ export function PosRuntime({
   const [ports, setPorts] = useState<SellSessionPorts | null>(null);
   const [projectionAvailability, setProjectionAvailability] = useState<CatalogProjectionAvailability | null>(null);
   const refreshInFlight = useRef(false);
+  const catalogProjectionGenerationRef = useRef(0);
   const [authority, setAuthority] = useState<StaffRuntimeAuthority>(() => ({
     status: "restoring",
     session: null,
@@ -139,7 +151,11 @@ export function PosRuntime({
   }, [runtime]);
 
   const mountPorts = useCallback(
-    async (availability: CatalogProjectionAvailability, current: StaffRuntimeAuthority) => {
+    async (
+      availability: CatalogProjectionAvailability,
+      current: StaffRuntimeAuthority,
+      catalogProjectionGeneration: number,
+    ) => {
       const db = openPosLocalDatabase();
       const locationId = current.register?.locationId ?? current.assignedLocationIds[0] ?? CASHIER_SEED_LOCATION_ID;
       const registerId = current.register?.id;
@@ -166,6 +182,7 @@ export function PosRuntime({
         printer: checkout.printer,
         checkoutScope: registerId && shiftId ? checkout.scope : undefined,
         catalogAvailability: availability,
+        catalogProjectionGeneration,
       });
     },
     [fetchImpl],
@@ -189,17 +206,19 @@ export function PosRuntime({
         if (cancelled) {
           return;
         }
-        await mountPorts(synced.availability, snapshot);
+        const generation = bumpCatalogProjectionGeneration(catalogProjectionGenerationRef, synced);
+        await mountPorts(synced.availability, snapshot, generation);
       } catch {
         if (cancelled) {
           return;
         }
         if (policy === "synthetic_permitted") {
           await ensureCashierLocalSeed();
-          await mountPorts("fresh", snapshot);
+          const generation = bumpCatalogProjectionGeneration(catalogProjectionGenerationRef, "applied");
+          await mountPorts("fresh", snapshot, generation);
           return;
         }
-        await mountPorts("unavailable", snapshot);
+        await mountPorts("unavailable", snapshot, catalogProjectionGenerationRef.current);
       }
     })();
     return () => {
@@ -234,9 +253,16 @@ export function PosRuntime({
           force,
           minRefreshIntervalMs: CATALOG_REFRESH_MIN_INTERVAL_MS,
         });
+        const generation = bumpCatalogProjectionGeneration(catalogProjectionGenerationRef, synced);
         setProjectionAvailability(synced.availability);
         setPorts((current) =>
-          current ? { ...current, catalogAvailability: synced.availability } : current,
+          current
+            ? {
+                ...current,
+                catalogAvailability: synced.availability,
+                catalogProjectionGeneration: generation,
+              }
+            : current,
         );
       } finally {
         refreshInFlight.current = false;
@@ -273,6 +299,7 @@ export function PosRuntime({
   );
 
   const onCatalogProjectionChange = useCallback((result: CatalogProjectionSyncResult) => {
+    const generation = bumpCatalogProjectionGeneration(catalogProjectionGenerationRef, result);
     setProjectionAvailability(result.availability);
     setPorts((current) => {
       if (!current) {
@@ -282,6 +309,7 @@ export function PosRuntime({
         ...current,
         catalog: createLocalCatalogPort({ db: openPosLocalDatabase() }),
         catalogAvailability: result.availability,
+        catalogProjectionGeneration: generation,
       };
     });
   }, []);

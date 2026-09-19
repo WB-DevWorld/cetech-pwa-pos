@@ -37,6 +37,11 @@ export type CatalogProjectionSyncResult = {
   readonly producerUnavailable: boolean;
 };
 
+/** True when ensureCatalogProjection ran past the min-interval skip (IndexedDB may have changed). */
+export function catalogProjectionSyncApplied(result: CatalogProjectionSyncResult): boolean {
+  return result.fetchedPages > 0 || result.usedSyntheticSeed;
+}
+
 export type CatalogSyncPageFetcher = (query: {
   readonly cursor?: string;
   readonly limit?: number;

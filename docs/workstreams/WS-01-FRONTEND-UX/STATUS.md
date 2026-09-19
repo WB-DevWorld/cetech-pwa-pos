@@ -1,6 +1,6 @@
 # WS1 current status
 
-Snapshot 2026-09-19. UX-03 payment / barcode / variable-range closeout on isolated `ws1/ux-03-payment-barcode-variable-range` from UX-02-containing STG-01 / PR #77 head `04166509c2b9505980338e4baaf630981c00d2e8`. Temporary senior UX-03 authority is EXPIRED / CLOSED. UX-02 Sell alignment was not reopened. Shared batch / PR #77 were not modified. Remaining: truthful per-tender electronic capability signal (methods stay disabled unless `electronicPaymentsAvailable && PaymentPort.initialize`); WS3 independent review/import. Freshness **FRESH_2** after two-pass fetch. Delivery **READY_FOR_INTEGRATION**. Do not merge; do not modify `main`; do not edit the shared batch branch.
+Snapshot 2026-09-19. UX-03 review-fix for variable-price cache invalidation on `ws1/ux-03-payment-barcode-variable-range` from reviewed SHA `408cbaeaf8389052cc8936d9e3dfefb0c72f4a46`. Local `catalogProjectionGeneration` advances when a catalog projection sync/rebuild is applied (`fetchedPages > 0` or synthetic seed; min-interval skip does not bump). Sell clears `priceCacheRef` on generation change and re-enriches. Selected electronic tender fail-closes on that method’s own availability flag. Temporary review-fix authority is EXPIRED / CLOSED. Shared batch `04166509c2b9505980338e4baaf630981c00d2e8` / PR #77 unchanged. `main` unchanged. Freshness **FRESH_2** after two-pass fetch. Delivery **READY_FOR_INTEGRATION**.
 
 ## Previous snapshot (historical; current section above controls)
 

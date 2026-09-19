@@ -2,6 +2,21 @@
 
 Updated 2026-09-19. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
 
+## Temporary senior UX-03 review-fix — EXPIRED / CLOSED
+
+Bounded cache-invalidation remediation on `ws1/ux-03-payment-barcode-variable-range` from reviewed SHA `408cbaeaf8389052cc8936d9e3dfefb0c72f4a46`. Senior/user `@wbdevworld` reauthorized only the minimum WS1/WS3 paths to add a local catalog projection generation and clear the Sell price cache when it advances, plus the selected-tender fail-closed handler. This does not permanently change `OWNERSHIP.md`. Do not reuse. Do not mutate PR #77 or `batch/stg-01-staging-runtime-acceptance`.
+
+```text
+human: @wbdevworld
+workstream: WS1 (+ bounded WS3 local/app wiring) — EXPIRED / CLOSED
+mode: IMPLEMENT (review-fix)
+task: UX-03 review-fix — variable price cache invalidation
+branch: ws1/ux-03-payment-barcode-variable-range
+reviewed SHA: 408cbaeaf8389052cc8936d9e3dfefb0c72f4a46
+was allowed: apps/pos-web/src/features/sell/**, apps/pos-web/src/app/pos-app.tsx, apps/pos-web/src/local/catalog-sync.ts, apps/pos-web/src/local/index.ts, tests/frontend/**, CURRENT-WORK.md, docs/workstreams/WS-01-FRONTEND-UX/**
+forbidden: payment UX redesign; cancel semantics; Woo/B2BKing/WoodMart pricing; frozen contracts; PR #77; shared STG-01 batch; protected main
+```
+
 ## Temporary senior UX-03 authority — EXPIRED / CLOSED
 
 Closed on contributor branch `ws1/ux-03-payment-barcode-variable-range` after the UX-03 payment / barcode / variable-range handoff. This does not permanently change `OWNERSHIP.md`. Do not reuse this exception. Do not mutate PR #77 or `batch/stg-01-staging-runtime-acceptance` as part of this closeout.

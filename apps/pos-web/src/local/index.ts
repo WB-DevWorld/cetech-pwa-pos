@@ -26,6 +26,7 @@ export {
   inspectLocalCatalogProjection,
   readCatalogSyncState,
   refreshCatalogProjection,
+  catalogProjectionSyncApplied,
 } from "./catalog-sync";
 export type {
   CatalogProjectionAvailability,

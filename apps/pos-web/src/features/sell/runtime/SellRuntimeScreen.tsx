@@ -4,10 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CartDraftStore, CatalogPort, CheckoutUseCases, CustomerPort, PaymentPort, PricingPort, PrintPort, ReceiptPort, SalesPort } from "../../../../../../docs/contracts/ports";
 import { SellScreen } from "../SellScreen";
 import { useElectronicPayment } from "../../payments/useElectronicPayment";
-import { type TenderAvailabilityView } from "../components/TenderChoice";
+import { type TenderAvailabilityView, electronicTenderAvailable } from "../components/TenderChoice";
 import type { CatalogAvailability, CustomerSearchResultView, SellProductView, SellWorkspaceState } from "../state/sellView";
 import type { ProductDisplayPriceView } from "../state/variableDisplayPrice";
 import { lookupBarcodeViews, lookupVariations, searchCatalogViews, enrichSellProductPrices } from "./catalogLookup";
+import { bindPriceCacheToGeneration } from "./productDisplayPriceCache";
 import { electronicSessionLocksCheckout } from "../components/PaymentWaiting";
 import { customerViewFromSummary, workspaceToCartDraft } from "./mapCartDraft";
 import { restoreSellWorkspace } from "./restoreWorkspace";
@@ -36,6 +37,7 @@ export type SellSessionPorts = {
   readonly checkoutScope?: CashCheckoutScope;
   readonly createCheckoutUuid?: () => string;
   readonly catalogAvailability?: CatalogAvailability;
+  readonly catalogProjectionGeneration?: number;
   readonly electronicPaymentsAvailable?: boolean;
 };
 
@@ -98,6 +100,8 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
   const [workspace, setWorkspace] = useState<SellWorkspaceState | undefined>(undefined);
   const [restoreCount, setRestoreCount] = useState(0);
   const priceCacheRef = useRef(new Map<string, ProductDisplayPriceView>());
+  const observedProjectionGenerationRef = useRef<number | undefined>(undefined);
+  const projectionGeneration = ports.catalogProjectionGeneration ?? 0;
   const connected = online();
   const presentedQuote = useCartQuote({
     pricing: ports.pricing,
@@ -168,6 +172,31 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
     nowRef.current = now;
     onlineRef.current = online;
   }, [now, online]);
+
+  useEffect(() => {
+    const invalidated = bindPriceCacheToGeneration(
+      priceCacheRef.current,
+      observedProjectionGenerationRef,
+      projectionGeneration,
+    );
+    if (!invalidated) {
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const browse = await searchCatalogViews(catalog, "");
+      if (cancelled || !browse.ok) {
+        return;
+      }
+      const views = await enrichSellProductPrices(catalog, browse.items, priceCacheRef.current);
+      if (!cancelled) {
+        setBrowseCatalog(views);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [catalog, projectionGeneration]);
 
   useEffect(() => {
     let cancelled = false;
@@ -364,7 +393,7 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
           void cashCheckout.cancelPreparedSale();
         }}
         onSelectElectronic={(tender) => {
-          if (!tenderAvailability.mobileMoney && !tenderAvailability.card && !tenderAvailability.externalElectronic) {
+          if (!electronicTenderAvailable(tender, tenderAvailability)) {
             return;
           }
           if (electronicSessionLocksCheckout(electronic.session)) {
