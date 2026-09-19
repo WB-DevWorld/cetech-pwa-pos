@@ -1,6 +1,6 @@
 # WS1 current status
 
-Snapshot 2026-09-19. UX-03 review-fix for variable-price cache invalidation on `ws1/ux-03-payment-barcode-variable-range` from reviewed SHA `408cbaeaf8389052cc8936d9e3dfefb0c72f4a46`. Local `catalogProjectionGeneration` advances when a catalog projection sync/rebuild is applied (`fetchedPages > 0` or synthetic seed; min-interval skip does not bump). Sell clears `priceCacheRef` on generation change and re-enriches. Selected electronic tender fail-closes on that method’s own availability flag. Temporary review-fix authority is EXPIRED / CLOSED. Shared batch `04166509c2b9505980338e4baaf630981c00d2e8` / PR #77 unchanged. `main` unchanged. Freshness **FRESH_2** after two-pass fetch. Delivery **READY_FOR_INTEGRATION**.
+Snapshot 2026-09-19. UX-03 final review-fix for visible ProductCard refresh on `ws1/ux-03-payment-barcode-variable-range` from reviewed SHA `253ef2886ed4c447d911ba11f789375f1e35c66d`. After `catalogProjectionGeneration` advances, SellScreen re-runs the current search query and replaces `search.results` only. Cart identity/revision/lines/customer, quote, barcode notice, mobile cart, and checkout are preserved. Cache invalidation and selected-tender fail-closed from `253ef288` are kept. Temporary review-fix authority is EXPIRED / CLOSED. Shared batch `04166509c2b9505980338e4baaf630981c00d2e8` / PR #77 unchanged. `main` unchanged. Freshness **FRESH_2** after two-pass fetch. Delivery **READY_FOR_INTEGRATION**.
 
 ## Previous snapshot (historical; current section above controls)
 

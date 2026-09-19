@@ -96,6 +96,24 @@ export function applyCatalogSearchResults(
   };
 }
 
+/** Presentation-only. Replaces visible search hits without touching cart or customer state. */
+export function applyVisibleSearchResults(
+  state: SellWorkspaceState,
+  query: string,
+  results: readonly SellProductView[],
+): SellWorkspaceState {
+  if (state.search.query !== query) {
+    return state;
+  }
+  return {
+    ...state,
+    search: {
+      ...state.search,
+      results: results.filter((item) => item.kind !== "variation"),
+    },
+  };
+}
+
 export function applyBarcodeScan(
   state: SellWorkspaceState,
   barcode: string,

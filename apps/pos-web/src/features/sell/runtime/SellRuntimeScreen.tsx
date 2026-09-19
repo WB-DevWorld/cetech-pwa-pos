@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CartDraftStore, CatalogPort, CheckoutUseCases, CustomerPort, PaymentPort, PricingPort, PrintPort, ReceiptPort, SalesPort } from "../../../../../../docs/contracts/ports";
 import { SellScreen } from "../SellScreen";
 import { useElectronicPayment } from "../../payments/useElectronicPayment";
@@ -101,6 +101,7 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
   const [restoreCount, setRestoreCount] = useState(0);
   const priceCacheRef = useRef(new Map<string, ProductDisplayPriceView>());
   const observedProjectionGenerationRef = useRef<number | undefined>(undefined);
+  const browseProjectionGenerationRef = useRef<number | undefined>(undefined);
   const projectionGeneration = ports.catalogProjectionGeneration ?? 0;
   const connected = online();
   const presentedQuote = useCartQuote({
@@ -173,15 +174,23 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
     onlineRef.current = online;
   }, [now, online]);
 
-  useEffect(() => {
-    const invalidated = bindPriceCacheToGeneration(
+  useLayoutEffect(() => {
+    bindPriceCacheToGeneration(
       priceCacheRef.current,
       observedProjectionGenerationRef,
       projectionGeneration,
     );
-    if (!invalidated) {
+  }, [projectionGeneration]);
+
+  useEffect(() => {
+    if (browseProjectionGenerationRef.current === undefined) {
+      browseProjectionGenerationRef.current = projectionGeneration;
       return;
     }
+    if (browseProjectionGenerationRef.current === projectionGeneration) {
+      return;
+    }
+    browseProjectionGenerationRef.current = projectionGeneration;
     let cancelled = false;
     void (async () => {
       const browse = await searchCatalogViews(catalog, "");
@@ -328,6 +337,7 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
         searchCatalog={searchCatalog}
         resolveBarcodeCatalog={resolveBarcodeCatalog}
         loadVariations={loadVariations}
+        catalogProjectionGeneration={projectionGeneration}
         onCustomerQueryChange={searchCustomers}
         onWorkspaceChange={persist}
         quote={presentedQuote.quote}

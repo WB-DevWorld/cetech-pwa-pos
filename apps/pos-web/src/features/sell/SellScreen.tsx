@@ -17,6 +17,7 @@ import type { ElectronicPaymentSessionView, ElectronicTenderView } from "../paym
 import type { TenderAvailabilityView } from "./components/TenderChoice";
 import { resolveQuotePresentation } from "./state/quoteRevision";
 import { isDigitBarcodeQuery } from "./state/barcodeResolution";
+import { bindLocalGeneration } from "./runtime/productDisplayPriceCache";
 import type {
   CatalogAvailability,
   CatalogSearchState,
@@ -28,6 +29,7 @@ import type {
 import {
   applyBarcodeScan,
   applyCatalogSearchResults,
+  applyVisibleSearchResults,
   applyClearCustomer,
   applyMobileCartOpen,
   applyNameSearch,
@@ -101,6 +103,7 @@ export type SellScreenProps = {
   onCustomerQueryChange?: (query: string) => void;
   onWorkspaceChange?: (state: SellWorkspaceState) => void;
   initialCashReceived?: string;
+  catalogProjectionGeneration?: number;
 };
 
 export function SellScreen({
@@ -150,6 +153,7 @@ export function SellScreen({
   onCustomerQueryChange,
   onWorkspaceChange,
   initialCashReceived,
+  catalogProjectionGeneration,
 }: SellScreenProps) {
   const deps = useMemo<SellWorkspaceDeps>(
     () => ({
@@ -163,10 +167,29 @@ export function SellScreen({
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const searchSeq = useRef(0);
   const barcodeSeq = useRef(0);
+  const observedProjectionGenerationRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     onWorkspaceChange?.(state);
   }, [onWorkspaceChange, state]);
+
+  useEffect(() => {
+    const generation = catalogProjectionGeneration ?? 0;
+    if (!bindLocalGeneration(observedProjectionGenerationRef, generation)) {
+      return;
+    }
+    if (!searchCatalog) {
+      return;
+    }
+    const query = state.search.query;
+    const seq = ++searchSeq.current;
+    void searchCatalog(query).then((results) => {
+      if (seq !== searchSeq.current) {
+        return;
+      }
+      setState((current) => applyVisibleSearchResults(current, query, results));
+    });
+  }, [catalogProjectionGeneration, searchCatalog, state.search.query]);
 
   const displayed: SellWorkspaceState = {
     ...state,

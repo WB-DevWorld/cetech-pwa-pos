@@ -1,3 +1,81 @@
+# WS1 current handoff — UX-03 visible product price presentation review fix (REVIEW_FIX_RETURN FRESH_2)
+
+Kind / UTC: TASK_COMPLETION / 2026-09-19T10:38:14Z
+Handoff kind: REVIEW_FIX_RETURN
+Task / batch / workstream: UX-03 final review-fix / refresh visible ProductCard prices after catalog projection generation change / WS1 temporary senior exception now EXPIRED / CLOSED
+Owner / integration editor / requested human reviewer: Senior/user `@wbdevworld` for this bounded review fix only. WS3 independently reviews/imports. Do not self-approve. Do not merge. Do not update PR #77.
+Branch: `ws1/ux-03-payment-barcode-variable-range`
+Reviewed remote head: `253ef2886ed4c447d911ba11f789375f1e35c66d`
+Starting/base SHA: `04166509c2b9505980338e4baaf630981c00d2e8` (UX-02-containing `origin/batch/stg-01-staging-runtime-acceptance` / PR #77 head)
+Pre-handoff correction SHA: recorded as this evidence commit after it lands (cannot be embedded in its own commit)
+Allowed / forbidden paths and central leases: temporary UX-03 final review-fix exception now EXPIRED / CLOSED. Was `apps/pos-web/src/features/sell/**`, `tests/frontend/**`, `CURRENT-WORK.md`, `docs/workstreams/WS-01-FRONTEND-UX/**`. Forbidden: payment UX redesign; cancel semantics; Woo/B2BKing/WoodMart pricing; WordPress; frozen contracts; protected `main`; mutating `batch/stg-01-staging-runtime-acceptance` / PR #77.
+Files changed: SellScreen re-queries the current search on `catalogProjectionGeneration` advance and applies `applyVisibleSearchResults` only; runtime clears `priceCacheRef` in `useLayoutEffect` before the child search; `bindLocalGeneration`; integrated ProductCard regression tests; CURRENT-WORK exception closed; this STATUS/HANDOFF.
+Contracts changed: none
+Database migrations: none
+Architecture decisions: none
+Completed/current/remaining tasks: review finding remediated. Temporary senior UX-03 final review-fix assignment EXPIRED / CLOSED. Remaining: WS3 independent review/import; truthful per-tender electronic capability signal (unchanged blocker).
+Dependencies (accepted / provisional SHA / prep-only / blocked): reviewed SHA `253ef2886ed4c447d911ba11f789375f1e35c66d`. Shared batch / PR #77 head `04166509c2b9505980338e4baaf630981c00d2e8`. `origin/main` `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` is an ancestor; not consumed.
+Tests executed:
+- `pnpm --dir apps/pos-web exec vitest run ../../tests/frontend/ux-03-visible-price-refresh.test.ts` → 3 passed, exit 0
+- `python scripts/verify_control_plane.py` → PASS (exit 0)
+- `pnpm --dir apps/pos-web lint` → exit 0
+- `pnpm --dir apps/pos-web typecheck` → exit 0
+- `pnpm --dir apps/pos-web test` → 98 files, 831 passed, exit 0
+- `pnpm --dir apps/pos-web build` → exit 0
+- `pnpm --dir apps/pos-web test:e2e` → 15 passed, exit 0
+- `pnpm --dir apps/pos-web exec playwright test --config ../../tests/frontend/visual/playwright.config.ts --workers=1` → 20 passed, exit 0
+- `git diff --check` → clean (exit 0)
+Runtime verification and tested combined SHA/environment: required suite on this contributor tree. Visible ProductCard refresh proved by mounted SellScreen: GHS 65.00–567.00 then GHS 100.00–200.00 after generation bump with cart identity preserved; Price unavailable → range. Not live Woo quote, Paystack, or deployed staging visual acceptance. Woo bridge not edited; bridge suite not required.
+Remote effects performed: none in this evidence commit (contributor branch push follows).
+Assumptions / limitations / unresolved risks:
+- Visible refresh is presentation-only: `catalogProjectionGeneration` into SellScreen; `useLayoutEffect` clears `priceCacheRef` before the child re-runs `searchCatalog(current query)`; `applyVisibleSearchResults` replaces `search.results` only when the query is unchanged. No `key={generation}` remount. Quote is not requested from advisory card-price changes.
+- Prior cache-invalidation and selected-tender fail-closed from `253ef288` are preserved.
+- BLOCKED: truthful per-method provider capability signal.
+Next exact action: WS3 independently reviews/imports the replacement contributor SHA. Do not import into the shared STG-01 batch as part of this closeout. Reassignment: NONE (exception expired).
+
+Freshness protocol:
+START_FRESHNESS_SNAPSHOT UTC: 2026-09-19T10:38:14Z
+Start main SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Start batch ref/SHA: `origin/batch/stg-01-staging-runtime-acceptance` `04166509c2b9505980338e4baaf630981c00d2e8`
+Applicable contracts / ADRs / ownership / queue revision: frozen v1.0.0; ADR-012; ADR-014; CURRENT-WORK temporary senior UX-03 final review-fix exception now expired
+
+Pass 1 fetch UTC / success evidence: 2026-09-19T10:38:14Z `git fetch origin --prune` succeeded
+Pass 1 main SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Pass 1 batch SHA: `04166509c2b9505980338e4baaf630981c00d2e8`
+Relevant upstream paths and dependency/authority effects: `origin/main` is an ancestor of HEAD; batch tip equals start SHA and is an ancestor of this contributor tree
+Classification per change: main — IRRELEVANT (SAME). Batch / PR #77 — SAME / COMPATIBLE.
+Actions taken / reconciliation commits: none. Did not merge or consume `origin/main` or the batch branch.
+Tests rerun / tested combined SHA: required suite on this contributor tree
+
+Pass 2 fetch UTC / success evidence: recorded in the session report immediately after this evidence commit
+Pass 2 main SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` at Pass 1; confirm unchanged after commit
+Pass 2 batch SHA: `04166509c2b9505980338e4baaf630981c00d2e8` at Pass 1; confirm unchanged after commit
+Relevant upstream paths and dependency/authority effects: none expected
+Classification per change: no arrivals at Pass 1; Pass 2 confirms
+Actions taken / reconciliation commits: none
+Tests rerun / tested combined SHA: no upstream arrivals expected; tested tree is this evidence commit
+
+Final freshness status: FRESH_2
+Delivery status: READY_FOR_INTEGRATION
+Final task head SHA: recorded after this evidence commit in the session report (cannot be embedded in its own commit)
+Known post-cutoff risk / integration editor follow-up: import this replacement contributor SHA independently; do not update PR #77 as part of UX-03; do not start the per-tender capability blocker
+Pass 3: NOT PERMITTED for this assignment.
+Review/merge/release status and limitations: not merged; `main` not modified; shared batch branch not edited; PR #77 not changed; no production promotion.
+Metrics delta for CURRENT-WORK: UX-03 final review-fix temporary assignment marked EXPIRED / CLOSED.
+
+Acting human / workstream / mode: senior/user `@wbdevworld` / temporary UX-03 final review-fix authority / IMPLEMENT
+Declared task owner / actual implementing human / workstream: Ben / `@Ben-001-sys` remains WS1 owner; this bounded mount is a temporary senior exception now expired
+Source contributor branch / full source SHA(s): `ws1/ux-03-payment-barcode-variable-range` / recorded after this commit
+Imported SHA(s) / exact tested combined integration SHA: none / this contributor tree
+Receiving human / workstream / acknowledgment checkpoint: WS3 / senior integration editor
+Review finding / severity / owning task / fix source/import SHAs: visible ProductCards kept stale `search.results` after generation cache clear / HIGH / UX-03 / this replacement SHA over `253ef2886ed4c447d911ba11f789375f1e35c66d`
+Explicit senior reassignment authority / scope / expiry: EXPIRED / CLOSED at this handoff
+Remote effects allowed (not inferred from this handoff): contributor branch push only
+Next exact action for receiving owner: review/import the published replacement SHA; keep CatalogPort frozen; do not treat this as production approval
+Other independently authorized same-owner work: WAITING_FOR_OWNER
+
+## Previous current handoff — UX-03 variable-price cache invalidation review fix (REVIEW_FIX_RETURN FRESH_2)
+
 # WS1 current handoff — UX-03 variable-price cache invalidation review fix (REVIEW_FIX_RETURN FRESH_2)
 
 Kind / UTC: TASK_COMPLETION / 2026-09-19T10:13:24Z

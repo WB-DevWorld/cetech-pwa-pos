@@ -2,6 +2,21 @@
 
 Updated 2026-09-19. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
 
+## Temporary senior UX-03 final review-fix — EXPIRED / CLOSED
+
+Bounded visible ProductCard refresh on `ws1/ux-03-payment-barcode-variable-range` from reviewed SHA `253ef2886ed4c447d911ba11f789375f1e35c66d`. Senior/user `@wbdevworld` reauthorized only the minimum WS1 paths to re-query the current Sell search presentation after `catalogProjectionGeneration` advances, without remounting the workspace or mutating cart/quote/checkout. This does not permanently change `OWNERSHIP.md`. Do not reuse. Do not mutate PR #77 or `batch/stg-01-staging-runtime-acceptance`.
+
+```text
+human: @wbdevworld
+workstream: WS1 — EXPIRED / CLOSED
+mode: IMPLEMENT (review-fix)
+task: UX-03 final review-fix — refresh visible product price presentation
+branch: ws1/ux-03-payment-barcode-variable-range
+reviewed SHA: 253ef2886ed4c447d911ba11f789375f1e35c66d
+was allowed: apps/pos-web/src/features/sell/**, tests/frontend/**, CURRENT-WORK.md, docs/workstreams/WS-01-FRONTEND-UX/**
+forbidden: payment UX redesign; cancel semantics; Woo/B2BKing/WoodMart pricing; WordPress; frozen contracts; PR #77; shared STG-01 batch; protected main
+```
+
 ## Temporary senior UX-03 review-fix — EXPIRED / CLOSED
 
 Bounded cache-invalidation remediation on `ws1/ux-03-payment-barcode-variable-range` from reviewed SHA `408cbaeaf8389052cc8936d9e3dfefb0c72f4a46`. Senior/user `@wbdevworld` reauthorized only the minimum WS1/WS3 paths to add a local catalog projection generation and clear the Sell price cache when it advances, plus the selected-tender fail-closed handler. This does not permanently change `OWNERSHIP.md`. Do not reuse. Do not mutate PR #77 or `batch/stg-01-staging-runtime-acceptance`.

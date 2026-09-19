@@ -47,6 +47,7 @@ export {
   createSellWorkspace,
   applySearchQuery,
   applyCatalogSearchResults,
+  applyVisibleSearchResults,
   applyNameSearch,
   applyBarcodeScan,
   applyProductSelect,
