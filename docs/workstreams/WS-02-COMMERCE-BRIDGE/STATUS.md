@@ -1,5 +1,18 @@
 # WS2 current status
 
+Snapshot 2026-09-17. Issue #74 STG-05 training Woo catalog producer. Commerce-boundary owner remains @Emmanuel-coder-prog / WS2. Actual implementer for this issue only: @wbdevworld (senior task-specific reassignment because Emmanuel lacks SSH/repository implementation access). Branch `ws2/stg-05-training-bridge-runtime` from accepted main `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`. Plugin **0.6.0-stg05**. DB **5 unchanged**. Contracts NONE. ADRs NONE. Apps/Supabase/.github NOT TOUCHED. `GET /catalog` added; quotes/prepare/finalize/cancel unchanged. `pricingParityVerified` remains **false**. Issue #4 OPEN. Live authenticated catalog/quote PENDING (`BLOCKED_TRAINING_BRIDGE_CREDENTIALS_UNAVAILABLE`). Training has not deployed this plugin yet (`GET /catalog` → `rest_no_route`). No new commercial training sale.
+
+Host: PHP **8.5.0**; Docker syntax PHP **8.5.10**. `python scripts/verify_control_plane.py` PASS; `php tests/bridge/run.php` **1614 passed / 0 failed**; `php tests/bridge/parity.php` **138 passed / 0 failed / 19 skipped**; `git diff --check` clean.
+
+| Task | State | Branch / evidence |
+| --- | --- | --- |
+| STG-05 | IMPLEMENTED / awaiting training deploy + authenticated probes + WS3 import | Issue #74. Start `778348c`. Evidence `docs/workstreams/WS-02-COMMERCE-BRIDGE/evidence/STG-05-TRAINING-BRIDGE.md`. |
+| BR-08 | Historical on this contributor line; not reopened | Issue #60. |
+
+## Previous snapshot (BR-08 independent commercial refund + stock-disposition — historical; current section above controls)
+
+# WS2 current status
+
 Snapshot 2026-09-15. Issue #60 BR-08 independent commercial refund + stock-disposition producer. Owner and actual implementer: Developer 2 / @Emmanuel-coder-prog / WS2. Current task **BR-08 / issue #60** on `ws2/br-08-implement-return-refund-stock-effects`. Accepted start `58d385300bfba784435448029e88f07742048cde`. Implementation SHA `6a8f30dcb50564b97d7fcc3eab8fd0a9d7317ec4`. Evidence SHA `4c7f0b5ef29b09e9ed5b3afd30b5a668f0f4569f`. Plugin **0.5.0-br08**. DB **4 → 5** (`cetech_pos_return_effect_claims`, `cetech_pos_return_effect_lines`). Contracts NONE. ADRs NONE. Supabase NONE. FE-06 NOT TOUCHED. RT-01 orchestration NOT STARTED by WS2. R7 NOT MODIFIED. Neutral `batch/rt01-safe-returns` NOT MODIFIED. `pricingParityVerified` remains **false**. Issue #4 OPEN. Live Woo refund/restock PENDING. Real DB concurrency PENDING.
 
 Canonical GNU Make: ephemeral `php:8.5-cli` (PHP **8.5.10**, GNU Make **4.4.1**). `check` PASS (47 files); `test` **1525 passed / 0 failed**; `parity` **138 passed / 0 failed / 19 skipped**. Host: `python scripts/verify_control_plane.py` PASS; derive `--check` PASS; `git diff --check` clean.

@@ -24,6 +24,13 @@ describe("CORE-04 cashier synthetic seed", () => {
     if (leading.ok) {
       expect(leading.data.items).toHaveLength(1);
       expect(leading.data.items[0]?.barcodes).toContain("0012345");
+      expect(leading.data.items[0]?.displayPrice).toBeUndefined();
+    }
+    const hardener = await catalog.search({ barcode: "0012345678901" });
+    expect(hardener.ok).toBe(true);
+    if (hardener.ok) {
+      expect(hardener.data.items[0]?.name).toBe("Epoxy Hardener 1L");
+      expect(hardener.data.items[0]?.displayPrice).toEqual({ minor: 15500, currency: "GHS" });
     }
     const duplicate = await catalog.search({ barcode: "5550001112223" });
     expect(duplicate.ok).toBe(true);
@@ -42,5 +49,13 @@ describe("CORE-04 cashier synthetic seed", () => {
     if (found.ok) {
       expect(found.data[0]?.id).toBe("cust-buildworks");
     }
+  });
+
+  test("does not seed synthetic catalog when provider projection is required", async () => {
+    const name = `cetech-pos-local-${crypto.randomUUID()}`;
+    DBS.push(name);
+    const db = openPosLocalDatabase(name);
+    await ensureCashierLocalSeed(db, { policy: "provider_required" });
+    expect(await db.catalogItems.count()).toBe(0);
   });
 });

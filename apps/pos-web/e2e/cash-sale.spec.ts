@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { installAuthoritativeStaffSession } from "./staff-session";
 
 const RETAIL_FP = "0123456789abcdef0123456789abcdef";
 const B2B_FP = "abcdef0123456789abcdef0123456789";
@@ -9,12 +10,15 @@ const RECEIPT = "rcpt-11111111";
 test("combined Sell UI completes a retail cash sale through mocked BFF routes exactly once", async ({ page }) => {
   const counts = { prepare: 0, cash: 0, finalize: 0, receipt: 0 };
   await installCheckoutRoutes(page, counts, "walkin");
+  await installAuthoritativeStaffSession(page);
   await page.goto("/sell");
-  await expect(page.getByRole("heading", { level: 1, name: "Sell" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator("#product-search")).toBeVisible({ timeout: 30_000 });
   await scanHardener(page);
   await expect(page.locator("[data-quote-status='confirmed']")).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole("button", { name: "Pay" })).toBeEnabled();
   await page.getByRole("button", { name: "Pay" }).click();
+  await expect(page.locator("[data-checkout-stage='choose_payment']")).toBeVisible();
+  await page.locator('[data-tender="cash"]').click();
   await expect(page.locator("[data-checkout-stage='cash']")).toBeVisible();
   await page.getByRole("button", { name: "Exact" }).click();
   await page.getByRole("button", { name: "Confirm cash" }).click();
@@ -30,14 +34,19 @@ test("combined Sell UI completes a retail cash sale through mocked BFF routes ex
 test("combined Sell UI completes a B2B cash sale using the authoritative quoted total", async ({ page }) => {
   const counts = { prepare: 0, cash: 0, finalize: 0, receipt: 0 };
   await installCheckoutRoutes(page, counts, "b2b");
+  await installAuthoritativeStaffSession(page);
   await page.goto("/sell");
-  await expect(page.getByRole("heading", { level: 1, name: "Sell" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator("#product-search")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("button", { name: /Epoxy Hardener/ })).toBeVisible({ timeout: 15_000 });
   await page.locator(".customer-chip").click();
   await page.getByRole("button", { name: /Buildworks Ltd/ }).click();
   await scanHardener(page);
   await expect(page.locator("[data-quote-status='confirmed']")).toBeVisible({ timeout: 15_000 });
-  await expect(page.locator("[data-quote-status='confirmed']")).toContainText("GHS 12.00");
+  await expect(page.locator("[data-quote-status='confirmed']")).toContainText("Price confirmed");
+  await expect(page.locator(".cart-totals")).toContainText("GHS 12.00");
   await page.getByRole("button", { name: "Pay" }).click();
+  await expect(page.locator("[data-checkout-stage='choose_payment']")).toBeVisible();
+  await page.locator('[data-tender="cash"]').click();
   await expect(page.locator("[data-checkout-due='prepared']")).toContainText("GHS 12.00");
   await page.getByRole("button", { name: "Exact" }).click();
   await page.getByRole("button", { name: "Confirm cash" }).click();
@@ -49,7 +58,7 @@ test("combined Sell UI completes a B2B cash sale using the authoritative quoted 
 
 async function scanHardener(page: Page): Promise<void> {
   await page.locator("#product-search").fill("0012345678901");
-  await page.getByRole("button", { name: "Scan" }).click();
+  await page.locator("#product-search").press("Enter");
 }
 
 async function installCheckoutRoutes(

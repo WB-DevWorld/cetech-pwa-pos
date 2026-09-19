@@ -7,6 +7,13 @@ import { parseCookieHeader } from "../auth/cookies";
 import type { StaffSessionStore } from "../auth/session-store";
 import { resolveCorrelationId } from "../http/correlation";
 import { httpStatusFor } from "../http/status";
+import {
+  collectQuoteIdentityItemIds,
+  restoreQuoteToPosIds,
+  translateQuoteRequestToProvider,
+  REQUIRED_QUOTE_SOURCE_SYSTEM,
+} from "../catalog/catalog-identity";
+import type { CatalogProjectionStore } from "../catalog/catalog-projection-store";
 import { isQuote, isQuoteRequest } from "./canonical-schema";
 
 export type QuoteBridge = {
@@ -25,6 +32,7 @@ export type HandleQuoteInput = {
   readonly allowedOrigins: readonly string[];
   readonly bridge?: QuoteBridge;
   readonly snapshots?: { saveQuote(quote: Quote): Promise<void> };
+  readonly catalogIdentity?: Pick<CatalogProjectionStore, "loadByItemIds">;
 };
 
 export type HandleQuoteResponse = {
@@ -78,6 +86,14 @@ export async function handleQuote(input: HandleQuoteInput): Promise<HandleQuoteR
     const body = authFailure("FORBIDDEN", "location is out of staff scope", correlation.correlationId);
     return { status: httpStatusFor(body.error.code), body, headers };
   }
+  if (!input.catalogIdentity) {
+    const body = authFailure(
+      "INTEGRATION_UNAVAILABLE",
+      "catalog identity mapping is unavailable",
+      correlation.correlationId,
+    );
+    return { status: httpStatusFor(body.error.code), body, headers };
+  }
   if (!input.bridge) {
     const body = authFailure(
       "INTEGRATION_UNAVAILABLE",
@@ -86,11 +102,43 @@ export async function handleQuote(input: HandleQuoteInput): Promise<HandleQuoteR
     );
     return { status: httpStatusFor(body.error.code), body, headers };
   }
-  const result = await input.bridge.postQuote(request, correlation.correlationId);
+  let mappings;
+  try {
+    mappings = await input.catalogIdentity.loadByItemIds(
+      stored.session.organizationId,
+      collectQuoteIdentityItemIds(request),
+    );
+  } catch {
+    const body = authFailure(
+      "INTEGRATION_UNAVAILABLE",
+      "catalog identity mapping is unavailable",
+      correlation.correlationId,
+    );
+    return { status: httpStatusFor(body.error.code), body, headers };
+  }
+  const translated = translateQuoteRequestToProvider({
+    request,
+    requiredSourceSystem: REQUIRED_QUOTE_SOURCE_SYSTEM,
+    mappings,
+  });
+  if (!translated.ok) {
+    const body = authFailure("INTEGRATION_UNAVAILABLE", translated.message, correlation.correlationId);
+    return { status: httpStatusFor(body.error.code), body, headers };
+  }
+  const result = await input.bridge.postQuote(translated.value.request, correlation.correlationId);
   if (!result.ok) {
     return { status: httpStatusFor(result.error.code), body: result, headers };
   }
-  if (!isQuote(result.data)) {
+  const restored = restoreQuoteToPosIds({ quote: result.data, translation: translated.value });
+  if (!restored.ok) {
+    const body = authFailure(
+      "INTEGRATION_UNAVAILABLE",
+      isQuote(result.data) ? restored.message : "quote bridge returned an invalid Quote",
+      correlation.correlationId,
+    );
+    return { status: httpStatusFor(body.error.code), body, headers };
+  }
+  if (!isQuote(restored.value)) {
     const body = authFailure(
       "INTEGRATION_UNAVAILABLE",
       "quote bridge returned an invalid Quote",
@@ -99,9 +147,9 @@ export async function handleQuote(input: HandleQuoteInput): Promise<HandleQuoteR
     return { status: httpStatusFor(body.error.code), body, headers };
   }
   if (input.snapshots) {
-    await input.snapshots.saveQuote(result.data);
+    await input.snapshots.saveQuote(restored.value);
   }
-  return { status: 200, body: result, headers };
+  return { status: 200, body: { ok: true, data: restored.value, correlationId: result.correlationId }, headers };
 }
 
 function readCookie(header: string | undefined, name: string): string | null {

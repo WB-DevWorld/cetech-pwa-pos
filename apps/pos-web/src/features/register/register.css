@@ -1,14 +1,20 @@
 .register-open,
 .register-close {
-  max-width: 580px;
+  max-width: 420px;
 }
 
-.register-open .page-head,
-.register-screen .page-head {
-  display: block;
+.register-open .btn.primary {
+  width: 100%;
 }
 
 .register-screen {
   display: grid;
   gap: 16px;
+}
+
+@media (max-width: 820px) {
+  .register-open,
+  .register-close {
+    max-width: none;
+  }
 }

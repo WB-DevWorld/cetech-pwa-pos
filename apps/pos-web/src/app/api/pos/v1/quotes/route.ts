@@ -3,6 +3,7 @@ import { staffAllowedOrigins } from "../../../../../config/env";
 import { composeStaffSessionStore } from "../../../../../server/auth/compose-session-store";
 import { STAFF_CSRF_HEADER } from "../../../../../config/auth";
 import { createServerRestFetch } from "../../../../../server/http/server-fetch";
+import { composeCatalogProjectionStore } from "../../../../../server/catalog/catalog-projection-store";
 import { composeQuoteBridge } from "../../../../../server/quotes/compose-quote-bridge";
 import { handleQuote } from "../../../../../server/quotes/handle-quote";
 import { httpStatusFor } from "../../../../../server/http/status";
@@ -15,15 +16,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   let sessionStore;
   let snapshots;
   let bridge;
+  let catalogIdentity;
   try {
     sessionStore = composeStaffSessionStore(process.env, fetchImpl);
     snapshots = composeCheckoutRuntime(process.env, fetchImpl).store;
     bridge = composeQuoteBridge(process.env, fetchImpl);
+    catalogIdentity = composeCatalogProjectionStore(process.env, fetchImpl);
   } catch {
     const correlation = resolveCorrelationId(request.headers.get("x-correlation-id") ?? undefined);
     const body = authFailure(
       "INTEGRATION_UNAVAILABLE",
-      "durable staff session and checkout stores are required",
+      "durable staff session, checkout, and catalog identity stores are required",
       correlation.correlationId,
     );
     return NextResponse.json(body, {
@@ -49,6 +52,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     allowedOrigins: staffAllowedOrigins(),
     bridge,
     snapshots,
+    catalogIdentity,
   });
   return NextResponse.json(result.body, {
     status: result.status,

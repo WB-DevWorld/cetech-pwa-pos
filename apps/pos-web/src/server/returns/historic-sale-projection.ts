@@ -11,6 +11,10 @@ export type HistoricReturnSaleProjection = {
   readonly orderReference: string;
   readonly currency: string;
   readonly lines: readonly HistoricReturnSaleLineProjection[];
+  readonly customerLabel?: string;
+  readonly createdAt?: string;
+  readonly total?: { readonly minor: number; readonly currency: string };
+  readonly itemSummary?: string;
 };
 
 /**
@@ -27,17 +31,27 @@ export function projectHistoricReturnSale(sale: PosSaleRecord): HistoricReturnSa
     return undefined;
   }
   const namesAligned = sale.lines.length === orderLines.length;
+  const lines = orderLines.map((line, index) => ({
+    orderLineId: line.orderLineId,
+    name:
+      namesAligned && sale.lines[index]?.name
+        ? sale.lines[index].name
+        : `Sale line ${line.orderLineId}`,
+    originalSoldQuantity: line.quantity,
+  }));
+  const first = lines[0];
   return {
     saleId: sale.prepared.saleId,
     orderReference: sale.prepared.orderReference || sale.prepared.saleId,
     currency: sale.prepared.total.currency,
-    lines: orderLines.map((line, index) => ({
-      orderLineId: line.orderLineId,
-      name:
-        namesAligned && sale.lines[index]?.name
-          ? sale.lines[index].name
-          : `Sale line ${line.orderLineId}`,
-      originalSoldQuantity: line.quantity,
-    })),
+    lines,
+    customerLabel: sale.customerLabel,
+    createdAt: sale.receipt?.issuedAt ?? sale.prepared.preparedAt,
+    total: sale.receipt?.total ?? sale.prepared.total,
+    itemSummary: first
+      ? lines.length === 1
+        ? `${first.originalSoldQuantity} × ${first.name}`
+        : `${first.originalSoldQuantity} × ${first.name} · ${lines.length - 1} more`
+      : undefined,
   };
 }

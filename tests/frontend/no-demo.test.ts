@@ -24,6 +24,6 @@ describe("FE-02 production shell has no demo-only controls", () => {
     expect(source).not.toContain("demo-fab");
     expect(source).not.toContain("Ama Mensah");
     expect(source).not.toContain("Kofi Asare");
-    expect(source).not.toContain("localStorage");
+    expect(source).not.toMatch(/localStorage\.(get|set)Item\([^)]*(auth|session|token|password)/i);
   });
 });

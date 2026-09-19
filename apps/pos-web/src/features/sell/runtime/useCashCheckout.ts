@@ -18,6 +18,9 @@ export function useCashCheckout(ports: CashCheckoutPorts | undefined): {
   readonly confirmCash: (cashReceivedText: string) => Promise<void>;
   readonly resolveSale: () => Promise<void>;
   readonly resolvePayment: () => Promise<void>;
+  readonly selectCash: () => void;
+  readonly backToPaymentChoice: () => void;
+  readonly cancelPreparedSale: (reason?: string) => Promise<void>;
   readonly retryFinalize: () => Promise<void>;
   readonly loadReceipt: () => Promise<void>;
   readonly printReceipt: () => Promise<void>;
@@ -51,6 +54,9 @@ export function useCashCheckout(ports: CashCheckoutPorts | undefined): {
     confirmCash: (cashReceivedText) => controller?.confirmCash(cashReceivedText) ?? Promise.resolve(),
     resolveSale: () => controller?.resolveSale() ?? Promise.resolve(),
     resolvePayment: () => controller?.resolvePayment() ?? Promise.resolve(),
+    selectCash: () => controller?.selectCash(),
+    backToPaymentChoice: () => controller?.backToPaymentChoice(),
+    cancelPreparedSale: (reason?: string) => controller?.cancelPreparedSale(reason) ?? Promise.resolve(),
     retryFinalize: () => controller?.retryFinalize() ?? Promise.resolve(),
     loadReceipt: () => controller?.loadReceipt() ?? Promise.resolve(),
     printReceipt: () => controller?.printReceipt() ?? Promise.resolve(),

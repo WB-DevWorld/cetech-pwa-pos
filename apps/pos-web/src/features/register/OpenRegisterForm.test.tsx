@@ -20,7 +20,7 @@ describe("OpenRegisterForm", () => {
     expect(html).toContain("Open register");
     expect(html).toContain("Front Counter 1");
     expect(html).toContain("opening-float");
-    expect(html).toContain("The server owns expected cash");
+    expect(html).toContain("Recorded as the opening float for the shift.");
     expect(html).not.toContain("staffId");
     expect(html).not.toContain("Ama Mensah");
     expect(html).toContain('id="opening-float"');
@@ -49,6 +49,21 @@ describe("OpenRegisterForm", () => {
     );
     expect(html).toContain("Register is already open.");
     expect(html).toContain('role="alert"');
+  });
+
+  test("requires an explicit choice when multiple registers are assigned and none is selected", () => {
+    const html = renderToStaticMarkup(
+      createElement(OpenRegisterForm, {
+        registers,
+        selectedRegisterId: "",
+        online: true,
+        onSubmit: () => undefined,
+      }),
+    );
+    expect(html).toContain("Select a register");
+    expect(html).toContain("Front Counter 1");
+    expect(html).toContain("Spare Counter");
+    expect(html).toContain("disabled");
   });
 
   test("shows submitting state", () => {

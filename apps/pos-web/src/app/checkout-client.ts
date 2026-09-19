@@ -9,10 +9,12 @@ import type {
   SalesPort,
 } from "../../../../docs/contracts/ports";
 import type {
+  CancelSaleRequest,
   CashPaymentRequest,
   CloseShiftRequest,
   CommandContext,
   FinalizeSaleRequest,
+  InitializePaymentRequest,
   OpenShiftRequest,
   PaymentLookup,
   PaymentState,
@@ -119,8 +121,11 @@ export function createBrowserCheckoutUseCases(options: BrowserCheckoutOptions = 
 
 export function createBrowserPaymentPort(
   options: BrowserCheckoutOptions = {},
-): Pick<PaymentPort, "confirmCash" | "resolve"> {
+): Pick<PaymentPort, "initialize" | "confirmCash" | "resolve"> {
   return {
+    initialize(input: InitializePaymentRequest, context: CommandContext): Promise<ApiResult<PaymentState>> {
+      return command("/api/pos/v1/payments/initialize", "POST", context, options, input);
+    },
     confirmCash(input: CashPaymentRequest, context: CommandContext): Promise<ApiResult<PaymentState>> {
       return command("/api/pos/v1/payments/cash", "POST", context, options, input);
     },
@@ -130,10 +135,13 @@ export function createBrowserPaymentPort(
   };
 }
 
-export function createBrowserSalesResolvePort(options: BrowserCheckoutOptions = {}): Pick<SalesPort, "resolve"> {
+export function createBrowserSalesResolvePort(options: BrowserCheckoutOptions = {}): Pick<SalesPort, "resolve" | "cancel"> {
   return {
     resolve(transactionId: Uuid): Promise<ApiResult<SaleResolution>> {
       return command(`/api/pos/v1/sales/${transactionId}`, "GET", { correlationId: crypto.randomUUID() }, options);
+    },
+    cancel(input: CancelSaleRequest, context: CommandContext): Promise<ApiResult<SaleResolution>> {
+      return command("/api/pos/v1/sales/cancel", "POST", context, options, input);
     },
   };
 }
@@ -159,7 +167,7 @@ export function createBrowserPrintPort(): PrintPort {
 }
 
 export function createBrowserCashCheckoutPorts(
-  options: BrowserCheckoutOptions & { readonly scope?: CashCheckoutScope } = {},
+  options: BrowserCheckoutOptions & { readonly scope: CashCheckoutScope },
 ): CashCheckoutPorts {
   return {
     checkout: createBrowserCheckoutUseCases(options),
@@ -167,7 +175,7 @@ export function createBrowserCashCheckoutPorts(
     sales: createBrowserSalesResolvePort(options),
     receipts: createBrowserReceiptPort(options),
     printer: createBrowserPrintPort(),
-    scope: options.scope ?? LOCAL_CHECKOUT_SCOPE,
+    scope: options.scope,
   };
 }
 

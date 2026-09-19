@@ -22,7 +22,7 @@ export function idleRefundReconciliation(refundId: string): RefundReconciliation
   return {
     refundId,
     status: "idle",
-    message: "This refund identity is unresolved. Resolve it. Do not start another refund.",
+    message: "This refund is unresolved. Check its status. Do not start another refund.",
     warning: "Do not issue another refund.",
     resolveAllowed: true,
   };

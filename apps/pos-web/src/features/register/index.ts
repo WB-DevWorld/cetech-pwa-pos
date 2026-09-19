@@ -7,6 +7,7 @@ export {
   describeShiftStatus,
   formatSignedMoneyDisplay,
   idleShiftWorkspace,
+  shouldAnnounceRegisterOpened,
   type ShiftStatusView,
   type ShiftWorkspaceView,
 } from "./shiftView";

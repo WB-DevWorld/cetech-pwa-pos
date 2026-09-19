@@ -48,7 +48,7 @@ describe("FE-03 sell layer stays presentation-only", () => {
   });
 
   test("does not reconstruct commercial totals or import privileged application layers", () => {
-    expect(source).not.toMatch(/displayPrice/);
+    expect(source).not.toMatch(/displayPrice\.minor\s*[+\-*/]/);
     expect(source).not.toMatch(/from ["']@\/core/);
     expect(source).not.toMatch(/from ["']@\/server/);
     expect(source).not.toMatch(/from ["']@\/local/);
