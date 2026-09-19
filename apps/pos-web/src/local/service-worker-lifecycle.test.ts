@@ -7,7 +7,7 @@ import type { UpdateSafetySnapshot } from "./pwa-lifecycle";
 
 const workerSource = readFileSync(new URL("../../public/sw.js", import.meta.url), "utf8");
 const lifecycleSource = readFileSync(new URL("./service-worker-lifecycle.ts", import.meta.url), "utf8");
-const healthRuntimeSource = readFileSync(new URL("../app/health/health-runtime.tsx", import.meta.url), "utf8");
+const workspaceRuntimeSource = readFileSync(new URL("../app/workspace-runtime.tsx", import.meta.url), "utf8");
 const layoutSource = readFileSync(new URL("../app/layout.tsx", import.meta.url), "utf8");
 const sellPageSource = readFileSync(new URL("../app/sell/page.tsx", import.meta.url), "utf8");
 const homePageSource = readFileSync(new URL("../app/page.tsx", import.meta.url), "utf8");
@@ -259,19 +259,19 @@ describe("shared lifecycle composition", () => {
   test("layout owns the lifecycle runtime during ordinary Sell use", () => {
     expect(layoutSource).toContain("PwaLifecycleRuntime");
     expect(layoutSource).toContain("appBuild={env.buildId}");
-    expect(sellPageSource).toContain('route="sell"');
-    expect(homePageSource).toContain('route="sell"');
+    expect(sellPageSource).toContain("pos-route-slot");
+    expect(homePageSource).toContain("pos-route-slot");
     expect(sellPageSource).not.toContain("createServiceWorkerLifecycle");
     expect(homePageSource).not.toContain("createServiceWorkerLifecycle");
     expect(runtimeSource).toContain("createServiceWorkerLifecycle");
     expect(runtimeSource).toContain("bindPwaLifecycleEffects");
   });
 
-  test("Store Health consumes shared lifecycle state and does not construct a second controller", () => {
-    expect(healthRuntimeSource).toContain("usePwaLifecycle");
-    expect(healthRuntimeSource).not.toContain("createServiceWorkerLifecycle");
-    expect(healthRuntimeSource).toContain("lifecycle.getLifecycleSnapshot");
-    expect(healthRuntimeSource).toContain("lifecycle.activateWaitingUpdate");
+  test("System status consumes shared lifecycle state without constructing a second controller", () => {
+    expect(workspaceRuntimeSource).toContain("usePwaLifecycle");
+    expect(workspaceRuntimeSource).not.toContain("createServiceWorkerLifecycle");
+    expect(workspaceRuntimeSource).toContain("inspectLocalRecoveryState");
+    expect(workspaceRuntimeSource).toContain("lifecycle.checkForUpdate()");
   });
 
   test("release discovery uses the canonical no-store endpoint rather than the current bundle identity", () => {
