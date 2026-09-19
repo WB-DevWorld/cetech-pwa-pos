@@ -32,10 +32,10 @@ export function CloseShiftForm({
 
   return (
     <section className="card card-pad register-close" aria-labelledby="close-register-title" data-blind-close="true">
-      <h2 id="close-register-title">Close register</h2>
+      <h2 id="close-register-title">End shift</h2>
       <div className="banner info" role="status">
-        <strong>Blind cash count</strong>
-        <span>Count the drawer. Do not enter or edit expected cash.</span>
+        <strong>Count drawer cash</strong>
+        <span>Enter what you counted. Expected cash will be shown after you finish.</span>
       </div>
       <form className="stack" onSubmit={handleSubmit}>
         <div className="field">
@@ -54,7 +54,7 @@ export function CloseShiftForm({
             aria-describedby="closing-count-help"
           />
           <div className="muted" id="closing-count-help">
-            Enter only the cash you counted. Expected cash and variance come from the server after close.
+            {"Enter what you counted. We'll compare your count with the expected cash after you end the shift."}
           </div>
         </div>
         {(localError || errorMessage) ? (
@@ -63,7 +63,7 @@ export function CloseShiftForm({
           </div>
         ) : null}
         <button className="btn primary" type="submit" disabled={!canSubmit}>
-          {submitting ? "Closing…" : "Close shift"}
+          {submitting ? "Ending…" : "End shift"}
         </button>
       </form>
     </section>

@@ -96,6 +96,24 @@ export function applyCatalogSearchResults(
   };
 }
 
+/** Presentation-only. Replaces visible search hits without touching cart or customer state. */
+export function applyVisibleSearchResults(
+  state: SellWorkspaceState,
+  query: string,
+  results: readonly SellProductView[],
+): SellWorkspaceState {
+  if (state.search.query !== query) {
+    return state;
+  }
+  return {
+    ...state,
+    search: {
+      ...state.search,
+      results: results.filter((item) => item.kind !== "variation"),
+    },
+  };
+}
+
 export function applyBarcodeScan(
   state: SellWorkspaceState,
   barcode: string,
@@ -225,6 +243,17 @@ export function applySelectCustomer(state: SellWorkspaceState, customer: Custome
     cartRevision: state.cartRevision + 1,
     commercialInvalidated: true,
   };
+}
+
+export function decideNextSaleCustomer(input: {
+  readonly next: CustomerSearchResultView | null | undefined;
+  readonly lineCount: number;
+  readonly selectedCustomerId?: string;
+}): "idle" | "apply" | "pending" | "consume" {
+  if (!input.next) return "idle";
+  if (input.lineCount > 0) return "pending";
+  if (input.selectedCustomerId === input.next.id) return "consume";
+  return "apply";
 }
 
 export function applyClearCustomer(state: SellWorkspaceState): SellWorkspaceState {

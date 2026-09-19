@@ -37,6 +37,8 @@ require_once __DIR__ . '/test-prepare.php';
 require_once __DIR__ . '/test-finalize-cancel.php';
 require_once __DIR__ . '/test-return-effects.php';
 require_once __DIR__ . '/test-ws3-generated-return-effects.php';
+require_once __DIR__ . '/test-catalog.php';
+require_once __DIR__ . '/test-customers.php';
 
 echo "\n{$passed} passed, {$failed} failed\n";
 exit( $failed === 0 ? 0 : 1 );

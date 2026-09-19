@@ -98,6 +98,46 @@ The presentation components and pure cart/barcode rules are reusable. CORE-04 in
 | `sell-tablet.png` | 900×800 | Split survives; narrower cart |
 | `sell-phone.png` | 390×844 | Full-screen cart overlay |
 | `sell-variation.png` | 1440×900 | Choose-variation dialog |
-| `sell-unknown-barcode.png` | 1440×900 | Unknown barcode alert |
+| `sell-unknown-barcode.png` | 1440×900 | Unknown barcode toast (non-blocking) |
 | `sell-customer.png` | 1440×900 | Selected b2b customer + Wholesale display |
 | `sell-offline.png` | 1440×900 | Offline cached catalog + saved draft banners |
+
+## UX-02 local integrated Sell runtime evidence
+
+`ux-02-runtime-*.png` are **local integrated `/sell` captures** from the production Next start on this worktree with the e2e staff-session harness. They are not the Vitest HTML harness and they are **not deployed staging**.
+
+| File | Viewport | Runtime state |
+| --- | --- | --- |
+| `ux-02-runtime-closed-1920x901.png` | 1920×901 | Closed shift; search-first; four-column cards; advisory `displayPrice` on seed products that have one |
+| `ux-02-runtime-open-1917x870.png` | 1917×870 | Open shift; Hardener card `GHS 155.00` vs quote line/total `GHS 15.00`; Price confirmed; pinned Pay |
+| `ux-02-runtime-compact-1172.png` | 1172×800 | Compact desktop two-pane |
+| `ux-02-runtime-tablet-1024.png` | 1024×768 | Tablet two-pane |
+| `ux-02-runtime-tablet-768.png` | 768×1024 | Cart overlay / View Cart / Pay |
+| `ux-02-runtime-phone-390.png` | 390×844 | Phone overlay |
+
+The yellow “Products may be out of date” strip on open-shift captures is the mocked catalog-sync 401 → synthetic seed path in this local harness. It is not deployed Woo/bridge evidence.
+
+## UX-03 isolated and local-integrated payment / barcode / range evidence
+
+Isolated `ux-03-*.html` / `ux-03-*-1440.png` / `ux-03-*-390.png` are Vitest static harness captures (no React event handlers). `ux-03-runtime-*.png` are local integrated `/sell` captures from Next start with mocked BFF routes. None of these are deployed staging. None ship Demo Controls.
+
+| File | Viewport | State |
+| --- | --- | --- |
+| `ux-03-choose-payment-1440.png` | 1440×900 | Isolated Choose payment after prepare |
+| `ux-03-choose-payment-390.png` | 390×844 | Phone one-column payment choices |
+| `ux-03-cash-empty-1440.png` | 1440×900 | Cash empty; Confirm disabled |
+| `ux-03-cash-change-1440.png` | 1440×900 | Cash received 1400; Change due GHS 24.00 |
+| `ux-03-cash-empty-390.png` | 390×844 | Phone cash sheet |
+| `ux-03-cash-large-1440.png` | 1440×900 | GHS 10,000,334.00 prepared total |
+| `ux-03-electronic-waiting-1440.png` | 1440×900 | Awaiting customer; no Demo Controls |
+| `ux-03-electronic-pending-1440.png` | 1440×900 | Pending; Do not charge again |
+| `ux-03-collision-1440.png` | 1440×900 | Duplicate barcode blocking chooser |
+| `ux-03-unknown-toast-1440.png` / `sell-unknown-barcode.png` | 1440×900 | Non-blocking unknown-barcode toast |
+| `ux-03-variable-range-1440.png` | 1440×900 | Single / equal / min–max / Price unavailable |
+| `ux-03-runtime-unknown-toast-1440.png` | 1440×900 | Integrated toast |
+| `ux-03-runtime-collision-1440.png` | 1440×900 | Integrated collision |
+| `ux-03-runtime-choose-payment-1440.png` | 1440×900 | Integrated Choose payment |
+| `ux-03-runtime-cash-empty-1440.png` | 1440×900 | Integrated cash empty |
+| `ux-03-runtime-cash-change-1440.png` | 1440×900 | Integrated live change |
+| `ux-03-runtime-cash-390.png` | 390×844 | Integrated phone cash |
+

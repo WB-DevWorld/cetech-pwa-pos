@@ -197,6 +197,7 @@ export function useCartQuote(input: UseCartQuoteInput): UseCartQuoteResult {
     shiftOpen: input.shiftOpen,
     online: input.online,
     quote,
+    cartLines: input.workspace?.lines.map((line) => ({ lineId: line.lineId, name: line.name })),
   });
 
   return {

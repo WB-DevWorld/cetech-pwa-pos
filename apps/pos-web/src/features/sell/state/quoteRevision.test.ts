@@ -29,7 +29,7 @@ describe("FE-04 revision-safe quote presentation", () => {
     expect(presented.eligibility).toEqual({
       allowed: false,
       reason: "QUOTE_STALE",
-      message: "Current pricing is no longer current. Refresh is required before payment.",
+      message: "Price needs to be checked again.",
     });
   });
 
@@ -65,7 +65,7 @@ describe("FE-04 revision-safe quote presentation", () => {
       cartRevision: 2,
     });
     expect(presented.quote?.status).toBe("expired");
-    expect(presented.eligibility).toEqual({ allowed: false, reason: "QUOTE_EXPIRED", message: "Price expired" });
+    expect(presented.eligibility).toEqual({ allowed: false, reason: "QUOTE_EXPIRED", message: "Price needs to be checked again." });
   });
 
   test("offline cannot become checkout-ready", () => {
@@ -77,7 +77,7 @@ describe("FE-04 revision-safe quote presentation", () => {
     expect(presented.eligibility).toEqual({
       allowed: false,
       reason: "CONNECTION_REQUIRED",
-      message: "Connection is required for authoritative pricing and checkout.",
+      message: "A connection is required to check prices and take payment.",
     });
   });
 

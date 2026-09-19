@@ -1,51 +1,101 @@
-# WS3 current handoff — R9-REC-01 R8-base reconciliation
+# WS3 current handoff — STG-06 quote identity + register authority
+
+Kind: TASK_COMPLETION. Date: 2026-09-18.
+
+Task / batch / workstream: STG-06 live quote identity + register authority / WS3.
+Owner / integration editor: `@wbdevworld` / WS3.
+Requested human reviewer: independent senior review; no self-approve.
+Mode: REMEDIATE.
+Branch: `ws3/stg-06-quote-identity-register-authority`
+Starting exact head: `a02cd21875d0717adb6694d293b41575302b2415`
+Implementation SHA (pre-evidence): `5119054a2059ff5903a50d8b96644b63c38fdd48`
+Start `origin/main`: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Freshness cutoff `origin/main`: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` at `2026-09-18T12:25:31Z`
+Freshness cutoff batch: `origin/batch/stg-01-staging-runtime-acceptance` = `a02cd21875d0717adb6694d293b41575302b2415`
+Originally declared implementation batch: `4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897` (COMPATIBLE; already ancestor)
+Evidence: `docs/integration/evidence/STG-06-QUOTE-IDENTITY-REGISTER-AUTHORITY.md`
+Freshness: FRESH_2. Delivery: READY_FOR_INTEGRATION. Pass 3 not permitted.
+
+Allowed: `apps/pos-web/src/server/**`, `apps/pos-web/src/core/**`, `apps/pos-web/src/app/**`, `apps/pos-web/src/local/**`, CURRENT-WORK, WS3 STATUS/HANDOFF, this evidence.
+Forbidden: `main`, R9, WS1 feature/ui redesign, WS2 plugin, auth/CSRF/RLS weakening, CatalogItem.id = Woo ID, sourceItemId in Sell UI contracts, B2BKing/WoodMart pricing in BFF/frontend, new catalog migration.
+
+Contracts changed: none. Database migrations: none. Architecture decisions: none. Existing `public.pos_catalog_items` is sufficient.
+
+Do not merge. Do not modify `main`. Do not import/start R9. Live Preview still needs this contributor SHA imported and redeployed before quote/register defects can close. `pricingParityVerified=false`. CP-04 / #4 remain open. Next exact action: independent review, then integrate into `batch/stg-01-staging-runtime-acceptance` and re-run STG-06 against the new Preview. The final task head is the evidence commit after `5119054`; record it from `git rev-parse HEAD` after that commit, not inside it.
+
+---
+
+# WS3 previous handoff — STG-02 route session persistence
+
+Kind: TASK_COMPLETION. Date: 2026-09-18.
+
+Task / batch / workstream: STG-02 route persistence / STG-06 live navigation blocker / WS3.
+Owner / integration editor: `@wbdevworld` / WS3.
+Requested human reviewer: independent senior review; no self-approve.
+Mode: REMEDIATE.
+Branch: `ws3/stg-02-route-session-persistence`
+Starting exact head: `4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897`
+Start `origin/main`: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Start batch ref: `origin/batch/stg-01-staging-runtime-acceptance` = `4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897`
+Evidence: `docs/integration/evidence/STG-02-ROUTE-SESSION-PERSISTENCE.md`
+
+Allowed: `apps/pos-web/src/app/**`, `apps/pos-web/e2e/**`, `tests/frontend/**`, CURRENT-WORK, WS3 STATUS/HANDOFF, this evidence. Forbidden: `main`, R9, WS1 Sell redesign, WS2 plugin, auth/CSRF/RLS weakening.
+
+Contracts changed: none. Database migrations: none. Architecture decisions: none.
+
+Do not merge. Do not modify `main`. Do not import/start R9. Current verified training/bridge truth: STG-05 plugin is deployed on `https://training.cetechbpa.com`; authenticated health/catalog/quote PASS as recorded in the evidence file. Do not treat `BLOCKED_TRAINING_PLUGIN_NOT_DEPLOYED_STG05` as current. Live Preview catalog is blocked by BFF→WordPress `bridge denied the BFF service identity`. Cash-sale acceptance, `pricingParityVerified=false`, and CP-04 / #4 remain open. Next exact action: integrate this contributor SHA into `batch/stg-01-staging-runtime-acceptance` after independent review, then re-run STG-06 against the new Preview.
+
+---
+
+# WS3 previous handoff — STG-01 integration composition
+
+Kind: PROGRESS_CHECKPOINT. Date: 2026-09-17. Historical snapshot; the `BLOCKED_TRAINING_PLUGIN_NOT_DEPLOYED_STG05` line below is superseded by the 2026-09-18 current handoff above.
+
+
+
+Task / batch / workstream: STG-01 / #70 / WS3.
+Owner / integration editor: `@wbdevworld` / WS3.
+Requested human reviewer: independent senior review; no self-approve.
+Mode: INTEGRATE.
+Branch: `batch/stg-01-staging-runtime-acceptance`
+Starting exact head: `acd4a2f009c58f734186cf9e44f278da93499a4b`
+Start `origin/main`: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+STG-02 source/imported: `8a6aba2ce82ebe265a154f89999c2caab7a08beb` / `9bfb535ca86f7bd27108b3a82c6876e4b5f19c81`
+STG-05 source/imported: `4d549167f7d6dcecf0eff24f35e1f24a3429d3d8` / `7cab23415d622cef7369ddc03e007e6576cc4ce7`
+STG-04 source/imported: `01e4438d3553c633e7b0234de44743ff4cea2368` / `981722e7c8ff6ea7163532f03218f59ea2b9e20d`
+Ben source/imported: `169f8155fe4cb34b6fe27db3bb6b445a13ade712` / `8073ef59dbf481160387000886b0b7da4a25d237`
+STG-07 SHA: `4a978b9a67291c34c34f6cb75fddf31d14a7cbdd`
+Composition SHA: `6df4e1edc503aa2ab0fe37f2f26a9177e6726177`
+
+This file is the integration snapshot. It does not erase STG-02 or STG-04 contributor evidence files.
+
+## Combined semantics
+
+- Staff: restore/establish BFF session; CSRF cookie + `x-csrf-token`; cashier/register/shift from server; fail closed when unsigned/expired.
+- Catalog: staging `provider_required` never seeds `CASHIER_SEED_CATALOG`; BFF `/api/pos/v1/catalog/sync`; local search/scan; stale/unavailable without clearing carts/journal. Localhost/test remain `synthetic_permitted`.
+- Workspaces: WS3 mounts Ben Orders/Customers/Settings/Health/Attention. Orders is truthful empty (no frozen list port). Health uses `/api/pos/v1/health`. Attention actions only for catalog-projection retry; no last-resort IndexedDB wipe.
+- Bridge: imported STG-05 producer; training deploy still pending.
+
+Contracts changed: none. Database migrations: none. Architecture decisions: none.
+
+Local combined tests: control-plane PASS; pos-web lint/typecheck/735 unit/build/11 e2e PASS; host PHP bridge 1614 passed; parity 138 passed / 19 skipped; Docker PHP `-l` PASS; `git diff --check` clean. Windows `npx supabase db reset --yes --local` BLOCKED (cmd.exe heredoc). GNU Make `command -v` not used; Docker PHP lint + host PHP runners substituted.
+
+`BLOCKED_TRAINING_PLUGIN_NOT_DEPLOYED_STG05`. Do not claim live catalog/quote/cash or final STG-01 PASS.
+
+Do not merge to main. Do not close #70/#25/#54. Do not merge R9 #63. Independent human review required.
+Next exact action: STG-06 / #75 functional staging against the immutable Vercel deployment of this combined SHA after CI is green.
+
+## Previous contributor handoff — STG-02 session/CSRF/register composition
 
 Kind: TASK_COMPLETION. Date: 2026-09-17.
+Branch: `ws3/stg-02-session-runtime-composition`
+Source SHA: `8a6aba2ce82ebe265a154f89999c2caab7a08beb`
+Evidence: `docs/integration/evidence/STG-02-SESSION-RUNTIME.md`
 
-Task / batch / workstream: R9-REC-01 / PR #63 / WS3.
-Owner / integration editor: `@wbdevworld` / WS3.
-Requested human reviewers: independent mixed WS1/WS2/WS3 review of the **new** reconciled exact SHA. This agent does not approve, merge, or dismiss reviews.
-Mode: RECONCILE / INTEGRATE.
-PR: #63. Keep **DRAFT**. Do not request merge. Do not self-approve. Do not close CORE-07. Do not start R10.
+## Previous contributor handoff — STG-04 training catalog projection
 
-Branch: `batch/r9-pwa-recovery-operational-close`
-Historical R9 head: `13af56ca86d13657736b8c5156b73a8e79664130`
-Start `origin/main`: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` (R8 squash; CI `35216668259` SUCCESS)
-Merge-base: `bd79c2901ce33c3177141d4244cc196be0a719d2` (R6)
-Method: `git merge --no-ff origin/main` (no rebase, no force push), then semantic compose.
-
-Contracts changed: none. Frozen v1 `RegisterPort.close` / `report` and CloseShiftRequest wires unchanged. Optional `approvalId` remains schema-valid and non-authoritative for shift close.
-
-Database migrations: additive `20260917140000_pos_operational_close_r8_variance.sql`. Historical `20260915223000_pos_operational_close.sql` preserved.
-
-Architecture: one production close path (`sales/close-shift.ts` + R8 BFF). R9 `OperationalCloseStore` is server infrastructure. Root `PwaLifecycleRuntime` wraps all primary POS routes. Health consumes shared lifecycle.
-
-Allowed / forbidden: WS3 integration editor on this R9 branch. Do not edit unrelated untracked `doc/`. No real commercial effects.
-
-## Completed
-
-Reconciled reviewed CORE-07 + FE-07 onto accepted R8 `main`. Rule A/B/C matrix, close/Z/variance resolution, tests, and limitations: `docs/integration/evidence/R9-R8-RECONCILIATION.md`.
-
-## Tests executed (local)
-
-See that evidence file. 83 files / 747 tests; E2E 9 passed; operational_close pgTAP 22/22; bridge 1555/0; parity 138/0/19 skip.
-
-Remote effects performed: none (no Paystack, no Woo refund/restock, no production, no VitePOS change).
-
-## Freshness protocol
-
-START_FRESHNESS_SNAPSHOT: current `main` `778348c…` recorded.
-Classification: **NOT FINAL FRESHNESS**.
-Final ADR-012 Pass 1 + Pass 2: not claimed. Required later after independent review of the reconciled exact SHA and installed-client/device evidence.
-Pass 3: NOT PERMITTED.
-UNVERIFIED if this session is interrupted before exact-head CI is observed.
-
-## Next exact action
-
-Push this merge commit. Wait for **new** exact-head `control-plane` and `control-plane-windows`. Independent review of the replacement SHA. Installed-client/device evidence remains pending.
-
-Delivery status: `R9_RECONCILED_CODE_READY_FOR_REVIEW`
-Production promotion: NOT AUTHORIZED.
-Live electronic payment / live refund/restock: NOT AUTHORIZED.
-Merge of PR #63: NOT AUTHORIZED.
-Installed-client evidence: NOT CLAIMED.
+Kind: TASK_COMPLETION. Date: 2026-09-17.
+Branch: `ws3/stg-04-training-catalog-projection`
+Source SHA: `01e4438d3553c633e7b0234de44743ff4cea2368`
+Evidence: `docs/integration/evidence/STG-04-TRAINING-CATALOG.md`
+STG-04 `CURRENT-WORK.md` was not imported.

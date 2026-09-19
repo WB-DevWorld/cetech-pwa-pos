@@ -65,7 +65,7 @@ describe("FE-06 register close", () => {
     );
     expect(html).toContain("Open register");
     expect(html).toContain("opening-float");
-    expect(html).toContain("The server owns expected cash");
+    expect(html).toContain("Recorded as the opening float for the shift.");
     expect(html).toContain('data-shift-status="no_open_shift"');
     const original = renderToStaticMarkup(
       createElement(OpenRegisterForm, { registers, online: true, onSubmit: () => undefined }),
@@ -78,7 +78,7 @@ describe("FE-06 register close", () => {
     const html = renderToStaticMarkup(createElement(CloseShiftForm, { onSubmit: () => undefined }));
     expect(html).toContain("closing-count");
     expect(html).toContain("Cash counted");
-    expect(html).toContain("Blind cash count");
+    expect(html).toContain("Count drawer cash");
     expect(html).not.toContain('id="expected');
     expect(html).not.toContain("name=\"expectedCash\"");
     expect(html).not.toContain("<label for=\"expected");

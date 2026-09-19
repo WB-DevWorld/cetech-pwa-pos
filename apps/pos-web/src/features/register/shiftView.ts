@@ -48,6 +48,10 @@ export function idleShiftWorkspace(): ShiftWorkspaceView {
   };
 }
 
+export function shouldAnnounceRegisterOpened(previous: ShiftStatusView, next: ShiftStatusView): boolean {
+  return previous === "opening" && next === "open";
+}
+
 export function formatSignedMoneyDisplay(money: SignedRegisterMoneyView): string {
   const sign = money.minor < 0 ? "-" : money.minor > 0 ? "+" : "";
   const abs = Math.abs(money.minor);
@@ -62,13 +66,13 @@ export function describeShiftStatus(status: ShiftStatusView): { readonly title: 
     case "no_open_shift":
       return { title: "Register", status: "No open shift." };
     case "opening":
-      return { title: "Opening shift", status: "Opening the register. Expected cash stays server-owned." };
+      return { title: "Opening register", status: "Opening the register." };
     case "open":
-      return { title: "Shift open", status: "Shift is open. Close with a blind cash count." };
+      return { title: "Shift open", status: "Shift is open. End shift with a drawer cash count." };
     case "closing":
-      return { title: "Closing shift", status: "Submitting counted cash. Do not enter expected cash." };
+      return { title: "Ending shift", status: "Submitting counted cash. Do not enter expected cash." };
     case "closed":
-      return { title: "Shift closed", status: "The server closed this shift." };
+      return { title: "Shift closed", status: "Shift closed successfully." };
     case "requires_attention":
       return { title: "Shift needs attention", status: "This close needs manager review. It is not closed." };
   }

@@ -9,10 +9,12 @@ import type {
   SalesPort,
 } from "../../../../docs/contracts/ports";
 import type {
+  CancelSaleRequest,
   CashPaymentRequest,
   CloseShiftRequest,
   CommandContext,
   FinalizeSaleRequest,
+  InitializePaymentRequest,
   OpenShiftRequest,
   PaymentLookup,
   PaymentState,
@@ -134,8 +136,12 @@ export function createBrowserCheckoutUseCases(options: BrowserCheckoutOptions = 
 
 export function createBrowserPaymentPort(
   options: BrowserCheckoutOptions = {},
-): Pick<PaymentPort, "confirmCash" | "resolve"> {
+): Pick<PaymentPort, "initialize" | "confirmCash" | "resolve"> {
   return {
+    async initialize(input: InitializePaymentRequest, context: CommandContext): Promise<ApiResult<PaymentState>> {
+      await options.tenderActivity?.markActive(input.transactionId);
+      return command("/api/pos/v1/payments/initialize", "POST", context, options, input);
+    },
     async confirmCash(input: CashPaymentRequest, context: CommandContext): Promise<ApiResult<PaymentState>> {
       await options.tenderActivity?.markActive(input.transactionId);
       return command("/api/pos/v1/payments/cash", "POST", context, options, input);
@@ -147,7 +153,7 @@ export function createBrowserPaymentPort(
   };
 }
 
-export function createBrowserSalesResolvePort(options: BrowserCheckoutOptions = {}): Pick<SalesPort, "resolve"> {
+export function createBrowserSalesResolvePort(options: BrowserCheckoutOptions = {}): Pick<SalesPort, "resolve" | "cancel"> {
   return {
     async resolve(transactionId: Uuid): Promise<ApiResult<SaleResolution>> {
       const result = await command<SaleResolution>(
@@ -160,6 +166,14 @@ export function createBrowserSalesResolvePort(options: BrowserCheckoutOptions = 
         await options.tenderActivity?.clear(transactionId);
       } else if (result.ok) {
         await options.tenderActivity?.markActive(transactionId);
+      }
+      return result;
+    },
+    async cancel(input: CancelSaleRequest, context: CommandContext): Promise<ApiResult<SaleResolution>> {
+      await options.tenderActivity?.markActive(input.transactionId);
+      const result = await command<SaleResolution>("/api/pos/v1/sales/cancel", "POST", context, options, input);
+      if (saleTerminal(result)) {
+        await options.tenderActivity?.clear(input.transactionId);
       }
       return result;
     },
@@ -187,7 +201,7 @@ export function createBrowserPrintPort(): PrintPort {
 }
 
 export function createBrowserCashCheckoutPorts(
-  options: BrowserCheckoutOptions & { readonly scope?: CashCheckoutScope } = {},
+  options: BrowserCheckoutOptions & { readonly scope: CashCheckoutScope },
 ): CashCheckoutPorts {
   return {
     checkout: createBrowserCheckoutUseCases(options),
@@ -195,7 +209,7 @@ export function createBrowserCashCheckoutPorts(
     sales: createBrowserSalesResolvePort(options),
     receipts: createBrowserReceiptPort(options),
     printer: createBrowserPrintPort(),
-    scope: options.scope ?? LOCAL_CHECKOUT_SCOPE,
+    scope: options.scope,
   };
 }
 

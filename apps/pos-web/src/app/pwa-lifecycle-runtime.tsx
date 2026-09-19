@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { UpdateReadyDialog, type UpdateSafetyView } from "../ui/operational";
 import type { ReleasePolicy } from "../../../../docs/contracts/domain.generated";
 import {
   createServiceWorkerLifecycle,
@@ -44,6 +45,8 @@ export function PwaLifecycleRuntime({
 }) {
   const [updateReady, setUpdateReady] = useState(false);
   const [releasePolicy, setReleasePolicy] = useState<ReleasePolicy | undefined>(initialReleasePolicy);
+  const [activationDecision, setActivationDecision] = useState<UpdateActivationDecision | null>(null);
+  const [updateDialogDismissed, setUpdateDialogDismissed] = useState(false);
   const ownerId = useMemo(() => `pwa-${crypto.randomUUID()}`, []);
 
   const lifecycle = useMemo(
@@ -61,6 +64,34 @@ export function PwaLifecycleRuntime({
   useEffect(() => {
     return bindPwaLifecycleEffects(lifecycle);
   }, [lifecycle]);
+
+  useEffect(() => {
+    if (!updateReady) {
+      setActivationDecision(null);
+      setUpdateDialogDismissed(false);
+      return;
+    }
+    let cancelled = false;
+    const refreshDecision = () => {
+      void lifecycle.activationDecision().then((decision) => {
+        if (!cancelled) setActivationDecision(decision);
+      });
+    };
+    refreshDecision();
+    const timer = window.setInterval(refreshDecision, 2000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [lifecycle, updateReady]);
+
+  const updateSafety: UpdateSafetyView =
+    activationDecision?.safe === true
+      ? "safe"
+      : activationDecision && !activationDecision.safe &&
+          activationDecision.reasons.every((reason) => reason === "PASSIVE_WINDOW")
+        ? "defer"
+        : "blocked_critical";
 
   const api = useMemo<PwaLifecycleApi>(
     () => ({
@@ -88,7 +119,27 @@ export function PwaLifecycleRuntime({
     [lifecycle, releasePolicy, updateReady],
   );
 
-  return <PwaLifecycleContext.Provider value={api}>{children}</PwaLifecycleContext.Provider>;
+  return (
+    <PwaLifecycleContext.Provider value={api}>
+      {children}
+      <UpdateReadyDialog
+        open={updateReady && !updateDialogDismissed}
+        safety={updateSafety}
+        currentBuild={appBuild}
+        nextBuild={releasePolicy?.latestBuild}
+        onLater={() => setUpdateDialogDismissed(true)}
+        onApply={() => {
+          void lifecycle.activateWaitingUpdate().then((decision) => {
+            setActivationDecision(decision);
+            if (decision.safe) {
+              setUpdateReady(false);
+              setUpdateDialogDismissed(false);
+            }
+          });
+        }}
+      />
+    </PwaLifecycleContext.Provider>
+  );
 }
 
 export function createSharedPwaLifecycle(options: {

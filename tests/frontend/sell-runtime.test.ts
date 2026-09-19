@@ -176,4 +176,38 @@ describe("FE-03 CatalogPort barcode and draft runtime", () => {
     expect(next?.lines).toHaveLength(0);
     expect(next?.customer).toEqual({ kind: "walkin" });
   });
+
+  test("catalogItemToSellView passes advisory displayPrice through unchanged", () => {
+    const view = catalogItemToSellView({
+      id: "p-display",
+      name: "Display priced item",
+      barcodes: ["001"],
+      kind: "simple",
+      stockStatus: "in_stock",
+      projectionUpdatedAt: "2026-09-13T20:00:00.000Z",
+      displayPrice: { minor: 15500, currency: "GHS" },
+    });
+    expect(view.displayPrice).toEqual({ minor: 15500, currency: "GHS" });
+    const omitted = catalogItemToSellView({
+      id: "p-none",
+      name: "No display price",
+      barcodes: [],
+      kind: "simple",
+      stockStatus: "in_stock",
+      projectionUpdatedAt: "2026-09-13T20:00:00.000Z",
+    });
+    expect(omitted.displayPrice).toBeUndefined();
+  });
+
+  test("cashier seed advisory prices reach sell views and stay off quote snapshots", () => {
+    const engine = new CatalogProjectionEngine();
+    engine.rebuild(mapTransitionalCatalogBatch(CASHIER_SEED_CATALOG), "v1", "2026-09-13T20:00:00.000Z");
+    const hardener = engine.get("p-hardener");
+    const parent = engine.get("p-cable");
+    expect(hardener?.displayPrice).toEqual({ minor: 15500, currency: "GHS" });
+    expect(parent?.displayPrice).toBeUndefined();
+    expect(catalogItemToSellView(hardener!).displayPrice).toEqual({ minor: 15500, currency: "GHS" });
+    expect(JSON.stringify(CASHIER_SEED_CATALOG)).not.toContain("unitPrice");
+    expect(JSON.stringify(CASHIER_SEED_CATALOG)).not.toContain("b2bPrice");
+  });
 });

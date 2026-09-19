@@ -17,6 +17,7 @@ export type CatalogSourceRecord = {
   readonly parentId?: Id;
   readonly variationLabel?: string;
   readonly displayPrice?: Money;
+  readonly purchasable?: boolean;
   readonly stockStatus: StockStatus;
   readonly sourceUpdatedAt: Timestamp;
   readonly deleted?: boolean;
@@ -41,4 +42,5 @@ export type ProjectedCatalogItem = CatalogItem & {
   readonly sourceVersion: string;
   readonly searchNormalized: string;
   readonly tombstoned: boolean;
+  readonly purchasable?: boolean;
 };

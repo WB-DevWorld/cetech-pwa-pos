@@ -4,7 +4,7 @@ import { bindPwaLifecycleEffects } from "./pwa-lifecycle-runtime";
 
 const layoutSource = readFileSync(new URL("./layout.tsx", import.meta.url), "utf8");
 const sellSource = readFileSync(new URL("./sell/page.tsx", import.meta.url), "utf8");
-const healthRuntimeSource = readFileSync(new URL("./health/health-runtime.tsx", import.meta.url), "utf8");
+const runtimeSource = readFileSync(new URL("./pwa-lifecycle-runtime.tsx", import.meta.url), "utf8");
 
 describe("PwaLifecycleRuntime shared authority", () => {
   test("root layout mounts the runtime for every POS route including /sell", () => {
@@ -13,7 +13,7 @@ describe("PwaLifecycleRuntime shared authority", () => {
     expect(sellSource).not.toContain("HealthRuntime");
   });
 
-  test("bindPwaLifecycleEffects starts once and Store Health does not start a second coordinator", () => {
+  test("bindPwaLifecycleEffects starts once and the shared runtime owns update-ready UI", () => {
     const start = vi.fn(async () => undefined);
     const stop = vi.fn();
     const unbind = bindPwaLifecycleEffects({
@@ -27,7 +27,8 @@ describe("PwaLifecycleRuntime shared authority", () => {
     expect(start).toHaveBeenCalledTimes(1);
     unbind();
     expect(stop).toHaveBeenCalledTimes(1);
-    expect(healthRuntimeSource).not.toContain("createSharedPwaLifecycle");
-    expect(healthRuntimeSource).not.toContain("createServiceWorkerLifecycle");
+    expect(runtimeSource).toContain("UpdateReadyDialog");
+    expect(runtimeSource).toContain("activateWaitingUpdate");
+    expect(runtimeSource).toContain("setInterval(refreshDecision, 2000)");
   });
 });

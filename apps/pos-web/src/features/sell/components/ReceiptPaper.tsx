@@ -1,5 +1,6 @@
 import { formatMoneyDisplay } from "../state/quotePresentation";
 import type { ReceiptViewModel } from "../state/checkoutSession";
+import { TechnicalDetails } from "../../../ui/cashier-language";
 
 export function ReceiptPaper({ receipt }: { receipt: ReceiptViewModel }) {
   return (
@@ -7,7 +8,7 @@ export function ReceiptPaper({ receipt }: { receipt: ReceiptViewModel }) {
       <h3>CETECH</h3>
       <div className="center">{receipt.locationName}</div>
       <div className="center">
-        <strong>OPERATIONAL POS RECEIPT</strong>
+        <strong>Receipt</strong>
       </div>
       <hr />
       <div className="r-row">
@@ -52,10 +53,12 @@ export function ReceiptPaper({ receipt }: { receipt: ReceiptViewModel }) {
         <span>Subtotal</span>
         <span>{formatMoneyDisplay(receipt.subtotal)}</span>
       </div>
-      <div className="r-row">
-        <span>Discount</span>
-        <span>{formatMoneyDisplay(receipt.discount)}</span>
-      </div>
+      {receipt.discount.minor !== 0 ? (
+        <div className="r-row">
+          <span>Discount</span>
+          <span>{formatMoneyDisplay(receipt.discount)}</span>
+        </div>
+      ) : null}
       <div className="r-row">
         <span>Tax</span>
         <span>{formatMoneyDisplay(receipt.tax)}</span>
@@ -77,16 +80,15 @@ export function ReceiptPaper({ receipt }: { receipt: ReceiptViewModel }) {
       ) : null}
       {receipt.changeDue ? (
         <div className="r-row">
-          <span>Change due</span>
+          <span>Change</span>
           <span>{formatMoneyDisplay(receipt.changeDue)}</span>
         </div>
       ) : null}
-      <div className="r-row">
-        <span>Transaction</span>
-        <span>{receipt.transactionId}</span>
-      </div>
+      {receipt.transactionId ? (
+        <TechnicalDetails rows={[{ label: "Sale reference", value: receipt.transactionId }]} />
+      ) : null}
       <hr />
-      <p className="center muted">This is an operational POS receipt, not a reconstructed cart total.</p>
+      <p className="center muted">Thank you.</p>
     </article>
   );
 }

@@ -7,10 +7,20 @@ export function SellModal({
   titleId,
   onClose,
   children,
+  showClose = false,
+  closeLabel = "Close",
+  closeDisabled = false,
+  size = "default",
+  focusKey,
 }: {
   titleId: string;
   onClose: () => void;
   children: ReactNode;
+  showClose?: boolean;
+  closeLabel?: string;
+  closeDisabled?: boolean;
+  size?: "default" | "payment";
+  focusKey?: string;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -26,14 +36,17 @@ export function SellModal({
       );
     }
 
-    const initial = focusables()[0];
-    initial?.focus();
+    const heading = root.querySelector<HTMLElement>(`#${titleId}`);
+    const primary = root.querySelector<HTMLElement>("[data-autofocus-primary]");
+    (primary ?? heading ?? focusables()[0])?.focus({ preventScroll: true });
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.preventDefault();
         event.stopPropagation();
-        onClose();
+        if (!closeDisabled) {
+          onClose();
+        }
         return;
       }
       if (event.key !== "Tab") return;
@@ -54,10 +67,27 @@ export function SellModal({
       document.removeEventListener("keydown", onKeyDown, true);
       previous?.focus();
     };
-  }, [onClose]);
+  }, [closeDisabled, focusKey, onClose, titleId]);
 
   return (
-    <dialog ref={dialogRef} className="sell-dialog" open aria-modal="true" aria-labelledby={titleId}>
+    <dialog
+      ref={dialogRef}
+      className={`sell-dialog${size === "payment" ? " payment-dialog" : ""}`}
+      open
+      aria-modal="true"
+      aria-labelledby={titleId}
+    >
+      {showClose ? (
+        <button
+          type="button"
+          className="dialog-close"
+          onClick={onClose}
+          disabled={closeDisabled}
+          aria-label={closeLabel}
+        >
+          ×
+        </button>
+      ) : null}
       {children}
     </dialog>
   );

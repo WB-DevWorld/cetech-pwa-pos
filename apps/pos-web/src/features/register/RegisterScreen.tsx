@@ -4,6 +4,7 @@ import { CloseShiftForm } from "./CloseShiftForm";
 import { OpenRegisterForm, type OpenRegisterFormProps } from "./OpenRegisterForm";
 import { formatMoneyDisplay } from "../sell/state/quotePresentation";
 import { describeShiftStatus, formatSignedMoneyDisplay, type ShiftWorkspaceView } from "./shiftView";
+import { TechnicalDetails } from "../../ui/cashier-language";
 
 export function RegisterScreen({
   openForm,
@@ -54,10 +55,11 @@ export function RegisterScreen({
       ) : null}
       {session.status === "open" ? (
         <section className="card card-pad">
-          <p className="muted">Shift {session.shiftId}</p>
+          <p className="muted">{session.registerName ?? "Shift open"}</p>
+          {session.shiftId ? <TechnicalDetails rows={[{ label: "Shift ID", value: session.shiftId }]} /> : null}
           {onShowXReport ? (
             <button type="button" className="btn" disabled={inFlight} onClick={onShowXReport}>
-              Show X report
+              View shift summary (X report)
             </button>
           ) : null}
         </section>
@@ -77,14 +79,14 @@ export function RegisterScreen({
               Request manager approval
             </button>
           ) : (
-            <span> Manager approval stays server-owned.</span>
+            <span> Manager approval is required.</span>
           )}
         </div>
       ) : null}
       {showClosed ? (
         <section className="card card-pad" data-shift-closed="">
           <div className="banner success" role="status">
-            Shift closed.
+            Shift closed successfully.
           </div>
           {session.countedCash ? (
             <div data-closed-counted="">
@@ -103,7 +105,7 @@ export function RegisterScreen({
       ) : null}
       {session.report && session.status === "closed" && session.report.kind === "Z" ? (
         <section className="card card-pad" data-z-report="">
-          <strong>Z report</strong>
+          <strong>End-of-shift report (Z report)</strong>
           <div>Expected {formatMoneyDisplay(session.report.expectedCash)}</div>
           {session.report.countedCash ? <div>Counted {formatMoneyDisplay(session.report.countedCash)}</div> : null}
           {session.report.variance ? <div>Variance {formatSignedMoneyDisplay(session.report.variance)}</div> : null}

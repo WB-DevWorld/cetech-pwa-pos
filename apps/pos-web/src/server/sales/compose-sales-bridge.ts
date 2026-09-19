@@ -1,6 +1,7 @@
 import type { ApiResult, SalesPort } from "../../../../../docs/contracts/ports";
 import type {
   BridgeFinalizeRequest,
+  CancelSaleRequest,
   CommandContext,
   PreparedSale,
   PrepareSaleRequest,
@@ -29,10 +30,14 @@ export function finalizeUrl(baseUrl: string): string {
   return `${bridgeRoot(baseUrl)}/wp-json/cetech-pos/v1/sales/finalize`;
 }
 
+export function cancelUrl(baseUrl: string): string {
+  return `${bridgeRoot(baseUrl)}/wp-json/cetech-pos/v1/sales/cancel`;
+}
+
 export function composeSalesBridge(
   env: Readonly<Record<string, string | undefined>>,
   fetchImpl: PosRestFetch | undefined,
-): Pick<SalesPort, "prepare" | "resolve" | "confirmPayment"> | undefined {
+): Pick<SalesPort, "prepare" | "resolve" | "confirmPayment" | "cancel"> | undefined {
   const identity = readBridgeServiceEnv(env);
   if (!identity || !fetchImpl) {
     return undefined;
@@ -124,6 +129,16 @@ export function composeSalesBridge(
     ): Promise<ApiResult<SaleResolution>> {
       return postJson(
         finalizeUrl(root),
+        context.correlationId,
+        context.idempotencyKey,
+        input,
+        isSaleResolution,
+        "sales bridge returned an invalid SaleResolution",
+      );
+    },
+    async cancel(input: CancelSaleRequest, context: CommandContext): Promise<ApiResult<SaleResolution>> {
+      return postJson(
+        cancelUrl(root),
         context.correlationId,
         context.idempotencyKey,
         input,

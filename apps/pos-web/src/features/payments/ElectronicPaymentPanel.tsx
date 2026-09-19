@@ -44,12 +44,12 @@ export function ElectronicPaymentPanel({
       {showWarning ? (
         <div className="banner warning payment-do-not-charge" role="alert">
           <strong>Do not charge again.</strong>
-          <span>Resolve this payment identity. Do not present a replacement tender.</span>
+          <span>{"We're checking this payment. Do not start another payment."}</span>
         </div>
       ) : null}
       {session.browserCallbackIsNotTruth ? (
         <div className="banner warning" role="alert">
-          A browser or provider callback is not payment truth.
+          {"We haven't confirmed this payment yet. Do not charge again while we check its status."}
         </div>
       ) : null}
       {session.displayReference ? (
@@ -59,7 +59,7 @@ export function ElectronicPaymentPanel({
       ) : null}
       {session.presentAllowed && !session.doNotChargeAgain ? (
         <div className="field">
-          <label htmlFor="electronic-tender">Tender</label>
+          <label htmlFor="electronic-tender">Payment method</label>
           <select
             id="electronic-tender"
             className="select"
@@ -78,7 +78,7 @@ export function ElectronicPaymentPanel({
       <div className="dialog-actions">
         {session.presentAllowed && !session.doNotChargeAgain ? (
           <button type="button" className="btn primary" disabled={inFlight} onClick={onPresent}>
-            Present payment
+            Start payment
           </button>
         ) : null}
         {session.resolveAllowed ? (

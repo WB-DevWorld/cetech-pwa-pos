@@ -1,5 +1,1 @@
-import { PosApp } from "../pos-app";
-
-export default function CustomersPage() {
-  return <PosApp route="customers" />;
-}
+export { default } from "../pos-route-slot";

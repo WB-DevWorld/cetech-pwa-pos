@@ -1,13 +1,20 @@
 import "@/ui/tokens.css";
 import "@/ui/shell/shell.css";
+import "@/ui/workspace.css";
+import "@/ui/operational/operational.css";
+import "@/ui/toast/toast.css";
 import "@/features/sell/sell.css";
 import "@/features/returns/returns.css";
 import "@/features/register/register.css";
-import "@/features/health/health.css";
+import "@/features/auth/auth.css";
+import "@/features/orders/orders.css";
+import "@/features/customers/customers.css";
+import "@/features/settings/settings.css";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { readServerEnv } from "../config/env";
 import { readReleasePolicy } from "../config/release-policy";
+import { PosSessionProvider } from "./pos-session-provider";
 import { PwaLifecycleRuntime } from "./pwa-lifecycle-runtime";
 import "./globals.css";
 
@@ -23,7 +30,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body>
         <PwaLifecycleRuntime appBuild={env.buildId} initialReleasePolicy={initialReleasePolicy}>
-          {children}
+          <PosSessionProvider>{children}</PosSessionProvider>
         </PwaLifecycleRuntime>
       </body>
     </html>

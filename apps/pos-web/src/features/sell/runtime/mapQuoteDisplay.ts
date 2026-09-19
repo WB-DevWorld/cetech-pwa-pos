@@ -1,5 +1,11 @@
 import type { Quote, QuoteState } from "../../../../../../docs/contracts/domain.generated";
-import { INTEGRATION_UNAVAILABLE, type QuoteDisplayState, type QuotePresentationSnapshot } from "../state/quotePresentation";
+import {
+  INTEGRATION_UNAVAILABLE,
+  isFailedQuoteCode,
+  type QuoteDisplayState,
+  type QuotePresentationLine,
+  type QuotePresentationSnapshot,
+} from "../state/quotePresentation";
 
 export function quoteToPresentationSnapshot(quote: Quote): QuotePresentationSnapshot {
   return {
@@ -7,6 +13,13 @@ export function quoteToPresentationSnapshot(quote: Quote): QuotePresentationSnap
     subtotal: quote.subtotal,
     discount: quote.discount,
     tax: quote.tax,
+    lines: quote.lines.map(
+      (line): QuotePresentationLine => ({
+        lineId: line.lineId,
+        unitPrice: line.unitPrice,
+        total: line.total,
+      }),
+    ),
   };
 }
 
@@ -32,7 +45,7 @@ export function quoteStateToDisplay(state: QuoteState): QuoteDisplayState {
       return {
         status: "failed",
         revision: state.revision,
-        code: INTEGRATION_UNAVAILABLE,
+        code: isFailedQuoteCode(state.code) ? state.code : INTEGRATION_UNAVAILABLE,
         message: state.message,
       };
   }

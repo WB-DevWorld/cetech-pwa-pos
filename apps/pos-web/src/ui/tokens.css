@@ -68,6 +68,36 @@ html[data-theme="dark"] {
   color-scheme: dark;
 }
 
+html[data-theme="light"] {
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) {
+    --color-bg: #0f141d;
+    --color-surface: #171e29;
+    --color-surface-2: #202938;
+    --color-surface-3: #2a3547;
+    --color-text: #f3f6fa;
+    --color-text-muted: #aab5c5;
+    --color-border: #344257;
+    --color-primary: #79a8ff;
+    --color-primary-hover: #9bc0ff;
+    --color-primary-soft: #20385f;
+    --color-success: #75d7a4;
+    --color-success-soft: #173c2a;
+    --color-warning: #ffc45d;
+    --color-warning-soft: #493817;
+    --color-danger: #ff9b94;
+    --color-danger-soft: #4f2525;
+    --color-info: #9bc0ff;
+    --color-info-soft: #20385f;
+    --shadow-sm: none;
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+    color-scheme: dark;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -177,10 +207,16 @@ button:disabled {
   width: 100%;
 }
 
-.btn.small {
-  min-height: var(--touch);
-  padding: 5px 9px;
-  font-size: 13px;
+.btn.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+.btn.ghost:hover:not(:disabled) {
+  background: var(--color-surface-2);
+  color: var(--color-text);
 }
 
 .pay-btn {
