@@ -1,19 +1,10 @@
 # Current work ledger
 
-Updated 2026-09-18. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
+Updated 2026-09-19. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
 
-## Temporary senior UX-02 closeout (expires at staging-integration handoff)
+## Temporary senior UX-02 closeout — EXPIRED / CLOSED
 
-Senior/user `@wbdevworld` is temporary integration/implementation authority for the remaining UX-02 Sell alignment closeout on `ws1/ux-02-sell-demo-alignment` only. This does not permanently change OWNERSHIP.md.
-
-Authorized for this branch/task only:
-- existing WS1 UX-02 Sell presentation (`apps/pos-web/src/features/**`, `tests/frontend/**`, WS1 STATUS/HANDOFF);
-- advisory catalog `displayPrice` producer (`wordpress/cetech-pos-bridge/**`, `tests/bridge/test-catalog.php`);
-- provider-neutral catalog mapping (`apps/pos-web/src/server/catalog/map-bridge-catalog.ts` and associated catalog tests);
-- local/test cashier-seed advisory list prices where synthetic catalog is permitted;
-- directly necessary Sell E2E assertions (`apps/pos-web/e2e/**`).
-
-Forbidden: unrelated WS2/WS3 implementation; B2BKing/WoodMart/customer-specific catalog pricing; protected `main`; production promotion; shared `batch/stg-01-staging-runtime-acceptance` edits. Exception expires when this branch is handed off for staging integration.
+Closed on `ws1/ux-02-sell-demo-alignment` after the variable-parent advisory-price review remediation. Implementation SHA `6409d4264ad67184d100a3a9c806deebe9236ad9`. This exception is no longer current assignment authority. OWNERSHIP.md is unchanged. Do not treat this as permission for further WS1/WS2/WS3 cross-ownership work.
 
 ## Current authority
 

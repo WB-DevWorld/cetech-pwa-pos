@@ -1,3 +1,78 @@
+# WS1 current handoff — UX-02 variable-parent advisory-price review remediation (TASK_COMPLETION FRESH_2)
+
+Kind / UTC: TASK_COMPLETION / 2026-09-19T05:05:00Z
+Handoff kind: REVIEW_FIX_RETURN
+Task / batch / workstream: UX-02 / variable-parent advisory displayPrice safety / WS1 with temporary senior WS2 path authorization now EXPIRED
+Owner / integration editor / requested human reviewer: Senior/user `@wbdevworld` for this bounded review fix only. WS3 independently reviews/imports. Do not self-approve. Do not merge.
+Branch: `ws1/ux-02-sell-demo-alignment`
+Starting/base SHA: `cd4f1aed0bbb5d2deb89948c53fb1b8f27f06378`
+Pre-handoff implementation SHA: `6409d4264ad67184d100a3a9c806deebe9236ad9`
+Commit(s) / contributor source SHAs: `72561d0424029bfb93878d87a721c52a00810c0b`, `6409d4264ad67184d100a3a9c806deebe9236ad9`
+Allowed / forbidden paths and central leases: WordPress catalog engine + `tests/bridge/test-catalog.php`; CURRENT-WORK exception close; this workstream STATUS/HANDOFF. Forbidden: unrelated Sell redesign; `/quotes` changes; B2BKing/WoodMart/customer-specific catalog pricing; protected `main`; production; shared `batch/stg-01-staging-runtime-acceptance`.
+Files changed: `class-catalog-engine.php` variable-parent advisory price; bridge catalog tests; CURRENT-WORK exception closed; this STATUS/HANDOFF.
+Contracts changed: none
+Database migrations: none
+Architecture decisions: none
+Completed/current/remaining tasks: review finding remediated. Temporary senior UX-02 assignment EXPIRED / CLOSED. Remaining: WS3 staging import; deployed staging visual acceptance; numeric stock; commercial badge metadata.
+Dependencies (accepted / provisional SHA / prep-only / blocked): reviewed remote head `cd4f1aed0bbb5d2deb89948c53fb1b8f27f06378`. Batch `origin/batch/stg-01-staging-runtime-acceptance` `7918bafc4163f4919bad6da8ae1f5de9bed30558`. `origin/main` `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` is an ancestor; not consumed.
+Tests executed:
+- `php tests/bridge/run.php` → 1742 passed, 0 failed, exit 0
+- `python scripts/verify_control_plane.py` → PASS (exit 0)
+- `pnpm --dir apps/pos-web lint` → exit 0
+- `pnpm --dir apps/pos-web typecheck` → exit 0
+- `pnpm --dir apps/pos-web test` → 95 files, 801 passed, exit 0
+- `pnpm --dir apps/pos-web build` → exit 0
+- `pnpm --dir apps/pos-web test:e2e` → 14 passed, exit 0
+- `pnpm --dir apps/pos-web exec playwright test --config ../../tests/frontend/visual/playwright.config.ts` → 19 passed, exit 0
+- `git diff --check` → clean
+Runtime verification and tested combined SHA/environment: required suite on `6409d4264ad67184d100a3a9c806deebe9236ad9`. Not live Woo quote, Paystack, or deployed staging visual acceptance.
+Remote effects performed: contributor branch push follows this evidence commit.
+Assumptions / limitations / unresolved risks: variable-parent `displayPrice` is omitted unless every visible child’s raw `get_price('edit')` is the same safe GHS minor amount. `/quotes` unchanged. Durable identity persist still nulls display prices.
+Next exact action: WS3 independently reviews/imports `6409d4264ad67184d100a3a9c806deebe9236ad9`. Reassignment: NONE (exception expired).
+
+Freshness protocol:
+START_FRESHNESS_SNAPSHOT UTC: 2026-09-19T04:57:00Z
+Start main SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Start batch ref/SHA: `origin/batch/stg-01-staging-runtime-acceptance` `7918bafc4163f4919bad6da8ae1f5de9bed30558`
+Applicable contracts / ADRs / ownership / queue revision: frozen v1.0.0; ADR-012; ADR-014; UX-02 review remediation of `cd4f1aed0bbb5d2deb89948c53fb1b8f27f06378`
+
+Pass 1 fetch UTC / success evidence: 2026-09-19T05:05:00Z `git fetch origin --prune` succeeded
+Pass 1 main SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Pass 1 batch SHA: `7918bafc4163f4919bad6da8ae1f5de9bed30558`
+Relevant upstream paths and dependency/authority effects: `origin/main` is an ancestor of HEAD; batch tip equals start SHA and is an ancestor of HEAD
+Classification per change: main — IRRELEVANT (SAME). Batch — SAME / COMPATIBLE.
+Actions taken / reconciliation commits: none
+Tests rerun / tested combined SHA: required suite on `6409d4264ad67184d100a3a9c806deebe9236ad9`
+
+Pass 2 fetch UTC / success evidence: same fetch as Pass 1 immediately after implementation commit; no later arrivals at time of writing
+Pass 2 main SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Pass 2 batch SHA: `7918bafc4163f4919bad6da8ae1f5de9bed30558`
+Relevant upstream paths and dependency/authority effects: none
+Classification per change: no arrivals — IRRELEVANT on main; SAME / COMPATIBLE on batch
+Actions taken / reconciliation commits: none
+Tests rerun / tested combined SHA: no upstream arrivals; tested SHA remains `6409d4264ad67184d100a3a9c806deebe9236ad9`
+
+Final freshness status: FRESH_2
+Delivery status: READY_FOR_INTEGRATION
+Final task head SHA: recorded after this evidence commit in the session report (cannot be embedded in its own commit)
+Known post-cutoff risk / integration editor follow-up: import `6409d4264ad67184d100a3a9c806deebe9236ad9`; do not restore `get_variation_price` for catalog displayPrice
+Pass 3: NOT PERMITTED for this assignment.
+Review/merge/release status and limitations: not merged; `main` not modified; shared batch branch not edited; no production promotion.
+Metrics delta for CURRENT-WORK: UX-02 temporary assignment marked EXPIRED / CLOSED.
+
+Acting human / workstream / mode: senior/user `@wbdevworld` / temporary review-fix authority / IMPLEMENT
+Declared task owner / actual implementing human / workstream: Ben / `@Ben-001-sys` remains WS1 owner; this review fix is a temporary senior exception now expired
+Source contributor branch / full source SHA(s): `ws1/ux-02-sell-demo-alignment` / `6409d4264ad67184d100a3a9c806deebe9236ad9`
+Imported SHA(s) / exact tested combined integration SHA: none / `6409d4264ad67184d100a3a9c806deebe9236ad9`
+Receiving human / workstream / acknowledgment checkpoint: WS3 / senior integration editor
+Review finding / severity / owning task / fix source/import SHAs: variable-parent `get_variation_price` is filterable; UX-02; fix `6409d4264ad67184d100a3a9c806deebe9236ad9`
+Explicit senior reassignment authority / scope / expiry: EXPIRED / CLOSED at this replacement handoff
+Remote effects allowed (not inferred from this handoff): contributor branch push of `ws1/ux-02-sell-demo-alignment`
+Next exact action for receiving owner: review/import `6409d4264ad67184d100a3a9c806deebe9236ad9`; keep POST `/quotes` authoritative; do not treat this as production approval
+Other independently authorized same-owner work: WAITING_FOR_OWNER
+
+## Previous current handoff — UX-02 Sell alignment closeout (TASK_COMPLETION FRESH_2)
+
 # WS1 current handoff — UX-02 Sell alignment closeout (TASK_COMPLETION FRESH_2)
 
 Kind / UTC: TASK_COMPLETION / 2026-09-18T23:45:00Z

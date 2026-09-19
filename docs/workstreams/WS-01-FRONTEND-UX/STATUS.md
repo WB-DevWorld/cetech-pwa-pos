@@ -1,5 +1,11 @@
 # WS1 current status
 
+Snapshot 2026-09-19. UX-02 variable-parent advisory-price review remediation on `ws1/ux-02-sell-demo-alignment`. Reviewed remote head `cd4f1aed0bbb5d2deb89948c53fb1b8f27f06378`. Correction implementation SHA `6409d4264ad67184d100a3a9c806deebe9236ad9` (engine `72561d0424029bfb93878d87a721c52a00810c0b`). Variable parents now omit `displayPrice` unless every visible child’s raw `get_price('edit')` converts to the same GHS minor amount. Filtered `get_variation_price*` is not used. Temporary senior UX-02 exception is EXPIRED / CLOSED. Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION**. Do not merge; do not modify `main`; do not edit the shared batch branch.
+
+## Previous snapshot (historical; current section above controls)
+
+# WS1 current status
+
 Snapshot 2026-09-18. UX-02 Sell alignment closeout on `ws1/ux-02-sell-demo-alignment` from start SHA `7918bafc4163f4919bad6da8ae1f5de9bed30558` (`origin/batch/stg-01-staging-runtime-acceptance`). Previous UI implementation SHA `da5eaa33907576c61e1deebfc01bfe38bfd7a772`. Closeout implementation SHA `b93549aa761a47c962997089b9842d73e808cfef`. This closeout adds Woo stored ordinary/base `displayPrice` through the bridge producer, provider-neutral mapper, local cashier-seed advisory list prices, and Sell cards. `CatalogItem.displayPrice` remains advisory; `/quotes` and prepare/finalize remain authoritative. Numeric availability is still absent. Commercial badge metadata is still absent. Durable Postgres catalog identity rows still null display prices. Deployed staging visual acceptance was not performed. Temporary senior reassignment for this branch expires at staging-integration handoff. Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION**. Do not merge; do not modify `main`; do not edit the shared batch branch.
 
 ## Previous snapshot (historical; current section above controls)
