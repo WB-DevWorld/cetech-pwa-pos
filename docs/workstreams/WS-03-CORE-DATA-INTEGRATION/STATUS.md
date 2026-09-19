@@ -1,8 +1,22 @@
 # WS3 current status
 
-Snapshot 2026-09-18. Protected `main` `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` is accepted/merged R8 PR #69. STG-01 / #70 remains the active P0 recovery gate. R9 PR #63 must not merge while STG-01 is open.
+Snapshot 2026-09-19. Protected `main` `c320be8c5ad41c190200381cd52f853dd95212dc`. Controlling assignment for this checkout is the bounded CD-01 exact-SHA Preview authority in CURRENT-WORK.md. This does not permanently alter OWNERSHIP.md.
 
-## Active contributor assignment
+## Active contributor assignment (this checkout)
+
+Mode: IMPLEMENT / INFRASTRUCTURE SECURITY REMEDIATION. Owner `@wbdevworld` / WS3.
+Task: CD-01 exact-SHA immutable Preview deployment authority (issue #64 authorized extension).
+Branch: `ws3/exact-sha-preview` / PR #81.
+Allowed: `.github/workflows/deploy-exact-sha-preview.yml`, `scripts/exact_sha_preview.py`, `docs/runbooks/CD-01-STAGING-DEPLOYMENT.md`, `tests/tooling/**`, CURRENT-WORK.md, this status record, issue #64 scope record.
+Forbidden: PR #80 source; application/runtime/bridge changes; production promotion; `--prod`; production or shared-staging alias movement; live payment/refund/restock; VitePOS cutover; secret exposure; self-merge.
+Independent reviewer: `@Ben-001-sys`. `@Emmanuel-coder-prog` is unavailable today and is not a current action.
+Do not merge #81. Do not dispatch Preview from this status file.
+
+## Prior snapshot 2026-09-18 (retained)
+
+Protected `main` `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` is accepted/merged R8 PR #69. STG-01 / #70 remains the active P0 recovery gate. R9 PR #63 must not merge while STG-01 is open.
+
+## Prior contributor assignment (STG-06, retained)
 
 Mode: REMEDIATE. Owner `@wbdevworld` / WS3.
 Branch: `ws3/stg-06-quote-identity-register-authority` from exact start `a02cd21875d0717adb6694d293b41575302b2415`.
