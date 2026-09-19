@@ -129,34 +129,24 @@ final class Cetech_Pos_Bridge_Catalog_Engine {
 
 	/**
 	 * Advisory/public/base current price from Woo's stored product value.
-	 * Uses get_price('edit') so view filters (customer/B2B/qty hooks) are not applied.
-	 * Variable parents emit a price only when min and max variation prices are identical.
+	 * Simple products and sellable variations use get_price('edit') so view filters
+	 * (customer/B2B/qty hooks) are not applied.
+	 * Variable parents never use get_variation_price / get_variation_prices.
+	 * They emit a price only when every visible child variation's raw edit price
+	 * converts to the same GHS minor amount.
 	 *
 	 * @param object $product
 	 * @param string $kind
 	 * @return array{minor:int,currency:string}|null
 	 */
 	private static function advisory_display_price( $product, $kind ) {
-		$raw = null;
 		if ( $kind === 'variable' ) {
-			if ( ! method_exists( $product, 'get_variation_price' ) ) {
-				return null;
-			}
-			$min_raw = self::normalize_woo_decimal( $product->get_variation_price( 'min', false ) );
-			$max_raw = self::normalize_woo_decimal( $product->get_variation_price( 'max', false ) );
-			if ( $min_raw === null || $max_raw === null ) {
-				return null;
-			}
-			$min = Cetech_Pos_Bridge_Money::from_decimal_string( $min_raw, Cetech_Pos_Bridge_Constants::SETTLEMENT_CURRENCY );
-			$max = Cetech_Pos_Bridge_Money::from_decimal_string( $max_raw, Cetech_Pos_Bridge_Constants::SETTLEMENT_CURRENCY );
-			if ( $min === null || $max === null || $min !== $max ) {
-				return null;
-			}
-			return Cetech_Pos_Bridge_Money::envelope( $min );
+			return self::variable_parent_advisory_display_price( $product );
 		}
-		if ( method_exists( $product, 'get_price' ) ) {
-			$raw = self::normalize_woo_decimal( $product->get_price( 'edit' ) );
+		if ( ! method_exists( $product, 'get_price' ) ) {
+			return null;
 		}
+		$raw = self::normalize_woo_decimal( $product->get_price( 'edit' ) );
 		if ( $raw === null ) {
 			return null;
 		}
@@ -165,6 +155,86 @@ final class Cetech_Pos_Bridge_Catalog_Engine {
 			return null;
 		}
 		return Cetech_Pos_Bridge_Money::envelope( $minor );
+	}
+
+	/**
+	 * @param object $product
+	 * @return array{minor:int,currency:string}|null
+	 */
+	private static function variable_parent_advisory_display_price( $product ) {
+		$ids = self::visible_variation_ids( $product );
+		if ( $ids === null || count( $ids ) === 0 ) {
+			return null;
+		}
+		$uniform = null;
+		foreach ( $ids as $id ) {
+			$variation = self::load_catalog_product( $id );
+			if ( ! is_object( $variation ) || ! method_exists( $variation, 'get_price' ) ) {
+				return null;
+			}
+			$raw = self::normalize_woo_decimal( $variation->get_price( 'edit' ) );
+			if ( $raw === null ) {
+				return null;
+			}
+			$minor = Cetech_Pos_Bridge_Money::from_decimal_string( $raw, Cetech_Pos_Bridge_Constants::SETTLEMENT_CURRENCY );
+			if ( $minor === null ) {
+				return null;
+			}
+			if ( $uniform === null ) {
+				$uniform = $minor;
+				continue;
+			}
+			if ( $uniform !== $minor ) {
+				return null;
+			}
+		}
+		if ( $uniform === null ) {
+			return null;
+		}
+		return Cetech_Pos_Bridge_Money::envelope( $uniform );
+	}
+
+	/**
+	 * Visible/sellable variation identity only. Does not read priced aggregates.
+	 *
+	 * @param object $product
+	 * @return array<int,int>|null
+	 */
+	private static function visible_variation_ids( $product ) {
+		$raw_ids = null;
+		if ( method_exists( $product, 'get_visible_children' ) ) {
+			$raw_ids = $product->get_visible_children();
+		} elseif ( method_exists( $product, 'get_children' ) ) {
+			$raw_ids = $product->get_children();
+		}
+		if ( ! is_array( $raw_ids ) || count( $raw_ids ) === 0 ) {
+			return null;
+		}
+		$ids = array();
+		foreach ( $raw_ids as $id ) {
+			if ( is_int( $id ) && $id > 0 ) {
+				$ids[] = $id;
+				continue;
+			}
+			if ( is_string( $id ) && preg_match( '/^[1-9][0-9]*$/', $id ) ) {
+				$ids[] = (int) $id;
+				continue;
+			}
+			return null;
+		}
+		return $ids;
+	}
+
+	/**
+	 * @param int $id
+	 * @return object|null
+	 */
+	private static function load_catalog_product( $id ) {
+		if ( ! function_exists( 'wc_get_product' ) ) {
+			return null;
+		}
+		$loaded = wc_get_product( $id );
+		return is_object( $loaded ) ? $loaded : null;
 	}
 
 	/**

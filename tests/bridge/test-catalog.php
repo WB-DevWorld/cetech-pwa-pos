@@ -15,11 +15,13 @@ final class Cetech_Pos_Bridge_Test_Catalog_Product {
 	public $attribute_summary = '';
 	/** @var array<string,string> */
 	public $attributes = array();
-	public $price                        = '';
-	public $variation_min_price          = '';
-	public $variation_max_price          = '';
-	public $price_context                = null;
-	public $variation_price_for_display  = null;
+	public $price               = '';
+	public $price_context       = null;
+	/** @var array<int,int> */
+	public $children = array();
+
+	public static $variation_price_calls  = 0;
+	public static $variation_prices_calls = 0;
 
 	public function get_id() {
 		return $this->id;
@@ -70,9 +72,26 @@ final class Cetech_Pos_Bridge_Test_Catalog_Product {
 		return $this->price;
 	}
 
+	public function get_visible_children() {
+		return $this->children;
+	}
+
+	public function get_children() {
+		return $this->children;
+	}
+
 	public function get_variation_price( $min_or_max = 'min', $for_display = false ) {
-		$this->variation_price_for_display = $for_display;
-		return $min_or_max === 'max' ? $this->variation_max_price : $this->variation_min_price;
+		unset( $min_or_max, $for_display );
+		self::$variation_price_calls++;
+		br01_assert( false, 'advisory catalog must not call get_variation_price' );
+		return '';
+	}
+
+	public function get_variation_prices( $for_display = false ) {
+		unset( $for_display );
+		self::$variation_prices_calls++;
+		br01_assert( false, 'advisory catalog must not call get_variation_prices' );
+		return array();
 	}
 }
 
@@ -82,7 +101,25 @@ function stg05_product( $id, $overrides = array() ) {
 	foreach ( $overrides as $key => $value ) {
 		$product->$key = $value;
 	}
+	if ( ! isset( $GLOBALS['cetech_pos_test_products'] ) || ! is_array( $GLOBALS['cetech_pos_test_products'] ) ) {
+		$GLOBALS['cetech_pos_test_products'] = array();
+	}
+	$GLOBALS['cetech_pos_test_products'][ (int) $id ] = $product;
 	return $product;
+}
+
+if ( ! function_exists( 'wc_get_product' ) ) {
+	/**
+	 * @param mixed $id
+	 * @return object|false
+	 */
+	function wc_get_product( $id ) {
+		$key = (int) $id;
+		if ( isset( $GLOBALS['cetech_pos_test_products'][ $key ] ) ) {
+			return $GLOBALS['cetech_pos_test_products'][ $key ];
+		}
+		return false;
+	}
 }
 
 function stg05_loader( $products ) {
@@ -172,30 +209,94 @@ $simple_invalid = stg05_product(
 		'price' => '12.345',
 	)
 );
+$variable_range_a = stg05_product(
+	214,
+	array(
+		'type'       => 'variation',
+		'parent_id'  => 210,
+		'name'       => 'Range Shirt - Small',
+		'sku'        => 'RANGE-S',
+		'price'      => '10.00',
+		'purchasable'=> true,
+	)
+);
+$variable_range_b = stg05_product(
+	215,
+	array(
+		'type'       => 'variation',
+		'parent_id'  => 210,
+		'name'       => 'Range Shirt - Large',
+		'sku'        => 'RANGE-L',
+		'price'      => '20.00',
+		'purchasable'=> true,
+	)
+);
 $variable_range = stg05_product(
 	210,
 	array(
-		'type'                 => 'variable',
-		'name'                 => 'Range Shirt',
-		'sku'                  => 'RANGE',
-		'purchasable'          => false,
-		'stock_status'         => 'instock',
-		'variation_min_price'  => '10.00',
-		'variation_max_price'  => '20.00',
-		'price'                => '10.00',
+		'type'         => 'variable',
+		'name'         => 'Range Shirt',
+		'sku'          => 'RANGE',
+		'purchasable'  => false,
+		'stock_status' => 'instock',
+		'price'        => '10.00',
+		'children'     => array( 214, 215 ),
+	)
+);
+$variable_uniform_a = stg05_product(
+	212,
+	array(
+		'type'       => 'variation',
+		'parent_id'  => 211,
+		'name'       => 'Uniform Shirt - Red',
+		'sku'        => 'UNIF-R',
+		'price'      => '12.50',
+		'purchasable'=> true,
+	)
+);
+$variable_uniform_b = stg05_product(
+	213,
+	array(
+		'type'       => 'variation',
+		'parent_id'  => 211,
+		'name'       => 'Uniform Shirt - Blue',
+		'sku'        => 'UNIF-B',
+		'price'      => '12.50',
+		'purchasable'=> true,
 	)
 );
 $variable_uniform = stg05_product(
 	211,
 	array(
-		'type'                 => 'variable',
-		'name'                 => 'Uniform Shirt',
-		'sku'                  => 'UNIF',
-		'purchasable'          => false,
-		'stock_status'         => 'instock',
-		'variation_min_price'  => '12.50',
-		'variation_max_price'  => '12.50',
-		'price'                => '99.00',
+		'type'         => 'variable',
+		'name'         => 'Uniform Shirt',
+		'sku'          => 'UNIF',
+		'purchasable'  => false,
+		'stock_status' => 'instock',
+		'price'        => '99.00',
+		'children'     => array( 212, 213 ),
+	)
+);
+$variable_unparseable_child = stg05_product(
+	216,
+	array(
+		'type'       => 'variation',
+		'parent_id'  => 220,
+		'name'       => 'Broken Shirt - Red',
+		'sku'        => 'BRK-R',
+		'price'      => '12.345',
+		'purchasable'=> true,
+	)
+);
+$variable_unparseable = stg05_product(
+	220,
+	array(
+		'type'         => 'variable',
+		'name'         => 'Broken Shirt',
+		'sku'          => 'BRK',
+		'purchasable'  => false,
+		'stock_status' => 'instock',
+		'children'     => array( 216 ),
 	)
 );
 $tombstone = stg05_product(
@@ -253,16 +354,27 @@ $mapped_variable = Cetech_Pos_Bridge_Catalog_Engine::map_product( $variable );
 br01_assert_eq( 'variable', $mapped_variable['kind'], 'variable parent kind' );
 br01_assert_eq( false, $mapped_variable['purchasable'], 'variable parent is not sold directly' );
 br01_assert( ! isset( $mapped_variable['sourceParentId'] ), 'variable parent has no sourceParentId' );
-br01_assert( ! isset( $mapped_variable['displayPrice'] ), 'variable parent without equal min/max omits displayPrice' );
+br01_assert( ! isset( $mapped_variable['displayPrice'] ), 'variable parent without priced children omits displayPrice' );
+br01_assert( $variable->price_context === null, 'variable parent does not use get_price as parent authority' );
 
 $mapped_range = Cetech_Pos_Bridge_Catalog_Engine::map_product( $variable_range );
-br01_assert( ! isset( $mapped_range['displayPrice'] ), 'unequal variation prices omit parent displayPrice' );
-br01_assert_eq( false, $variable_range->variation_price_for_display, 'variation prices are not for_display/B2B view amounts' );
-br01_assert( $variable_range->price_context === null, 'variable parent does not use get_price as parent authority' );
+br01_assert( ! isset( $mapped_range['displayPrice'] ), 'unequal raw child prices omit parent displayPrice' );
+br01_assert_eq( 'edit', $variable_range_a->price_context, 'range child A uses get_price edit context' );
+br01_assert_eq( 'edit', $variable_range_b->price_context, 'range child B uses get_price edit context' );
+br01_assert( $variable_range->price_context === null, 'range variable parent does not use get_price as parent authority' );
 
 $mapped_uniform = Cetech_Pos_Bridge_Catalog_Engine::map_product( $variable_uniform );
-br01_assert_eq( array( 'minor' => 1250, 'currency' => 'GHS' ), $mapped_uniform['displayPrice'], 'equal min/max variation prices map to parent advisory displayPrice' );
+br01_assert_eq( array( 'minor' => 1250, 'currency' => 'GHS' ), $mapped_uniform['displayPrice'], 'identical raw child edit prices map to parent advisory displayPrice' );
 br01_assert( $mapped_uniform['displayPrice']['minor'] !== 9900, 'parent get_price is not used as variable authority' );
+br01_assert_eq( 'edit', $variable_uniform_a->price_context, 'uniform child A uses get_price edit context' );
+br01_assert_eq( 'edit', $variable_uniform_b->price_context, 'uniform child B uses get_price edit context' );
+br01_assert( $variable_uniform->price_context === null, 'uniform variable parent does not use get_price as parent authority' );
+
+$mapped_unparseable = Cetech_Pos_Bridge_Catalog_Engine::map_product( $variable_unparseable );
+br01_assert( ! isset( $mapped_unparseable['displayPrice'] ), 'unparseable child price omits parent displayPrice' );
+
+br01_assert_eq( 0, Cetech_Pos_Bridge_Test_Catalog_Product::$variation_price_calls, 'advisory catalog never calls get_variation_price' );
+br01_assert_eq( 0, Cetech_Pos_Bridge_Test_Catalog_Product::$variation_prices_calls, 'advisory catalog never calls get_variation_prices' );
 
 $mapped_variation = Cetech_Pos_Bridge_Catalog_Engine::map_product( $variation );
 br01_assert_eq( 'variation', $mapped_variation['kind'], 'variation kind' );
@@ -278,13 +390,13 @@ br01_assert_eq( true, $mapped_tombstone['deleted'], 'trash is a tombstone' );
 br01_assert_eq( null, Cetech_Pos_Bridge_Catalog_Engine::map_product( $grouped ), 'grouped products are not catalog sellables' );
 
 $engine = stg05_engine(
-	array( $simple, $simple_priced, $simple_invalid, $variable, $variation, $variable_range, $variable_uniform, $tombstone, $grouped )
+	array( $simple, $simple_priced, $simple_invalid, $variable, $variation, $variable_range, $variable_range_a, $variable_range_b, $variable_uniform, $variable_uniform_a, $variable_uniform_b, $variable_unparseable, $variable_unparseable_child, $tombstone, $grouped )
 );
 $page   = $engine->page( null, 2, null );
 br01_assert_eq( 2, count( $page['items'] ), 'page respects limit' );
 br01_assert_eq( '101', $page['items'][0]['sourceItemId'], 'first page starts at lowest id' );
 br01_assert_eq( '102', $page['nextCursor'], 'nextCursor is last included sourceItemId' );
-$page2 = $engine->page( '200', 10, null );
+$page2 = $engine->page( '200', 20, null );
 br01_assert_eq( '201', $page2['items'][0]['sourceItemId'], 'cursor is exclusive' );
 br01_assert_eq( null, $page2['nextCursor'], 'final page has no nextCursor' );
 
@@ -296,7 +408,7 @@ br01_assert_eq( 'AUTH_REQUIRED', $unauth_payload['error']['code'], 'catalog AUTH
 $success = stg05_dispatch(
 	$engine,
 	array( 'X-Correlation-ID' => $catalog_correlation ),
-	array( 'limit' => '10' )
+	array( 'limit' => '25' )
 );
 $success_payload = br01_payload( $success );
 br01_assert_eq( 200, br01_status( $success ), 'authorized catalog HTTP 200' );
@@ -319,6 +431,9 @@ br01_assert( ! isset( $http_by_id['103']['displayPrice'] ), 'HTTP invalid price 
 br01_assert_eq( array( 'minor' => 1250, 'currency' => 'GHS' ), $http_by_id['201']['displayPrice'], 'HTTP variation emits its advisory displayPrice' );
 br01_assert( ! isset( $http_by_id['210']['displayPrice'] ), 'HTTP range variable omits parent displayPrice' );
 br01_assert_eq( array( 'minor' => 1250, 'currency' => 'GHS' ), $http_by_id['211']['displayPrice'], 'HTTP uniform variable emits parent displayPrice' );
+br01_assert( ! isset( $http_by_id['220']['displayPrice'] ), 'HTTP unparseable-child variable omits parent displayPrice' );
+br01_assert_eq( 0, Cetech_Pos_Bridge_Test_Catalog_Product::$variation_price_calls, 'HTTP catalog path never calls get_variation_price' );
+br01_assert_eq( 0, Cetech_Pos_Bridge_Test_Catalog_Product::$variation_prices_calls, 'HTTP catalog path never calls get_variation_prices' );
 $encoded = json_encode( $success_payload );
 br01_assert( strpos( $encoded, 'cetech_pos_bridge_access' ) === false, 'catalog success does not leak capability name' );
 br01_assert( stripos( $encoded, 'password' ) === false, 'catalog success has no password field' );
