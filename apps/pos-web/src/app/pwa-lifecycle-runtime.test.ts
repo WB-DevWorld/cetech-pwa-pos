@@ -9,7 +9,7 @@ const runtimeSource = readFileSync(new URL("./pwa-lifecycle-runtime.tsx", import
 describe("PwaLifecycleRuntime shared authority", () => {
   test("root layout mounts the runtime for every POS route including /sell", () => {
     expect(layoutSource).toContain("<PwaLifecycleRuntime");
-    expect(sellSource).toContain('PosApp route="sell"');
+    expect(sellSource).toContain("pos-route-slot");
     expect(sellSource).not.toContain("HealthRuntime");
   });
 
