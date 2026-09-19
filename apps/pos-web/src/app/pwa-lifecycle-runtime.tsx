@@ -56,7 +56,10 @@ export function PwaLifecycleRuntime({
         appBuild,
         initialReleasePolicy,
         onReleasePolicy: setReleasePolicy,
-        onUpdateReady: () => setUpdateReady(true),
+        onUpdateReady: () => {
+          setUpdateDialogDismissed(false);
+          setUpdateReady(true);
+        },
       }),
     [appBuild, initialReleasePolicy, ownerId],
   );
@@ -67,8 +70,6 @@ export function PwaLifecycleRuntime({
 
   useEffect(() => {
     if (!updateReady) {
-      setActivationDecision(null);
-      setUpdateDialogDismissed(false);
       return;
     }
     let cancelled = false;
