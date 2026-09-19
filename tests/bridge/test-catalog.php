@@ -334,6 +334,8 @@ br01_assert( ! isset( $mapped_simple['unitPrice'] ), 'producer omits unitPrice' 
 br01_assert( ! isset( $mapped_simple['price'] ), 'producer omits generic price key' );
 br01_assert( ! isset( $mapped_simple['b2bPrice'] ), 'producer omits b2bPrice' );
 br01_assert( ! isset( $mapped_simple['woodmartPrice'] ), 'producer omits woodmartPrice' );
+br01_assert( ! isset( $mapped_simple['customerPrice'] ), 'producer omits customerPrice' );
+br01_assert( ! isset( $mapped_simple['effectivePrice'] ), 'producer omits effectivePrice' );
 br01_assert( ! isset( $mapped_simple['regularPrice'] ), 'producer omits regularPrice' );
 br01_assert( ! isset( $mapped_simple['salePrice'] ), 'producer omits salePrice' );
 
@@ -423,6 +425,8 @@ foreach ( $success_payload['data']['items'] as $row ) {
 	br01_assert( ! isset( $row['price'] ), 'HTTP catalog omits generic price key' );
 	br01_assert( ! isset( $row['b2bPrice'] ), 'HTTP catalog omits b2bPrice' );
 	br01_assert( ! isset( $row['woodmartPrice'] ), 'HTTP catalog omits woodmartPrice' );
+	br01_assert( ! isset( $row['customerPrice'] ), 'HTTP catalog omits customerPrice' );
+	br01_assert( ! isset( $row['effectivePrice'] ), 'HTTP catalog omits effectivePrice' );
 	$http_by_id[ $row['sourceItemId'] ] = $row;
 }
 br01_assert( ! isset( $http_by_id['101']['displayPrice'] ), 'HTTP unpriced simple omits displayPrice' );
