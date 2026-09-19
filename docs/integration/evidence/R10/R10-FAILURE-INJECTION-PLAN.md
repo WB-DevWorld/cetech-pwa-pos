@@ -44,7 +44,7 @@ Expected:
 - retry does not create another order;
 - stock/reservation effect is not repeated.
 
-Existing R6 automated evidence covers the algorithm. STG-01 must provide current production-intent runtime evidence.
+Existing R6 automated evidence covers the algorithm. STG-01 now provides the accepted production-intent happy-path runtime baseline on PR #77 / main `c320be8c5ad41c190200381cd52f853dd95212dc`; R10 still must execute the lost-response injection on the final candidate.
 
 ### FI-SALE-03 — quote/stock changes immediately before prepare
 
@@ -57,7 +57,7 @@ Expected:
 - cashier must review the changed sale;
 - old quote cannot force stale economics.
 
-Requires accepted STG-01 authoritative quote/catalog path.
+Uses the accepted STG-01 authoritative quote/catalog path as its baseline. The affected pricing case cannot be qualified while `pricingParityVerified=false`; R10 must execute this mutation/review scenario on the final candidate once the relevant parity gate is green.
 
 ## Cash/finalization
 

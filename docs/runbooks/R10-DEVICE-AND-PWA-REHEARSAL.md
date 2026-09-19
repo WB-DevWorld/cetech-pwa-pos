@@ -2,7 +2,7 @@
 
 Status: **PREPARED — DO NOT CLAIM PASS UNTIL EXECUTED**
 
-This procedure supports QA-01 and R9/R10 evidence. It does not replace R9 acceptance and must not be used to merge R9 while STG-01 is unresolved.
+This procedure supports QA-01 and R9/R10 evidence. It does not replace R9 acceptance. STG-01 is now the accepted runtime baseline; this procedure must still be executed for the R9 installed-client/update/reconnect/multi-tab gates.
 
 ## Required targets
 
@@ -18,7 +18,7 @@ Record exact model, OS/browser, installed PWA state and build ID. An unavailable
 ## Preconditions
 
 1. Candidate SHA is frozen and deployable to an authorized non-production environment.
-2. STG-01 application runtime is accepted for the path being exercised.
+2. Candidate includes the accepted STG-01 application-runtime baseline (`c320be8c...`) or a later verified successor for the path being exercised.
 3. No live payment/refund/restock is enabled merely for this rehearsal.
 4. A known test cashier/register/shift and synthetic commerce fixture are available.
 5. Evidence template is copied and populated before external effects.

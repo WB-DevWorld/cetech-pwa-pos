@@ -2,7 +2,7 @@
 
 Status: **PREPARED — current decision is NO-GO until the listed runtime gates are satisfied**
 
-This sheet is the release-decision summary for QA-01 / REL-01. It does not override the detailed evidence, CP-04, STG-01, R9, business/fiscal decisions or human production approval.
+This sheet is the release-decision summary for QA-01 / REL-01. It does not override the detailed evidence, CP-04, the accepted STG-01 baseline, R9, business/fiscal decisions or human production approval.
 
 ## Decision rule
 
@@ -17,8 +17,8 @@ Any unresolved financial, stock, authorization, durable-state or rollback safety
 
 | Gate | Current preparation status | GO requirement |
 | --- | --- | --- |
-| Protected main baseline | R8 merged at preparation base | Final release candidate must identify exact accepted SHA and include later accepted prerequisites |
-| STG-01 production-intent staging runtime | PENDING_STG01 | Accepted session/CSRF/register/catalog/quote/cash-sale/receipt runtime trace |
+| Protected main baseline | STG-01 merged as `c320be8c5ad41c190200381cd52f853dd95212dc` | Final release candidate must identify exact accepted SHA and include later accepted prerequisites |
+| STG-01 production-intent staging runtime | ACCEPTED — issue #70 closed; PR #77 merged | Reuse the accepted runtime evidence for unchanged paths; repeat any path materially changed by the final candidate. `pricingParityVerified=false` remains a separate unresolved gate. |
 | R9 PWA/recovery/operational close | PENDING_R9 | Accepted installed-client/update/reconnect/multi-tab/Z-report evidence |
 | QA-01 automated qualification | IN PROGRESS on R10 prep branch | Exact final candidate suite green; no unresolved invariant blocker |
 | Payment safety | Historical R7 TEST evidence + automated coverage | Final-candidate regressions green; live mode remains disabled unless separately authorized |
@@ -89,7 +89,7 @@ NO-GO if:
 
 ## Staging acceptance
 
-Before production decision, the accepted staging candidate must prove at least:
+STG-01 already proved the baseline below on PR #77 / main `c320be8c5ad41c190200381cd52f853dd95212dc`. Before production decision, any later release candidate must re-prove the items materially affected by subsequent changes:
 
 1. real staff session;
 2. CSRF lifecycle;

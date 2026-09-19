@@ -18,11 +18,11 @@ This matrix converts QA-01 / #29 into explicit evidence rows. It deliberately se
 | --- | --- | --- | --- | --- |
 | Q-TX-PRE | Unauthorized or CSRF-invalid prepare cannot invoke Woo order creation or stock reservation | R10 prepare no-effect guards | Accepted staging negative-path proof | PREPARED |
 | Q-TX-00 | Unauthorized, CSRF-invalid, or payment-unverified finalization cannot invoke commercial completion or stock effect | R10 finalize no-effect guards | Accepted staging negative-path proof | PREPARED |
-| Q-TX-01 | Same prepare key + same body returns same sale/order | CORE-06/R6 evidence | Re-run on accepted staging candidate | PENDING_STG01 |
-| Q-TX-02 | Same prepare key + changed body conflicts; no second order | CORE-06/R6 evidence | Re-run on accepted staging candidate | PENDING_STG01 |
-| Q-TX-03 | Lost prepare response resolves existing order before any retry | CORE-06/R6 evidence | Functional staging trace | PENDING_STG01 |
-| Q-TX-04 | Duplicate finalize cannot repeat payment-complete/stock effect | CORE-06/R6 evidence | Functional staging trace | PENDING_STG01 |
-| Q-TX-05 | Price or stock change before prepare requires review before payment | Existing contracts/tests | Real authoritative staging path | PENDING_STG01 |
+| Q-TX-01 | Same prepare key + same body returns same sale/order | CORE-06/R6 evidence + accepted STG-01 happy-path baseline | Final-candidate duplicate/replay exercise | PREPARED |
+| Q-TX-02 | Same prepare key + changed body conflicts; no second order | CORE-06/R6 evidence + accepted STG-01 happy-path baseline | Final-candidate changed-request/idempotency conflict exercise | PREPARED |
+| Q-TX-03 | Lost prepare response resolves existing order before any retry | CORE-06/R6 recovery evidence + accepted STG-01 happy-path baseline | Final-candidate lost-response injection | PREPARED |
+| Q-TX-04 | Duplicate finalize cannot repeat payment-complete/stock effect | CORE-06/R6 evidence + accepted STG-01 happy-path baseline | Final-candidate duplicate-finalize/replay exercise | PREPARED |
+| Q-TX-05 | Price or stock change before prepare requires review before payment | Existing contracts/tests + accepted STG-01 authoritative quote/catalog baseline | Final-candidate quote/stock-change exercise; affected pricing case also requires `pricingParityVerified=true` | PREPARED |
 | Q-TX-06 | Woo unavailable before prepare means no payment starts | Existing fail-closed design | Failure injection on accepted staging candidate | PREPARED |
 | Q-TX-07 | Supabase/POS durable store unavailable prevents unsafe new tender | Existing design/tests | Failure injection on accepted staging candidate | PREPARED |
 
@@ -31,7 +31,7 @@ This matrix converts QA-01 / #29 into explicit evidence rows. It deliberately se
 | ID | Scenario / invariant | Existing evidence to reuse | Additional R10 evidence | Status |
 | --- | --- | --- | --- | --- |
 | Q-CASH-00 | Unauthorized or CSRF-invalid cash confirmation cannot create cash movement or payment evidence | R10 cash no-effect guards | Accepted staging negative-path proof | PREPARED |
-| Q-CASH-01 | Duplicate cash confirmation cannot create a second cash movement/tender | CORE-06/R6 evidence | Accepted staging cash-sale trace | PENDING_STG01 |
+| Q-CASH-01 | Duplicate cash confirmation cannot create a second cash movement/tender | CORE-06/R6 evidence + accepted STG-01 one-payment/one-movement cash-sale trace | Final-candidate duplicate cash confirmation exercise | PREPARED |
 
 ## Payment invariants
 
@@ -60,11 +60,11 @@ This matrix converts QA-01 / #29 into explicit evidence rows. It deliberately se
 
 | ID | Scenario / invariant | Existing evidence to reuse | Additional R10 evidence | Status |
 | --- | --- | --- | --- | --- |
-| Q-SEC-01 | Anonymous/state-changing request rejected | Earlier auth/route tests | Accepted STG-01 session/CSRF path | PENDING_STG01 |
-| Q-SEC-02 | Wrong/missing CSRF rejected without weakening origin protection | Existing BFF tests | Accepted STG-01 functional run | PENDING_STG01 |
+| Q-SEC-01 | Anonymous/state-changing request rejected | Earlier auth/route tests + accepted STG-01 staff/session runtime | Final-candidate auth regression if affected | REUSE_EXISTING_EVIDENCE |
+| Q-SEC-02 | Wrong/missing CSRF rejected without weakening origin protection | Existing BFF tests + accepted STG-01 CSRF lifecycle | Final-candidate CSRF regression if affected | REUSE_EXISTING_EVIDENCE |
 | Q-SEC-03 | Cashier cannot access foreign organization/location data | RLS/return-lookup tests | Full final-candidate negative suite | PREPARED |
 | Q-SEC-04 | Browser bundle contains no Woo/WP/Supabase/payment privileged secret | Existing scans | Final release-candidate secret scan | PREPARED |
-| Q-SEC-05 | Disabled/unauthorized staff cannot perform protected mutation | Existing auth model | Functional staging negative test | PENDING_STG01 |
+| Q-SEC-05 | Disabled/unauthorized staff cannot perform protected mutation | Existing auth model + accepted STG-01 authority/session baseline | Final-candidate disabled/unauthorized negative test | PREPARED |
 | Q-SEC-06 | Technical diagnostics do not expose secrets/customer PII | Existing evidence discipline | Final evidence review | PREPARED |
 
 ## PWA / durable recovery invariants
@@ -86,13 +86,13 @@ This matrix converts QA-01 / #29 into explicit evidence rows. It deliberately se
 | Q-REG-02 | Non-zero variance fails closed to requires_attention | R8 remediation | Final-candidate regression | PREPARED |
 | Q-REG-03 | Invented approval UUID cannot authorize variance close | R8 remediation | Regression suite | REUSE_EXISTING_EVIDENCE |
 | Q-REG-04 | Close retry yields one immutable Z report | R9 implementation | Runtime/device evidence | PENDING_R9 |
-| Q-REC-01 | Receipt reprint resolves original completed sale and cannot repeat sale | R6 evidence | Accepted staging trace | PENDING_STG01 |
+| Q-REC-01 | Receipt reprint resolves original completed sale and cannot repeat sale | R6 evidence + accepted STG-01 receipt/reprint runtime trace | Final-candidate regression if receipt/finalize path changes | REUSE_EXISTING_EVIDENCE |
 
 ## Operational qualification
 
 | ID | Scenario / invariant | Required evidence | Status |
 | --- | --- | --- | --- |
-| Q-OPS-01 | Desktop cashier path | Accepted staging candidate, exact SHA, screenshot/log evidence | PENDING_STG01 |
+| Q-OPS-01 | Desktop cashier path | STG-01 accepted on PR #77 / main `c320be8c5ad41c190200381cd52f853dd95212dc`; repeat affected steps on later release candidate | REUSE_EXISTING_EVIDENCE |
 | Q-OPS-02 | Supported mobile/PWA path | Device rehearsal runbook evidence | PENDING_R9 |
 | Q-OPS-03 | Keyboard-wedge scanner | Physical device/model + sale/search trace | PENDING_AUTHORIZATION |
 | Q-OPS-04 | Receipt printer | Physical printer/model + print/reprint evidence | PENDING_AUTHORIZATION |

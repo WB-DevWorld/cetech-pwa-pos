@@ -2,7 +2,7 @@
 
 Status: **PREPARED / EXECUTABLE ON THIS BRANCH**
 
-Purpose: map the already-merged R6–R8 executable evidence to the QA-01 qualification matrix and identify only the remaining dependency-independent gaps. This document does not upgrade historical tests into staging/runtime acceptance.
+Purpose: map the already-merged R6–R8 executable evidence plus the accepted STG-01 runtime baseline to the QA-01 qualification matrix and identify the remaining gaps. Accepted STG-01 evidence is reusable only for the behavior it actually exercised; it does not convert unexecuted failure-injection rows into PASS.
 
 ## Discovery rule
 
@@ -23,19 +23,19 @@ The new R10 guard tests therefore live under the existing `tests/integration/pay
 | --- | --- | --- | --- |
 | Q-TX-PRE | `tests/integration/sales/r10-fail-closed-prepare-guards.test.ts` | wrong register authority or missing CSRF is rejected before Woo order / stock-reservation attempt | accepted staging negative-path proof later |
 | Q-TX-00 | `tests/integration/sales/r10-fail-closed-finalize-guards.test.ts` | wrong register authority, missing CSRF, or missing verified payment evidence is rejected before commercial finalizer / stock effect | accepted staging negative-path proof later |
-| Q-TX-01 | `apps/pos-web/src/server/sales/core-06-cash-sale-harness.test.ts` — duplicate prepare same key | one commercial order reused | accepted STG-01 path |
-| Q-TX-02 | same file — changed prepare body conflicts | changed semantic request cannot reuse idempotency key | accepted STG-01 path |
-| Q-TX-03 | same file — lost prepare response recovers existing Woo order | resolve-before-retry at commercial boundary | accepted STG-01 path |
-| Q-TX-04 | same file — duplicate cash/finalize | one cash ledger + one commercial/stock effect | accepted STG-01 path |
+| Q-TX-01 | `apps/pos-web/src/server/sales/core-06-cash-sale-harness.test.ts` — duplicate prepare same key | one commercial order reused | STG-01 happy-path baseline accepted; final-candidate duplicate/replay exercise remains |
+| Q-TX-02 | same file — changed prepare body conflicts | changed semantic request cannot reuse idempotency key | STG-01 baseline accepted; final-candidate changed-request conflict exercise remains |
+| Q-TX-03 | same file — lost prepare response recovers existing Woo order | resolve-before-retry at commercial boundary | STG-01 baseline accepted; final-candidate lost-response injection remains |
+| Q-TX-04 | same file — duplicate cash/finalize | one cash ledger + one commercial/stock effect | STG-01 one-sale baseline accepted; final-candidate duplicate-finalize exercise remains |
 | Q-TX-06 | `tests/integration/payments/r10-fail-closed-payment-guards.test.ts` — missing prepared sale | absent commercial prerequisite cannot reach payment initialize | staging outage/failure injection later |
-| Q-REC-01 | CORE-06 harness + `tests/contracts/producer-consumer.test.ts` | completed sale resolves stable receipt contract | accepted staging reprint trace |
+| Q-REC-01 | CORE-06 harness + `tests/contracts/producer-consumer.test.ts` | completed sale resolves stable receipt contract | accepted STG-01 receipt/reprint trace exists; rerun if later receipt/finalize path changes |
 
 ## Cash payment mapping
 
 | Matrix ID | Executable evidence | What it proves | Remaining runtime evidence |
 | --- | --- | --- | --- |
 | Q-CASH-00 | `tests/integration/sales/r10-fail-closed-cash-guards.test.ts` | wrong register authority or missing CSRF creates no cash movement and no payment record | accepted staging negative-path proof later |
-| Q-CASH-01 | CORE-06 cash harness | duplicate cash confirmation yields one ledger/tender effect | accepted STG-01 cash-sale trace |
+| Q-CASH-01 | CORE-06 cash harness | duplicate cash confirmation yields one ledger/tender effect | STG-01 one-payment/one-movement cash trace accepted; duplicate exercise remains for final candidate |
 
 ## R7 payment mapping
 
@@ -47,9 +47,9 @@ The new R10 guard tests therefore live under the existing `tests/integration/pay
 | Q-PAY-04 | same file — pending repeat/new key; pending resolve | pending intent cannot trigger second initialize | final-candidate regression |
 | Q-PAY-05 | same file — late success reconciles original reference | late success logic exists and does not mint a replacement intent | controlled TEST execution only if separately authorized |
 | Q-PAY-06 | `tests/integration/payments/durable-electronic-store.test.ts` + electronic-payment concurrency tests | verified payment/finalizing sale survive stale weaker writes | final-candidate regression |
-| Q-SEC-02 | `tests/integration/payments/r10-fail-closed-payment-guards.test.ts` — missing CSRF | payment provider is not called when mutation protection fails | accepted STG-01 CSRF path |
+| Q-SEC-02 | `tests/integration/payments/r10-fail-closed-payment-guards.test.ts` — missing CSRF | payment provider is not called when mutation protection fails | accepted STG-01 CSRF/session baseline exists; final-candidate regression only if affected |
 | Q-SEC-03 | electronic-payment wrong org/location + auth assignment tests | tenant/location mismatch cannot access payment state | final-candidate regression |
-| Q-SEC-05 | R10 assignment-unavailable guard + existing staff authorization tests | authority/infrastructure failure blocks before money movement | accepted STG-01 negative test |
+| Q-SEC-05 | R10 assignment-unavailable guard + existing staff authorization tests | authority/infrastructure failure blocks before money movement | STG-01 authority/session baseline accepted; explicit disabled/unauthorized negative test still required |
 
 ## R8 return / register mapping
 
