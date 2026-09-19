@@ -219,6 +219,40 @@ CD-01 deploys only accepted `main`. Do not expose GitHub/Vercel deployment crede
 
 Provider-managed PR previews may be reconsidered later with an explicit safe-credentials model; they are not required for the shared staging deployment.
 
+## Exact SHA Preview (manual)
+
+Use this only when an immutable Vercel Preview of a CI-green candidate SHA is required **without** merging that candidate to `main` and **without** moving the shared staging alias.
+
+The trusted workflow is `.github/workflows/deploy-exact-sha-preview.yml` on protected `main`. `workflow_dispatch` is the invocation method; the workflow file on `main` is the deployment authority. Do not add `pull_request_target`. Do not dispatch from a contributor branch.
+
+Inputs:
+
+- `candidate_sha` (required): full 40-character commit SHA
+- `pr_number` (optional): open same-repository PR whose **current** head must equal `candidate_sha`
+
+The job:
+
+1. refuses to run unless the dispatch ref is `main`;
+2. verifies the SHA exists in this repository;
+3. refuses fork-only SHAs;
+4. if `pr_number` is supplied, verifies that PR is open, same-repository, and currently at that SHA;
+5. verifies required checks `control-plane` and `control-plane-windows` succeeded for that exact SHA;
+6. checks out the exact SHA with `persist-credentials: false`;
+7. uses GitHub environment `staging` secrets only inside the runner (`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`);
+8. runs `vercel pull --environment=preview`, `vercel build` with `BUILD_ID=<candidate_sha>`, and `vercel deploy --prebuilt` to an immutable Preview;
+9. smokes `/` on that immutable URL with authenticated `vercel curl`;
+10. records the SHA and Preview URL in the job summary.
+
+It does **not** assign a production alias, does **not** pass `--prod`, and does **not** consume or move `VERCEL_STAGING_ALIAS`. It uses a distinct concurrency group so it cannot cancel shared Staging CD.
+
+After this workflow exists on `main`, an authorized operator may dispatch it. Example for an open PR candidate:
+
+```text
+gh workflow run "Exact SHA Preview" --ref main -f candidate_sha=<40-char-sha> -f pr_number=<n>
+```
+
+Merging this workflow to `main` will itself cause ordinary Staging CD of that merge SHA. That is not a preview of an unmerged candidate. Production promotion, live electronic payment, refund/restock, and VitePOS cutover remain unauthorized.
+
 ## Production remains separate
 
 Production promotion should later be implemented as a separate release workflow with all of the following:

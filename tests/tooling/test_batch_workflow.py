@@ -51,6 +51,34 @@ class BatchWorkflowTests(unittest.TestCase):
         deploy = (ROOT / '.github/workflows/deploy-staging.yml').read_text()
         self.assertNotIn('`${CI_TESTED_SHA}`', deploy)
         self.assertIn('printf -- \'- CI-tested SHA: `%s`\\n\' "$CI_TESTED_SHA"', deploy)
+        self.assertNotIn('pull_request_target:', deploy)
+        self.assertIn("github.event.workflow_run.head_branch == 'main'", deploy)
+        self.assertIn('--environment=preview', deploy)
+        self.assertIn('cetech-pos-shared-staging', deploy)
+
+    def test_exact_sha_preview_is_manual_main_only_and_preview_only(self):
+        preview = (ROOT / '.github/workflows/deploy-exact-sha-preview.yml').read_text(
+            encoding='utf-8')
+        self.assertNotIn('pull_request_target:', preview)
+        self.assertRegex(preview, r'(?m)^  workflow_dispatch:\s*$')
+        self.assertNotRegex(preview, r'(?m)^  pull_request:')
+        self.assertNotRegex(preview, r'(?m)^  workflow_run:')
+        self.assertIn("github.ref == 'refs/heads/main'", preview)
+        self.assertIn('candidate_sha:', preview)
+        self.assertIn('pr_number:', preview)
+        self.assertIn('environment: staging', preview)
+        self.assertIn('--environment=preview', preview)
+        self.assertIn('BUILD_ID', preview)
+        self.assertIn('vercel deploy --prebuilt', preview)
+        self.assertIn('persist-credentials: false', preview)
+        self.assertIn('exact-sha-preview-', preview)
+        self.assertNotIn('cetech-pos-shared-staging', preview)
+        self.assertNotIn('vars.VERCEL_STAGING_ALIAS', preview)
+        self.assertNotIn('vercel alias set', preview)
+        self.assertNotIn('--environment=production', preview)
+        self.assertNotRegex(preview, r'vercel deploy[^\n]*--prod')
+        self.assertIn('vercel@59.17.0', preview)
+        self.assertIn('actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683', preview)
 
 
 if __name__ == '__main__':
