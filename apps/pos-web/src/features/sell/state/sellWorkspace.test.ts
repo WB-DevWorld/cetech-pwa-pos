@@ -7,13 +7,16 @@ import {
   applyClearCustomer,
   applyDraftStatus,
   applyNameSearch,
+  applyMobileCartOpen,
   applyNewSale,
   applyProductSelect,
+  applyVisibleSearchResults,
   applyQuantityChange,
   applyRemoveLine,
   applySelectCustomer,
   applyVariationSelect,
   createSellWorkspace,
+  decideNextSaleCustomer,
   type SellWorkspaceDeps,
 } from "./sellWorkspace";
 
@@ -132,6 +135,15 @@ describe("FE-03 sell workspace", () => {
     expect(state.commercialInvalidated).toBe(true);
   });
 
+  test("next-sale customer waits when the current cart is not empty", () => {
+    expect(decideNextSaleCustomer({ next: SELL_TEST_CUSTOMERS[0], lineCount: 1 })).toBe("pending");
+    expect(decideNextSaleCustomer({ next: SELL_TEST_CUSTOMERS[0], lineCount: 0 })).toBe("apply");
+    expect(
+      decideNextSaleCustomer({ next: SELL_TEST_CUSTOMERS[0], lineCount: 0, selectedCustomerId: "cust-ada" }),
+    ).toBe("consume");
+    expect(decideNextSaleCustomer({ next: null, lineCount: 0 })).toBe("idle");
+  });
+
   test("new sale resets cart, customer, and transient barcode state without claiming store wipes", () => {
     const workspaceDeps = deps();
     let state = createSellWorkspace(workspaceDeps, SELL_TEST_CATALOG);
@@ -155,14 +167,14 @@ describe("FE-03 sell workspace", () => {
     let state = createSellWorkspace(workspaceDeps, SELL_TEST_CATALOG);
     state = applyCatalogAvailability(state, "stale");
     expect(catalogAvailabilityCopy(state.catalogAvailability)?.title).toContain("out of date");
-    expect(catalogAvailabilityCopy(state.catalogAvailability)?.body).toContain("Reconnect to refresh before checkout");
+    expect(catalogAvailabilityCopy(state.catalogAvailability)?.body).toContain("Refresh products before checkout");
     state = applyCatalogAvailability(state, "offline_cached");
     const copy = catalogAvailabilityCopy(state.catalogAvailability);
-    expect(copy?.body).toContain("Cached catalog is available");
+    expect(copy?.body).toContain("Saved products are available");
     expect(copy?.body.toLowerCase()).not.toContain("verified");
     state = applyDraftStatus(state, { retainedLocally: true });
     expect(state.draftStatus.retainedLocally).toBe(true);
-    expect(catalogAvailabilityCopy("unavailable")?.title).toContain("unavailable");
+    expect(catalogAvailabilityCopy("unavailable")?.title).toContain("couldn't be loaded");
   });
 
   test("unavailable catalog blocks barcode, product, variation, and collision mutation", () => {
@@ -227,5 +239,45 @@ describe("FE-03 sell workspace", () => {
     state = applyBarcodeScan(state, "0012345678901", SELL_TEST_CATALOG, workspaceDeps);
     expect(state.lines[0]?.quantity).toBe("999999999");
     expect(state.cartRevision).toBe(before);
+  });
+
+  test("visible search refresh replaces results only when the query still matches", () => {
+    const workspaceDeps = deps();
+    let state = createSellWorkspace(workspaceDeps, SELL_TEST_CATALOG);
+    const simple = SELL_TEST_CATALOG.find((item) => item.id === "p-hardener")!;
+    state = applyProductSelect(state, simple, SELL_TEST_CATALOG, workspaceDeps);
+    state = applySelectCustomer(state, SELL_TEST_CUSTOMERS[0]!);
+    state = applyMobileCartOpen(state, true);
+    const cartId = state.cartId;
+    const cartRevision = state.cartRevision;
+    const lines = state.lines;
+    const customer = state.selectedCustomer;
+    const refreshed = applyVisibleSearchResults(state, state.search.query, [
+      {
+        id: "parent",
+        name: "Variable parent",
+        barcodes: [],
+        kind: "variable",
+        stockStatus: "in_stock",
+        priceView: {
+          kind: "range",
+          min: { minor: 10_000, currency: "GHS" },
+          max: { minor: 20_000, currency: "GHS" },
+        },
+      },
+    ]);
+    expect(refreshed.cartId).toBe(cartId);
+    expect(refreshed.cartRevision).toBe(cartRevision);
+    expect(refreshed.lines).toBe(lines);
+    expect(refreshed.selectedCustomer).toBe(customer);
+    expect(refreshed.commercialInvalidated).toBe(state.commercialInvalidated);
+    expect(refreshed.mobileCartOpen).toBe(true);
+    expect(refreshed.search.results[0]?.priceView).toEqual({
+      kind: "range",
+      min: { minor: 10_000, currency: "GHS" },
+      max: { minor: 20_000, currency: "GHS" },
+    });
+    const ignored = applyVisibleSearchResults(state, "other-query", refreshed.search.results);
+    expect(ignored).toBe(state);
   });
 });

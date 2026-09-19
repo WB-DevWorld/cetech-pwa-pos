@@ -1,12 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CartDraftStore, CatalogPort, CheckoutUseCases, CustomerPort, PaymentPort, PricingPort, PrintPort, ReceiptPort, SalesPort } from "../../../../../../docs/contracts/ports";
 import { SellScreen } from "../SellScreen";
 import { useElectronicPayment } from "../../payments/useElectronicPayment";
-import type { ElectronicTenderView } from "../../payments/electronicPaymentView";
+import { type TenderAvailabilityView, electronicTenderAvailable } from "../components/TenderChoice";
 import type { CatalogAvailability, CustomerSearchResultView, SellProductView, SellWorkspaceState } from "../state/sellView";
-import { lookupBarcodeViews, lookupVariations, searchCatalogViews } from "./catalogLookup";
+import type { ProductDisplayPriceView } from "../state/variableDisplayPrice";
+import { lookupBarcodeViews, lookupVariations, searchCatalogViews, enrichSellProductPrices } from "./catalogLookup";
+import { bindPriceCacheToGeneration } from "./productDisplayPriceCache";
+import { electronicSessionLocksCheckout } from "../components/PaymentWaiting";
 import { customerViewFromSummary, workspaceToCartDraft } from "./mapCartDraft";
 import { restoreSellWorkspace } from "./restoreWorkspace";
 import { useCartQuote } from "./useCartQuote";
@@ -28,11 +31,16 @@ export type SellSessionPorts = {
   readonly shiftOpen?: boolean;
   readonly checkout?: CheckoutUseCases;
   readonly payments?: Pick<PaymentPort, "confirmCash" | "resolve"> & Partial<Pick<PaymentPort, "initialize">>;
-  readonly sales?: Pick<SalesPort, "resolve">;
+  readonly sales?: Pick<SalesPort, "resolve" | "cancel">;
   readonly receipts?: ReceiptPort;
   readonly printer?: PrintPort;
   readonly checkoutScope?: CashCheckoutScope;
   readonly createCheckoutUuid?: () => string;
+  readonly catalogAvailability?: CatalogAvailability;
+  readonly catalogProjectionGeneration?: number;
+  readonly electronicPaymentsAvailable?: boolean;
+  readonly nextSaleCustomer?: CustomerSearchResultView | null;
+  readonly onNextSaleCustomerApplied?: (customer: CustomerSearchResultView) => void;
 };
 
 function defaultNow(): Date {
@@ -55,6 +63,21 @@ function availabilityFromNetwork(online: boolean, searchFailed: boolean, hasCach
   return "fresh";
 }
 
+function preserveProjectionAvailability(
+  current: CatalogAvailability,
+  online: boolean,
+  searchFailed: boolean,
+  hasCache: boolean,
+): CatalogAvailability {
+  if (current === "unavailable") {
+    return "unavailable";
+  }
+  if (current === "stale" && !searchFailed) {
+    return online ? "stale" : "offline_cached";
+  }
+  return availabilityFromNetwork(online, searchFailed, hasCache);
+}
+
 export function SellRuntimeScreen(ports: SellSessionPorts) {
   const fallbackCreateCartId = useMemo(() => defaultIdFactory("cart"), []);
   const fallbackCreateLineId = useMemo(() => defaultIdFactory("line"), []);
@@ -75,9 +98,13 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
   const [browseCatalog, setBrowseCatalog] = useState<readonly SellProductView[]>([]);
   const [customers, setCustomers] = useState<readonly CustomerSearchResultView[]>([]);
   const [searchStatus, setSearchStatus] = useState<SellWorkspaceState["search"]["status"]>("idle");
-  const [availability, setAvailability] = useState<CatalogAvailability>("fresh");
+  const [availability, setAvailability] = useState<CatalogAvailability>(ports.catalogAvailability ?? "fresh");
   const [workspace, setWorkspace] = useState<SellWorkspaceState | undefined>(undefined);
   const [restoreCount, setRestoreCount] = useState(0);
+  const priceCacheRef = useRef(new Map<string, ProductDisplayPriceView>());
+  const observedProjectionGenerationRef = useRef<number | undefined>(undefined);
+  const browseProjectionGenerationRef = useRef<number | undefined>(undefined);
+  const projectionGeneration = ports.catalogProjectionGeneration ?? 0;
   const connected = online();
   const presentedQuote = useCartQuote({
     pricing: ports.pricing,
@@ -123,8 +150,16 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
     };
   }, [ports.createCheckoutUuid, ports.payments]);
   const electronic = useElectronicPayment(electronicPorts);
-  const [electronicTender, setElectronicTender] = useState<ElectronicTenderView>("mobile_money");
   const cashCheckoutRef = useRef(cashCheckout);
+  const tenderAvailability = useMemo<TenderAvailabilityView>(() => {
+    const electronicReady = Boolean(ports.electronicPaymentsAvailable && ports.payments?.initialize);
+    return {
+      cash: true,
+      mobileMoney: electronicReady,
+      card: electronicReady,
+      externalElectronic: electronicReady,
+    };
+  }, [ports.electronicPaymentsAvailable, ports.payments?.initialize]);
 
   useEffect(() => {
     cashCheckoutRef.current = cashCheckout;
@@ -141,13 +176,46 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
     onlineRef.current = online;
   }, [now, online]);
 
+  useLayoutEffect(() => {
+    bindPriceCacheToGeneration(
+      priceCacheRef.current,
+      observedProjectionGenerationRef,
+      projectionGeneration,
+    );
+  }, [projectionGeneration]);
+
+  useEffect(() => {
+    if (browseProjectionGenerationRef.current === undefined) {
+      browseProjectionGenerationRef.current = projectionGeneration;
+      return;
+    }
+    if (browseProjectionGenerationRef.current === projectionGeneration) {
+      return;
+    }
+    browseProjectionGenerationRef.current = projectionGeneration;
+    let cancelled = false;
+    void (async () => {
+      const browse = await searchCatalogViews(catalog, "");
+      if (cancelled || !browse.ok) {
+        return;
+      }
+      const views = await enrichSellProductPrices(catalog, browse.items, priceCacheRef.current);
+      if (!cancelled) {
+        setBrowseCatalog(views);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [catalog, projectionGeneration]);
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       const connectedNow = onlineRef.current();
       const browse = await searchCatalogViews(catalog, "");
       const customerPage = await customersPort.search("");
-      const views = browse.ok ? browse.items : [];
+      const views = browse.ok ? await enrichSellProductPrices(catalog, browse.items, priceCacheRef.current) : [];
       const restored = await restoreSellWorkspace({
         catalog,
         customers: customersPort,
@@ -155,7 +223,9 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
         recallCartId,
         browseCatalog: views,
         deps: { createCartId, createLineId },
-        availability: availabilityFromNetwork(connectedNow, !browse.ok, views.length > 0),
+        availability:
+          ports.catalogAvailability ??
+          availabilityFromNetwork(connectedNow, !browse.ok, views.length > 0),
       });
       if (cancelled) return;
       await drafts.save(workspaceToCartDraft(restored, locationId, nowRef.current().toISOString()));
@@ -173,7 +243,7 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
     return () => {
       cancelled = true;
     };
-  }, [catalog, createCartId, createLineId, customersPort, drafts, locationId, recallCartId, rememberCartId]);
+  }, [catalog, createCartId, createLineId, customersPort, drafts, locationId, ports.catalogAvailability, recallCartId, rememberCartId]);
 
   const persist = useCallback(
     (state: SellWorkspaceState) => {
@@ -188,10 +258,12 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
     async (barcode: string) => {
       const result = await lookupBarcodeViews(catalog, barcode);
       if (!result.ok) {
-        setAvailability((current) => availabilityFromNetwork(online(), true, current !== "unavailable"));
+        setAvailability((current) =>
+          preserveProjectionAvailability(current, online(), true, current !== "unavailable"),
+        );
         return [];
       }
-      return result.items;
+      return enrichSellProductPrices(catalog, result.items, priceCacheRef.current);
     },
     [catalog, online],
   );
@@ -203,13 +275,26 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
       if (!result.ok) {
         setSearchStatus("error");
         setAvailability((current) =>
-          availabilityFromNetwork(online(), true, browseCatalog.length > 0 || current === "offline_cached"),
+          preserveProjectionAvailability(
+            current,
+            online(),
+            true,
+            browseCatalog.length > 0 || current === "offline_cached" || current === "stale",
+          ),
         );
         return browseCatalog;
       }
+      const enriched = await enrichSellProductPrices(catalog, result.items, priceCacheRef.current);
       setSearchStatus("ready");
-      setAvailability(availabilityFromNetwork(online(), false, result.items.length > 0 || browseCatalog.length > 0));
-      return result.items;
+      setAvailability((current) =>
+        preserveProjectionAvailability(
+          current,
+          online(),
+          false,
+          enriched.length > 0 || browseCatalog.length > 0,
+        ),
+      );
+      return enriched;
     },
     [browseCatalog, catalog, online],
   );
@@ -236,13 +321,13 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
   if (!ready || !initialState) {
     return (
       <div className="sell-workspace">
-        <p className="muted">Loading catalog…</p>
+        <p className="muted">Loading products…</p>
       </div>
     );
   }
 
   return (
-    <div data-sell-restore-count={restoreCount}>
+    <div className="sell-runtime" data-sell-restore-count={restoreCount}>
       <SellScreen
         catalog={browseCatalog}
         customers={customers}
@@ -254,6 +339,9 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
         searchCatalog={searchCatalog}
         resolveBarcodeCatalog={resolveBarcodeCatalog}
         loadVariations={loadVariations}
+        catalogProjectionGeneration={projectionGeneration}
+        nextSaleCustomer={ports.nextSaleCustomer}
+        onNextSaleCustomerApplied={ports.onNextSaleCustomerApplied}
         onCustomerQueryChange={searchCustomers}
         onWorkspaceChange={persist}
         quote={presentedQuote.quote}
@@ -284,28 +372,57 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
         }}
         onCheckoutNewSale={() => {
           cashCheckout.resetForNewSale();
-          electronic.reset();
+          const status = electronic.session.status;
+          if (
+            cashCheckout.session.saleCompleted ||
+            status === "idle" ||
+            status === "failed" ||
+            status === "cancelled"
+          ) {
+            electronic.reset();
+          }
         }}
         onDismissCheckout={cashCheckout.dismiss}
+        onSelectCash={() => {
+          if (electronicSessionLocksCheckout(electronic.session)) {
+            return;
+          }
+          cashCheckout.selectCash();
+        }}
+        onBackToPaymentChoice={() => {
+          if (electronicSessionLocksCheckout(electronic.session)) {
+            return;
+          }
+          if (electronic.session.status === "failed" || electronic.session.status === "cancelled") {
+            electronic.reset();
+          }
+          cashCheckout.backToPaymentChoice();
+        }}
+        onCancelPreparedSale={() => {
+          if (electronicSessionLocksCheckout(electronic.session)) {
+            void electronic.resolve();
+            void cashCheckout.resolvePayment();
+            return;
+          }
+          void cashCheckout.cancelPreparedSale();
+        }}
+        onSelectElectronic={(tender) => {
+          if (!electronicTenderAvailable(tender, tenderAvailability)) {
+            return;
+          }
+          if (electronicSessionLocksCheckout(electronic.session)) {
+            return;
+          }
+          const transactionId = cashCheckout.session.transactionId;
+          if (!transactionId || !electronic.ready) {
+            return;
+          }
+          void electronic.present({ transactionId, tender });
+        }}
+        tenderAvailability={tenderAvailability}
         electronicSession={electronic.ready ? electronic.session : undefined}
         electronicInFlight={electronic.inFlight}
-        electronicTender={electronicTender}
-        onElectronicTenderChange={setElectronicTender}
-        onPresentElectronic={
-          electronic.ready
-            ? () => {
-                const transactionId = cashCheckout.session.transactionId;
-                if (!transactionId) {
-                  return;
-                }
-                void electronic.present({ transactionId, tender: electronicTender });
-              }
-            : undefined
-        }
         onResolveElectronic={() => {
-          void electronic.resolve();
-        }}
-        onContinueWaitingElectronic={() => {
           void electronic.resolve();
         }}
         onContactManager={() => {

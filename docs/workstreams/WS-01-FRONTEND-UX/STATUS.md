@@ -1,5 +1,53 @@
 # WS1 current status
 
+Snapshot 2026-09-19. UX-04 review-fix on `ws1/ux-04-operational-workspaces-demo-alignment` from reviewed SHA `b36720093477f38e58f3cfc1132da8aa61887ffe`. Check / Recover now calls PaymentPort.resolve / SalesPort.resolve for the same transaction/payment identity. Customer search is BFF read-through and no longer replaces IndexedDB. Woo customer search matches name, billing company, and billing phone. Temporary UX-04 review-fix authority is EXPIRED / CLOSED. PR #77 / shared STG-01 / `main` were not modified. Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION**. Do not merge; do not import into STG-01 as part of this closeout.
+
+## Previous snapshot (historical; current section above controls)
+
+# WS1 current status
+
+Snapshot 2026-09-19. UX-04 operational workspaces (Orders, Customers, Returns discovery, Register, Store Health, Needs Attention, Settings, shared toast/attention count) on `ws1/ux-04-operational-workspaces-demo-alignment` from UX-03-containing STG-01 `c857b097bca5b4eaaed4a4de0e33826639a91809`. Contributor implementation is independently reviewable; PR #77 / shared STG-01 / `main` were not modified. Temporary UX-04 authority is EXPIRED / CLOSED. Freshness **FRESH_2** after two-pass fetch. Delivery **READY_FOR_INTEGRATION**. Do not merge; do not import into STG-01 as part of this closeout.
+
+## Previous snapshot (historical; current section above controls)
+
+# WS1 current status
+
+Snapshot 2026-09-19. UX-03 final review-fix for visible ProductCard refresh on `ws1/ux-03-payment-barcode-variable-range` from reviewed SHA `253ef2886ed4c447d911ba11f789375f1e35c66d`. After `catalogProjectionGeneration` advances, SellScreen re-runs the current search query and replaces `search.results` only. Cart identity/revision/lines/customer, quote, barcode notice, mobile cart, and checkout are preserved. Cache invalidation and selected-tender fail-closed from `253ef288` are kept. Temporary review-fix authority is EXPIRED / CLOSED. Shared batch `04166509c2b9505980338e4baaf630981c00d2e8` / PR #77 unchanged. `main` unchanged. Freshness **FRESH_2** after two-pass fetch. Delivery **READY_FOR_INTEGRATION**.
+
+## Previous snapshot (historical; current section above controls)
+
+# WS1 current status
+
+Snapshot 2026-09-19. UX-02 variable-parent advisory-price review remediation on `ws1/ux-02-sell-demo-alignment`. Reviewed remote head `cd4f1aed0bbb5d2deb89948c53fb1b8f27f06378`. Correction implementation SHA `6409d4264ad67184d100a3a9c806deebe9236ad9` (engine `72561d0424029bfb93878d87a721c52a00810c0b`). Variable parents now omit `displayPrice` unless every visible child’s raw `get_price('edit')` converts to the same GHS minor amount. Filtered `get_variation_price*` is not used. Temporary senior UX-02 exception is EXPIRED / CLOSED. Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION**. Do not merge; do not modify `main`; do not edit the shared batch branch.
+
+## Previous snapshot (historical; current section above controls)
+
+# WS1 current status
+
+Snapshot 2026-09-18. UX-02 Sell alignment closeout on `ws1/ux-02-sell-demo-alignment` from start SHA `7918bafc4163f4919bad6da8ae1f5de9bed30558` (`origin/batch/stg-01-staging-runtime-acceptance`). Previous UI implementation SHA `da5eaa33907576c61e1deebfc01bfe38bfd7a772`. Closeout implementation SHA `b93549aa761a47c962997089b9842d73e808cfef`. This closeout adds Woo stored ordinary/base `displayPrice` through the bridge producer, provider-neutral mapper, local cashier-seed advisory list prices, and Sell cards. `CatalogItem.displayPrice` remains advisory; `/quotes` and prepare/finalize remain authoritative. Numeric availability is still absent. Commercial badge metadata is still absent. Durable Postgres catalog identity rows still null display prices. Deployed staging visual acceptance was not performed. Temporary senior reassignment for this branch expires at staging-integration handoff. Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION**. Do not merge; do not modify `main`; do not edit the shared batch branch.
+
+## Previous snapshot (historical; current section above controls)
+
+# WS1 current status
+
+Snapshot 2026-09-18. UX-02 Sell demo-alignment on `ws1/ux-02-sell-demo-alignment` from start SHA `7918bafc4163f4919bad6da8ae1f5de9bed30558` (current `origin/batch/stg-01-staging-runtime-acceptance`). Pre-handoff implementation SHA `da5eaa33907576c61e1deebfc01bfe38bfd7a772`. Search-first workstation, selling-decision cards, pinned cart totals/Pay, and `CatalogItem.displayPrice` presentation are in WS1 UI. Live staging cards still omit prices because WS3 `mapBridgeCatalogItem` strips `displayPrice`. Numeric availability is not in the current catalog contract; stock copy is status-only. UX-01 safety language is preserved except the Sell-specific copy in this prompt. Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION** for independent WS1 UI; live product-price visual acceptance remains **blocked on the catalog producer**. Reassignment NONE. Do not merge; do not modify `main`; do not edit the shared batch branch.
+
+## Previous snapshot (historical; current section above controls)
+
+# WS1 current status
+
+Snapshot 2026-09-18. UX-01 / issue #78 review follow-up on `ws1/ux-01-cashier-language`. Previous head `0aa519db480f119589cbc037a8a7194246a260c2`. Follow-up implementation SHA `d865234575d5664839a5082e0c6305f0dbb57768`. Scanner/printer copy is capability-only (`Keyboard scanner input` / `Browser print`). `toCashierError` is safe-by-default: unknown backend text is never primary cashier copy; raw code/message stay in Technical details. Batch watched: `origin/batch/stg-01-staging-runtime-acceptance` `ee9e3d95bc8914cdd9251973412924d64a7b2ea9` (SAME / COMPATIBLE). `origin/main` `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` (SAME). Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION**. Reassignment NONE. Do not merge; do not modify `main`; do not touch R9.
+
+## Previous snapshot (historical; current section above controls)
+
+# WS1 current status
+
+Snapshot 2026-09-18. UX-01 / issue #78 cashier language and actionable POS errors implemented on `ws1/ux-01-cashier-language` from start SHA `ee9e3d95bc8914cdd9251973412924d64a7b2ea9`. Implementation SHA `9335ee0ad31d1a18554178184a1a185c2d809824`. Presentation mappers live in `apps/pos-web/src/ui/cashier-language/`; standard is `docs/standards/POS-CASHIER-LANGUAGE.md`. Frozen contracts, error codes, pricing/stock authority, payment uncertainty, idempotency, register/shift, and recovery semantics are unchanged. Synthetic customers were not restored. `pricingParityVerified=false` remains an open functional fact, not a copy regression. Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION**. Reassignment NONE. Do not merge; do not modify `main`; do not touch R9.
+
+## Previous snapshot (historical; current section above controls)
+
+# WS1 current status
+
 Snapshot 2026-09-15. FE-06 / issue #11 HIGH outstanding-return abandonment remediated. Replacement implementation SHA `d3ddf0a7592845c710fe768b3645b9a9109693cb` supersedes prior published head `91641f4f9ab242f3026cc47dcc5a8cc78d5b9c39` / prior implementation `bb2010b260a78d3741186df48462b22f7ece3861`. An executed return in `executing` / `resolving` / `refund_pending` / `in_progress` / `requires_attention` stays bound to its `returnId`; sale lookup, sale selection, and quantity/reason/condition edits are locked in both controller and UI until authoritative `completed`. Failed `ReturnPort.resolve` with an outstanding identity stays `requires_attention`, not editable `failed`. Prior FRESH_2 that watched obsolete `batch/rt01-safe-returns` is superseded; current receiver is `origin/batch/rt01-safe-returns-ws3-integrated` `4650a0fa18c909743e9fbab4be0b6067bd1eff18` (COMPATIBLE / DO_NOT_CONSUME). PAY-01 remains **PROVISIONAL_TEST**. No live refund/restock/provider acceptance. Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION**. Reassignment NONE. Do not merge; do not modify the WS3 integration branch; do not start FE-07/R8.
 
 ## Previous snapshot (historical; current section above controls)

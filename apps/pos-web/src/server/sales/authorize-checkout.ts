@@ -60,6 +60,7 @@ export async function authorizeCheckoutMutation(input: {
       | "payment.initialize"
       | "sale.finalize"
       | "sale.prepare"
+      | "sale.cancel"
       | "payment.resolve"
       | "payment.refund"
       | "refund.resolve"

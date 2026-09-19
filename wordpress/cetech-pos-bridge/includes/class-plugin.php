@@ -23,6 +23,10 @@ final class Cetech_Pos_Bridge_Plugin {
 	private $commercial_refund_controller;
 	/** @var Cetech_Pos_Bridge_Stock_Disposition_Controller */
 	private $stock_disposition_controller;
+	/** @var Cetech_Pos_Bridge_Catalog_Controller */
+	private $catalog_controller;
+	/** @var Cetech_Pos_Bridge_Customers_Controller */
+	private $customers_controller;
 	/** @var Cetech_Pos_Bridge_Prepare_Engine */
 	private $prepare_engine;
 	/** @var Cetech_Pos_Bridge_Command_Engine */
@@ -62,6 +66,10 @@ final class Cetech_Pos_Bridge_Plugin {
 		$this->return_effect_engine = new Cetech_Pos_Bridge_Return_Effect_Engine( $runtime, $store, $claims, $commands, $effects );
 		$this->commercial_refund_controller = new Cetech_Pos_Bridge_Commercial_Refund_Controller( $auth, $correlation, $this->return_effect_engine );
 		$this->stock_disposition_controller = new Cetech_Pos_Bridge_Stock_Disposition_Controller( $auth, $correlation, $this->return_effect_engine );
+		$catalog_engine                     = new Cetech_Pos_Bridge_Catalog_Engine( Cetech_Pos_Bridge_Catalog_Engine::woo_loader() );
+		$this->catalog_controller           = new Cetech_Pos_Bridge_Catalog_Controller( $auth, $correlation, $catalog_engine );
+		$customers_engine                   = new Cetech_Pos_Bridge_Customers_Engine( Cetech_Pos_Bridge_Customers_Engine::woo_loader() );
+		$this->customers_controller         = new Cetech_Pos_Bridge_Customers_Controller( $auth, $correlation, $customers_engine );
 	}
 
 	public function boot() {
@@ -126,6 +134,16 @@ final class Cetech_Pos_Bridge_Plugin {
 			'callback'            => array( $this->stock_disposition_controller, 'handle_resolve' ),
 			'permission_callback' => array( $this->stock_disposition_controller, 'permission_callback' ),
 		);
+		$catalog_args = array(
+			'methods'             => 'GET',
+			'callback'            => array( $this->catalog_controller, 'handle' ),
+			'permission_callback' => array( $this->catalog_controller, 'permission_callback' ),
+		);
+		$customers_args = array(
+			'methods'             => 'GET',
+			'callback'            => array( $this->customers_controller, 'handle' ),
+			'permission_callback' => array( $this->customers_controller, 'permission_callback' ),
+		);
 		$this->registered_routes[] = array(
 			'namespace' => Cetech_Pos_Bridge_Constants::NAMESPACE,
 			'route'     => Cetech_Pos_Bridge_Constants::HEALTH_ROUTE,
@@ -175,6 +193,16 @@ final class Cetech_Pos_Bridge_Plugin {
 			'namespace' => Cetech_Pos_Bridge_Constants::NAMESPACE,
 			'route'     => Cetech_Pos_Bridge_Constants::STOCK_DISPOSITION_RESOLVE_ROUTE,
 			'args'      => $stock_resolve_args,
+		);
+		$this->registered_routes[] = array(
+			'namespace' => Cetech_Pos_Bridge_Constants::NAMESPACE,
+			'route'     => Cetech_Pos_Bridge_Constants::CATALOG_ROUTE,
+			'args'      => $catalog_args,
+		);
+		$this->registered_routes[] = array(
+			'namespace' => Cetech_Pos_Bridge_Constants::NAMESPACE,
+			'route'     => Cetech_Pos_Bridge_Constants::CUSTOMERS_ROUTE,
+			'args'      => $customers_args,
 		);
 		if ( function_exists( 'register_rest_route' ) ) {
 			register_rest_route(
@@ -227,6 +255,16 @@ final class Cetech_Pos_Bridge_Plugin {
 				Cetech_Pos_Bridge_Constants::STOCK_DISPOSITION_RESOLVE_ROUTE,
 				$stock_resolve_args
 			);
+			register_rest_route(
+				Cetech_Pos_Bridge_Constants::NAMESPACE,
+				Cetech_Pos_Bridge_Constants::CATALOG_ROUTE,
+				$catalog_args
+			);
+			register_rest_route(
+				Cetech_Pos_Bridge_Constants::NAMESPACE,
+				Cetech_Pos_Bridge_Constants::CUSTOMERS_ROUTE,
+				$customers_args
+			);
 		}
 	}
 
@@ -272,6 +310,10 @@ final class Cetech_Pos_Bridge_Plugin {
 
 	public function get_stock_disposition_controller() {
 		return $this->stock_disposition_controller;
+	}
+
+	public function get_catalog_controller() {
+		return $this->catalog_controller;
 	}
 
 	public function get_return_effect_engine() {

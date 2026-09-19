@@ -1,6 +1,7 @@
 "use client";
 
 import { formatMoneyDisplay } from "../sell/state/quotePresentation";
+import { orderStatusLabel, TechnicalDetails } from "../../ui/cashier-language";
 import {
   canPresentReturnComplete,
   conditionLabel,
@@ -23,17 +24,28 @@ const CONDITIONS: readonly ReturnConditionView[] = [
   "not_physically_returned",
 ];
 
-function EffectRow({ label, effect }: { label: string; effect?: ReturnSessionView["providerRefund"] }) {
+function EffectRow({
+  label,
+  effect,
+  refundIdentity = false,
+}: {
+  label: string;
+  effect?: ReturnSessionView["providerRefund"];
+  refundIdentity?: boolean;
+}) {
   if (!effect) {
     return null;
   }
   return (
-    <div className="r-row" data-effect-name={label} data-effect-status={effect.status} data-effect-id={effect.effectId ?? ""}>
+    <div
+      className="r-row"
+      data-effect-name={label}
+      data-effect-status={effect.status}
+      data-effect-id={effect.effectId ?? ""}
+      data-refund-identity={refundIdentity ? effect.effectId ?? "" : undefined}
+    >
       <span>{label}</span>
-      <span>
-        {effect.status}
-        {effect.effectId ? ` · ${effect.effectId}` : ""}
-      </span>
+      <span>{orderStatusLabel(effect.status)}</span>
     </div>
   );
 }
@@ -139,7 +151,7 @@ export function ReturnFlow({
                 {safety}
               </div>
             ) : (
-              <p className="muted">Stock disposition follows the server preview. Refund is not restock.</p>
+              <p className="muted">Stock action follows the reviewed return. A refund is not a stock update.</p>
             )}
             {preview ? (
               <div
@@ -150,8 +162,8 @@ export function ReturnFlow({
                 data-disposition-policy={preview.dispositionPolicy}
               >
                 <div>Remaining returnable: {preview.remainingReturnableQuantity}</div>
-                <div>Server disposition: {dispositionLabel(preview.intendedDisposition)}</div>
-                <div>Server policy: {dispositionPolicyLabel(preview.dispositionPolicy)}</div>
+                <div>Stock action: {dispositionLabel(preview.intendedDisposition)}</div>
+                <div>Stock action: {dispositionPolicyLabel(preview.dispositionPolicy)}</div>
                 {preview.intendedDisposition === "no_automatic_restock" ? (
                   <div className="banner info" role="status">
                     No automatic restock.
@@ -172,51 +184,48 @@ export function ReturnFlow({
       ) : null}
       {session.approvalRequired && !session.approvalId ? (
         <div className="banner warning" role="alert" data-approval-missing="">
-          Manager approval is required. Do not invent an approval.
+          Manager approval is required before you can continue.
         </div>
       ) : null}
       {session.approvalId ? (
-        <p className="muted" data-bound-approval={session.approvalId}>
-          Approval bound: {session.approvalId}
-        </p>
+        <div data-bound-approval={session.approvalId}>
+          <TechnicalDetails rows={[{ label: "Approval ID", value: session.approvalId }]} />
+        </div>
       ) : null}
       {session.providerRefund || session.cashRefund || session.commercialRefund || session.stockDisposition ? (
         <div className="card card-pad" data-return-effects="">
-          <strong>Independent effects</strong>
-          <EffectRow label="Provider refund" effect={session.providerRefund} />
-          <EffectRow label="Cash refund" effect={session.cashRefund} />
-          <EffectRow label="Commercial refund" effect={session.commercialRefund} />
-          <EffectRow label="Stock disposition" effect={session.stockDisposition} />
+          <strong>Return progress</strong>
+          <EffectRow label="Payment refund" effect={session.providerRefund} refundIdentity />
+          <EffectRow label="Cash refund" effect={session.cashRefund} refundIdentity />
+          <EffectRow label="Order refund" effect={session.commercialRefund} />
+          <EffectRow label="Stock update" effect={session.stockDisposition} />
         </div>
       ) : null}
       {session.refundIdentities.length > 0 ? (
-        <ul data-refund-identities="">
-          {session.refundIdentities.map((id) => (
-            <li key={id} data-refund-identity={id}>
-              Refund {id}
-            </li>
-          ))}
-        </ul>
+        <TechnicalDetails
+          rows={session.refundIdentities.map((id, index) => ({ label: `Refund ${index + 1}`, value: id }))}
+        />
       ) : null}
       {!complete && unresolved.length > 0 ? (
         <div className="banner warning" role="alert" data-return-unresolved="">
-          Unresolved: {unresolved.join(", ")}. This return is not complete.
+          {"This return isn't finished yet. Some refund or stock updates are still pending."}
+          <TechnicalDetails rows={unresolved.map((label) => ({ label: "Pending", value: label }))} />
         </div>
       ) : null}
       {complete ? (
         <div className="banner success" role="status" data-return-complete-banner="">
-          Return complete.
+          Return completed successfully.
         </div>
       ) : null}
       <div className="dialog-actions">
         {!locked && (session.stage === "selecting" || session.stage === "failed" || session.stage === "previewed" || session.stage === "approval_required") ? (
           <button type="button" className="btn" disabled={inFlight} onClick={onPreview}>
-            Preview return
+            Review return
           </button>
         ) : null}
         {!locked && (session.stage === "previewed" || (session.stage === "approval_required" && session.approvalId)) && session.returnId ? (
           <button type="button" className="btn primary" disabled={inFlight} onClick={onExecute}>
-            Execute return
+            Complete return
           </button>
         ) : null}
         {locked || session.stage === "resolving" || session.stage === "in_progress" || session.stage === "refund_pending" || session.stage === "requires_attention" ? (

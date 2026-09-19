@@ -6,7 +6,14 @@ import { createBridgeServiceIdentity } from "../health/bridge-adapter";
 import type { PosRestFetch } from "../http/server-fetch";
 
 export function quotesUrl(baseUrl: string): string {
-  return `${baseUrl.replace(/\/$/, "")}/wp-json/cetech-pos/v1/quotes`;
+  const trimmed = baseUrl.trim().replace(/\/+$/, "");
+  if (trimmed.endsWith("/wp-json/cetech-pos/v1/quotes")) {
+    return trimmed;
+  }
+  if (trimmed.endsWith("/wp-json/cetech-pos/v1")) {
+    return `${trimmed}/quotes`;
+  }
+  return `${trimmed}/wp-json/cetech-pos/v1/quotes`;
 }
 
 export function composeQuoteBridge(

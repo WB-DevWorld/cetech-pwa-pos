@@ -11,6 +11,7 @@ import {
   type ElectronicPaymentSessionView,
   type ElectronicTenderView,
 } from "./electronicPaymentView";
+import { cashierErrorMessage, withDoNotChargeAgain } from "../../ui/cashier-language";
 
 export type ElectronicPaymentPorts = {
   readonly payments: Pick<PaymentPort, "initialize" | "resolve">;
@@ -31,7 +32,10 @@ async function settle<T>(run: () => Promise<ApiResult<T>>): Promise<Settled<T>> 
   } catch (error) {
     return {
       kind: "unknown",
-      message: error instanceof Error ? error.message : "The operation result is unknown.",
+      message: cashierErrorMessage(
+        { message: error instanceof Error ? error.message : undefined },
+        "payment",
+      ),
     };
   }
 }
@@ -134,7 +138,7 @@ export function createElectronicPaymentController(ports: ElectronicPaymentPorts)
     if (outcome.kind === "unknown") {
       setSession({
         ...session,
-        message: `${outcome.message} Do not charge again. Resolve the existing payment.`,
+        message: withDoNotChargeAgain(`${outcome.message} Do not start another payment.`),
         warning: "Do not charge again.",
         doNotChargeAgain: true,
         presentAllowed: false,
@@ -146,7 +150,9 @@ export function createElectronicPaymentController(ports: ElectronicPaymentPorts)
     if (!outcome.value.ok && shouldResolveFailure(outcome.value)) {
       setSession({
         ...session,
-        message: `${outcome.value.error.message} Do not charge again. Resolve the existing payment.`,
+        message: withDoNotChargeAgain(
+          `${cashierErrorMessage(outcome.value.error, "payment")} Do not start another payment.`,
+        ),
         warning: "Do not charge again.",
         doNotChargeAgain: true,
         presentAllowed: false,
@@ -162,7 +168,7 @@ export function createElectronicPaymentController(ports: ElectronicPaymentPorts)
     if (outcome.kind === "result" && !outcome.value.ok) {
       setSession({
         ...session,
-        message: outcome.value.error.message,
+        message: cashierErrorMessage(outcome.value.error, "payment"),
         presentAllowed: false,
         resolveAllowed: outcome.value.error.nextAction === "resolve",
         verified: false,
@@ -177,7 +183,7 @@ export function createElectronicPaymentController(ports: ElectronicPaymentPorts)
       status: "initializing",
       transactionId,
       tender,
-      message: "Payment is initializing. Do not charge again.",
+      message: "Starting payment. Do not charge again.",
       warning: "Do not charge again.",
       doNotChargeAgain: true,
       presentAllowed: false,
@@ -199,7 +205,7 @@ export function createElectronicPaymentController(ports: ElectronicPaymentPorts)
       setSession({
         ...session,
         status: "failed",
-        message: outcome.value.error.message,
+        message: cashierErrorMessage(outcome.value.error, "payment"),
         doNotChargeAgain: false,
         presentAllowed: false,
         resolveAllowed: outcome.value.error.nextAction === "resolve",
@@ -254,7 +260,7 @@ export function createElectronicPaymentController(ports: ElectronicPaymentPorts)
             transactionId: input.transactionId,
             paymentId: session.paymentId,
             tender: input.tender,
-            message: "Payment status is uncertain. Do not charge again. Resolve the existing payment.",
+            message: "Payment status is uncertain. Do not charge again.",
             warning: "Do not charge again.",
             doNotChargeAgain: true,
             presentAllowed: false,
@@ -301,7 +307,7 @@ export function createElectronicPaymentController(ports: ElectronicPaymentPorts)
           ...session,
           verified: false,
           browserCallbackIsNotTruth: true,
-          message: "A browser or provider callback is not payment truth. Do not treat this as verified. Checking the existing payment.",
+          message: "We haven't confirmed this payment yet. Do not charge again while we check its status.",
           warning: "Do not charge again.",
           doNotChargeAgain: Boolean(session.paymentId) || session.doNotChargeAgain,
         });

@@ -47,6 +47,11 @@ class BatchWorkflowTests(unittest.TestCase):
                         'pnpm --dir apps/pos-web test:e2e']:
             self.assertIn(command, ci)
 
+    def test_staging_summary_does_not_command_substitute_ci_tested_sha(self):
+        deploy = (ROOT / '.github/workflows/deploy-staging.yml').read_text()
+        self.assertNotIn('`${CI_TESTED_SHA}`', deploy)
+        self.assertIn('printf -- \'- CI-tested SHA: `%s`\\n\' "$CI_TESTED_SHA"', deploy)
+
 
 if __name__ == '__main__':
     unittest.main()

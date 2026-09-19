@@ -3,6 +3,7 @@ import type { Quote, QuoteRequest } from "../../../../docs/contracts/domain.gene
 import { STAFF_CSRF_COOKIE, STAFF_SESSION_COOKIE } from "../config/auth";
 import { createEphemeralInMemoryStaffSessionStore } from "./auth/session-store";
 import { handleQuote, type QuoteBridge } from "./quotes/handle-quote";
+import type { CatalogProjectionStore } from "./catalog/catalog-projection-store";
 
 const CORRELATION = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
 const ORIGIN = "https://pos.example.test";
@@ -102,7 +103,30 @@ async function staffCookies() {
   };
 }
 
-async function postQuote(body: unknown, bridge?: QuoteBridge) {
+function identityFor(
+  mappings: ReadonlyArray<{ readonly itemId: string; readonly sourceItemId: string; readonly sourceSystem?: string; readonly tombstoned?: boolean }>,
+): Pick<CatalogProjectionStore, "loadByItemIds"> {
+  return {
+    async loadByItemIds(_organizationId, itemIds) {
+      return mappings
+        .filter((row) => itemIds.includes(row.itemId))
+        .map((row) => ({
+          itemId: row.itemId,
+          sourceSystem: row.sourceSystem ?? "woocommerce",
+          sourceItemId: row.sourceItemId,
+          tombstoned: row.tombstoned === true,
+        }));
+    },
+  };
+}
+
+const DEFAULT_IDENTITY = identityFor([{ itemId: "p-hardener", sourceItemId: "101" }]);
+
+async function postQuote(
+  body: unknown,
+  bridge?: QuoteBridge,
+  catalogIdentity: Pick<CatalogProjectionStore, "loadByItemIds"> = DEFAULT_IDENTITY,
+) {
   const { store, cookieHeader } = await staffCookies();
   return handleQuote({
     correlationIdHeader: CORRELATION,
@@ -115,6 +139,7 @@ async function postQuote(body: unknown, bridge?: QuoteBridge) {
     sessionStore: store,
     allowedOrigins: [ORIGIN],
     bridge,
+    catalogIdentity,
   });
 }
 
@@ -145,15 +170,67 @@ describe("R4 BFF whole-cart quote", () => {
     }
   });
 
-  test("forwards a valid walk-in QuoteRequest and returns the bridge Quote without computing totals", async () => {
-    const result = await postQuote(REQUEST, quotingBridge());
+  test("forwards a valid walk-in QuoteRequest, translates POS IDs to Woo IDs, and restores POS IDs on the Quote", async () => {
+    let seen: QuoteRequest | undefined;
+    const result = await postQuote(REQUEST, {
+      async postQuote(request, correlationId) {
+        seen = request;
+        return {
+          ok: true,
+          correlationId,
+          data: validQuote(request),
+        };
+      },
+    });
     expect(result.status).toBe(200);
     expect(result.body.ok).toBe(true);
     expect(result.headers["X-Correlation-ID"]).toBe(CORRELATION);
+    expect(seen?.lines[0]?.productId).toBe("101");
     if (result.body.ok) {
+      expect(result.body.data.lines[0]?.productId).toBe("p-hardener");
       expect(result.body.data.total.minor).toBe(1500);
       expect(result.body.data.fingerprint).toBe(FINGERPRINT);
       expect(result.body.correlationId).toBe(CORRELATION);
+    }
+  });
+
+  test("missing catalog identity mapping fails closed before the bridge", async () => {
+    let called = 0;
+    const result = await postQuote(
+      REQUEST,
+      {
+        async postQuote() {
+          called += 1;
+          throw new Error("bridge must not run");
+        },
+      },
+      identityFor([]),
+    );
+    expect(called).toBe(0);
+    expect(result.status).toBe(503);
+    expect(result.body.ok).toBe(false);
+    if (!result.body.ok) {
+      expect(result.body.error.code).toBe("INTEGRATION_UNAVAILABLE");
+      expect(result.body.error.message).toContain("missing");
+    }
+  });
+
+  test("wrong source system mapping fails closed before the bridge", async () => {
+    let called = 0;
+    const result = await postQuote(
+      REQUEST,
+      {
+        async postQuote() {
+          called += 1;
+          throw new Error("bridge must not run");
+        },
+      },
+      identityFor([{ itemId: "p-hardener", sourceItemId: "101", sourceSystem: "shopify" }]),
+    );
+    expect(called).toBe(0);
+    expect(result.body.ok).toBe(false);
+    if (!result.body.ok) {
+      expect(result.body.error.message).toContain("WooCommerce");
     }
   });
 

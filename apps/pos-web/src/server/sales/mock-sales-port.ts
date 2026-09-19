@@ -1,6 +1,7 @@
 import type { ApiResult, SalesPort } from "../../../../../docs/contracts/ports";
 import type {
   BridgeFinalizeRequest,
+  CancelSaleRequest,
   CommandContext,
   PreparedSale,
   PrepareSaleRequest,
@@ -16,9 +17,10 @@ import { apiFailure } from "../http/api-failure";
  * `composeCheckoutRuntime` uses the quote-snapshot variant so local prepare
  * cannot invent a zero total against a stored authoritative quote.
  */
-export type MockSalesPort = Pick<SalesPort, "prepare" | "resolve" | "confirmPayment"> & {
+export type MockSalesPort = Pick<SalesPort, "prepare" | "resolve" | "confirmPayment" | "cancel"> & {
   commercialSaleCount: number;
   prepareCount: number;
+  cancelCount: number;
   failNextConfirm: boolean;
   readonly confirmedTransactionIds: ReadonlySet<string>;
 };
@@ -39,9 +41,11 @@ export function createQuoteSnapshotSalesPort(quotes: QuoteLookup): MockSalesPort
 function createSalesPortFromQuotes(quotes: QuoteLookup | undefined): MockSalesPort {
   const prepared = new Map<string, PreparedSale>();
   const confirmed = new Map<string, SaleResolution>();
+  const cancelled = new Map<string, SaleResolution>();
   const port: MockSalesPort = {
     commercialSaleCount: 0,
     prepareCount: 0,
+    cancelCount: 0,
     failNextConfirm: false,
     get confirmedTransactionIds() {
       return new Set(confirmed.keys());
@@ -78,6 +82,10 @@ function createSalesPortFromQuotes(quotes: QuoteLookup | undefined): MockSalesPo
       const completed = confirmed.get(transactionId);
       if (completed) {
         return { ok: true, data: completed, correlationId };
+      }
+      const cancelledSale = cancelled.get(transactionId);
+      if (cancelledSale) {
+        return { ok: true, data: cancelledSale, correlationId };
       }
       const sale = prepared.get(transactionId);
       if (sale) {
@@ -122,6 +130,29 @@ function createSalesPortFromQuotes(quotes: QuoteLookup | undefined): MockSalesPo
         paymentId: input.payment.paymentId,
       };
       confirmed.set(input.transactionId, resolution);
+      return { ok: true, data: resolution, correlationId: context.correlationId };
+    },
+    async cancel(input: CancelSaleRequest, context: CommandContext): Promise<ApiResult<SaleResolution>> {
+      const existingCancelled = cancelled.get(input.transactionId);
+      if (existingCancelled) {
+        return { ok: true, data: existingCancelled, correlationId: context.correlationId };
+      }
+      if (confirmed.has(input.transactionId)) {
+        return apiFailure("PAYMENT_PENDING", "A verified sale cannot be cancelled", context.correlationId);
+      }
+      const sale = prepared.get(input.transactionId);
+      if (!sale) {
+        return apiFailure("NOT_FOUND", "prepared sale was not found", context.correlationId);
+      }
+      port.cancelCount += 1;
+      const resolution: SaleResolution = {
+        transactionId: input.transactionId,
+        status: "cancelled",
+        saleId: sale.saleId,
+        orderReference: sale.orderReference,
+      };
+      cancelled.set(input.transactionId, resolution);
+      prepared.delete(input.transactionId);
       return { ok: true, data: resolution, correlationId: context.correlationId };
     },
   };

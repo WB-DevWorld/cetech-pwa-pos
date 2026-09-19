@@ -18,6 +18,23 @@ export {
   rebuildCatalogProjection,
   searchLocalCatalog,
 } from "./catalog-repository";
+export {
+  CATALOG_REFRESH_MIN_INTERVAL_MS,
+  CATALOG_SYNC_PAGE_LIMIT,
+  CATALOG_SYNC_STATE_KEY,
+  ensureCatalogProjection,
+  inspectLocalCatalogProjection,
+  readCatalogSyncState,
+  refreshCatalogProjection,
+  catalogProjectionSyncApplied,
+} from "./catalog-sync";
+export type {
+  CatalogProjectionAvailability,
+  CatalogProjectionSyncResult,
+  CatalogSyncPageFetcher,
+  CatalogSyncState,
+} from "./catalog-sync";
+export { createBrowserCatalogSyncClient } from "./catalog-sync-client";
 export { createLocalCustomerPort, replaceLocalCustomers } from "./customer-store";
 export { rebuildableCatalogClear, recordLocalSchema } from "./pwa-upgrade";
 export { assertJournalPayloadHasNoSecrets, journalPayloadContainsSecrets } from "./secrets-guard";

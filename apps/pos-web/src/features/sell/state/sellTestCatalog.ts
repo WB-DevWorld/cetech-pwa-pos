@@ -17,6 +17,7 @@ export const SELL_TEST_CATALOG: readonly SellProductView[] = [
     barcodes: ["0012345678901"],
     kind: "simple",
     stockStatus: "in_stock",
+    displayPrice: { minor: 15500, currency: "GHS" },
   },
   {
     id: "p-cable",
@@ -53,6 +54,7 @@ export const SELL_TEST_CATALOG: readonly SellProductView[] = [
     barcodes: ["5550001112223"],
     kind: "simple",
     stockStatus: "in_stock",
+    displayPrice: { minor: 21500, currency: "GHS" },
   },
   {
     id: "p-db",

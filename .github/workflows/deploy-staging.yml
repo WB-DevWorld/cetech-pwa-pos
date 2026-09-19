@@ -151,7 +151,7 @@ jobs:
             echo
             echo "**DEPLOYED_STAGING**"
             echo
-            echo "- CI-tested SHA: `${CI_TESTED_SHA}`"
+            printf -- '- CI-tested SHA: `%s`\n' "$CI_TESTED_SHA"
             echo "- Vercel deployment: ${{ steps.deploy.outputs.url }}"
             if [[ -n "${VERCEL_STAGING_ALIAS:-}" ]]; then
               echo "- Stable staging origin: https://${VERCEL_STAGING_ALIAS}"

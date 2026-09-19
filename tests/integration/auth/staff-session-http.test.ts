@@ -4,9 +4,10 @@ import { createStaffIdentityVerifier } from "../../../apps/pos-web/src/server/au
 import { createEphemeralInMemoryStaffSessionStore } from "../../../apps/pos-web/src/server/auth/session-store";
 import {
   handleEstablishStaffSession,
+  handleReadStaffSession,
   handleRevokeStaffSession,
 } from "../../../apps/pos-web/src/server/auth/handle-staff-session";
-import { CORRELATION, ORIGIN, cashierClaims } from "./helpers";
+import { CORRELATION, ORIGIN, cashierClaims, directory } from "./helpers";
 
 const NOW = new Date("2026-09-13T13:30:00.000Z");
 
@@ -140,6 +141,67 @@ describe("CORE-02 staff session HTTP", () => {
     }
     expect(revoked.body.data.localWorkPreserved).toBe(true);
     expect(await store.get(sessionId, NOW)).toBeNull();
+  });
+
+  test("GET recovers the staff session without CSRF and expired sessions fail closed", async () => {
+    const store = createEphemeralInMemoryStaffSessionStore();
+    const assignments = directory();
+    const established = await handleEstablishStaffSession({
+      correlationIdHeader: CORRELATION,
+      origin: ORIGIN,
+      referer: null,
+      authorizationHeader: "Bearer synthetic-staff-access-token",
+      now: NOW,
+      verifier: verifierOk(),
+      store,
+      allowedOrigins: [ORIGIN],
+      secureCookies: true,
+    });
+    expect(established.body.ok).toBe(true);
+    const sessionCookie = established.cookies.find((cookie) => cookie.startsWith("cetech_pos_sid="));
+    const sessionId = sessionCookie?.split(";")[0]?.split("=")[1] ?? "";
+
+    const recovered = await handleReadStaffSession({
+      correlationIdHeader: CORRELATION,
+      origin: ORIGIN,
+      referer: null,
+      cookieHeader: `cetech_pos_sid=${sessionId}`,
+      now: NOW,
+      store,
+      assignments,
+      allowedOrigins: [ORIGIN],
+    });
+    expect(recovered.status).toBe(200);
+    expect(recovered.body.ok).toBe(true);
+    if (!recovered.body.ok) {
+      throw new Error("expected recovered session");
+    }
+    expect(recovered.body.data.session.displayName).toBe("Cashier A");
+    expect(recovered.body.data.assignedRegisterIds).toEqual(["reg_a"]);
+    expect(recovered.body.data.assignedLocationIds).toEqual(["loc_a1"]);
+
+    const missing = await handleReadStaffSession({
+      correlationIdHeader: CORRELATION,
+      origin: ORIGIN,
+      referer: null,
+      now: NOW,
+      store,
+      assignments,
+      allowedOrigins: [ORIGIN],
+    });
+    expect(missing.status).toBe(401);
+
+    const expired = await handleReadStaffSession({
+      correlationIdHeader: CORRELATION,
+      origin: ORIGIN,
+      referer: null,
+      cookieHeader: `cetech_pos_sid=${sessionId}`,
+      now: new Date("2099-01-01T00:00:00.000Z"),
+      store,
+      assignments,
+      allowedOrigins: [ORIGIN],
+    });
+    expect(expired.status).toBe(401);
   });
 
   test("Next session route does not embed privileged secrets", () => {

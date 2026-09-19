@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { AppToast, type AppToastView } from "../toast";
 import { PrimaryNav } from "./PrimaryNav";
 import { SETTINGS_NAV_ITEM, POS_ROUTE_HREFS, type PosRoute } from "./routes";
 import { TopBar, type TopBarProps } from "./TopBar";
@@ -10,6 +11,7 @@ export type AppShellProps = TopBarProps & {
   attentionCount?: number;
   onNavigate?: (route: PosRoute) => void;
   liveMessage?: string;
+  toast?: AppToastView | null;
   children: ReactNode;
 };
 
@@ -18,6 +20,7 @@ export function AppShell({
   attentionCount = 0,
   onNavigate,
   liveMessage,
+  toast,
   children,
   ...topBar
 }: AppShellProps) {
@@ -60,6 +63,7 @@ export function AppShell({
         <main className="content" id="main-content">
           {children}
         </main>
+        {toast ? <AppToast title={toast.title} detail={toast.detail} /> : null}
       </div>
     </div>
   );

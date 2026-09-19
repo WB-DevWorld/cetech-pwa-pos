@@ -243,7 +243,7 @@ describe("FE-06 returns", () => {
         onResolve: () => undefined,
       }),
     );
-    expect(html).toContain("Do not invent an approval");
+    expect(html).toContain("Manager approval is required before you can continue.");
     expect(html).toContain('data-approval-id=""');
   });
 
@@ -344,7 +344,8 @@ describe("FE-06 returns", () => {
       }),
     );
     expect(html).toContain("No automatic restock");
-    expect(html).toContain("Tenant policy required");
+    expect(html).toContain("Follow the required stock action");
+    expect(html).toContain('data-disposition-policy="tenant_policy_required"');
   });
 
   test("16 execute uses the accepted return identity and fingerprint", async () => {
@@ -396,8 +397,8 @@ describe("FE-06 returns", () => {
     );
     expect(html).toContain('data-return-complete="false"');
     expect(html).not.toContain("data-return-complete-banner");
-    expect(html).toContain("Unresolved");
-    expect(html).toContain("provider refund");
+    expect(html).toContain("data-return-unresolved");
+    expect(html).toContain("Payment refund");
   });
 
   test("19 completed aggregate is presented only from authoritative completed resolution", async () => {
@@ -418,7 +419,7 @@ describe("FE-06 returns", () => {
       }),
     );
     expect(html).toContain('data-return-complete="true"');
-    expect(html).toContain("Return complete.");
+    expect(html).toContain("Return completed successfully.");
   });
 
   test("20 repeated or partial refund identities remain distinguishable", async () => {
@@ -494,6 +495,7 @@ describe("FE-06 outstanding executed return identity lock", () => {
     expect(html).toMatch(/id="return-reason-ol-1"[^>]*disabled/);
     expect(html).toMatch(/id="return-condition-ol-1"[^>]*disabled/);
     expect(html).not.toContain("Execute return");
+    expect(html).toContain("Check return status");
   });
 
   test("4 in_progress cannot replace the return", async () => {

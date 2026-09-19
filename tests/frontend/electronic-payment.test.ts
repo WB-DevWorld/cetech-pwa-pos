@@ -204,8 +204,50 @@ describe("FE-06 electronic payment", () => {
         onContactManager: () => undefined,
       }),
     );
-    expect(html).toContain("not payment truth");
+    expect(html).toContain("We haven&#x27;t confirmed this payment yet");
+    expect(html).toContain("Do not charge again");
+    expect(html).toContain('data-browser-callback-not-truth="true"');
     expect(html).toContain('data-payment-verified="false"');
+  });
+});
+
+describe("UX-03 electronic waiting presentation", () => {
+  test("waiting copy has no demo harness and pending says do not charge again", async () => {
+    const { PaymentWaiting } = await import("../../apps/pos-web/src/features/sell/components/PaymentWaiting");
+    const pending = renderToStaticMarkup(
+      createElement(PaymentWaiting, {
+        session: {
+          ...idleElectronicPaymentSession(),
+          status: "pending",
+          nextAction: "wait",
+          message: "Payment is still being checked.",
+          doNotChargeAgain: true,
+          presentAllowed: false,
+          resolveAllowed: true,
+        },
+        inFlight: false,
+        onResolve: () => undefined,
+      }),
+    );
+    expect(pending).toContain("Do not charge again.");
+    expect(pending).not.toContain("Demo controls");
+    expect(pending).not.toContain("Timeout / recover");
+    const waiting = renderToStaticMarkup(
+      createElement(PaymentWaiting, {
+        session: {
+          ...idleElectronicPaymentSession(),
+          status: "awaiting_customer",
+          nextAction: "wait",
+          message: "Waiting for customer…",
+          doNotChargeAgain: true,
+          presentAllowed: false,
+        },
+        inFlight: false,
+        onResolve: () => undefined,
+      }),
+    );
+    expect(waiting).toContain("Waiting for customer");
+    expect(waiting).toContain("payment-spinner");
   });
 });
 
