@@ -38,6 +38,8 @@ PHP_SOURCES := \
 	includes/class-stock-disposition-controller.php \
 	includes/class-catalog-engine.php \
 	includes/class-catalog-controller.php \
+	includes/class-customers-engine.php \
+	includes/class-customers-controller.php \
 	includes/class-pricing-rules.php \
 	includes/class-plugin.php \
 	tools/derive-quote-contract.php
@@ -57,6 +59,7 @@ TEST_SOURCES := \
 	$(TEST_DIR)/test-return-effects.php \
 	$(TEST_DIR)/test-ws3-generated-return-effects.php \
 	$(TEST_DIR)/test-catalog.php \
+	$(TEST_DIR)/test-customers.php \
 	$(TEST_DIR)/parity.php
 
 .PHONY: check test parity

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { cashierErrorMessage } from "../../ui/cashier-language";
+import { useEffect, useState, type FormEvent } from "react";
+import { cashierErrorMessage, formatMoneyLabel, formatOperationalDateTime } from "../../ui/cashier-language";
 import { ReturnFlow } from "./ReturnFlow";
 import { OUTSTANDING_RETURN_COPY, type HistoricReturnSaleView, type ReturnConditionView, type ReturnSessionView } from "./returnView";
 
@@ -9,10 +9,21 @@ export type HistoricSaleLookup = {
   search(query: string): Promise<readonly HistoricReturnSaleView[]>;
 };
 
+function itemSummary(sale: HistoricReturnSaleView): string | undefined {
+  if (sale.itemSummary) return sale.itemSummary;
+  const first = sale.lines[0];
+  if (!first) return undefined;
+  if (sale.lines.length === 1) {
+    return `${first.originalSoldQuantity} × ${first.name}`;
+  }
+  return `${first.originalSoldQuantity} × ${first.name} · ${sale.lines.length - 1} more`;
+}
+
 export function ReturnsScreen({
   session,
   inFlight,
   lookup,
+  matches: initialMatches,
   onSelectSale,
   onUpdateLine,
   onPreview,
@@ -22,6 +33,7 @@ export function ReturnsScreen({
   session: ReturnSessionView;
   inFlight: boolean;
   lookup?: HistoricSaleLookup;
+  matches?: readonly HistoricReturnSaleView[];
   onSelectSale: (sale: HistoricReturnSaleView) => void;
   onUpdateLine: (orderLineId: string, patch: { quantity?: string; reason?: string; condition?: ReturnConditionView }) => void;
   onPreview: () => void;
@@ -29,11 +41,43 @@ export function ReturnsScreen({
   onResolve: () => void;
 }) {
   const [query, setQuery] = useState("");
-  const [matches, setMatches] = useState<readonly HistoricReturnSaleView[]>([]);
+  const [localMatches, setLocalMatches] = useState<readonly HistoricReturnSaleView[] | null>(null);
   const [lookupError, setLookupError] = useState<string | undefined>();
   const [searching, setSearching] = useState(false);
   const locked = session.identityLocked;
   const lookupDisabled = searching || inFlight || locked || !lookup;
+  const matches = localMatches ?? initialMatches ?? [];
+
+  useEffect(() => {
+    if (!lookup || locked || initialMatches) {
+      return;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      setSearching(true);
+      void lookup.search("").then(
+        (result) => {
+          if (cancelled) return;
+          setLocalMatches(result);
+          setSearching(false);
+        },
+        (error: unknown) => {
+          if (cancelled) return;
+          setLookupError(
+            cashierErrorMessage(
+              { message: error instanceof Error ? error.message : undefined },
+              "returns",
+            ),
+          );
+          setSearching(false);
+        },
+      );
+    }, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [lookup, locked, initialMatches]);
 
   async function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -44,7 +88,7 @@ export function ReturnsScreen({
     setLookupError(undefined);
     try {
       const result = await lookup.search(query);
-      setMatches(result);
+      setLocalMatches(result);
       if (result.length === 0) {
         setLookupError("No original sale matched that search.");
       }
@@ -63,57 +107,69 @@ export function ReturnsScreen({
       <div className="page-head">
         <div>
           <h1>Returns</h1>
-          <p>Find the original sale, choose the items being returned, and review the refund before completing.</p>
+          <p>Returns keep refund, payment and physical stock disposition separate.</p>
         </div>
       </div>
-      <section className="card card-pad">
-        <form className="stack" onSubmit={handleSearch}>
-          <div className="field">
-            <label htmlFor="return-sale-query">Original sale</label>
-            <input
-              id="return-sale-query"
-              className="input"
-              value={query}
-              disabled={lookupDisabled}
-              onChange={(event) => setQuery(event.target.value)}
-            />
+      <form className="card card-pad returns-search" onSubmit={handleSearch}>
+        <label className="field" htmlFor="return-sale-query">
+          <span className="sr-only">Find order, customer or receipt</span>
+          <input
+            id="return-sale-query"
+            className="input"
+            value={query}
+            disabled={lookupDisabled}
+            placeholder="Find order, customer or receipt…"
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </label>
+        {!lookup ? (
+          <div className="banner warning" role="status">
+            Original sale lookup is not available yet. You can still review a return after a sale is selected.
           </div>
-          <button className="btn primary" type="submit" disabled={lookupDisabled}>
-            {searching ? "Looking up…" : "Look up sale"}
-          </button>
-          {!lookup ? (
-            <div className="banner warning" role="status">
-              Original sale lookup is not available yet. You can still review a return after a sale is selected.
-            </div>
-          ) : null}
-          {locked ? (
-            <div className="banner warning" role="alert" data-outstanding-return="">
-              {OUTSTANDING_RETURN_COPY}
-            </div>
-          ) : null}
-        </form>
+        ) : null}
+        {locked ? (
+          <div className="banner warning" role="alert" data-outstanding-return="">
+            {OUTSTANDING_RETURN_COPY}
+          </div>
+        ) : null}
         {lookupError ? (
           <div className="banner danger" role="alert">
             {lookupError}
           </div>
         ) : null}
-        {matches.map((sale) => (
-          <button
-            key={sale.saleId}
-            type="button"
-            className="btn"
-            disabled={inFlight || locked}
-            onClick={() => {
-              if (locked) {
-                return;
-              }
-              onSelectSale(sale);
-            }}
-          >
-            {sale.orderReference}
-          </button>
-        ))}
-      </section>
+        {searching ? <p className="muted" role="status">Looking up original sales…</p> : null}
+      </form>
+      {matches.length > 0 ? (
+        <div className="returns-card-grid">
+          {matches.map((sale) => (
+            <article className="card card-pad returns-sale-card" key={sale.saleId}>
+              <div className="returns-sale-head">
+                <strong>{sale.orderReference}</strong>
+                {sale.total ? <strong>{formatMoneyLabel(sale.total)}</strong> : null}
+              </div>
+              <p className="workspace-subline">
+                {[sale.customerLabel, sale.createdAt ? formatOperationalDateTime(sale.createdAt) : undefined]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+              {itemSummary(sale) ? <p className="workspace-subline">{itemSummary(sale)}</p> : null}
+              <button
+                type="button"
+                className="btn"
+                disabled={inFlight || locked}
+                onClick={() => {
+                  if (locked) {
+                    return;
+                  }
+                  onSelectSale(sale);
+                }}
+              >
+                Return items
+              </button>
+            </article>
+          ))}
+        </div>
+      ) : null}
       {session.saleId ? (
         <ReturnFlow
           session={session}

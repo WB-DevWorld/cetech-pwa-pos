@@ -39,6 +39,8 @@ export type SellSessionPorts = {
   readonly catalogAvailability?: CatalogAvailability;
   readonly catalogProjectionGeneration?: number;
   readonly electronicPaymentsAvailable?: boolean;
+  readonly nextSaleCustomer?: CustomerSearchResultView | null;
+  readonly onNextSaleCustomerApplied?: (customer: CustomerSearchResultView) => void;
 };
 
 function defaultNow(): Date {
@@ -338,6 +340,8 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
         resolveBarcodeCatalog={resolveBarcodeCatalog}
         loadVariations={loadVariations}
         catalogProjectionGeneration={projectionGeneration}
+        nextSaleCustomer={ports.nextSaleCustomer}
+        onNextSaleCustomerApplied={ports.onNextSaleCustomerApplied}
         onCustomerQueryChange={searchCustomers}
         onWorkspaceChange={persist}
         quote={presentedQuote.quote}

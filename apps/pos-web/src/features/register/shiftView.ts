@@ -43,9 +43,13 @@ export type ShiftWorkspaceView = {
 export function idleShiftWorkspace(): ShiftWorkspaceView {
   return {
     status: "no_open_shift",
-    message: "Select a register and start a shift before taking payment.",
+    message: "Select a register and open a shift before taking payment.",
     closeSucceeded: false,
   };
+}
+
+export function shouldAnnounceRegisterOpened(previous: ShiftStatusView, next: ShiftStatusView): boolean {
+  return previous === "opening" && next === "open";
 }
 
 export function formatSignedMoneyDisplay(money: SignedRegisterMoneyView): string {
@@ -62,7 +66,7 @@ export function describeShiftStatus(status: ShiftStatusView): { readonly title: 
     case "no_open_shift":
       return { title: "Register", status: "No open shift." };
     case "opening":
-      return { title: "Starting shift", status: "Starting your shift." };
+      return { title: "Opening register", status: "Opening the register." };
     case "open":
       return { title: "Shift open", status: "Shift is open. End shift with a drawer cash count." };
     case "closing":

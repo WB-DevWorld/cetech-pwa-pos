@@ -108,7 +108,7 @@ describe("R8-01 returns and register app composition", () => {
         currency: "GHS",
       }),
     );
-    expect(html).toContain("Start shift");
+    expect(html).toContain("Open register");
     expect(html).not.toContain("This workspace is not part of the R4 Sell runtime.");
     const app = renderToStaticMarkup(
       createElement(PosRuntime, { route: "register", onNavigate: () => undefined }),

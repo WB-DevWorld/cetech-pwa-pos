@@ -1,4 +1,71 @@
-# WS1 current handoff — UX-03 visible product price presentation review fix (REVIEW_FIX_RETURN FRESH_2)
+# WS1 current handoff — UX-04 operational workspaces demo alignment (TASK_COMPLETION FRESH_2)
+
+Kind / UTC: TASK_COMPLETION / 2026-09-19T13:28:00Z
+Handoff kind: DEPENDENCY_READY
+Task / batch / workstream: UX-04 remaining operational workspaces demo alignment + real runtime / WS1 temporary senior exception now EXPIRED / CLOSED
+Owner / integration editor / requested human reviewer: Senior/user `@wbdevworld` for this bounded contributor implementation. WS3 independently reviews/imports. Do not self-approve. Do not merge. Do not update PR #77.
+Branch: `ws1/ux-04-operational-workspaces-demo-alignment`
+Starting/base SHA: `c857b097bca5b4eaaed4a4de0e33826639a91809` (UX-03-containing `origin/batch/stg-01-staging-runtime-acceptance` / PR #77 head)
+Pre-handoff implementation SHA: recorded as this evidence commit after it lands (cannot be embedded in its own commit)
+Allowed / forbidden paths and central leases: temporary UX-04 exception now EXPIRED / CLOSED. Was WS1 operational features/UI + tests/frontend; bounded WS3 BFF/read models/app wiring; smallest read-only WS2 `GET /customers`. Forbidden: UX-02/UX-03 Sell/payment redesign; Woo/B2BKing/WoodMart pricing; frozen-contract churn; WS2 mutations; protected `main`; mutating `batch/stg-01-staging-runtime-acceptance` / PR #77; production deploy.
+Files changed: see session report (WS1 screens/CSS/toast; bounded WS3 orders/attention/customers BFF + checkout list methods; optional WS2 customers engine; tests; CURRENT-WORK; this STATUS/HANDOFF).
+Contracts changed: none (feature-level/BFF read models only)
+Database migrations: none
+Architecture decisions: none
+Completed/current/remaining tasks: UX-04 contributor implementation complete. Temporary senior UX-04 assignment EXPIRED / CLOSED. Remaining: WS3 independent review/import into STG-01; truthful per-tender electronic capability signal (unchanged blocker); live staging customer/order population if training Woo has none.
+Dependencies (accepted / provisional SHA / prep-only / blocked): base `c857b097bca5b4eaaed4a4de0e33826639a91809`. Shared batch / PR #77 head still `c857b097bca5b4eaaed4a4de0e33826639a91809`. `origin/main` `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` is an ancestor; not consumed.
+Tests executed:
+- `python scripts/verify_control_plane.py` → PASS (exit 0)
+- `pnpm --dir apps/pos-web lint` → exit 0
+- `pnpm --dir apps/pos-web typecheck` → exit 0
+- `pnpm --dir apps/pos-web test` → 107 files, 848 passed, exit 0
+- `pnpm --dir apps/pos-web build` → exit 0
+- `pnpm --dir apps/pos-web test:e2e` → 15 passed, exit 0
+- `pnpm --dir apps/pos-web exec playwright test --config ../../tests/frontend/visual/playwright.config.ts --workers=1 ux-04.pw.ts` → 16 passed, exit 0
+- Full visual suite: UX-04 + UX-03 + shell passed; one UX-02 tablet screenshot write hit a Windows file lock on existing `sell-tablet-768.png` / `sell-tablet-1024.png` (assertions passed; evidence rewrite denied). Not a UX-04 functional failure.
+- `php tests/bridge/run.php` → 1752 passed, 0 failed, exit 0
+- `git diff --check` → clean (exit 0)
+Runtime verification and tested combined SHA/environment: required suite on this contributor tree. Fixture harness screenshots are not deployed staging evidence. Not live Woo charge/refund/restock. Electronic per-method capability remains BLOCKED_PENDING_CAPABILITY_SIGNAL; Health Payments fail closed (Unverified / cash only).
+Remote effects performed: none in this evidence commit (contributor branch push follows).
+Assumptions / limitations / unresolved risks:
+- Orders history is POS checkout-sale projection (Supabase/in-memory), not a new Woo order-truth database. Woo remains transitional commercial authority.
+- Customers: smallest WS2 read-only GET `/customers` + BFF; local Dexie is rebuildable cache. Empty staging projection stays empty until the producer returns rows. Commercial group labels only when the producer supplies `commercialContext`.
+- Attention `Mark reviewed` is fixture-only. Production financial items have `reviewAllowed: false` because REVIEWED != RESOLVED and no durable acknowledgement table was added.
+- Register open toast/navigation fires only on in-flight `opening` → `open`, not on restoring an already-open shift.
+- Baseline PNGs in `tests/frontend/evidence/ux-04-baseline-*` were captured from current source after implementation using older fixture copy; they are not a frozen pre-UX-04 pixel archive.
+Next exact action: WS3 independently reviews/imports the contributor SHA. Do not import into the shared STG-01 batch as part of this closeout. Reassignment: NONE (exception expired).
+
+Freshness protocol:
+START_FRESHNESS_SNAPSHOT UTC: 2026-09-19T13:25:00Z
+Start main SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Start batch ref/SHA: `origin/batch/stg-01-staging-runtime-acceptance` `c857b097bca5b4eaaed4a4de0e33826639a91809`
+Applicable contracts / ADRs / ownership / queue revision: frozen v1.0.0; ADR-012; ADR-014; CURRENT-WORK temporary senior UX-04 exception now expired
+
+Pass 1 fetch UTC / success evidence: 2026-09-19T13:25:00Z `git fetch origin` succeeded
+Pass 1 main SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Pass 1 batch SHA: `c857b097bca5b4eaaed4a4de0e33826639a91809`
+Relevant upstream paths and dependency/authority effects: `origin/main` is an ancestor of HEAD; batch tip equals start SHA and is an ancestor of this contributor tree
+Classification per change: main — IRRELEVANT (SAME). Batch / PR #77 — SAME / COMPATIBLE.
+Actions taken / reconciliation commits: none. Did not merge or consume `origin/main` or the batch branch.
+Tests rerun / tested combined SHA: required suite on this contributor tree
+
+Pass 2 fetch UTC / success evidence: recorded in the session report immediately after this evidence commit
+Pass 2 main SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` at Pass 1; confirm unchanged after commit
+Pass 2 batch SHA: `c857b097bca5b4eaaed4a4de0e33826639a91809` at Pass 1; confirm unchanged after commit
+Relevant upstream paths and dependency/authority effects: none expected
+Classification per change: no arrivals at Pass 1; Pass 2 confirms
+Actions taken / reconciliation commits: none
+Tests rerun / tested combined SHA: no upstream arrivals expected; tested tree is this evidence commit
+
+Final freshness status: FRESH_2
+Delivery status: READY_FOR_INTEGRATION
+Final task head SHA: recorded after this evidence commit in the session report (cannot be embedded in its own commit)
+Known post-cutoff risk / integration editor follow-up: electronic per-method capability still outside UX-04; empty customer/order pages if training has no rows; do not treat fixture screenshots as staging proof
+Pass 3: NOT PERMITTED for this assignment.
+Review/merge/release status and limitations: PR #77 remains OPEN DRAFT DO NOT MERGE. Production NOT AUTHORIZED.
+Metrics delta for CURRENT-WORK (counts/timestamps, never guessed zeroes): UX-04 temporary authority closed 2026-09-19.
+
+## Previous current handoff — UX-03 visible product price presentation review fix (REVIEW_FIX_RETURN FRESH_2)
 
 Kind / UTC: TASK_COMPLETION / 2026-09-19T10:38:14Z
 Handoff kind: REVIEW_FIX_RETURN

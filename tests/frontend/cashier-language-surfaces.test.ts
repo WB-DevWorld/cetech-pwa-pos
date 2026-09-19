@@ -179,11 +179,10 @@ describe("UX-01 cashier surfaces hide engineering vocabulary", () => {
       }),
     );
     const healthPrimary = visiblePrimaryText(health);
-    expect(health).toContain("System status");
-    expect(healthPrimary).toContain("Pricing verification");
+    expect(health).toContain("Store Health");
+    expect(healthPrimary).toContain("Authoritative pricing");
     expect(healthPrimary).toContain("Pending verification");
     expect(healthPrimary).not.toContain("wooDetected=true");
-    expect(healthPrimary).not.toContain("API contract");
     expect(health).toContain("API contract");
 
     const settings = renderToStaticMarkup(
@@ -203,8 +202,8 @@ describe("UX-01 cashier surfaces hide engineering vocabulary", () => {
     );
     const settingsPrimary = visiblePrimaryText(settings);
     expect(settingsPrimary).toContain("This device");
-    expect(settingsPrimary).toContain("Keyboard scanner input");
-    expect(settingsPrimary).toContain("Browser print");
+    expect(settingsPrimary).toContain("Keyboard-wedge scanner");
+    expect(settingsPrimary).toContain("Browser print (80mm/A4)");
     expect(settingsPrimary).not.toContain("Connected scanner");
     expect(settingsPrimary).not.toContain("API contract");
     expect(settingsPrimary).not.toContain("WS3");

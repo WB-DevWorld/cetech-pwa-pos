@@ -16,6 +16,7 @@ import {
   applySelectCustomer,
   applyVariationSelect,
   createSellWorkspace,
+  decideNextSaleCustomer,
   type SellWorkspaceDeps,
 } from "./sellWorkspace";
 
@@ -132,6 +133,15 @@ describe("FE-03 sell workspace", () => {
     expect(state.selectedCustomer).toBeNull();
     expect(state.cartRevision).toBe(afterSelect + 1);
     expect(state.commercialInvalidated).toBe(true);
+  });
+
+  test("next-sale customer waits when the current cart is not empty", () => {
+    expect(decideNextSaleCustomer({ next: SELL_TEST_CUSTOMERS[0], lineCount: 1 })).toBe("pending");
+    expect(decideNextSaleCustomer({ next: SELL_TEST_CUSTOMERS[0], lineCount: 0 })).toBe("apply");
+    expect(
+      decideNextSaleCustomer({ next: SELL_TEST_CUSTOMERS[0], lineCount: 0, selectedCustomerId: "cust-ada" }),
+    ).toBe("consume");
+    expect(decideNextSaleCustomer({ next: null, lineCount: 0 })).toBe("idle");
   });
 
   test("new sale resets cart, customer, and transient barcode state without claiming store wipes", () => {

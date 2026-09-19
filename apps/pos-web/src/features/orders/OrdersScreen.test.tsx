@@ -70,7 +70,7 @@ describe("OrdersScreen", () => {
 
   test("renders an explicit empty state", () => {
     const html = renderToStaticMarkup(<OrdersScreen orders={[]} />);
-    expect(html).toContain("No sales yet.");
+    expect(html).toContain("No sales available.");
     expect(html).toContain("Completed sales will appear here when order history is available.");
   });
 });

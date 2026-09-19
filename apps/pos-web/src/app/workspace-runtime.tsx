@@ -1,11 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { ApiResult, CustomerPort } from "../../../../docs/contracts/ports";
+import { useCallback, useEffect, useState } from "react";
+import type { CustomerPort, PrintPort, ReceiptPort } from "../../../../docs/contracts/ports";
 import type { CustomerSummary, StoreHealth } from "../../../../docs/contracts/domain.generated";
-import { OrdersScreen } from "../features/orders";
+import { OrdersScreen, OrderDetailDialog, type OrderDetailView, type OrderListItemView } from "../features/orders";
 import { CustomersScreen } from "../features/customers";
-import { SettingsScreen } from "../features/settings";
+import { SettingsScreen, type AppearancePreference } from "../features/settings";
+import { applyAppearance, readStoredAppearance } from "../features/settings/appearance";
+import {
+  KEYBOARD_SCANNER_CAPABILITY,
+  BROWSER_PRINT_CAPABILITY,
+  toCashierError,
+} from "../ui/cashier-language";
 import {
   FixAppPanel,
   NeedsAttentionScreen,
@@ -13,14 +19,21 @@ import {
   type AttentionItemView,
   type OperationalLoadState,
 } from "../ui/operational";
-import { toCashierError } from "../ui/cashier-language";
 import { POS_LOCAL_SCHEMA_CURRENT } from "../local";
+import { replaceLocalCustomers } from "../local/customer-store";
 import type { CatalogProjectionAvailability, CatalogProjectionSyncResult } from "../local/catalog-sync";
 import { ensureCatalogProjection } from "../local/catalog-sync";
 import { resolveBrowserCatalogSourcePolicy } from "../core/catalog/source-policy";
 import { readOrCreateLocalDeviceId, type StaffRuntimeAuthority } from "../core/identity";
 import type { PosRoute } from "../ui/shell";
 import { catalogRebuildStatusText, type CatalogRebuildView } from "./catalog-rebuild-status";
+import {
+  fetchCustomerDirectory,
+  fetchOrderDetail,
+  fetchOrderHistory,
+  fetchStoreHealth,
+  toCustomerSummaries,
+} from "./operational-client";
 
 export function ApprovedWorkspaceScreens({
   route,
@@ -29,8 +42,22 @@ export function ApprovedWorkspaceScreens({
   online,
   catalogAvailability,
   fetchImpl,
+  appearance,
+  buildId,
+  attentionItems,
+  attentionCount,
+  attentionState,
   onNavigate,
   onCatalogProjectionChange,
+  onUseCustomer,
+  onAppearanceChange,
+  onRebuildSuccess,
+  onRetryAttention,
+  selectedCustomerId,
+  receipts,
+  printer,
+  onStartReturn,
+  onResolveAttention,
 }: {
   readonly route: PosRoute;
   readonly authority: StaffRuntimeAuthority;
@@ -38,20 +65,45 @@ export function ApprovedWorkspaceScreens({
   readonly online: boolean;
   readonly catalogAvailability: CatalogProjectionAvailability | null;
   readonly fetchImpl?: typeof fetch;
+  readonly appearance: AppearancePreference;
+  readonly buildId?: string;
+  readonly attentionItems: readonly AttentionItemView[];
+  readonly attentionCount: number;
+  readonly attentionState: OperationalLoadState;
   readonly onNavigate: (route: PosRoute) => void;
   readonly onCatalogProjectionChange?: (result: CatalogProjectionSyncResult) => void;
+  readonly onUseCustomer: (customer: CustomerSummary) => void;
+  readonly onAppearanceChange: (appearance: AppearancePreference) => void;
+  readonly onRebuildSuccess: () => void;
+  readonly onRetryAttention: () => void;
+  readonly selectedCustomerId?: string;
+  readonly receipts?: ReceiptPort;
+  readonly printer?: PrintPort;
+  readonly onStartReturn?: (saleId: string) => void;
+  readonly onResolveAttention?: (item: AttentionItemView) => void;
 }) {
   if (route === "orders") {
     return (
-      <OrdersScreen
-        orders={[]}
-        state="ready"
-        onNewSale={() => onNavigate("sell")}
+      <OrdersWorkspace
+        online={online}
+        fetchImpl={fetchImpl}
+        onNavigate={onNavigate}
+        receipts={receipts}
+        printer={printer}
+        onStartReturn={onStartReturn}
       />
     );
   }
   if (route === "customers") {
-    return <CustomersWorkspace customers={customers} online={online} onUseCustomer={() => onNavigate("sell")} />;
+    return (
+      <CustomersWorkspace
+        customers={customers}
+        online={online}
+        fetchImpl={fetchImpl}
+        selectedCustomerId={selectedCustomerId}
+        onUseCustomer={onUseCustomer}
+      />
+    );
   }
   if (route === "settings") {
     return (
@@ -59,14 +111,15 @@ export function ApprovedWorkspaceScreens({
         settings={{
           deviceName: readOrCreateLocalDeviceId(),
           registerName: authority.register?.name ?? "No register assigned",
-          scannerLabel: "Keyboard scanner input",
-          printerLabel: "Browser print",
-          appearance: "system",
-          buildId: "local-dev",
+          scannerLabel: KEYBOARD_SCANNER_CAPABILITY,
+          printerLabel: BROWSER_PRINT_CAPABILITY,
+          appearance,
+          buildId: buildId ?? "Unverified",
           contractVersion: "1.0.0",
           localSchemaVersion: String(POS_LOCAL_SCHEMA_CURRENT),
         }}
         state={online ? "ready" : "offline"}
+        onAppearanceChange={onAppearanceChange}
         onOpenStoreHealth={() => onNavigate("health")}
       />
     );
@@ -74,48 +127,62 @@ export function ApprovedWorkspaceScreens({
   if (route === "health") {
     return (
       <HealthWorkspace
-        authority={authority}
         catalogAvailability={catalogAvailability}
         fetchImpl={fetchImpl}
+        online={online}
+        attentionCount={attentionCount}
         onNavigate={onNavigate}
         onCatalogProjectionChange={onCatalogProjectionChange}
+        onRebuildSuccess={onRebuildSuccess}
       />
     );
   }
   if (route === "attention") {
     return (
       <AttentionWorkspace
-        catalogAvailability={catalogAvailability}
-        authority={authority}
+        items={attentionItems}
+        state={attentionState}
         fetchImpl={fetchImpl}
         onCatalogProjectionChange={onCatalogProjectionChange}
+        onRetryLoad={onRetryAttention}
+        onResolveAttention={onResolveAttention}
+        onRebuildSuccess={onRebuildSuccess}
       />
     );
   }
   return null;
 }
 
-function CustomersWorkspace({
-  customers,
+function OrdersWorkspace({
   online,
-  onUseCustomer,
+  fetchImpl,
+  onNavigate,
+  receipts,
+  printer,
+  onStartReturn,
 }: {
-  readonly customers: CustomerPort;
   readonly online: boolean;
-  readonly onUseCustomer: (customer: CustomerSummary) => void;
+  readonly fetchImpl?: typeof fetch;
+  readonly onNavigate: (route: PosRoute) => void;
+  readonly receipts?: ReceiptPort;
+  readonly printer?: PrintPort;
+  readonly onStartReturn?: (saleId: string) => void;
 }) {
-  const [rows, setRows] = useState<readonly CustomerSummary[]>([]);
+  const [orders, setOrders] = useState<readonly OrderListItemView[]>([]);
   const [state, setState] = useState<"ready" | "loading" | "error" | "offline">("loading");
+  const [detail, setDetail] = useState<OrderDetailView | undefined>();
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const load = useCallback(async () => {
-    const result = await customers.search("");
+    setState("loading");
+    const result = await fetchOrderHistory("", fetchImpl);
     if (!result.ok) {
       setState("error");
       return;
     }
-    setRows(result.data);
+    setOrders(result.data.items);
     setState(online ? "ready" : "offline");
-  }, [customers, online]);
+  }, [fetchImpl, online]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -125,11 +192,112 @@ function CustomersWorkspace({
   }, [load]);
 
   return (
+    <>
+      <OrdersScreen
+        orders={orders}
+        state={state}
+        onRetry={() => {
+          void load();
+        }}
+        onNewSale={() => onNavigate("sell")}
+        onSelectOrder={(orderId) => {
+          void (async () => {
+            const result = await fetchOrderDetail(orderId, fetchImpl);
+            if (!result.ok) {
+              return;
+            }
+            setDetail(result.data);
+            setDetailOpen(true);
+          })();
+        }}
+      />
+      <OrderDetailDialog
+        open={detailOpen}
+        order={detail}
+        onClose={() => setDetailOpen(false)}
+        onReprint={
+          receipts && printer
+            ? (order) => {
+                void (async () => {
+                  const receipt = await receipts.getByTransaction(order.id);
+                  if (!receipt.ok) {
+                    return;
+                  }
+                  await printer.print({ receiptId: receipt.data.id, reason: "reprint" });
+                })();
+              }
+            : undefined
+        }
+        onStartReturn={
+          onStartReturn
+            ? (order) => {
+                setDetailOpen(false);
+                onStartReturn(order.saleId ?? order.id);
+              }
+            : undefined
+        }
+      />
+    </>
+  );
+}
+
+function CustomersWorkspace({
+  customers,
+  online,
+  fetchImpl,
+  selectedCustomerId,
+  onUseCustomer,
+}: {
+  readonly customers: CustomerPort;
+  readonly online: boolean;
+  readonly fetchImpl?: typeof fetch;
+  readonly selectedCustomerId?: string;
+  readonly onUseCustomer: (customer: CustomerSummary) => void;
+}) {
+  const [rows, setRows] = useState<readonly CustomerSummary[]>([]);
+  const [commercialContextById, setCommercialContextById] = useState<Readonly<Record<string, string>>>({});
+  const [state, setState] = useState<"ready" | "loading" | "error" | "offline">("loading");
+
+  const load = useCallback(async (query = "") => {
+    const remote = await fetchCustomerDirectory(query, fetchImpl);
+    if (remote.ok) {
+      const mapped = toCustomerSummaries(remote.data.items);
+      setRows(mapped.customers);
+      setCommercialContextById(mapped.commercialContextById);
+      if (mapped.customers.length > 0) {
+        await replaceLocalCustomers(mapped.customers);
+      }
+      setState(online ? "ready" : "offline");
+      return;
+    }
+    const local = await customers.search(query);
+    if (!local.ok) {
+      setState("error");
+      return;
+    }
+    setRows(local.data);
+    setCommercialContextById({});
+    setState(online ? "ready" : "offline");
+  }, [customers, fetchImpl, online]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void load("");
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [load]);
+
+  return (
     <CustomersScreen
       customers={rows}
       state={state}
+      selectedCustomerId={selectedCustomerId}
+      commercialContextById={commercialContextById}
       onRetry={() => {
-        void load();
+        void load("");
+      }}
+      onSearchQueryChange={(query) => {
+        void load(query);
       }}
       onUseCustomer={onUseCustomer}
     />
@@ -137,17 +305,21 @@ function CustomersWorkspace({
 }
 
 function HealthWorkspace({
-  authority,
   catalogAvailability,
   fetchImpl,
+  online,
+  attentionCount,
   onNavigate,
   onCatalogProjectionChange,
+  onRebuildSuccess,
 }: {
-  readonly authority: StaffRuntimeAuthority;
   readonly catalogAvailability: CatalogProjectionAvailability | null;
   readonly fetchImpl?: typeof fetch;
+  readonly online: boolean;
+  readonly attentionCount: number;
   readonly onNavigate: (route: PosRoute) => void;
   readonly onCatalogProjectionChange?: (result: CatalogProjectionSyncResult) => void;
+  readonly onRebuildSuccess: () => void;
 }) {
   const [health, setHealth] = useState<StoreHealth | undefined>();
   const [state, setState] = useState<OperationalLoadState>("loading");
@@ -164,9 +336,9 @@ function HealthWorkspace({
       return;
     }
     setHealth(result.data);
-    setState("ready");
+    setState(online ? "ready" : "offline");
     setErrorMessage(undefined);
-  }, [fetchImpl]);
+  }, [fetchImpl, online]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -176,8 +348,13 @@ function HealthWorkspace({
   }, [load]);
 
   const rebuildCatalog = useCallback(() => {
-    void runCatalogRebuild({ fetchImpl, onCatalogProjectionChange, setRebuild });
-  }, [fetchImpl, onCatalogProjectionChange]);
+    void runCatalogRebuild({
+      fetchImpl,
+      onCatalogProjectionChange,
+      setRebuild,
+      onSuccess: onRebuildSuccess,
+    });
+  }, [fetchImpl, onCatalogProjectionChange, onRebuildSuccess]);
 
   const rebuildText = catalogRebuildStatusText(rebuild);
 
@@ -187,9 +364,13 @@ function HealthWorkspace({
         health={health}
         state={state}
         errorMessage={errorMessage}
-        deviceName={authority.register?.name ?? readOrCreateLocalDeviceId()}
+        deviceName={readOrCreateLocalDeviceId()}
         appVersion={health?.buildId}
         localSchemaVersion={String(POS_LOCAL_SCHEMA_CURRENT)}
+        online={online}
+        catalogAvailability={catalogAvailability}
+        electronicPaymentsAvailable={false}
+        attentionCountOverride={attentionCount}
         onRetry={() => {
           void load();
         }}
@@ -197,12 +378,8 @@ function HealthWorkspace({
         onOpenAttention={() => onNavigate("attention")}
         onRebuildCatalog={rebuildCatalog}
       />
-      {rebuildText ? (
-        <p
-          className={rebuild.phase === "failure" ? "banner danger" : "muted"}
-          role={rebuild.phase === "failure" ? "alert" : "status"}
-          data-catalog-rebuild-phase={rebuild.phase}
-        >
+      {rebuild.phase === "failure" && rebuildText ? (
+        <p className="banner danger" role="alert" data-catalog-rebuild-phase={rebuild.phase}>
           {rebuildText}
         </p>
       ) : null}
@@ -215,91 +392,101 @@ function HealthWorkspace({
           onRebuildCatalog={rebuildCatalog}
         />
       ) : null}
-      {catalogAvailability === "unavailable" || catalogAvailability === "stale" ? (
-        <p className="muted" role="status">
-          Products are {catalogAvailability === "unavailable" ? "unavailable" : "out of date"}. Saved carts are kept.
-        </p>
-      ) : null}
     </>
   );
 }
 
 function AttentionWorkspace({
-  catalogAvailability,
-  authority,
+  items,
+  state,
   fetchImpl,
   onCatalogProjectionChange,
+  onRetryLoad,
+  onResolveAttention,
+  onRebuildSuccess,
 }: {
-  readonly catalogAvailability: CatalogProjectionAvailability | null;
-  readonly authority: StaffRuntimeAuthority;
+  readonly items: readonly AttentionItemView[];
+  readonly state: OperationalLoadState;
   readonly fetchImpl?: typeof fetch;
   readonly onCatalogProjectionChange?: (result: CatalogProjectionSyncResult) => void;
+  readonly onRetryLoad: () => void;
+  readonly onResolveAttention?: (item: AttentionItemView) => void;
+  readonly onRebuildSuccess: () => void;
 }) {
-  const [rebuild, setRebuild] = useState<CatalogRebuildView>({ phase: "idle" });
-  const items = useMemo(() => {
-    const next: AttentionItemView[] = [];
-    if (catalogAvailability === "unavailable" || catalogAvailability === "stale") {
-      next.push({
-        id: "catalog-projection",
-        title: catalogAvailability === "unavailable" ? "Products couldn't be loaded" : "Products may be out of date",
-        summary:
-          catalogAvailability === "unavailable"
-            ? "Products are not available on this device yet. Saved carts are kept."
-            : "The product list may be older than the last successful update. Search still uses saved products.",
-        typeLabel: "Products",
-        severity: catalogAvailability === "unavailable" ? "critical" : "medium",
-        retryAllowed: true,
-      });
-    }
-    if (!authority.register) {
-      next.push({
-        id: "register-unassigned",
-        title: "No register assigned",
-        summary: "This staff session has no permitted register. Open/close shift stays blocked until assignment exists.",
-        typeLabel: "Register",
-        severity: "medium",
-      });
-    } else if (!authority.shiftOpen) {
-      next.push({
-        id: "shift-closed",
-        title: "No open shift",
-        summary: "Checkout stays blocked until an assigned register has an open shift. Use Register; do not invent a shift.",
-        typeLabel: "Register",
-        severity: "low",
-      });
-    }
-    return next;
-  }, [authority.register, authority.shiftOpen, catalogAvailability]);
-
   return (
-    <>
     <NeedsAttentionScreen
       items={items}
-      state="ready"
+      state={state}
+      onRetryLoad={onRetryLoad}
       onRetryItem={(id) => {
         if (id !== "catalog-projection") {
           return;
         }
-        void runCatalogRebuild({ fetchImpl, onCatalogProjectionChange, setRebuild });
+        void runCatalogRebuild({
+          fetchImpl,
+          onCatalogProjectionChange,
+          setRebuild: () => undefined,
+          onSuccess: onRebuildSuccess,
+        });
+      }}
+      onResolveItem={(id) => {
+        const item = items.find((row) => row.id === id);
+        if (item) {
+          onResolveAttention?.(item);
+        }
       }}
     />
-    {catalogRebuildStatusText(rebuild) ? (
-      <p
-        className={rebuild.phase === "failure" ? "banner danger" : "muted"}
-        role={rebuild.phase === "failure" ? "alert" : "status"}
-        data-catalog-rebuild-phase={rebuild.phase}
-      >
-        {catalogRebuildStatusText(rebuild)}
-      </p>
-    ) : null}
-    </>
   );
+}
+
+export function clientAttentionExtras(input: {
+  readonly catalogAvailability: CatalogProjectionAvailability | null;
+  readonly authority: StaffRuntimeAuthority;
+}): readonly AttentionItemView[] {
+  const next: AttentionItemView[] = [];
+  if (input.catalogAvailability === "unavailable" || input.catalogAvailability === "stale") {
+    next.push({
+      id: "catalog-projection",
+      title: input.catalogAvailability === "unavailable" ? "Products couldn't be loaded" : "Products may be out of date",
+      summary:
+        input.catalogAvailability === "unavailable"
+          ? "Products are not available on this device yet. Saved carts are kept."
+          : "The product list may be older than the last successful update. Search still uses saved products.",
+      typeLabel: "Products",
+      severity: input.catalogAvailability === "unavailable" ? "critical" : "medium",
+      retryAllowed: true,
+      resolveAllowed: false,
+      reviewAllowed: false,
+      recoverKind: "catalog",
+    });
+  }
+  if (!input.authority.register) {
+    next.push({
+      id: "register-unassigned",
+      title: "No register assigned",
+      summary: "This staff session has no permitted register. Open/close shift stays blocked until assignment exists.",
+      typeLabel: "Register",
+      severity: "medium",
+      recoverKind: "register",
+    });
+  } else if (!input.authority.shiftOpen) {
+    next.push({
+      id: "shift-closed",
+      title: "No open shift",
+      summary: "Checkout stays blocked until an assigned register has an open shift. Use Register; do not invent a shift.",
+      typeLabel: "Register",
+      severity: "low",
+      recoverKind: "register",
+    });
+  }
+  return next;
 }
 
 async function runCatalogRebuild(input: {
   readonly fetchImpl?: typeof fetch;
   readonly onCatalogProjectionChange?: (result: CatalogProjectionSyncResult) => void;
   readonly setRebuild: (view: CatalogRebuildView) => void;
+  readonly onSuccess?: () => void;
 }): Promise<void> {
   input.setRebuild({ phase: "rebuilding" });
   try {
@@ -325,6 +512,7 @@ async function runCatalogRebuild(input: {
       availability: result.availability,
     });
     input.onCatalogProjectionChange?.(result);
+    input.onSuccess?.();
   } catch (error) {
     input.setRebuild({
       phase: "failure",
@@ -333,28 +521,4 @@ async function runCatalogRebuild(input: {
   }
 }
 
-async function fetchStoreHealth(fetchImpl?: typeof fetch): Promise<ApiResult<StoreHealth>> {
-  const correlation = crypto.randomUUID();
-  try {
-    const response = await (fetchImpl ?? fetch)("/api/pos/v1/health", {
-      method: "GET",
-      credentials: "include",
-      headers: {
-        accept: "application/json",
-        "x-correlation-id": correlation,
-      },
-    });
-    return (await response.json()) as ApiResult<StoreHealth>;
-  } catch {
-    return {
-      ok: false,
-      error: {
-        code: "INTEGRATION_UNAVAILABLE",
-        message: "store health could not be reached",
-        retryable: true,
-        nextAction: "resolve",
-      },
-      correlationId: correlation,
-    };
-  }
-}
+export { readStoredAppearance, applyAppearance };

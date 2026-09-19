@@ -24,19 +24,19 @@ const health: StoreHealth = {
 };
 
 describe("operational recovery surfaces", () => {
-  test("System status renders contract health without overstating degraded/unavailable checks", () => {
+  test("Store Health renders contract health without overstating degraded/unavailable checks", () => {
     const html = renderToStaticMarkup(<StoreHealthScreen health={health} deviceName="POS tablet" appVersion="R8" />);
-    expect(html).toContain("System status");
+    expect(html).toContain("Store Health");
     expect(html).toContain("Pending operations");
-    expect(html).toContain("Issues");
-    expect(html).toContain("Commerce connection");
+    expect(html).toContain("Needs attention");
+    expect(html).toContain("Commerce runtime");
     expect(html).toContain("Degraded");
-    expect(html).toContain("Unavailable");
+    expect(html).toContain("Unverified");
     expect(html).toContain("1.0.0");
   });
 
-  test("System status loading, offline, degraded and error states remain explicit", () => {
-    expect(renderToStaticMarkup(<StoreHealthScreen state="loading" />)).toContain("Checking system status…");
+  test("Store Health loading, offline, degraded and error states remain explicit", () => {
+    expect(renderToStaticMarkup(<StoreHealthScreen state="loading" />)).toContain("Checking Store Health…");
     expect(renderToStaticMarkup(<StoreHealthScreen state="offline" />)).toContain("You are offline.");
     expect(renderToStaticMarkup(<StoreHealthScreen state="degraded" />)).toContain("Connection is degraded.");
     expect(renderToStaticMarkup(<StoreHealthScreen state="error" />)).toContain("couldn&#x27;t be refreshed");
@@ -51,7 +51,7 @@ describe("operational recovery surfaces", () => {
     );
     expect(html).toContain("Needs attention");
     expect(html).toContain("Payment status uncertain");
-    expect(html).toContain("Check status");
+    expect(html).toContain("Check / Recover");
     expect(html).not.toContain("Retry safely");
   });
 

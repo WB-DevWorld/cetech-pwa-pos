@@ -48,6 +48,10 @@ export type HistoricReturnSaleView = {
   readonly orderReference: string;
   readonly currency: string;
   readonly lines: readonly HistoricReturnLineView[];
+  readonly customerLabel?: string;
+  readonly createdAt?: string;
+  readonly total?: ReturnMoneyView;
+  readonly itemSummary?: string;
 };
 
 export type ReturnLineDraftView = {

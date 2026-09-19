@@ -126,10 +126,10 @@ test.describe("FE-02 visual harness (shell, login, register)", () => {
 
     await expect(page.getByRole("heading", { name: "Register", exact: true })).toBeVisible();
     await expect(page.getByLabel("Opening cash")).toHaveValue("500.00");
-    await expect(page.getByRole("button", { name: "Start shift" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Open register" })).toBeVisible();
     await expect(page.getByText("staffId")).toHaveCount(0);
 
-    const submit = page.getByRole("button", { name: "Start shift" });
+    const submit = page.getByRole("button", { name: "Open register" });
     const box = await submit.boundingBox();
     expect(box).toBeTruthy();
     expect(box!.height).toBeGreaterThanOrEqual(44);

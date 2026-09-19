@@ -55,6 +55,8 @@ require_once CETECH_POS_BRIDGE_DIR . '/includes/class-commercial-refund-controll
 require_once CETECH_POS_BRIDGE_DIR . '/includes/class-stock-disposition-controller.php';
 require_once CETECH_POS_BRIDGE_DIR . '/includes/class-catalog-engine.php';
 require_once CETECH_POS_BRIDGE_DIR . '/includes/class-catalog-controller.php';
+require_once CETECH_POS_BRIDGE_DIR . '/includes/class-customers-engine.php';
+require_once CETECH_POS_BRIDGE_DIR . '/includes/class-customers-controller.php';
 require_once CETECH_POS_BRIDGE_DIR . '/includes/class-pricing-rules.php';
 require_once CETECH_POS_BRIDGE_DIR . '/includes/class-plugin.php';
 

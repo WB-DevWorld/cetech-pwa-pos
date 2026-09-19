@@ -63,14 +63,14 @@ describe("FE-06 register close", () => {
         inFlight: false,
       }),
     );
-    expect(html).toContain("Start shift");
+    expect(html).toContain("Open register");
     expect(html).toContain("opening-float");
-    expect(html).toContain("Enter the cash currently in the drawer");
+    expect(html).toContain("Recorded as the opening float for the shift.");
     expect(html).toContain('data-shift-status="no_open_shift"');
     const original = renderToStaticMarkup(
       createElement(OpenRegisterForm, { registers, online: true, onSubmit: () => undefined }),
     );
-    expect(original).toContain("Start shift");
+    expect(original).toContain("Open register");
     expect(original).toContain("opening-float");
   });
 

@@ -45,6 +45,7 @@ import {
   applyVariationSelect,
   catalogMutationAllowed as isCatalogMutationAllowed,
   createSellWorkspace,
+  decideNextSaleCustomer,
   dismissNotice,
   type SellWorkspaceDeps,
 } from "./state/sellWorkspace";
@@ -104,6 +105,8 @@ export type SellScreenProps = {
   onWorkspaceChange?: (state: SellWorkspaceState) => void;
   initialCashReceived?: string;
   catalogProjectionGeneration?: number;
+  nextSaleCustomer?: CustomerSearchResultView | null;
+  onNextSaleCustomerApplied?: (customer: CustomerSearchResultView) => void;
 };
 
 export function SellScreen({
@@ -154,6 +157,8 @@ export function SellScreen({
   onWorkspaceChange,
   initialCashReceived,
   catalogProjectionGeneration,
+  nextSaleCustomer,
+  onNextSaleCustomerApplied,
 }: SellScreenProps) {
   const deps = useMemo<SellWorkspaceDeps>(
     () => ({
@@ -172,6 +177,31 @@ export function SellScreen({
   useEffect(() => {
     onWorkspaceChange?.(state);
   }, [onWorkspaceChange, state]);
+
+  useEffect(() => {
+    const decision = decideNextSaleCustomer({
+      next: nextSaleCustomer,
+      lineCount: state.lines.length,
+      selectedCustomerId: state.selectedCustomer?.id,
+    });
+    if (decision === "idle" || decision === "pending" || !nextSaleCustomer) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      if (decision === "consume") {
+        onNextSaleCustomerApplied?.(nextSaleCustomer);
+        return;
+      }
+      setState((current) => {
+        if (current.lines.length > 0 || current.selectedCustomer?.id === nextSaleCustomer.id) {
+          return current;
+        }
+        return applySelectCustomer(current, nextSaleCustomer);
+      });
+      onNextSaleCustomerApplied?.(nextSaleCustomer);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [nextSaleCustomer, onNextSaleCustomerApplied, state.lines.length, state.selectedCustomer?.id]);
 
   useEffect(() => {
     const generation = catalogProjectionGeneration ?? 0;

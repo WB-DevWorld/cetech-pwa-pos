@@ -245,6 +245,17 @@ export function applySelectCustomer(state: SellWorkspaceState, customer: Custome
   };
 }
 
+export function decideNextSaleCustomer(input: {
+  readonly next: CustomerSearchResultView | null | undefined;
+  readonly lineCount: number;
+  readonly selectedCustomerId?: string;
+}): "idle" | "apply" | "pending" | "consume" {
+  if (!input.next) return "idle";
+  if (input.lineCount > 0) return "pending";
+  if (input.selectedCustomerId === input.next.id) return "consume";
+  return "apply";
+}
+
 export function applyClearCustomer(state: SellWorkspaceState): SellWorkspaceState {
   if (!state.selectedCustomer) return state;
   return {

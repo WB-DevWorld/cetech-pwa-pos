@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   RegisterScreen,
   createRegisterController,
   type RegisterController,
   type RegisterWorkspacePorts,
 } from "../features/register";
-import { idleShiftWorkspace, type ShiftWorkspaceView } from "../features/register/shiftView";
+import { idleShiftWorkspace, shouldAnnounceRegisterOpened, type ShiftWorkspaceView } from "../features/register/shiftView";
 import type { RegisterPort } from "../../../../docs/contracts/ports";
 import type { Shift } from "../../../../docs/contracts/domain.generated";
 import { LOCAL_CHECKOUT_SCOPE, createBrowserRegisterPort } from "./checkout-client";
@@ -52,6 +52,7 @@ export function RegisterRuntimeScreen({
   deviceId,
   currency,
   onShiftChange,
+  onOpened,
 }: {
   readonly register: RegisterPort;
   readonly registerId: string;
@@ -60,12 +61,22 @@ export function RegisterRuntimeScreen({
   readonly deviceId: string;
   readonly currency: string;
   readonly onShiftChange?: (shift: Shift | null) => void;
+  readonly onOpened?: () => void;
 }) {
   const ports = useMemo(
     () => ({ register, registerId, deviceId, currency }),
     [register, registerId, deviceId, currency],
   );
   const flow = useRegisterFlow(ports);
+  const previousStatus = useRef(flow.session.status);
+
+  useEffect(() => {
+    const previous = previousStatus.current;
+    previousStatus.current = flow.session.status;
+    if (onOpened && shouldAnnounceRegisterOpened(previous, flow.session.status)) {
+      onOpened();
+    }
+  }, [flow.session.status, onOpened]);
 
   useEffect(() => {
     if (!onShiftChange) {

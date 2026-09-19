@@ -220,6 +220,20 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
       return undefined;
     },
 
+    async listRecentSales(input) {
+      const limit = input.limit ?? 80;
+      const locationIds = input.locationIds;
+      return [...sales.values()]
+        .filter((row) => {
+          if (row.organizationId !== input.organizationId) return false;
+          if (locationIds && locationIds.length > 0 && !locationIds.includes(row.locationId)) return false;
+          return true;
+        })
+        .sort((left, right) => right.prepared.preparedAt.localeCompare(left.prepared.preparedAt))
+        .slice(0, limit)
+        .map((row) => ({ ...row }));
+    },
+
     async saveSale(sale) {
       if (store.failNextSaleWrite) {
         store.failNextSaleWrite = false;
@@ -247,6 +261,66 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
     async getPaymentByProviderReference(provider, reference) {
       const paymentId = paymentsByProviderRef.get(`${provider}\0${reference}`);
       return paymentId ? payments.get(paymentId) : undefined;
+    },
+
+    async listUncertainPayments(input) {
+      const uncertain: ReadonlySet<StoredPayment["status"]> = new Set([
+        "initializing",
+        "awaiting_customer",
+        "pending",
+        "reconciling",
+        "requires_attention",
+      ]);
+      const locationByTx = new Map(
+        [...sales.values()].map((sale) => [sale.prepared.transactionId, sale] as const),
+      );
+      const limit = input.limit ?? 80;
+      return [...payments.values()]
+        .filter((payment) => {
+          if (!uncertain.has(payment.status)) return false;
+          const sale = locationByTx.get(payment.transactionId);
+          if (!sale || sale.organizationId !== input.organizationId) return false;
+          if (input.locationIds && input.locationIds.length > 0 && !input.locationIds.includes(sale.locationId)) {
+            return false;
+          }
+          return true;
+        })
+        .slice(0, limit);
+    },
+
+    async listAttentionShifts(input) {
+      const locationIds = input.locationIds;
+      const limit = input.limit ?? 40;
+      return [...shifts.values()]
+        .filter((shift) => {
+          if (shift.organizationId !== input.organizationId) return false;
+          if (shift.status !== "requires_attention") return false;
+          if (locationIds && locationIds.length > 0 && !locationIds.includes(shift.locationId)) return false;
+          return true;
+        })
+        .slice(0, limit);
+    },
+
+    async listAttentionOperations(input) {
+      const locationIds = input.locationIds;
+      const limit = input.limit ?? 40;
+      const rows: CommandScopeBinding[] = [];
+      for (const row of idempotency.values()) {
+        if (row.organizationId !== input.organizationId) continue;
+        if (row.status !== "requires_attention" && row.status !== "response_unknown" && row.status !== "sent") continue;
+        if (!row.transactionId || !row.locationId) continue;
+        if (locationIds && locationIds.length > 0 && !locationIds.includes(row.locationId)) continue;
+        rows.push({
+          organizationId: row.organizationId,
+          locationId: row.locationId,
+          registerId: row.registerId,
+          shiftId: row.shiftId,
+          transactionId: row.transactionId,
+          operation: row.operation,
+        });
+        if (rows.length >= limit) break;
+      }
+      return rows;
     },
 
     async savePayment(payment) {

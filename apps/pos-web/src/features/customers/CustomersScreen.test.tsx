@@ -19,8 +19,9 @@ describe("CustomersScreen", () => {
     expect(html).toContain("Customers");
     expect(html).toContain("Adwoa Mensah");
     expect(html).toContain("Kojo Stores Ltd");
-    expect(html).toContain("Wholesale");
+    expect(html).toContain("WHOLESALE");
     expect(html).toContain("Retail");
+    expect(html).not.toContain("Group A");
     expect(html).not.toContain("B2BKing");
     expect(html).not.toContain("WooCommerce");
   });
@@ -36,6 +37,15 @@ describe("CustomersScreen", () => {
 
   test("renders explicit empty state", () => {
     const html = renderToStaticMarkup(<CustomersScreen customers={[]} />);
-    expect(html).toContain("No customers available.");
+    expect(html).toContain("No customer accounts available.");
+  });
+
+  test("shows optional commercial context only when supplied", () => {
+    const withContext = render({ commercialContextById: { "b2b-1": "Trade account" }, onUseCustomer: () => undefined });
+    expect(withContext).toContain("Wholesale · Trade account");
+    expect(withContext).toContain("Use for next sale");
+    const withoutContext = render({ onUseCustomer: () => undefined });
+    expect(withoutContext).not.toContain("Trade account");
+    expect(withoutContext).not.toContain("Group A");
   });
 });

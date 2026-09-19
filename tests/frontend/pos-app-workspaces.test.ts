@@ -54,7 +54,15 @@ function render(route: "orders" | "customers" | "settings" | "health" | "attenti
       customers,
       online: true,
       catalogAvailability: "fresh",
+      appearance: "system",
+      attentionItems: [],
+      attentionCount: 0,
+      attentionState: "ready",
       onNavigate: () => undefined,
+      onUseCustomer: () => undefined,
+      onAppearanceChange: () => undefined,
+      onRebuildSuccess: () => undefined,
+      onRetryAttention: () => undefined,
     }),
   );
 }
@@ -63,8 +71,7 @@ describe("STG-01 mounted approved workspaces", () => {
   test("Orders mounts Ben's screen instead of the R4 placeholder", () => {
     const html = render("orders");
     expect(html).toContain("Orders");
-    expect(html).toContain("No sales yet.");
-    expect(html).toContain("Completed sales will appear here when order history is available.");
+    expect(html).toContain("Loading orders…");
     expect(html).not.toContain(PLACEHOLDER);
   });
 
@@ -81,9 +88,9 @@ describe("STG-01 mounted approved workspaces", () => {
     expect(html).not.toContain(PLACEHOLDER);
   });
 
-  test("Health mounts System status instead of the R4 placeholder", () => {
+  test("Health mounts Store Health instead of the R4 placeholder", () => {
     const html = render("health");
-    expect(html).toContain("System status");
+    expect(html).toContain("Store Health");
     expect(html).not.toContain(PLACEHOLDER);
   });
 

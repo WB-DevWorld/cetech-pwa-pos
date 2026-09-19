@@ -2,6 +2,7 @@ import "@/ui/tokens.css";
 import "@/ui/shell/shell.css";
 import "@/ui/workspace.css";
 import "@/ui/operational/operational.css";
+import "@/ui/toast/toast.css";
 import "@/features/sell/sell.css";
 import "@/features/returns/returns.css";
 import "@/features/register/register.css";

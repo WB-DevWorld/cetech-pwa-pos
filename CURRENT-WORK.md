@@ -2,6 +2,24 @@
 
 Updated 2026-09-19. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
 
+## Temporary senior UX-04 authority — EXPIRED / CLOSED
+
+Closed on contributor branch `ws1/ux-04-operational-workspaces-demo-alignment` after the UX-04 operational-workspace handoff. Base remained `origin/batch/stg-01-staging-runtime-acceptance` `c857b097bca5b4eaaed4a4de0e33826639a91809` (accepted UX-03-containing STG-01 / PR #77 head). This does not permanently change `OWNERSHIP.md`. Do not reuse. Do not mutate PR #77 or `batch/stg-01-staging-runtime-acceptance`. Do not merge main. Do not deploy production.
+
+```text
+human: @wbdevworld
+workstream: WS1 (+ bounded WS3 integration; smallest read-only WS2 customer search) — EXPIRED / CLOSED
+mode: IMPLEMENT (complete)
+task: UX-04 — remaining operational workspaces demo alignment + real runtime
+branch: ws1/ux-04-operational-workspaces-demo-alignment
+start SHA / UX-03-containing STG-01 head: c857b097bca5b4eaaed4a4de0e33826639a91809
+origin/main at close: 778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5
+was allowed WS1: apps/pos-web/src/features/orders/**, customers/**, returns/**, register/**, settings/**, apps/pos-web/src/ui/operational/**, ui/shell/**, ui/workspace*, ui/toast/**, directly relevant shared UI, tests/frontend/**, docs/workstreams/WS-01-FRONTEND-UX/**
+was allowed bounded WS3: apps/pos-web/src/app/workspace-runtime.tsx, pos-app.tsx, relevant BFF routes under apps/pos-web/src/app/api/**, bounded server read-model/orchestration under apps/pos-web/src/server/**, bounded local projection/state under apps/pos-web/src/local/**, directly necessary integration/e2e tests, CURRENT-WORK.md
+was allowed optional WS2: wordpress/cetech-pos-bridge/** + tests/bridge/** smallest read-only GET /customers
+forbidden (unchanged): UX-02/UX-03 Sell/payment redesign; Woo/B2BKing/WoodMart pricing formulas; frozen-contract edits for UI convenience; order/payment/refund/stock mutation via WS2; PR #77; shared STG-01 batch; protected main; production deploy; VitePOS cutover; Demo controls / fictional production data
+```
+
 ## Temporary senior UX-03 final review-fix — EXPIRED / CLOSED
 
 Bounded visible ProductCard refresh on `ws1/ux-03-payment-barcode-variable-range` from reviewed SHA `253ef2886ed4c447d911ba11f789375f1e35c66d`. Senior/user `@wbdevworld` reauthorized only the minimum WS1 paths to re-query the current Sell search presentation after `catalogProjectionGeneration` advances, without remounting the workspace or mutating cart/quote/checkout. This does not permanently change `OWNERSHIP.md`. Do not reuse. Do not mutate PR #77 or `batch/stg-01-staging-runtime-acceptance`.

@@ -17,6 +17,7 @@ final class Cetech_Pos_Bridge_Constants {
 	const STOCK_DISPOSITION_ROUTE         = '/returns/stock-disposition';
 	const STOCK_DISPOSITION_RESOLVE_ROUTE = '/returns/stock-disposition/(?P<stockDispositionId>[0-9a-fA-F-]+)';
 	const CATALOG_ROUTE                   = '/catalog';
+	const CUSTOMERS_ROUTE                 = '/customers';
 	const OPERATION_PREPARE   = 'prepare';
 	const OPERATION_FINALIZE  = 'finalize';
 	const OPERATION_CANCEL    = 'cancel';

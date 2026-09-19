@@ -19,10 +19,10 @@ describe("SettingsScreen", () => {
     expect(html).toContain("Device &amp; register");
     expect(html).toContain("Counter tablet 1");
     expect(html).toContain("Main Counter");
-    expect(html).toContain("Keyboard scanner input");
-    expect(html).toContain("Browser print");
+    expect(html).toContain("Keyboard-wedge scanner");
+    expect(html).toContain("Browser print (80mm/A4)");
     expect(html).toContain("Technical details");
-    expect(html).toContain("View system status");
+    expect(html).toContain("Open Store Health");
     expect(html).toContain("build-r8");
   });
 

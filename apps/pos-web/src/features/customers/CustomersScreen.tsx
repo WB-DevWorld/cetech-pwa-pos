@@ -11,6 +11,7 @@ export interface CustomersScreenProps {
   readonly state?: CustomersWorkspaceState;
   readonly errorMessage?: string;
   readonly selectedCustomerId?: string;
+  readonly commercialContextById?: Readonly<Record<string, string>>;
   readonly onRetry?: () => void;
   readonly onUseCustomer?: (customer: CustomerSummary) => void;
   readonly onSearchQueryChange?: (query: string) => void;
@@ -21,6 +22,7 @@ export function CustomersScreen({
   state = "ready",
   errorMessage,
   selectedCustomerId,
+  commercialContextById,
   onRetry,
   onUseCustomer,
   onSearchQueryChange,
@@ -44,7 +46,7 @@ export function CustomersScreen({
       <div className="page-head">
         <div>
           <h1 id="customers-title">Customers</h1>
-          <p>Find a customer or continue as walk-in.</p>
+          <p>Retail and wholesale customer context.</p>
         </div>
       </div>
 
@@ -72,7 +74,7 @@ export function CustomersScreen({
 
       <div className="card card-pad customers-search-card">
         <label className="field" htmlFor="customer-workspace-search">
-          <span>Search customers</span>
+          <span className="sr-only">Search customers</span>
           <input
             id="customer-workspace-search"
             className="input"
@@ -99,8 +101,8 @@ export function CustomersScreen({
       {state !== "loading" && state !== "error" && filtered.length === 0 ? (
         <div className="card card-pad workspace-state" role="status">
           <div>
-            <strong>{customers.length === 0 ? "No customers available." : "No customers match this search."}</strong>
-            <p>{customers.length === 0 ? "No customer accounts are available yet. You can continue as Walk-in." : "Try a different name, company, or phone."}</p>
+            <strong>{customers.length === 0 ? "No customer accounts available." : "No customers match this search."}</strong>
+            <p>{customers.length === 0 ? "No customer accounts are available yet. Walk-in remains possible." : "Try a different name, company, or phone."}</p>
           </div>
         </div>
       ) : null}
@@ -109,16 +111,21 @@ export function CustomersScreen({
         <div className="customer-card-grid">
           {filtered.map((customer) => {
             const selected = selectedCustomerId === customer.id;
+            const commercialContext = commercialContextById?.[customer.id];
             return (
               <article className="card card-pad customer-card" key={customer.id} data-selected={selected ? "true" : "false"}>
                 <div className="customer-card-heading">
                   <div>
-                    <strong>{customer.displayName}</strong>
-                    {customer.company ? <span className="workspace-subline">{customer.company}</span> : null}
+                    <strong>{customer.company ?? customer.displayName}</strong>
                     {customer.phoneMasked ? <span className="workspace-subline">{customer.phoneMasked}</span> : null}
+                    {customer.kind === "b2b" && commercialContext ? (
+                      <span className="workspace-subline">Wholesale · {commercialContext}</span>
+                    ) : customer.kind === "b2b" && customer.company ? (
+                      <span className="workspace-subline">Wholesale</span>
+                    ) : null}
                   </div>
                   <span className={`workspace-badge ${customer.kind === "b2b" ? "info" : "neutral"}`}>
-                    {customer.kind === "b2b" ? "Wholesale" : "Retail"}
+                    {customer.kind === "b2b" ? "WHOLESALE" : "Retail"}
                   </span>
                 </div>
                 {onUseCustomer ? (

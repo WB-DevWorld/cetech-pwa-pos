@@ -55,13 +55,53 @@ export function healthCheckLabel(id: string): string {
       return "Pricing verification";
     case "payments":
       return "Payments";
+    case "internet":
+      return "Internet";
+    case "catalog":
+      return "Catalog projection";
+    case "app-version":
+      return "App version";
     default:
       return id.replaceAll("-", " ").replaceAll("_", " ");
   }
 }
 
-export const KEYBOARD_SCANNER_CAPABILITY = "Keyboard scanner input";
-export const BROWSER_PRINT_CAPABILITY = "Browser print";
+export const KEYBOARD_SCANNER_CAPABILITY = "Keyboard-wedge scanner";
+export const BROWSER_PRINT_CAPABILITY = "Browser print (80mm/A4)";
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"] as const;
+
+export function formatOperationalDateTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const day = date.getDate();
+  const month = MONTHS[date.getMonth()] ?? "";
+  const year = date.getFullYear();
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${day} ${month} ${year}, ${hours}:${minutes}`;
+}
+
+export function formatMoneyLabel(value: { readonly minor: number; readonly currency: string }): string {
+  const amount = value.minor / 100;
+  const currency = value.currency === "GHS" ? "GHS" : value.currency;
+  return `${currency} ${amount.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+export function paymentTenderLabel(tender: string): string {
+  switch (tender) {
+    case "cash":
+      return "Cash";
+    case "mobile_money":
+      return "Mobile Money";
+    case "card":
+      return "Card";
+    case "external_electronic":
+      return "Electronic";
+    default:
+      return tender.replaceAll("_", " ");
+  }
+}
 
 export function scannerCapabilityLabel(label?: string): string {
   void label;

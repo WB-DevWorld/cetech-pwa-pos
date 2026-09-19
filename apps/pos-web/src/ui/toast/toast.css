@@ -1,0 +1,36 @@
+.app-toast {
+  position: fixed;
+  top: 76px;
+  right: 28px;
+  z-index: 160;
+  max-width: min(420px, calc(100vw - 36px));
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #101828;
+  color: #fff;
+  box-shadow: var(--shadow-md);
+  display: grid;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.app-toast strong {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.app-toast span {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.86);
+  white-space: pre-line;
+}
+
+@media (max-width: 820px) {
+  .app-toast {
+    top: auto;
+    bottom: 88px;
+    right: 12px;
+    left: 12px;
+    max-width: none;
+  }
+}

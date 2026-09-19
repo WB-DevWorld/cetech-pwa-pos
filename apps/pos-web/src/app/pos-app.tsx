@@ -12,7 +12,7 @@ import {
 import { RegisterRuntimeScreen } from "./register-runtime";
 import { ReturnsRuntimeScreen, createBrowserHistoricReturnSaleLookup } from "./returns-runtime";
 import { StaffAuthGate } from "./staff-auth-gate";
-import { ApprovedWorkspaceScreens } from "./workspace-runtime";
+import { ApprovedWorkspaceScreens, clientAttentionExtras } from "./workspace-runtime";
 import { AppShell, POS_ROUTE_HREFS, type PosRoute } from "../ui/shell";
 import { resolveBrowserCatalogSourcePolicy } from "../core/catalog/source-policy";
 import {
@@ -39,8 +39,15 @@ import {
   type StaffRuntimeController,
 } from "../core/identity";
 import type { AuthNoticeState } from "../features/auth";
-import { toCashierError } from "../ui/cashier-language";
+import { isUuidLike, toCashierError } from "../ui/cashier-language";
 import type { Shift } from "../../../../docs/contracts/domain.generated";
+import type { CustomerSummary } from "../../../../docs/contracts/domain.generated";
+import type { CustomerSearchResultView } from "../features/sell";
+import type { AppToastView } from "../ui/toast";
+import type { AttentionItemView, OperationalLoadState } from "../ui/operational";
+import { applyAppearance, readStoredAppearance, type AppearancePreference } from "../features/settings/appearance";
+import { customerViewFromSummary } from "../features/sell/runtime/mapCartDraft";
+import { fetchAttentionInbox, fetchStoreHealth } from "./operational-client";
 
 function bumpCatalogProjectionGeneration(
   generationRef: { current: number },
@@ -95,6 +102,14 @@ export function PosRuntime({
   const restoreCountRef = useRef(0);
   const catalogBootstrapCountRef = useRef(0);
   const ownerNodeRef = useRef<HTMLDivElement | null>(null);
+  const [appearance, setAppearance] = useState<AppearancePreference>("system");
+  const [toast, setToast] = useState<AppToastView | null>(null);
+  const toastTimer = useRef<number | null>(null);
+  const [buildId, setBuildId] = useState<string | undefined>();
+  const [serverAttention, setServerAttention] = useState<readonly AttentionItemView[]>([]);
+  const [attentionState, setAttentionState] = useState<OperationalLoadState>("loading");
+  const [nextSaleCustomer, setNextSaleCustomer] = useState<CustomerSearchResultView | null>(null);
+  const [pendingReturnSaleId, setPendingReturnSaleId] = useState<string | null>(null);
   const readOnline = useCallback(() => online, [online]);
   const policy = useMemo(
     () =>
@@ -127,6 +142,52 @@ export function PosRuntime({
     writeOwnerCounts(ownerNodeRef.current, restoreCountRef.current, catalogBootstrapCountRef.current);
     void runtime.restore();
   }, [runtime]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const stored = readStoredAppearance();
+      setAppearance(stored);
+      applyAppearance(stored);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const showToast = useCallback((next: AppToastView) => {
+    setToast(next);
+    if (toastTimer.current) {
+      window.clearTimeout(toastTimer.current);
+    }
+    toastTimer.current = window.setTimeout(() => {
+      setToast(null);
+    }, 4500);
+  }, []);
+
+  const loadAttention = useCallback(async () => {
+    setAttentionState("loading");
+    const result = await fetchAttentionInbox(fetchImpl);
+    if (!result.ok) {
+      setServerAttention([]);
+      setAttentionState("error");
+      return;
+    }
+    setServerAttention(result.data.items);
+    setAttentionState("ready");
+  }, [fetchImpl]);
+
+  useEffect(() => {
+    if (authority.status !== "ready" || !authority.session) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      void loadAttention();
+      void fetchStoreHealth(fetchImpl).then((result) => {
+        if (result.ok) {
+          setBuildId(result.data.buildId);
+        }
+      });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [authority.session, authority.status, fetchImpl, loadAttention]);
 
   useEffect(() => {
     function sync() {
@@ -359,6 +420,9 @@ export function PosRuntime({
 
   const registerId = authority.register?.id;
   const deviceId = authority.shift?.deviceId ?? readOrCreateLocalDeviceId();
+  const extras = clientAttentionExtras({ catalogAvailability: projectionAvailability, authority });
+  const attentionItems = [...serverAttention, ...extras];
+  const attentionCount = attentionItems.length;
 
   return (
     <PosRuntimeOwner
@@ -374,6 +438,8 @@ export function PosRuntime({
       shiftOpen={authority.shiftOpen}
       online={online}
       liveMessage={cashierAuthorityError}
+      attentionCount={attentionCount}
+      toast={toast}
       onNavigate={onNavigate}
       onLock={() => {
         void (async () => {
@@ -395,23 +461,34 @@ export function PosRuntime({
                 {"Products couldn't be loaded. Check the connection and try again."}
               </p>
             ) : null}
-            <SellRuntimeScreen {...ports} shiftOpen={authority.shiftOpen} online={readOnline} catalogAvailability={ports.catalogAvailability} />
+            <SellRuntimeScreen
+              {...ports}
+              shiftOpen={authority.shiftOpen}
+              online={readOnline}
+              catalogAvailability={ports.catalogAvailability}
+              nextSaleCustomer={nextSaleCustomer}
+              onNextSaleCustomerApplied={() => setNextSaleCustomer(null)}
+            />
           </>
         ) : (
           <p className="muted">Loading products…</p>
         )
       ) : route === "returns" ? (
-        <ReturnsRuntimeScreen returns={returns} lookup={lookup} />
+        <ReturnsRuntimeScreen returns={returns} lookup={lookup} initialSaleId={pendingReturnSaleId} />
       ) : route === "register" ? (
         registerId ? (
           <RegisterRuntimeScreen
             register={registerPort}
             registerId={registerId}
             registerName={authority.register?.name ?? registerId}
-            locationLabel={authority.register?.locationId ?? "Assigned location"}
+            locationLabel={isUuidLike(authority.register?.locationId) ? undefined : authority.register?.locationId}
             deviceId={deviceId}
             currency={authority.register?.currency ?? "GHS"}
             onShiftChange={onShiftChange}
+            onOpened={() => {
+              showToast({ title: "Register opened." });
+              onNavigate("sell");
+            }}
           />
         ) : (
           <section>
@@ -427,8 +504,47 @@ export function PosRuntime({
           online={online}
           catalogAvailability={projectionAvailability}
           fetchImpl={fetchImpl}
+          appearance={appearance}
+          buildId={buildId}
+          attentionItems={attentionItems}
+          attentionCount={attentionCount}
+          attentionState={attentionState}
           onNavigate={onNavigate}
           onCatalogProjectionChange={onCatalogProjectionChange}
+          onUseCustomer={(customer: CustomerSummary) => {
+            setNextSaleCustomer(customerViewFromSummary(customer));
+            showToast({ title: "Customer selected for next sale." });
+            onNavigate("sell");
+          }}
+          onAppearanceChange={(next) => {
+            setAppearance(next);
+            applyAppearance(next);
+          }}
+          onRebuildSuccess={() => {
+            showToast({
+              title: "Rebuildable catalog projection refreshed.",
+              detail: "Durable cart was preserved.",
+            });
+          }}
+          onRetryAttention={() => {
+            void loadAttention();
+          }}
+          selectedCustomerId={nextSaleCustomer?.id}
+          receipts={ports?.receipts}
+          printer={ports?.printer}
+          onStartReturn={(saleId) => {
+            setPendingReturnSaleId(saleId);
+            onNavigate("returns");
+          }}
+          onResolveAttention={(item: AttentionItemView) => {
+            if (item.recoverKind === "payment" || item.recoverKind === "sale") {
+              onNavigate("sell");
+            } else if (item.recoverKind === "register" || item.recoverKind === "shift") {
+              onNavigate("register");
+            } else if (item.recoverKind === "catalog") {
+              onNavigate("health");
+            }
+          }}
         />
       )}
     </AppShell>

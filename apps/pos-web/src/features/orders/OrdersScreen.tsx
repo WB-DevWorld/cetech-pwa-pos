@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Money } from "../../../../../docs/contracts/domain.generated";
-import { orderStatusLabel, paymentStatusLabel, toCashierError } from "../../ui/cashier-language";
+import { formatMoneyLabel, formatOperationalDateTime, orderStatusLabel, paymentStatusLabel, toCashierError } from "../../ui/cashier-language";
 
 export type OrdersWorkspaceState = "ready" | "loading" | "error" | "offline" | "degraded";
 export type OrderWorkspaceStatus = "completed" | "refunded" | "partially_refunded" | "payment_pending" | "needs_attention" | "cancelled";
 
 export interface OrderListItemView {
   readonly id: string;
+  readonly saleId?: string;
   readonly orderReference: string;
   readonly receiptNumber?: string;
   readonly customerLabel: string;
@@ -19,6 +20,8 @@ export interface OrderListItemView {
   readonly total: Money;
   readonly status: OrderWorkspaceStatus;
   readonly transactionReference?: string;
+  readonly itemSummary?: string;
+  readonly lines?: readonly OrderDetailLineView[];
 }
 
 export interface OrderDetailLineView {
@@ -63,15 +66,11 @@ const STATUS_LABELS: Record<OrderWorkspaceStatus, string> = {
 };
 
 function formatMoney(value: Money): string {
-  const amount = value.minor / 100;
-  const currency = value.currency === "GHS" ? "GHS" : value.currency;
-  return `${currency} ${amount.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return formatMoneyLabel(value);
 }
 
 function formatDateTime(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en-GH", { dateStyle: "medium", timeStyle: "short" }).format(date);
+  return formatOperationalDateTime(value);
 }
 
 function badgeTone(status: OrderWorkspaceStatus | NonNullable<OrderListItemView["paymentStatus"]>): string {
@@ -101,6 +100,8 @@ export function OrdersScreen({
         order.receiptNumber,
         order.customerLabel,
         order.transactionReference,
+        order.saleId,
+        order.itemSummary,
       ]
         .filter(Boolean)
         .join(" ")
@@ -151,12 +152,12 @@ export function OrdersScreen({
 
       <div className="card card-pad workspace-toolbar">
         <label className="field workspace-search" htmlFor="order-search">
-          <span>Search orders</span>
+          <span className="sr-only">Search orders</span>
           <input
             id="order-search"
             className="input"
             type="search"
-            placeholder="Order, receipt, customer or reference"
+            placeholder="Search order, receipt, customer or transaction…"
             value={query}
             disabled={unavailable}
             onChange={(event) => setQuery(event.target.value)}
@@ -194,7 +195,7 @@ export function OrdersScreen({
       {state !== "loading" && state !== "error" && filtered.length === 0 ? (
         <div className="card card-pad workspace-state" role="status">
           <div>
-            <strong>{orders.length === 0 ? "No sales yet." : "No orders match this search."}</strong>
+            <strong>{orders.length === 0 ? "No sales available." : "No orders match this search."}</strong>
             <p>{orders.length === 0 ? "Completed sales will appear here when order history is available." : "Try another order, receipt, customer, or status."}</p>
           </div>
         </div>

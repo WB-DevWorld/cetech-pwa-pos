@@ -118,9 +118,9 @@ describe("labels", () => {
   });
 
   test("scanner and printer copy never claim a device is connected", () => {
-    expect(scannerCapabilityLabel("Attached scanner (presentation only)")).toBe("Keyboard scanner input");
-    expect(scannerCapabilityLabel("Connected scanner")).toBe("Keyboard scanner input");
-    expect(printerCapabilityLabel("Receipt printer via PrintPort")).toBe("Browser print");
-    expect(printerCapabilityLabel("Receipt printer")).toBe("Browser print");
+    expect(scannerCapabilityLabel("Attached scanner (presentation only)")).toBe("Keyboard-wedge scanner");
+    expect(scannerCapabilityLabel("Connected scanner")).toBe("Keyboard-wedge scanner");
+    expect(printerCapabilityLabel("Receipt printer via PrintPort")).toBe("Browser print (80mm/A4)");
+    expect(printerCapabilityLabel("Receipt printer")).toBe("Browser print (80mm/A4)");
   });
 });

@@ -1,21 +1,17 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { HealthCheck, StoreHealth } from "../../../../../docs/contracts/domain.generated";
-import {
-  describeHealthCheckMessage,
-  friendlyDeviceName,
-  healthCheckLabel,
-  toCashierError,
-  TechnicalDetails,
-} from "../cashier-language";
+import type { StoreHealth } from "../../../../../docs/contracts/domain.generated";
+import type { CatalogProjectionAvailability } from "../../local/catalog-sync";
+import { friendlyDeviceName, toCashierError, TechnicalDetails } from "../cashier-language";
+import { presentHealthRows } from "./healthPresentation";
 
 export type OperationalLoadState = "ready" | "loading" | "error" | "offline" | "degraded";
 export type UpdateSafetyView = "safe" | "defer" | "blocked_critical";
 export type MigrationStateView = "idle" | "running" | "blocked" | "complete" | "failed";
 export type AttentionSeverityView = "low" | "medium" | "critical";
 
-export interface AttentionItemView {
+export type AttentionItemView = {
   readonly id: string;
   readonly title: string;
   readonly summary: string;
@@ -24,7 +20,9 @@ export interface AttentionItemView {
   readonly transactionReference?: string;
   readonly retryAllowed?: boolean;
   readonly resolveAllowed?: boolean;
-}
+  readonly reviewAllowed?: boolean;
+  readonly recoverKind?: "payment" | "sale" | "return" | "shift" | "catalog" | "register";
+};
 
 export interface StoreHealthScreenProps {
   readonly health?: StoreHealth;
@@ -33,23 +31,20 @@ export interface StoreHealthScreenProps {
   readonly deviceName?: string;
   readonly appVersion?: string;
   readonly localSchemaVersion?: string;
+  readonly online?: boolean;
+  readonly catalogAvailability?: CatalogProjectionAvailability | null;
+  readonly electronicPaymentsAvailable?: boolean;
+  readonly attentionCountOverride?: number;
   readonly onRetry?: () => void;
   readonly onFixApp?: () => void;
   readonly onOpenAttention?: () => void;
   readonly onRebuildCatalog?: () => void;
 }
 
-function healthTone(status: HealthCheck["status"]): string {
-  if (status === "healthy") return "success";
-  if (status === "degraded" || status === "unverified") return "warning";
+function healthRowTone(tone: "ok" | "degraded" | "unavailable" | "unverified"): string {
+  if (tone === "ok") return "success";
+  if (tone === "degraded" || tone === "unverified") return "warning";
   return "danger";
-}
-
-function healthLabel(status: HealthCheck["status"]): string {
-  if (status === "healthy") return "OK";
-  if (status === "degraded") return "Degraded";
-  if (status === "unavailable") return "Unavailable";
-  return "Unverified";
 }
 
 export function ConnectivityNotice({ state }: { readonly state: "online" | "offline" | "degraded" }) {
@@ -83,78 +78,135 @@ export function StoreHealthScreen({
   deviceName,
   appVersion,
   localSchemaVersion,
+  online = true,
+  catalogAvailability,
+  electronicPaymentsAvailable = false,
+  attentionCountOverride,
   onRetry,
   onFixApp,
   onOpenAttention,
   onRebuildCatalog,
 }: StoreHealthScreenProps) {
-  const checks = health?.checks ?? [];
-  const attentionCount = health?.attentionCount ?? 0;
   const pendingOperationCount = health?.pendingOperationCount ?? 0;
+  const attentionCount = attentionCountOverride ?? health?.attentionCount ?? 0;
+  const buildValue = health?.buildId ?? appVersion ?? "Unverified";
+  const rows = presentHealthRows({
+    online,
+    health,
+    catalogAvailability,
+    electronicPaymentsAvailable,
+  });
 
   return (
     <section className="operational-surface" aria-labelledby="store-health-title">
       <div className="page-head">
         <div>
-          <h1 id="store-health-title">System status</h1>
-          <p>Check connections, product updates, and app status.</p>
+          <h1 id="store-health-title">Store Health</h1>
+          <p>Operational status stays visible instead of hiding sync and recovery problems in Settings.</p>
         </div>
-        {onRebuildCatalog ? <button className="btn" type="button" onClick={onRebuildCatalog}>Refresh products</button> : null}
+        {onRebuildCatalog ? (
+          <button className="btn" type="button" onClick={onRebuildCatalog}>
+            Rebuild catalog
+          </button>
+        ) : null}
       </div>
 
       {state === "offline" ? <ConnectivityNotice state="offline" /> : null}
       {state === "degraded" ? <ConnectivityNotice state="degraded" /> : null}
       {state === "error" ? (
         <div className="banner danger operational-banner" role="alert">
-          <strong>{"System status couldn't be refreshed."}</strong>
-          <span>{errorMessage ? toCashierError({ message: errorMessage, domain: "health" }).message : "Last known status can remain visible, but current connections are unverified."}</span>
-          {onRetry ? <button className="btn small" type="button" onClick={onRetry}>Retry</button> : null}
+          <strong>{"Store Health couldn't be refreshed."}</strong>
+          <span>
+            {errorMessage
+              ? toCashierError({ message: errorMessage, domain: "health" }).message
+              : "Last known status can remain visible, but current connections are unverified."}
+          </span>
+          {onRetry ? (
+            <button className="btn small" type="button" onClick={onRetry}>
+              Retry
+            </button>
+          ) : null}
         </div>
       ) : null}
 
-      <div className="operational-metrics" aria-label="System status summary">
-        <div className="card operational-metric"><span className="eyebrow">Pending operations</span><strong>{pendingOperationCount}</strong></div>
-        <div className="card operational-metric"><span className="eyebrow">Issues</span><strong>{attentionCount}</strong></div>
+      <div className="operational-metrics" aria-label="Store Health summary">
+        <div className="card operational-metric">
+          <span className="eyebrow">Pending operations</span>
+          <strong>{pendingOperationCount}</strong>
+        </div>
+        <div className="card operational-metric">
+          <span className="eyebrow">Needs attention</span>
+          <strong>{attentionCount}</strong>
+        </div>
+        <div className="card operational-metric">
+          <span className="eyebrow">Build</span>
+          <strong className="operational-build">{buildValue}</strong>
+        </div>
       </div>
 
       {state === "loading" ? (
-        <div className="card card-pad operational-state" role="status" aria-live="polite"><div className="operational-spinner" aria-hidden="true" /><strong>Checking system status…</strong></div>
-      ) : null}
-
-      {state !== "loading" && checks.length === 0 ? (
-        <div className="card card-pad operational-state" role="status">
-          <div><strong>No current status checks are available.</strong><p>Do not assume services are healthy until status is refreshed.</p></div>
+        <div className="card card-pad operational-state" role="status" aria-live="polite">
+          <div className="operational-spinner" aria-hidden="true" />
+          <strong>Checking Store Health…</strong>
         </div>
       ) : null}
 
-      {state !== "loading" && checks.length > 0 ? (
+      {state !== "loading" ? (
         <div className="operational-health-list">
-          {checks.map((check) => (
-            <div className="operational-health-row" key={check.id}>
+          {rows.map((row) => (
+            <div className="operational-health-row" key={row.id}>
               <div>
-                <strong>{healthCheckLabel(check.id)}</strong>
-                <span>{describeHealthCheckMessage(check.id, check.message, check.status)}</span>
-                <small>Checked {new Date(check.checkedAt).toLocaleString()}</small>
+                <strong>{row.name}</strong>
+                <span>{row.detail}</span>
               </div>
-              <span className={`workspace-badge ${healthTone(check.status)}`}>{healthLabel(check.status)}</span>
+              <span className={`workspace-badge ${healthRowTone(row.tone)}`}>{row.badge}</span>
             </div>
           ))}
         </div>
       ) : null}
 
       <section className="card card-pad operational-version" aria-labelledby="version-recovery-title">
-        <h2 id="version-recovery-title">Recovery</h2>
+        <h2 id="version-recovery-title">Version & recovery</h2>
+        <dl className="operational-version-grid">
+          <div>
+            <dt>Application</dt>
+            <dd>{buildValue}</dd>
+          </div>
+          <div>
+            <dt>API contract</dt>
+            <dd>{health?.contractVersion ?? "Unverified"}</dd>
+          </div>
+          <div>
+            <dt>Local schema</dt>
+            <dd>{localSchemaVersion ?? "Unverified"}</dd>
+          </div>
+          <div>
+            <dt>Device</dt>
+            <dd>{friendlyDeviceName(deviceName)}</dd>
+          </div>
+        </dl>
         <div className="operational-actions">
-          {onFixApp ? <button className="btn" type="button" onClick={onFixApp}>Troubleshoot</button> : null}
-          {onOpenAttention ? <button className="btn" type="button" onClick={onOpenAttention}>View issues</button> : null}
+          {onFixApp ? (
+            <button className="btn" type="button" onClick={onFixApp}>
+              Fix App
+            </button>
+          ) : null}
+          {onOpenAttention ? (
+            <button className="btn" type="button" onClick={onOpenAttention}>
+              View attention
+            </button>
+          ) : null}
         </div>
         <TechnicalDetails
           rows={[
-            { label: "Build", value: health?.buildId ?? appVersion ?? "Unverified" },
+            { label: "Build ID", value: buildValue },
             { label: "API contract", value: health?.contractVersion ?? "Unverified" },
             { label: "Local schema", value: localSchemaVersion ?? "Unverified" },
             { label: "Device", value: friendlyDeviceName(deviceName) },
-            ...checks.map((check) => ({ label: `${check.id} message`, value: check.message })),
+            ...(health?.checks ?? []).map((check) => ({
+              label: `${check.id} checked`,
+              value: `${check.message} · ${new Date(check.checkedAt).toLocaleString()}`,
+            })),
           ]}
         />
       </section>
@@ -169,6 +221,7 @@ export interface NeedsAttentionScreenProps {
   readonly onRetryLoad?: () => void;
   readonly onRetryItem?: (id: string) => void;
   readonly onResolveItem?: (id: string) => void;
+  readonly onReviewItem?: (id: string) => void;
 }
 
 export function NeedsAttentionScreen({
@@ -178,29 +231,85 @@ export function NeedsAttentionScreen({
   onRetryLoad,
   onRetryItem,
   onResolveItem,
+  onReviewItem,
 }: NeedsAttentionScreenProps) {
   return (
     <section className="operational-surface" aria-labelledby="attention-title">
-      <div className="page-head"><div><h1 id="attention-title">Needs attention</h1><p>Review payments, returns, shifts, or sync problems that need action.</p></div></div>
+      <div className="page-head">
+        <div>
+          <h1 id="attention-title">Needs attention</h1>
+          <p>Ambiguous financial and sync states are reviewed here rather than hidden behind generic errors.</p>
+        </div>
+      </div>
       {state === "offline" ? <ConnectivityNotice state="offline" /> : null}
       {state === "degraded" ? <ConnectivityNotice state="degraded" /> : null}
       {state === "error" ? (
-        <div className="banner danger operational-banner" role="alert"><strong>Attention items could not be refreshed.</strong><span>{errorMessage ? toCashierError({ message: errorMessage, domain: "generic" }).message : "Do not assume unresolved operations are cleared."}</span>{onRetryLoad ? <button className="btn small" type="button" onClick={onRetryLoad}>Retry</button> : null}</div>
+        <div className="banner danger operational-banner" role="alert">
+          <strong>Attention items could not be refreshed.</strong>
+          <span>
+            {errorMessage
+              ? toCashierError({ message: errorMessage, domain: "generic" }).message
+              : "Do not assume unresolved operations are cleared."}
+          </span>
+          {onRetryLoad ? (
+            <button className="btn small" type="button" onClick={onRetryLoad}>
+              Retry
+            </button>
+          ) : null}
+        </div>
       ) : null}
-      {state === "loading" ? <div className="card card-pad operational-state" role="status"><div className="operational-spinner" aria-hidden="true" /><strong>Checking unresolved operations…</strong></div> : null}
+      {state === "loading" ? (
+        <div className="card card-pad operational-state" role="status">
+          <div className="operational-spinner" aria-hidden="true" />
+          <strong>Checking unresolved operations…</strong>
+        </div>
+      ) : null}
       {state !== "loading" && state !== "error" && items.length === 0 ? (
-        <div className="card card-pad"><div className="banner success" role="status"><strong>All clear.</strong><span>No issues need your attention.</span></div></div>
+        <div className="card card-pad">
+          <div className="banner success" role="status">
+            <strong>All clear</strong>
+            <span>No issues need your attention.</span>
+          </div>
+        </div>
       ) : null}
       {state !== "loading" && items.length > 0 ? (
         <div className="operational-attention-list">
           {items.map((item) => (
             <article className={`card operational-attention-item severity-${item.severity}`} key={item.id}>
-              <div className="operational-attention-head"><div><strong>{item.title}</strong><span>{item.typeLabel}{item.transactionReference ? ` · ${item.transactionReference}` : ""}</span></div><span className={`workspace-badge ${item.severity === "critical" ? "danger" : item.severity === "medium" ? "warning" : "info"}`}>{item.severity}</span></div>
+              <div className="operational-attention-head">
+                <div>
+                  <strong>{item.title}</strong>
+                  <span>
+                    {item.typeLabel}
+                    {item.transactionReference ? ` · ${item.transactionReference}` : ""}
+                  </span>
+                </div>
+                <span
+                  className={`workspace-badge ${item.severity === "critical" ? "danger" : item.severity === "medium" ? "warning" : "info"}`}
+                >
+                  {item.severity.toUpperCase()}
+                </span>
+              </div>
               <p>{item.summary}</p>
               <div className="operational-actions">
-                {item.resolveAllowed && onResolveItem ? <button className="btn primary" type="button" onClick={() => onResolveItem(item.id)}>Check status</button> : null}
-                {item.retryAllowed && onRetryItem ? <button className="btn" type="button" onClick={() => onRetryItem(item.id)}>Try again</button> : null}
-                {!item.resolveAllowed && !item.retryAllowed ? <span className="muted">This needs manual review. Contact a manager or support.</span> : null}
+                {item.resolveAllowed && onResolveItem ? (
+                  <button className="btn" type="button" onClick={() => onResolveItem(item.id)}>
+                    Check / Recover
+                  </button>
+                ) : null}
+                {item.retryAllowed && onRetryItem ? (
+                  <button className="btn" type="button" onClick={() => onRetryItem(item.id)}>
+                    Try again
+                  </button>
+                ) : null}
+                {item.reviewAllowed && onReviewItem ? (
+                  <button className="btn ghost" type="button" onClick={() => onReviewItem(item.id)}>
+                    Mark reviewed
+                  </button>
+                ) : null}
+                {!item.resolveAllowed && !item.retryAllowed ? (
+                  <span className="muted">This needs manual review. Contact a manager or support.</span>
+                ) : null}
               </div>
             </article>
           ))}
