@@ -4,6 +4,7 @@ import type { FormEvent } from "react";
 import { skuLabel } from "../../../ui/cashier-language";
 import { formatMoneyDisplay } from "../state/quotePresentation";
 import { productBadges, productStockCopy, stockStatusClass } from "../state/productPresentation";
+import { formatProductDisplayPrice } from "../state/variableDisplayPrice";
 import type { SellProductView } from "../state/sellView";
 import { ProductBadgeList } from "./ProductBadge";
 
@@ -62,7 +63,10 @@ export function ProductCard({
   const out = item.stockStatus === "out_of_stock";
   const stock = productStockCopy(item);
   const badges = productBadges(item);
-  const price = item.displayPrice ? formatMoneyDisplay(item.displayPrice) : null;
+  const priceView = item.priceView ?? (item.displayPrice ? { kind: "single" as const, amount: item.displayPrice } : undefined);
+  const price = formatProductDisplayPrice(priceView, formatMoneyDisplay, {
+    treatMissingAsUnavailable: item.kind === "variable",
+  });
   return (
     <button
       type="button"
@@ -76,7 +80,26 @@ export function ProductCard({
       <div className="product-name">{item.name}</div>
       {skuLabel(item.sku) ? <div className="product-sku muted">{skuLabel(item.sku)}</div> : null}
       <div className={stockStatusClass(item.stockStatus)}>{stock.text}</div>
-      {price ? <div className="product-price">{price}</div> : <div className="product-price product-price-empty" />}
+      {priceView?.kind === "range" ? (
+        <div
+          className="product-price product-price-range"
+          data-product-display-price={price ?? undefined}
+          aria-label={price ?? undefined}
+        >
+          <span className="product-price-amount">{formatMoneyDisplay(priceView.min)}</span>
+          <span aria-hidden="true"> – </span>
+          <span className="product-price-amount">{formatMoneyDisplay(priceView.max)}</span>
+        </div>
+      ) : price ? (
+        <div
+          className={`product-price${price === "Price unavailable" ? " product-price-unavailable" : ""}`}
+          data-product-display-price={price}
+        >
+          {price}
+        </div>
+      ) : (
+        <div className="product-price product-price-empty" />
+      )}
     </button>
   );
 }

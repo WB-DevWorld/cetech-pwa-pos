@@ -14,6 +14,11 @@ export function catalogItemToSellView(item: CatalogItem): SellProductView {
     displayPrice: item.displayPrice
       ? { minor: item.displayPrice.minor, currency: item.displayPrice.currency }
       : undefined,
+    priceView: item.displayPrice
+      ? { kind: "single", amount: { minor: item.displayPrice.minor, currency: item.displayPrice.currency } }
+      : item.kind === "variable"
+        ? { kind: "unavailable" }
+        : undefined,
   };
 }
 

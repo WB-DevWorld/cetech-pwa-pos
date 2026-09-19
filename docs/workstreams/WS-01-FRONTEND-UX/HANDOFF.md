@@ -1,3 +1,80 @@
+# WS1 current handoff — UX-03 payment, barcode exceptions, variable ranges (TASK_COMPLETION FRESH_2)
+
+Kind / UTC: TASK_COMPLETION / 2026-09-19T09:40:00Z
+Handoff kind: DEPENDENCY_READY
+Task / batch / workstream: UX-03 / payment experience + barcode exception states + variable-product advisory ranges / WS1 with temporary senior bounded WS3 mount now EXPIRED
+Owner / integration editor / requested human reviewer: Senior/user `@wbdevworld` was temporary implementation authority on this contributor branch only. WS3 independently reviews/imports. Do not self-approve. Do not merge. Do not update PR #77.
+Branch: `ws1/ux-03-payment-barcode-variable-range`
+Starting/base SHA: `04166509c2b9505980338e4baaf630981c00d2e8` (UX-02-containing `origin/batch/stg-01-staging-runtime-acceptance` / PR #77 head)
+Pre-handoff implementation SHA: recorded as this evidence commit after it lands (cannot be embedded in its own commit)
+Allowed / forbidden paths and central leases: temporary UX-03 exception now EXPIRED / CLOSED. Was WS1 `apps/pos-web/src/features/**`, `apps/pos-web/src/ui/**`, `tests/frontend/**`, WS1 STATUS/HANDOFF; bounded WS3 `apps/pos-web/src/app/**`, `apps/pos-web/src/server/**`, `tests/integration/**`, `apps/pos-web/e2e/**` only to mount frozen `PaymentPort.initialize` and `SalesPort.cancel`; `CURRENT-WORK.md` and evidence. Forbidden: unrelated WS2; Woo/B2BKing/WoodMart pricing; frozen-contract edits for UI convenience; protected `main`; production; mutating `batch/stg-01-staging-runtime-acceptance` / PR #77.
+Files changed: Choose-payment presentation stage; cash live change/tenders; electronic waiting around existing PaymentPort SM; browser/BFF `initialize` + `cancel`; unknown-barcode toast; collision chooser; local child pagination + advisory min–max; tests and visual evidence; CURRENT-WORK exception closed; this STATUS/HANDOFF.
+Contracts changed: none
+Database migrations: none
+Architecture decisions: none
+Completed/current/remaining tasks: UX-03 contributor implementation complete. Temporary senior UX-03 assignment EXPIRED / CLOSED. Remaining: WS3 independent review/import; truthful per-tender electronic capability signal (currently fail-closed unless `electronicPaymentsAvailable && initialize`); deployed staging visual acceptance.
+Dependencies (accepted / provisional SHA / prep-only / blocked): start SHA / batch / PR #77 head `04166509c2b9505980338e4baaf630981c00d2e8`. `origin/main` `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` is an ancestor; not consumed.
+Tests executed:
+- `python scripts/verify_control_plane.py` → PASS (exit 0)
+- `pnpm --dir apps/pos-web lint` → exit 0
+- `pnpm --dir apps/pos-web typecheck` → exit 0
+- `pnpm --dir apps/pos-web test` → 97 files, 822 passed, exit 0
+- `pnpm --dir apps/pos-web build` → exit 0 (includes `POST /api/pos/v1/sales/cancel`)
+- `pnpm --dir apps/pos-web test:e2e` → 15 passed, exit 0
+- `pnpm --dir apps/pos-web exec playwright test --config ../../tests/frontend/visual/playwright.config.ts --workers=1` → 20 passed, exit 0
+- `git diff --check` → clean (CRLF-normalization warnings only)
+Runtime verification and tested combined SHA/environment: required suite on this contributor tree. Isolated harness PNGs and local integrated `/sell` PNGs captured. Not live Woo quote, Paystack, or deployed staging visual acceptance. Woo bridge not edited.
+Remote effects performed: none (no merge; no production; contributor branch push not performed in this evidence commit).
+Assumptions / limitations / unresolved risks:
+- Electronic methods stay disabled unless composition sets `electronicPaymentsAvailable` and mounts `PaymentPort.initialize`. There is no per-tender capability signal; all three electronic cards share that one fail-closed gate. BLOCKED: truthful electronic method capability signal.
+- Cancel is authoritative `SalesPort.cancel` via `POST /api/pos/v1/sales/cancel` using a stable per-attempt cancel CommandContext. Ambiguous cancel resolves the same transaction. Close/X on choose/cash requests that cancel, not a client idle reset. Back from cash returns to choose_payment without re-prepare.
+- Variable range uses local CatalogPort child `displayPrice` only (all pages, fail closed). Advisory presentation; Quote remains checkout authority.
+- Unknown barcode is a non-blocking toast; collision remains a blocking modal.
+Next exact action: WS3 independently reviews/imports this contributor SHA. Do not import into the shared STG-01 batch as part of this closeout. Reassignment: NONE (exception expired).
+
+Freshness protocol:
+START_FRESHNESS_SNAPSHOT UTC: 2026-09-19T08:59:20Z
+Start main SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Start batch ref/SHA: `origin/batch/stg-01-staging-runtime-acceptance` `04166509c2b9505980338e4baaf630981c00d2e8`
+Applicable contracts / ADRs / ownership / queue revision: frozen v1.0.0; ADR-012; ADR-014; CURRENT-WORK temporary senior UX-03 exception now expired
+
+Pass 1 fetch UTC / success evidence: 2026-09-19T09:36:12Z `git fetch origin --prune` succeeded
+Pass 1 main SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5`
+Pass 1 batch SHA: `04166509c2b9505980338e4baaf630981c00d2e8`
+Relevant upstream paths and dependency/authority effects: `origin/main` is an ancestor of HEAD; batch tip equals start SHA and is an ancestor of this contributor tree
+Classification per change: main — IRRELEVANT (SAME). Batch / PR #77 — SAME / COMPATIBLE.
+Actions taken / reconciliation commits: none. Did not merge or consume `origin/main` or the batch branch.
+Tests rerun / tested combined SHA: required suite on this contributor tree
+
+Pass 2 fetch UTC / success evidence: recorded in the session report immediately after this evidence commit
+Pass 2 main SHA: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` at Pass 1; confirm unchanged after commit
+Pass 2 batch SHA: `04166509c2b9505980338e4baaf630981c00d2e8` at Pass 1; confirm unchanged after commit
+Relevant upstream paths and dependency/authority effects: none expected
+Classification per change: no arrivals at Pass 1; Pass 2 confirms
+Actions taken / reconciliation commits: none
+Tests rerun / tested combined SHA: no upstream arrivals expected; tested tree is this evidence commit
+
+Final freshness status: FRESH_2
+Delivery status: READY_FOR_INTEGRATION
+Final task head SHA: recorded after this evidence commit in the session report (cannot be embedded in its own commit)
+Known post-cutoff risk / integration editor follow-up: import this contributor SHA independently; do not update PR #77 as part of UX-03; do not invent a per-tender capability flag without a contract/owner decision
+Pass 3: NOT PERMITTED for this assignment.
+Review/merge/release status and limitations: not merged; `main` not modified; shared batch branch not edited; PR #77 not changed; no production promotion.
+Metrics delta for CURRENT-WORK: UX-03 temporary assignment marked EXPIRED / CLOSED.
+
+Acting human / workstream / mode: senior/user `@wbdevworld` / temporary UX-03 authority / IMPLEMENT
+Declared task owner / actual implementing human / workstream: Ben / `@Ben-001-sys` remains WS1 owner; this bounded mount is a temporary senior exception now expired
+Source contributor branch / full source SHA(s): `ws1/ux-03-payment-barcode-variable-range` / recorded after this commit
+Imported SHA(s) / exact tested combined integration SHA: none / this contributor tree
+Receiving human / workstream / acknowledgment checkpoint: WS3 / senior integration editor
+Review finding / severity / owning task / fix source/import SHAs: none (new contributor delivery)
+Explicit senior reassignment authority / scope / expiry: EXPIRED / CLOSED at this handoff
+Remote effects allowed (not inferred from this handoff): none
+Next exact action for receiving owner: review/import the published contributor SHA; keep prepare/quote/payment identity authoritative; do not treat this as production approval; do not fold into PR #77 without a later independent integration decision
+Other independently authorized same-owner work: WAITING_FOR_OWNER
+
+## Previous current handoff — UX-02 variable-parent advisory-price review remediation (TASK_COMPLETION FRESH_2)
+
 # WS1 current handoff — UX-02 variable-parent advisory-price review remediation (TASK_COMPLETION FRESH_2)
 
 Kind / UTC: TASK_COMPLETION / 2026-09-19T05:05:00Z

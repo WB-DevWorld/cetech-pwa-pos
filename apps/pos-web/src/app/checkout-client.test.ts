@@ -46,12 +46,21 @@ describe("CORE-06 browser checkout client", () => {
       { idempotencyKey: KEY, correlationId: CORR },
     );
     await ports.sales.resolve(TX);
+    const initialize = ports.payments.initialize;
+    expect(initialize).toEqual(expect.any(Function));
+    await initialize?.(
+      { transactionId: TX, tender: "mobile_money" },
+      { idempotencyKey: KEY, correlationId: CORR },
+    );
+    await ports.sales.cancel({ transactionId: TX, reason: "cashier_cancelled_prepared_sale" }, { idempotencyKey: KEY, correlationId: CORR });
     await ports.receipts.getByTransaction(TX);
     expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual([
       "POST /api/pos/v1/sales/prepare",
       "POST /api/pos/v1/payments/cash",
       "POST /api/pos/v1/sales/finalize",
       `GET /api/pos/v1/sales/${TX}`,
+      "POST /api/pos/v1/payments/initialize",
+      "POST /api/pos/v1/sales/cancel",
       `GET /api/pos/v1/receipts/${TX}`,
     ]);
     expect(calls[0]?.headers.get("idempotency-key")).toBe(KEY);

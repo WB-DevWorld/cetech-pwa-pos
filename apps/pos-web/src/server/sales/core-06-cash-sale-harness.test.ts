@@ -6,6 +6,7 @@ import type { CheckoutStore } from "../../core/checkout/types";
 import { createMemoryAssignmentDirectory } from "../auth/assignments";
 import { createEphemeralInMemoryStaffSessionStore } from "../auth/session-store";
 import { createCashCheckoutController } from "../../features/sell/runtime/cashCheckoutController";
+import { handleCancelSale } from "./handle-cancel-sale";
 import { handleConfirmCash } from "./handle-confirm-cash";
 import { handleFinalizeSale } from "./handle-finalize-sale";
 import { handleGetReceipt } from "./handle-get-receipt";
@@ -619,6 +620,17 @@ describe("CORE-06 combined cash-sale harness", () => {
           });
           return result.body;
         },
+        async cancel(input, context) {
+          const result = await handleCancelSale({
+            ...env,
+            checkoutStore,
+            salesPort,
+            idempotencyKeyHeader: context.idempotencyKey,
+            correlationIdHeader: context.correlationId,
+            body: input,
+          });
+          return result.body;
+        },
       },
       receipts: {
         async getByTransaction(id) {
@@ -634,8 +646,9 @@ describe("CORE-06 combined cash-sale harness", () => {
     });
 
     await controller.startPrepare(quote);
-    expect(controller.getSession().stage).toBe("cash");
+    expect(controller.getSession().stage).toBe("choose_payment");
     expect(salesPort.wooOrderCount).toBe(1);
+    controller.selectCash();
     await controller.confirmCash("20.00");
     expect(controller.getSession().stage).toBe("receipt_ready");
     expect(controller.getSession().receipt?.orderReference).toBe("woo-1");

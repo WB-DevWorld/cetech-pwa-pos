@@ -1,3 +1,5 @@
+import type { ProductDisplayPriceView } from "./variableDisplayPrice";
+
 export type SellableKind = "simple" | "variable" | "variation";
 
 export type StockPresentation = "in_stock" | "low_stock" | "out_of_stock" | "backorder" | "unknown";
@@ -16,6 +18,8 @@ export type SellProductView = {
     readonly minor: number;
     readonly currency: string;
   };
+  /** Presentation-only. Derived from local child advisory prices for variable parents. */
+  readonly priceView?: ProductDisplayPriceView;
 };
 
 export type CartLineView = {

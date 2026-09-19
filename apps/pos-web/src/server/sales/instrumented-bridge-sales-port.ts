@@ -1,6 +1,7 @@
 import type { ApiResult, SalesPort } from "../../../../../docs/contracts/ports";
 import type {
   BridgeFinalizeRequest,
+  CancelSaleRequest,
   CommandContext,
   PreparedSale,
   PrepareSaleRequest,
@@ -22,13 +23,15 @@ type PreparedRow = {
  * Counts Woo order creates, reservation, payment_complete and stock effects.
  * Does not copy WoodMart/B2BKing pricing; totals come from the stored quote snapshot.
  */
-export type InstrumentedBridgeSalesPort = Pick<SalesPort, "prepare" | "resolve" | "confirmPayment"> & {
+export type InstrumentedBridgeSalesPort = Pick<SalesPort, "prepare" | "resolve" | "confirmPayment" | "cancel"> & {
   wooOrderCount: number;
   stockReserveCount: number;
   paymentCompleteCount: number;
   stockEffectCount: number;
+  cancelCount: number;
   dropNextPrepareResponse: boolean;
   dropNextFinalizeResponse: boolean;
+  dropNextCancelResponse: boolean;
   readonly quotes: Map<string, Quote>;
   seedPrepared(sale: PreparedSale): void;
 };
@@ -42,14 +45,18 @@ export function createInstrumentedBridgeSalesPort(
   const prepareByKey = new Map<string, PreparedRow>();
   const finalized = new Map<string, SaleResolution>();
   const finalizeByKey = new Map<string, { hash: string; resolution: SaleResolution }>();
+  const cancelled = new Map<string, SaleResolution>();
+  const cancelByKey = new Map<string, { hash: string; resolution: SaleResolution }>();
 
   const port: InstrumentedBridgeSalesPort = {
     wooOrderCount: 0,
     stockReserveCount: 0,
     paymentCompleteCount: 0,
     stockEffectCount: 0,
+    cancelCount: 0,
     dropNextPrepareResponse: false,
     dropNextFinalizeResponse: false,
+    dropNextCancelResponse: false,
     quotes: quoteById,
     seedPrepared(sale: PreparedSale) {
       prepared.set(sale.transactionId, {
@@ -122,6 +129,10 @@ export function createInstrumentedBridgeSalesPort(
       if (done) {
         return { ok: true, data: done, correlationId };
       }
+      const cancelledSale = cancelled.get(transactionId);
+      if (cancelledSale) {
+        return { ok: true, data: cancelledSale, correlationId };
+      }
       const row = prepared.get(transactionId);
       if (row) {
         return {
@@ -188,6 +199,50 @@ export function createInstrumentedBridgeSalesPort(
       if (port.dropNextFinalizeResponse) {
         port.dropNextFinalizeResponse = false;
         throw new Error("injected lost finalize response");
+      }
+      return { ok: true, data: resolution, correlationId: context.correlationId };
+    },
+    async cancel(input: CancelSaleRequest, context: CommandContext): Promise<ApiResult<SaleResolution>> {
+      const hash = await sha256Hex(canonicalJson(input));
+      const keyed = cancelByKey.get(context.idempotencyKey);
+      if (keyed && keyed.hash !== hash) {
+        return apiFailure(
+          "IDEMPOTENCY_CONFLICT",
+          "Idempotency-Key was reused with a different CancelSaleRequest",
+          context.correlationId,
+        );
+      }
+      if (keyed) {
+        if (port.dropNextCancelResponse) {
+          port.dropNextCancelResponse = false;
+          throw new Error("injected lost cancel response");
+        }
+        return { ok: true, data: keyed.resolution, correlationId: context.correlationId };
+      }
+      const existingCancelled = cancelled.get(input.transactionId);
+      if (existingCancelled) {
+        return { ok: true, data: existingCancelled, correlationId: context.correlationId };
+      }
+      if (finalized.has(input.transactionId)) {
+        return apiFailure("PAYMENT_PENDING", "A verified sale cannot be cancelled", context.correlationId);
+      }
+      const row = prepared.get(input.transactionId);
+      if (!row) {
+        return apiFailure("NOT_FOUND", "prepared sale was not found", context.correlationId);
+      }
+      port.cancelCount += 1;
+      const resolution: SaleResolution = {
+        transactionId: input.transactionId,
+        status: "cancelled",
+        saleId: row.prepared.saleId,
+        orderReference: row.prepared.orderReference,
+      };
+      cancelled.set(input.transactionId, resolution);
+      cancelByKey.set(context.idempotencyKey, { hash, resolution });
+      prepared.delete(input.transactionId);
+      if (port.dropNextCancelResponse) {
+        port.dropNextCancelResponse = false;
+        throw new Error("injected lost cancel response");
       }
       return { ok: true, data: resolution, correlationId: context.correlationId };
     },

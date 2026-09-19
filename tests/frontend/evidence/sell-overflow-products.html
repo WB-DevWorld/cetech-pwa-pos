@@ -887,6 +887,15 @@ button.product-card:disabled {
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.product-price-range {
+  overflow-wrap: normal;
+}
+
+.product-price-amount {
+  white-space: nowrap;
 }
 
 .product-price-empty {
@@ -1393,7 +1402,222 @@ button.product-card:disabled {
 .refund-reconciliation .banner.warning {
   border-color: var(--color-warning);
 }
+
+.product-price-unavailable {
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.sell-toast {
+  position: fixed;
+  top: 72px;
+  right: 20px;
+  z-index: 140;
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: #101828;
+  color: #fff;
+  box-shadow: var(--shadow-md);
+  display: grid;
+  gap: 4px;
+}
+
+.sell-toast strong {
+  font-size: 14px;
+}
+
+.sell-toast span {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  word-break: break-all;
+}
+
+.sell-dialog.payment-dialog {
+  max-width: 640px;
+  width: min(640px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+}
+
+.dialog-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--color-text-muted);
+}
+
+.dialog-close:hover:not(:disabled),
+.dialog-close:focus-visible {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.tender-choice,
+.cash-payment,
+.payment-waiting {
+  display: grid;
+  gap: 16px;
+}
+
+.tender-choice-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.tender-choice-total {
+  text-align: right;
+}
+
+.tender-choice-total strong,
+.cash-total {
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(22px, 4vw, 34px);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.tender-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.tender-card {
+  display: grid;
+  gap: 6px;
+  min-height: 96px;
+  padding: 16px;
+  text-align: left;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.tender-card:hover:not(:disabled),
+.tender-card:focus-visible {
+  border-color: var(--color-primary, #1d4ed8);
+  box-shadow: var(--shadow-sm);
+}
+
+.tender-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.tender-card strong {
+  font-size: 16px;
+}
+
+.tender-card span {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.cash-received-input {
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  min-height: 48px;
+}
+
+.change-due-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  font-size: 15px;
+}
+
+.change-due-row strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.tender-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.payment-spinner {
+  width: 28px;
+  height: 28px;
+  margin: 8px auto 0;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary, #1d4ed8);
+  border-radius: 50%;
+  animation: sell-spin 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .payment-spinner {
+    animation: none;
+  }
+}
+
+@keyframes sell-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.collision-warning {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, 0.38fr) minmax(0, 1fr);
+  gap: 4px 16px;
+  align-items: start;
+}
+
+@media (max-width: 520px) {
+  .collision-warning {
+    grid-template-columns: 1fr;
+  }
+}
+
+.collision-candidate {
+  min-height: 56px;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.tender-choice .dialog-actions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .tender-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sell-dialog.payment-dialog {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transform: none;
+    width: 100%;
+    max-width: none;
+    max-height: min(92dvh, calc(100dvh - 12px));
+    border-radius: 16px 16px 0 0;
+  }
+
+  .sell-toast {
+    top: 60px;
+    right: 12px;
+    left: 12px;
+    max-width: none;
+  }
+}
 </style>
 </head>
-<body><div class="app-shell"><a class="skip-link" href="#main-content">Skip to main content</a><div class="live-region" aria-live="polite"></div><aside class="sidebar" aria-label="App sidebar"><div class="brand-mark" title="CETECH">CT</div><nav class="nav-list" aria-label="Primary navigation"><button type="button" class="nav-btn active" aria-current="page" aria-label="Sell" data-route="sell" data-href="/sell"><span class="icon" aria-hidden="true">▦</span><span>Sell</span></button><button type="button" class="nav-btn" aria-label="Orders" data-route="orders" data-href="/orders"><span class="icon" aria-hidden="true">▤</span><span>Orders</span></button><button type="button" class="nav-btn" aria-label="Customers" data-route="customers" data-href="/customers"><span class="icon" aria-hidden="true">♙</span><span>Customers</span></button><button type="button" class="nav-btn" aria-label="Returns" data-route="returns" data-href="/returns"><span class="icon" aria-hidden="true">↩</span><span>Returns</span></button><button type="button" class="nav-btn" aria-label="Register" data-route="register" data-href="/register"><span class="icon" aria-hidden="true">▣</span><span>Register</span></button><button type="button" class="nav-btn" aria-label="System status" data-route="health" data-href="/health"><span class="icon" aria-hidden="true">●</span><span>System status</span></button><button type="button" class="nav-btn" aria-label="Attention" data-route="attention" data-href="/attention"><span class="icon" aria-hidden="true">!</span><span>Attention</span></button></nav><div class="sidebar-bottom"><button type="button" class="nav-btn" aria-label="Settings" data-route="settings" data-href="/settings"><span class="icon" aria-hidden="true">⚙</span><span>Settings</span></button></div></aside><div class="app-main"><header class="topbar"><div class="topbar-left"><span class="app-title">CETECH POS</span><span class="context-pill">Front Counter 1</span><span class="context-pill secondary">Staff member</span><span class="status-pill success"><span class="dot" aria-hidden="true"></span>Shift open</span></div><div class="topbar-right"><span class="status-pill success" data-online="true" aria-label="Online"><span class="dot" aria-hidden="true"></span><span class="status-text">Online</span></span><button class="icon-btn" type="button" title="Lock register" aria-label="Lock register">⌁</button></div></header><main class="content" id="main-content"><div class="sell-workspace" id="sell-workspace"><h1 class="sr-only">Sell</h1><div class="sell-workspace-body"><div class="sell-layout"><section class="sell-products" aria-label="Products"><form class="product-toolbar"><div class="search-box"><span class="search-icon" aria-hidden="true">⌕</span><label class="sr-only" for="product-search">Barcode, SKU or product name</label><input class="input" id="product-search" placeholder="Scan barcode or search products, SKU…" autoComplete="off" inputMode="text" value=""/></div><button class="btn desktop-only" type="button" title="Shortcut: F2 / Ctrl+K">F2 Search</button></form><div class="products-meta"><div><strong>Products</strong><span class="muted"> · 40 shown</span></div></div><div class="product-results"><div class="product-grid"><button type="button" class="product-card" aria-label="Overflow product 1 with a longer cashier-facing title" title="Overflow product 1 with a longer cashier-facing title"><div class="product-name">Overflow product 1 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-001</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.00</div></button><button type="button" class="product-card" aria-label="Overflow product 2 with a longer cashier-facing title" title="Overflow product 2 with a longer cashier-facing title"><div class="product-name">Overflow product 2 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-002</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.01</div></button><button type="button" class="product-card" aria-label="Overflow product 3 with a longer cashier-facing title" title="Overflow product 3 with a longer cashier-facing title"><div class="product-name">Overflow product 3 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-003</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.02</div></button><button type="button" class="product-card" aria-label="Overflow product 4 with a longer cashier-facing title" title="Overflow product 4 with a longer cashier-facing title"><div class="product-name">Overflow product 4 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-004</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.03</div></button><button type="button" class="product-card" aria-label="Overflow product 5 with a longer cashier-facing title" title="Overflow product 5 with a longer cashier-facing title"><div class="product-name">Overflow product 5 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-005</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.04</div></button><button type="button" class="product-card" aria-label="Overflow product 6 with a longer cashier-facing title" title="Overflow product 6 with a longer cashier-facing title"><div class="product-name">Overflow product 6 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-006</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.05</div></button><button type="button" class="product-card" aria-label="Overflow product 7 with a longer cashier-facing title" title="Overflow product 7 with a longer cashier-facing title"><div class="product-name">Overflow product 7 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-007</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.06</div></button><button type="button" class="product-card" aria-label="Overflow product 8 with a longer cashier-facing title" title="Overflow product 8 with a longer cashier-facing title"><div class="product-name">Overflow product 8 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-008</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.07</div></button><button type="button" class="product-card" aria-label="Overflow product 9 with a longer cashier-facing title" title="Overflow product 9 with a longer cashier-facing title"><div class="product-name">Overflow product 9 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-009</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.08</div></button><button type="button" class="product-card" aria-label="Overflow product 10 with a longer cashier-facing title" title="Overflow product 10 with a longer cashier-facing title"><div class="product-name">Overflow product 10 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-010</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.09</div></button><button type="button" class="product-card" aria-label="Overflow product 11 with a longer cashier-facing title" title="Overflow product 11 with a longer cashier-facing title"><div class="product-name">Overflow product 11 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-011</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.10</div></button><button type="button" class="product-card" aria-label="Overflow product 12 with a longer cashier-facing title" title="Overflow product 12 with a longer cashier-facing title"><div class="product-name">Overflow product 12 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-012</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.11</div></button><button type="button" class="product-card" aria-label="Overflow product 13 with a longer cashier-facing title" title="Overflow product 13 with a longer cashier-facing title"><div class="product-name">Overflow product 13 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-013</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.12</div></button><button type="button" class="product-card" aria-label="Overflow product 14 with a longer cashier-facing title" title="Overflow product 14 with a longer cashier-facing title"><div class="product-name">Overflow product 14 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-014</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.13</div></button><button type="button" class="product-card" aria-label="Overflow product 15 with a longer cashier-facing title" title="Overflow product 15 with a longer cashier-facing title"><div class="product-name">Overflow product 15 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-015</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.14</div></button><button type="button" class="product-card" aria-label="Overflow product 16 with a longer cashier-facing title" title="Overflow product 16 with a longer cashier-facing title"><div class="product-name">Overflow product 16 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-016</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.15</div></button><button type="button" class="product-card" aria-label="Overflow product 17 with a longer cashier-facing title" title="Overflow product 17 with a longer cashier-facing title"><div class="product-name">Overflow product 17 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-017</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.16</div></button><button type="button" class="product-card" aria-label="Overflow product 18 with a longer cashier-facing title" title="Overflow product 18 with a longer cashier-facing title"><div class="product-name">Overflow product 18 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-018</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.17</div></button><button type="button" class="product-card" aria-label="Overflow product 19 with a longer cashier-facing title" title="Overflow product 19 with a longer cashier-facing title"><div class="product-name">Overflow product 19 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-019</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.18</div></button><button type="button" class="product-card" aria-label="Overflow product 20 with a longer cashier-facing title" title="Overflow product 20 with a longer cashier-facing title"><div class="product-name">Overflow product 20 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-020</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.19</div></button><button type="button" class="product-card" aria-label="Overflow product 21 with a longer cashier-facing title" title="Overflow product 21 with a longer cashier-facing title"><div class="product-name">Overflow product 21 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-021</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.20</div></button><button type="button" class="product-card" aria-label="Overflow product 22 with a longer cashier-facing title" title="Overflow product 22 with a longer cashier-facing title"><div class="product-name">Overflow product 22 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-022</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.21</div></button><button type="button" class="product-card" aria-label="Overflow product 23 with a longer cashier-facing title" title="Overflow product 23 with a longer cashier-facing title"><div class="product-name">Overflow product 23 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-023</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.22</div></button><button type="button" class="product-card" aria-label="Overflow product 24 with a longer cashier-facing title" title="Overflow product 24 with a longer cashier-facing title"><div class="product-name">Overflow product 24 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-024</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.23</div></button><button type="button" class="product-card" aria-label="Overflow product 25 with a longer cashier-facing title" title="Overflow product 25 with a longer cashier-facing title"><div class="product-name">Overflow product 25 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-025</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.24</div></button><button type="button" class="product-card" aria-label="Overflow product 26 with a longer cashier-facing title" title="Overflow product 26 with a longer cashier-facing title"><div class="product-name">Overflow product 26 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-026</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.25</div></button><button type="button" class="product-card" aria-label="Overflow product 27 with a longer cashier-facing title" title="Overflow product 27 with a longer cashier-facing title"><div class="product-name">Overflow product 27 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-027</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.26</div></button><button type="button" class="product-card" aria-label="Overflow product 28 with a longer cashier-facing title" title="Overflow product 28 with a longer cashier-facing title"><div class="product-name">Overflow product 28 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-028</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.27</div></button><button type="button" class="product-card" aria-label="Overflow product 29 with a longer cashier-facing title" title="Overflow product 29 with a longer cashier-facing title"><div class="product-name">Overflow product 29 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-029</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.28</div></button><button type="button" class="product-card" aria-label="Overflow product 30 with a longer cashier-facing title" title="Overflow product 30 with a longer cashier-facing title"><div class="product-name">Overflow product 30 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-030</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.29</div></button><button type="button" class="product-card" aria-label="Overflow product 31 with a longer cashier-facing title" title="Overflow product 31 with a longer cashier-facing title"><div class="product-name">Overflow product 31 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-031</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.30</div></button><button type="button" class="product-card" aria-label="Overflow product 32 with a longer cashier-facing title" title="Overflow product 32 with a longer cashier-facing title"><div class="product-name">Overflow product 32 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-032</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.31</div></button><button type="button" class="product-card" aria-label="Overflow product 33 with a longer cashier-facing title" title="Overflow product 33 with a longer cashier-facing title"><div class="product-name">Overflow product 33 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-033</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.32</div></button><button type="button" class="product-card" aria-label="Overflow product 34 with a longer cashier-facing title" title="Overflow product 34 with a longer cashier-facing title"><div class="product-name">Overflow product 34 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-034</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.33</div></button><button type="button" class="product-card" aria-label="Overflow product 35 with a longer cashier-facing title" title="Overflow product 35 with a longer cashier-facing title"><div class="product-name">Overflow product 35 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-035</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.34</div></button><button type="button" class="product-card" aria-label="Overflow product 36 with a longer cashier-facing title" title="Overflow product 36 with a longer cashier-facing title"><div class="product-name">Overflow product 36 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-036</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.35</div></button><button type="button" class="product-card" aria-label="Overflow product 37 with a longer cashier-facing title" title="Overflow product 37 with a longer cashier-facing title"><div class="product-name">Overflow product 37 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-037</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.36</div></button><button type="button" class="product-card" aria-label="Overflow product 38 with a longer cashier-facing title" title="Overflow product 38 with a longer cashier-facing title"><div class="product-name">Overflow product 38 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-038</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.37</div></button><button type="button" class="product-card" aria-label="Overflow product 39 with a longer cashier-facing title" title="Overflow product 39 with a longer cashier-facing title"><div class="product-name">Overflow product 39 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-039</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.38</div></button><button type="button" class="product-card" aria-label="Overflow product 40 with a longer cashier-facing title" title="Overflow product 40 with a longer cashier-facing title"><div class="product-name">Overflow product 40 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-040</div><div class="stock-line">In stock</div><div class="product-price">GHS 10.39</div></button></div></div></section><aside class="cart-panel" aria-label="Current sale" data-cart-revision="0"><div class="cart-head"><div class="cart-head-row"><div class="cart-title"><strong>Cart</strong><span class="muted cart-rev"> · Rev 0</span></div><div class="cart-head-actions"><button type="button" class="btn cart-back">Back</button><button type="button" class="btn cart-clear">Clear</button></div></div><button type="button" class="customer-chip"><span><span class="eyebrow">Customer</span><br/><span class="customer-name">Walk-in</span></span><span aria-hidden="true">›</span></button><div class="quote-status muted" role="status">Prices will be ready after an item is added.</div></div><div class="cart-lines"><div class="empty-cart"><strong>Your cart is empty</strong><div>Add a product to start this sale.</div></div></div><div class="cart-footer"><button class="btn primary block pay-btn" type="button" disabled="">Pay</button><div class="muted pay-reason">Checkout is unavailable until the price is ready.</div></div></aside><div class="mobile-cart-bar"><div><strong>0 items</strong><div class="muted">Checking price…</div></div><button type="button" class="btn primary">View Cart / Pay</button></div></div></div></div></main></div></div></body>
+<body><div class="app-shell"><a class="skip-link" href="#main-content">Skip to main content</a><div class="live-region" aria-live="polite"></div><aside class="sidebar" aria-label="App sidebar"><div class="brand-mark" title="CETECH">CT</div><nav class="nav-list" aria-label="Primary navigation"><button type="button" class="nav-btn active" aria-current="page" aria-label="Sell" data-route="sell" data-href="/sell"><span class="icon" aria-hidden="true">▦</span><span>Sell</span></button><button type="button" class="nav-btn" aria-label="Orders" data-route="orders" data-href="/orders"><span class="icon" aria-hidden="true">▤</span><span>Orders</span></button><button type="button" class="nav-btn" aria-label="Customers" data-route="customers" data-href="/customers"><span class="icon" aria-hidden="true">♙</span><span>Customers</span></button><button type="button" class="nav-btn" aria-label="Returns" data-route="returns" data-href="/returns"><span class="icon" aria-hidden="true">↩</span><span>Returns</span></button><button type="button" class="nav-btn" aria-label="Register" data-route="register" data-href="/register"><span class="icon" aria-hidden="true">▣</span><span>Register</span></button><button type="button" class="nav-btn" aria-label="System status" data-route="health" data-href="/health"><span class="icon" aria-hidden="true">●</span><span>System status</span></button><button type="button" class="nav-btn" aria-label="Attention" data-route="attention" data-href="/attention"><span class="icon" aria-hidden="true">!</span><span>Attention</span></button></nav><div class="sidebar-bottom"><button type="button" class="nav-btn" aria-label="Settings" data-route="settings" data-href="/settings"><span class="icon" aria-hidden="true">⚙</span><span>Settings</span></button></div></aside><div class="app-main"><header class="topbar"><div class="topbar-left"><span class="app-title">CETECH POS</span><span class="context-pill">Front Counter 1</span><span class="context-pill secondary">Staff member</span><span class="status-pill success"><span class="dot" aria-hidden="true"></span>Shift open</span></div><div class="topbar-right"><span class="status-pill success" data-online="true" aria-label="Online"><span class="dot" aria-hidden="true"></span><span class="status-text">Online</span></span><button class="icon-btn" type="button" title="Lock register" aria-label="Lock register">⌁</button></div></header><main class="content" id="main-content"><div class="sell-workspace" id="sell-workspace"><h1 class="sr-only">Sell</h1><div class="sell-workspace-body"><div class="sell-layout"><section class="sell-products" aria-label="Products"><form class="product-toolbar"><div class="search-box"><span class="search-icon" aria-hidden="true">⌕</span><label class="sr-only" for="product-search">Barcode, SKU or product name</label><input class="input" id="product-search" placeholder="Scan barcode or search products, SKU…" autoComplete="off" inputMode="text" value=""/></div><button class="btn desktop-only" type="button" title="Shortcut: F2 / Ctrl+K">F2 Search</button></form><div class="products-meta"><div><strong>Products</strong><span class="muted"> · 40 shown</span></div></div><div class="product-results"><div class="product-grid"><button type="button" class="product-card" aria-label="Overflow product 1 with a longer cashier-facing title" title="Overflow product 1 with a longer cashier-facing title"><div class="product-name">Overflow product 1 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-001</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.00">GHS 10.00</div></button><button type="button" class="product-card" aria-label="Overflow product 2 with a longer cashier-facing title" title="Overflow product 2 with a longer cashier-facing title"><div class="product-name">Overflow product 2 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-002</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.01">GHS 10.01</div></button><button type="button" class="product-card" aria-label="Overflow product 3 with a longer cashier-facing title" title="Overflow product 3 with a longer cashier-facing title"><div class="product-name">Overflow product 3 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-003</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.02">GHS 10.02</div></button><button type="button" class="product-card" aria-label="Overflow product 4 with a longer cashier-facing title" title="Overflow product 4 with a longer cashier-facing title"><div class="product-name">Overflow product 4 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-004</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.03">GHS 10.03</div></button><button type="button" class="product-card" aria-label="Overflow product 5 with a longer cashier-facing title" title="Overflow product 5 with a longer cashier-facing title"><div class="product-name">Overflow product 5 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-005</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.04">GHS 10.04</div></button><button type="button" class="product-card" aria-label="Overflow product 6 with a longer cashier-facing title" title="Overflow product 6 with a longer cashier-facing title"><div class="product-name">Overflow product 6 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-006</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.05">GHS 10.05</div></button><button type="button" class="product-card" aria-label="Overflow product 7 with a longer cashier-facing title" title="Overflow product 7 with a longer cashier-facing title"><div class="product-name">Overflow product 7 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-007</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.06">GHS 10.06</div></button><button type="button" class="product-card" aria-label="Overflow product 8 with a longer cashier-facing title" title="Overflow product 8 with a longer cashier-facing title"><div class="product-name">Overflow product 8 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-008</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.07">GHS 10.07</div></button><button type="button" class="product-card" aria-label="Overflow product 9 with a longer cashier-facing title" title="Overflow product 9 with a longer cashier-facing title"><div class="product-name">Overflow product 9 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-009</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.08">GHS 10.08</div></button><button type="button" class="product-card" aria-label="Overflow product 10 with a longer cashier-facing title" title="Overflow product 10 with a longer cashier-facing title"><div class="product-name">Overflow product 10 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-010</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.09">GHS 10.09</div></button><button type="button" class="product-card" aria-label="Overflow product 11 with a longer cashier-facing title" title="Overflow product 11 with a longer cashier-facing title"><div class="product-name">Overflow product 11 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-011</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.10">GHS 10.10</div></button><button type="button" class="product-card" aria-label="Overflow product 12 with a longer cashier-facing title" title="Overflow product 12 with a longer cashier-facing title"><div class="product-name">Overflow product 12 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-012</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.11">GHS 10.11</div></button><button type="button" class="product-card" aria-label="Overflow product 13 with a longer cashier-facing title" title="Overflow product 13 with a longer cashier-facing title"><div class="product-name">Overflow product 13 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-013</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.12">GHS 10.12</div></button><button type="button" class="product-card" aria-label="Overflow product 14 with a longer cashier-facing title" title="Overflow product 14 with a longer cashier-facing title"><div class="product-name">Overflow product 14 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-014</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.13">GHS 10.13</div></button><button type="button" class="product-card" aria-label="Overflow product 15 with a longer cashier-facing title" title="Overflow product 15 with a longer cashier-facing title"><div class="product-name">Overflow product 15 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-015</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.14">GHS 10.14</div></button><button type="button" class="product-card" aria-label="Overflow product 16 with a longer cashier-facing title" title="Overflow product 16 with a longer cashier-facing title"><div class="product-name">Overflow product 16 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-016</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.15">GHS 10.15</div></button><button type="button" class="product-card" aria-label="Overflow product 17 with a longer cashier-facing title" title="Overflow product 17 with a longer cashier-facing title"><div class="product-name">Overflow product 17 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-017</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.16">GHS 10.16</div></button><button type="button" class="product-card" aria-label="Overflow product 18 with a longer cashier-facing title" title="Overflow product 18 with a longer cashier-facing title"><div class="product-name">Overflow product 18 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-018</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.17">GHS 10.17</div></button><button type="button" class="product-card" aria-label="Overflow product 19 with a longer cashier-facing title" title="Overflow product 19 with a longer cashier-facing title"><div class="product-name">Overflow product 19 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-019</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.18">GHS 10.18</div></button><button type="button" class="product-card" aria-label="Overflow product 20 with a longer cashier-facing title" title="Overflow product 20 with a longer cashier-facing title"><div class="product-name">Overflow product 20 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-020</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.19">GHS 10.19</div></button><button type="button" class="product-card" aria-label="Overflow product 21 with a longer cashier-facing title" title="Overflow product 21 with a longer cashier-facing title"><div class="product-name">Overflow product 21 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-021</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.20">GHS 10.20</div></button><button type="button" class="product-card" aria-label="Overflow product 22 with a longer cashier-facing title" title="Overflow product 22 with a longer cashier-facing title"><div class="product-name">Overflow product 22 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-022</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.21">GHS 10.21</div></button><button type="button" class="product-card" aria-label="Overflow product 23 with a longer cashier-facing title" title="Overflow product 23 with a longer cashier-facing title"><div class="product-name">Overflow product 23 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-023</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.22">GHS 10.22</div></button><button type="button" class="product-card" aria-label="Overflow product 24 with a longer cashier-facing title" title="Overflow product 24 with a longer cashier-facing title"><div class="product-name">Overflow product 24 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-024</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.23">GHS 10.23</div></button><button type="button" class="product-card" aria-label="Overflow product 25 with a longer cashier-facing title" title="Overflow product 25 with a longer cashier-facing title"><div class="product-name">Overflow product 25 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-025</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.24">GHS 10.24</div></button><button type="button" class="product-card" aria-label="Overflow product 26 with a longer cashier-facing title" title="Overflow product 26 with a longer cashier-facing title"><div class="product-name">Overflow product 26 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-026</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.25">GHS 10.25</div></button><button type="button" class="product-card" aria-label="Overflow product 27 with a longer cashier-facing title" title="Overflow product 27 with a longer cashier-facing title"><div class="product-name">Overflow product 27 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-027</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.26">GHS 10.26</div></button><button type="button" class="product-card" aria-label="Overflow product 28 with a longer cashier-facing title" title="Overflow product 28 with a longer cashier-facing title"><div class="product-name">Overflow product 28 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-028</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.27">GHS 10.27</div></button><button type="button" class="product-card" aria-label="Overflow product 29 with a longer cashier-facing title" title="Overflow product 29 with a longer cashier-facing title"><div class="product-name">Overflow product 29 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-029</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.28">GHS 10.28</div></button><button type="button" class="product-card" aria-label="Overflow product 30 with a longer cashier-facing title" title="Overflow product 30 with a longer cashier-facing title"><div class="product-name">Overflow product 30 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-030</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.29">GHS 10.29</div></button><button type="button" class="product-card" aria-label="Overflow product 31 with a longer cashier-facing title" title="Overflow product 31 with a longer cashier-facing title"><div class="product-name">Overflow product 31 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-031</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.30">GHS 10.30</div></button><button type="button" class="product-card" aria-label="Overflow product 32 with a longer cashier-facing title" title="Overflow product 32 with a longer cashier-facing title"><div class="product-name">Overflow product 32 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-032</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.31">GHS 10.31</div></button><button type="button" class="product-card" aria-label="Overflow product 33 with a longer cashier-facing title" title="Overflow product 33 with a longer cashier-facing title"><div class="product-name">Overflow product 33 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-033</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.32">GHS 10.32</div></button><button type="button" class="product-card" aria-label="Overflow product 34 with a longer cashier-facing title" title="Overflow product 34 with a longer cashier-facing title"><div class="product-name">Overflow product 34 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-034</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.33">GHS 10.33</div></button><button type="button" class="product-card" aria-label="Overflow product 35 with a longer cashier-facing title" title="Overflow product 35 with a longer cashier-facing title"><div class="product-name">Overflow product 35 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-035</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.34">GHS 10.34</div></button><button type="button" class="product-card" aria-label="Overflow product 36 with a longer cashier-facing title" title="Overflow product 36 with a longer cashier-facing title"><div class="product-name">Overflow product 36 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-036</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.35">GHS 10.35</div></button><button type="button" class="product-card" aria-label="Overflow product 37 with a longer cashier-facing title" title="Overflow product 37 with a longer cashier-facing title"><div class="product-name">Overflow product 37 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-037</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.36">GHS 10.36</div></button><button type="button" class="product-card" aria-label="Overflow product 38 with a longer cashier-facing title" title="Overflow product 38 with a longer cashier-facing title"><div class="product-name">Overflow product 38 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-038</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.37">GHS 10.37</div></button><button type="button" class="product-card" aria-label="Overflow product 39 with a longer cashier-facing title" title="Overflow product 39 with a longer cashier-facing title"><div class="product-name">Overflow product 39 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-039</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.38">GHS 10.38</div></button><button type="button" class="product-card" aria-label="Overflow product 40 with a longer cashier-facing title" title="Overflow product 40 with a longer cashier-facing title"><div class="product-name">Overflow product 40 with a longer cashier-facing title</div><div class="product-sku muted">SKU OV-040</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 10.39">GHS 10.39</div></button></div></div></section><aside class="cart-panel" aria-label="Current sale" data-cart-revision="0"><div class="cart-head"><div class="cart-head-row"><div class="cart-title"><strong>Cart</strong><span class="muted cart-rev"> · Rev 0</span></div><div class="cart-head-actions"><button type="button" class="btn cart-back">Back</button><button type="button" class="btn cart-clear">Clear</button></div></div><button type="button" class="customer-chip"><span><span class="eyebrow">Customer</span><br/><span class="customer-name">Walk-in</span></span><span aria-hidden="true">›</span></button><div class="quote-status muted" role="status">Prices will be ready after an item is added.</div></div><div class="cart-lines"><div class="empty-cart"><strong>Your cart is empty</strong><div>Add a product to start this sale.</div></div></div><div class="cart-footer"><button class="btn primary block pay-btn" type="button" disabled="">Pay</button><div class="muted pay-reason">Checkout is unavailable until the price is ready.</div></div></aside><div class="mobile-cart-bar"><div><strong>0 items</strong><div class="muted">Checking price…</div></div><button type="button" class="btn primary">View Cart / Pay</button></div></div></div></div></main></div></div></body>
 </html>

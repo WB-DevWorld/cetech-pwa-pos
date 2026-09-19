@@ -17,6 +17,14 @@ import {
   buildSellPhoneHarnessHtml,
   buildSellUnknownBarcodeHarnessHtml,
   buildSellVariationHarnessHtml,
+  buildUx03CashEmptyHarnessHtml,
+  buildUx03CashChangeHarnessHtml,
+  buildUx03CashLargeTotalHarnessHtml,
+  buildUx03ChoosePaymentHarnessHtml,
+  buildUx03CollisionHarnessHtml,
+  buildUx03ElectronicPendingHarnessHtml,
+  buildUx03ElectronicWaitingHarnessHtml,
+  buildUx03VariableRangeHarnessHtml,
 } from "./visual/build-sell-harness";
 
 const evidenceDir = resolve(dirname(fileURLToPath(import.meta.url)), "evidence");
@@ -83,5 +91,40 @@ describe("FE-02 isolated visual harness markup", () => {
     expect(`${desktop}${openShift}${phone}${variation}${unknown}${customer}${offline}`).not.toContain("preparation pass");
     expect(`${desktop}${openShift}${phone}${variation}${unknown}${customer}${offline}`.toLowerCase()).not.toContain("adapter");
     expect(`${desktop}${openShift}${phone}${variation}${unknown}${customer}${offline}`).not.toContain("unwired");
+  });
+
+  test("writes UX-03 payment, barcode, and variable-range HTML evidence", () => {
+    mkdirSync(evidenceDir, { recursive: true });
+    const choose = buildUx03ChoosePaymentHarnessHtml();
+    const cash = buildUx03CashEmptyHarnessHtml();
+    const change = buildUx03CashChangeHarnessHtml();
+    const large = buildUx03CashLargeTotalHarnessHtml();
+    const waiting = buildUx03ElectronicWaitingHarnessHtml();
+    const pending = buildUx03ElectronicPendingHarnessHtml();
+    const collision = buildUx03CollisionHarnessHtml();
+    const range = buildUx03VariableRangeHarnessHtml();
+    writeFileSync(resolve(evidenceDir, "ux-03-choose-payment.html"), choose);
+    writeFileSync(resolve(evidenceDir, "ux-03-cash-empty.html"), cash);
+    writeFileSync(resolve(evidenceDir, "ux-03-cash-change.html"), change);
+    writeFileSync(resolve(evidenceDir, "ux-03-cash-large.html"), large);
+    writeFileSync(resolve(evidenceDir, "ux-03-electronic-waiting.html"), waiting);
+    writeFileSync(resolve(evidenceDir, "ux-03-electronic-pending.html"), pending);
+    writeFileSync(resolve(evidenceDir, "ux-03-collision.html"), collision);
+    writeFileSync(resolve(evidenceDir, "ux-03-variable-range.html"), range);
+    expect(choose).toContain("Choose payment");
+    expect(choose).toContain("POS-24111");
+    expect(choose).not.toContain("Confirm cash");
+    expect(choose).not.toContain("Demo controls");
+    expect(cash).toContain("Cash payment");
+    expect(cash).toContain("Change due");
+    expect(change).toContain("1400");
+    expect(change).toContain("GHS 24.00");
+    expect(large).toContain("GHS 10,000,334.00");
+    expect(waiting).toContain("Waiting for customer");
+    expect(waiting).not.toContain("Demo controls");
+    expect(pending).toContain("Do not charge again");
+    expect(collision).toContain("Duplicate barcode match");
+    expect(range).toContain("GHS 65.00 – GHS 567.00");
+    expect(range).toContain("Price unavailable");
   });
 });

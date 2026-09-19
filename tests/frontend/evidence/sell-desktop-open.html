@@ -887,6 +887,15 @@ button.product-card:disabled {
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.product-price-range {
+  overflow-wrap: normal;
+}
+
+.product-price-amount {
+  white-space: nowrap;
 }
 
 .product-price-empty {
@@ -1393,7 +1402,222 @@ button.product-card:disabled {
 .refund-reconciliation .banner.warning {
   border-color: var(--color-warning);
 }
+
+.product-price-unavailable {
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.sell-toast {
+  position: fixed;
+  top: 72px;
+  right: 20px;
+  z-index: 140;
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: #101828;
+  color: #fff;
+  box-shadow: var(--shadow-md);
+  display: grid;
+  gap: 4px;
+}
+
+.sell-toast strong {
+  font-size: 14px;
+}
+
+.sell-toast span {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  word-break: break-all;
+}
+
+.sell-dialog.payment-dialog {
+  max-width: 640px;
+  width: min(640px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+}
+
+.dialog-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--color-text-muted);
+}
+
+.dialog-close:hover:not(:disabled),
+.dialog-close:focus-visible {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.tender-choice,
+.cash-payment,
+.payment-waiting {
+  display: grid;
+  gap: 16px;
+}
+
+.tender-choice-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.tender-choice-total {
+  text-align: right;
+}
+
+.tender-choice-total strong,
+.cash-total {
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(22px, 4vw, 34px);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.tender-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.tender-card {
+  display: grid;
+  gap: 6px;
+  min-height: 96px;
+  padding: 16px;
+  text-align: left;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.tender-card:hover:not(:disabled),
+.tender-card:focus-visible {
+  border-color: var(--color-primary, #1d4ed8);
+  box-shadow: var(--shadow-sm);
+}
+
+.tender-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.tender-card strong {
+  font-size: 16px;
+}
+
+.tender-card span {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.cash-received-input {
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  min-height: 48px;
+}
+
+.change-due-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  font-size: 15px;
+}
+
+.change-due-row strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.tender-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.payment-spinner {
+  width: 28px;
+  height: 28px;
+  margin: 8px auto 0;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary, #1d4ed8);
+  border-radius: 50%;
+  animation: sell-spin 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .payment-spinner {
+    animation: none;
+  }
+}
+
+@keyframes sell-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.collision-warning {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, 0.38fr) minmax(0, 1fr);
+  gap: 4px 16px;
+  align-items: start;
+}
+
+@media (max-width: 520px) {
+  .collision-warning {
+    grid-template-columns: 1fr;
+  }
+}
+
+.collision-candidate {
+  min-height: 56px;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.tender-choice .dialog-actions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .tender-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sell-dialog.payment-dialog {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transform: none;
+    width: 100%;
+    max-width: none;
+    max-height: min(92dvh, calc(100dvh - 12px));
+    border-radius: 16px 16px 0 0;
+  }
+
+  .sell-toast {
+    top: 60px;
+    right: 12px;
+    left: 12px;
+    max-width: none;
+  }
+}
 </style>
 </head>
-<body><div class="app-shell"><a class="skip-link" href="#main-content">Skip to main content</a><div class="live-region" aria-live="polite"></div><aside class="sidebar" aria-label="App sidebar"><div class="brand-mark" title="CETECH">CT</div><nav class="nav-list" aria-label="Primary navigation"><button type="button" class="nav-btn active" aria-current="page" aria-label="Sell" data-route="sell" data-href="/sell"><span class="icon" aria-hidden="true">▦</span><span>Sell</span></button><button type="button" class="nav-btn" aria-label="Orders" data-route="orders" data-href="/orders"><span class="icon" aria-hidden="true">▤</span><span>Orders</span></button><button type="button" class="nav-btn" aria-label="Customers" data-route="customers" data-href="/customers"><span class="icon" aria-hidden="true">♙</span><span>Customers</span></button><button type="button" class="nav-btn" aria-label="Returns" data-route="returns" data-href="/returns"><span class="icon" aria-hidden="true">↩</span><span>Returns</span></button><button type="button" class="nav-btn" aria-label="Register" data-route="register" data-href="/register"><span class="icon" aria-hidden="true">▣</span><span>Register</span></button><button type="button" class="nav-btn" aria-label="System status" data-route="health" data-href="/health"><span class="icon" aria-hidden="true">●</span><span>System status</span></button><button type="button" class="nav-btn" aria-label="Attention" data-route="attention" data-href="/attention"><span class="icon" aria-hidden="true">!</span><span>Attention</span></button></nav><div class="sidebar-bottom"><button type="button" class="nav-btn" aria-label="Settings" data-route="settings" data-href="/settings"><span class="icon" aria-hidden="true">⚙</span><span>Settings</span></button></div></aside><div class="app-main"><header class="topbar"><div class="topbar-left"><span class="app-title">CETECH POS</span><span class="context-pill">Front Counter 1</span><span class="context-pill secondary">Staff member</span><span class="status-pill success"><span class="dot" aria-hidden="true"></span>Shift open</span></div><div class="topbar-right"><span class="status-pill success" data-online="true" aria-label="Online"><span class="dot" aria-hidden="true"></span><span class="status-text">Online</span></span><button class="icon-btn" type="button" title="Lock register" aria-label="Lock register">⌁</button></div></header><main class="content" id="main-content"><div class="sell-workspace" id="sell-workspace"><h1 class="sr-only">Sell</h1><div class="sell-workspace-body"><div class="sell-layout"><section class="sell-products" aria-label="Products"><form class="product-toolbar"><div class="search-box"><span class="search-icon" aria-hidden="true">⌕</span><label class="sr-only" for="product-search">Barcode, SKU or product name</label><input class="input" id="product-search" placeholder="Scan barcode or search products, SKU…" autoComplete="off" inputMode="text" value=""/></div><button class="btn desktop-only" type="button" title="Shortcut: F2 / Ctrl+K">F2 Search</button></form><div class="products-meta"><div><strong>Products</strong><span class="muted"> · 6 shown</span></div></div><div class="product-results"><div class="product-grid"><button type="button" class="product-card" aria-label="Leading-zero sample" title="Leading-zero sample"><div class="product-name">Leading-zero sample</div><div class="product-sku muted">SKU LZ-001</div><div class="stock-line">In stock</div><div class="product-price product-price-empty"></div></button><button type="button" class="product-card" aria-label="Epoxy Hardener 1L" title="Epoxy Hardener 1L"><div class="product-name">Epoxy Hardener 1L</div><div class="product-sku muted">SKU HDN-1L</div><div class="stock-line">In stock</div><div class="product-price">GHS 155.00</div></button><button type="button" class="product-card" aria-label="Armoured Cable" title="Armoured Cable"><div class="product-badges"><span class="product-badge info">Variable product</span></div><div class="product-name">Armoured Cable</div><div class="product-sku muted">SKU CBL-ARM</div><div class="stock-line">In stock</div><div class="product-price product-price-empty"></div></button><button type="button" class="product-card" aria-label="36W LED Panel Light" title="36W LED Panel Light"><div class="product-name">36W LED Panel Light</div><div class="product-sku muted">SKU LED-36</div><div class="stock-line">In stock</div><div class="product-price">GHS 215.00</div></button><button type="button" class="product-card" aria-label="12-Way Distribution Board" title="12-Way Distribution Board"><div class="product-name">12-Way Distribution Board</div><div class="product-sku muted">SKU DB-12</div><div class="stock-line">In stock</div><div class="product-price product-price-empty"></div></button><button type="button" class="product-card" aria-label="Steel Conduit 20mm" title="Steel Conduit 20mm"><div class="product-badges"><span class="product-badge warning">Backorder</span></div><div class="product-name">Steel Conduit 20mm</div><div class="product-sku muted">SKU CND-20</div><div class="stock-line backorder">Backorder</div><div class="product-price product-price-empty"></div></button></div></div></section><aside class="cart-panel" aria-label="Current sale" data-cart-revision="2"><div class="cart-head"><div class="cart-head-row"><div class="cart-title"><strong>Cart</strong><span class="muted cart-rev"> · Rev 2</span></div><div class="cart-head-actions"><button type="button" class="btn cart-back">Back</button><button type="button" class="btn cart-clear">Clear</button></div></div><button type="button" class="customer-chip"><span><span class="eyebrow">Customer</span><br/><span class="customer-name">Walk-in</span></span><span aria-hidden="true">›</span></button><div class="quote-status confirmed" data-quote-status="confirmed" data-quote-authority="supplied" role="status" aria-live="polite"><div class="quote-status-message"><span aria-hidden="true">✓</span><span>Price confirmed</span></div></div></div><div class="cart-lines"><article class="cart-line"><div class="cart-line-title"><div><div class="cart-line-name">Armoured Cable</div><div class="muted cart-line-variation">Red</div><div class="muted cart-line-sku">SKU CBL-ARM-RED</div></div><div class="cart-line-price">GHS 970.00</div></div><div class="qty-row"><div class="qty-control"><button type="button" class="btn" aria-label="Decrease quantity">−</button><label class="sr-only" for="qty-line-visual">Quantity</label><input id="qty-line-visual" class="qty-input" inputMode="decimal" value="2"/><button type="button" class="btn" aria-label="Increase quantity">+</button></div><div class="cart-line-unit muted">GHS 485.00 each</div><button type="button" class="btn cart-line-remove">Remove</button></div></article></div><div class="cart-footer"><dl class="cart-totals"><div class="summary-row"><dt>Subtotal</dt><dd>GHS 970.00</dd></div><div class="summary-row"><dt>Discount</dt><dd>GHS 0.00</dd></div><div class="summary-row"><dt>Tax</dt><dd>GHS 0.00</dd></div><div class="summary-row total"><dt>Total</dt><dd>GHS 970.00</dd></div></dl><button class="btn primary block pay-btn" type="button">Pay GHS 970.00</button><div class="muted pay-reason" data-eligibility-allowed="true"></div></div></aside><div class="mobile-cart-bar"><div><strong>1 item</strong><div class="muted">GHS 970.00</div></div><button type="button" class="btn primary">View Cart / Pay</button></div></div></div></div></main></div></div></body>
+<body><div class="app-shell"><a class="skip-link" href="#main-content">Skip to main content</a><div class="live-region" aria-live="polite"></div><aside class="sidebar" aria-label="App sidebar"><div class="brand-mark" title="CETECH">CT</div><nav class="nav-list" aria-label="Primary navigation"><button type="button" class="nav-btn active" aria-current="page" aria-label="Sell" data-route="sell" data-href="/sell"><span class="icon" aria-hidden="true">▦</span><span>Sell</span></button><button type="button" class="nav-btn" aria-label="Orders" data-route="orders" data-href="/orders"><span class="icon" aria-hidden="true">▤</span><span>Orders</span></button><button type="button" class="nav-btn" aria-label="Customers" data-route="customers" data-href="/customers"><span class="icon" aria-hidden="true">♙</span><span>Customers</span></button><button type="button" class="nav-btn" aria-label="Returns" data-route="returns" data-href="/returns"><span class="icon" aria-hidden="true">↩</span><span>Returns</span></button><button type="button" class="nav-btn" aria-label="Register" data-route="register" data-href="/register"><span class="icon" aria-hidden="true">▣</span><span>Register</span></button><button type="button" class="nav-btn" aria-label="System status" data-route="health" data-href="/health"><span class="icon" aria-hidden="true">●</span><span>System status</span></button><button type="button" class="nav-btn" aria-label="Attention" data-route="attention" data-href="/attention"><span class="icon" aria-hidden="true">!</span><span>Attention</span></button></nav><div class="sidebar-bottom"><button type="button" class="nav-btn" aria-label="Settings" data-route="settings" data-href="/settings"><span class="icon" aria-hidden="true">⚙</span><span>Settings</span></button></div></aside><div class="app-main"><header class="topbar"><div class="topbar-left"><span class="app-title">CETECH POS</span><span class="context-pill">Front Counter 1</span><span class="context-pill secondary">Staff member</span><span class="status-pill success"><span class="dot" aria-hidden="true"></span>Shift open</span></div><div class="topbar-right"><span class="status-pill success" data-online="true" aria-label="Online"><span class="dot" aria-hidden="true"></span><span class="status-text">Online</span></span><button class="icon-btn" type="button" title="Lock register" aria-label="Lock register">⌁</button></div></header><main class="content" id="main-content"><div class="sell-workspace" id="sell-workspace"><h1 class="sr-only">Sell</h1><div class="sell-workspace-body"><div class="sell-layout"><section class="sell-products" aria-label="Products"><form class="product-toolbar"><div class="search-box"><span class="search-icon" aria-hidden="true">⌕</span><label class="sr-only" for="product-search">Barcode, SKU or product name</label><input class="input" id="product-search" placeholder="Scan barcode or search products, SKU…" autoComplete="off" inputMode="text" value=""/></div><button class="btn desktop-only" type="button" title="Shortcut: F2 / Ctrl+K">F2 Search</button></form><div class="products-meta"><div><strong>Products</strong><span class="muted"> · 6 shown</span></div></div><div class="product-results"><div class="product-grid"><button type="button" class="product-card" aria-label="Leading-zero sample" title="Leading-zero sample"><div class="product-name">Leading-zero sample</div><div class="product-sku muted">SKU LZ-001</div><div class="stock-line">In stock</div><div class="product-price product-price-empty"></div></button><button type="button" class="product-card" aria-label="Epoxy Hardener 1L" title="Epoxy Hardener 1L"><div class="product-name">Epoxy Hardener 1L</div><div class="product-sku muted">SKU HDN-1L</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 155.00">GHS 155.00</div></button><button type="button" class="product-card" aria-label="Armoured Cable" title="Armoured Cable"><div class="product-badges"><span class="product-badge info">Variable product</span></div><div class="product-name">Armoured Cable</div><div class="product-sku muted">SKU CBL-ARM</div><div class="stock-line">In stock</div><div class="product-price product-price-unavailable" data-product-display-price="Price unavailable">Price unavailable</div></button><button type="button" class="product-card" aria-label="36W LED Panel Light" title="36W LED Panel Light"><div class="product-name">36W LED Panel Light</div><div class="product-sku muted">SKU LED-36</div><div class="stock-line">In stock</div><div class="product-price" data-product-display-price="GHS 215.00">GHS 215.00</div></button><button type="button" class="product-card" aria-label="12-Way Distribution Board" title="12-Way Distribution Board"><div class="product-name">12-Way Distribution Board</div><div class="product-sku muted">SKU DB-12</div><div class="stock-line">In stock</div><div class="product-price product-price-empty"></div></button><button type="button" class="product-card" aria-label="Steel Conduit 20mm" title="Steel Conduit 20mm"><div class="product-badges"><span class="product-badge warning">Backorder</span></div><div class="product-name">Steel Conduit 20mm</div><div class="product-sku muted">SKU CND-20</div><div class="stock-line backorder">Backorder</div><div class="product-price product-price-empty"></div></button></div></div></section><aside class="cart-panel" aria-label="Current sale" data-cart-revision="2"><div class="cart-head"><div class="cart-head-row"><div class="cart-title"><strong>Cart</strong><span class="muted cart-rev"> · Rev 2</span></div><div class="cart-head-actions"><button type="button" class="btn cart-back">Back</button><button type="button" class="btn cart-clear">Clear</button></div></div><button type="button" class="customer-chip"><span><span class="eyebrow">Customer</span><br/><span class="customer-name">Walk-in</span></span><span aria-hidden="true">›</span></button><div class="quote-status confirmed" data-quote-status="confirmed" data-quote-authority="supplied" role="status" aria-live="polite"><div class="quote-status-message"><span aria-hidden="true">✓</span><span>Price confirmed</span></div></div></div><div class="cart-lines"><article class="cart-line"><div class="cart-line-title"><div><div class="cart-line-name">Armoured Cable</div><div class="muted cart-line-variation">Red</div><div class="muted cart-line-sku">SKU CBL-ARM-RED</div></div><div class="cart-line-price">GHS 970.00</div></div><div class="qty-row"><div class="qty-control"><button type="button" class="btn" aria-label="Decrease quantity">−</button><label class="sr-only" for="qty-line-visual">Quantity</label><input id="qty-line-visual" class="qty-input" inputMode="decimal" value="2"/><button type="button" class="btn" aria-label="Increase quantity">+</button></div><div class="cart-line-unit muted">GHS 485.00 each</div><button type="button" class="btn cart-line-remove">Remove</button></div></article></div><div class="cart-footer"><dl class="cart-totals"><div class="summary-row"><dt>Subtotal</dt><dd>GHS 970.00</dd></div><div class="summary-row"><dt>Discount</dt><dd>GHS 0.00</dd></div><div class="summary-row"><dt>Tax</dt><dd>GHS 0.00</dd></div><div class="summary-row total"><dt>Total</dt><dd>GHS 970.00</dd></div></dl><button class="btn primary block pay-btn" type="button">Pay GHS 970.00</button><div class="muted pay-reason" data-eligibility-allowed="true"></div></div></aside><div class="mobile-cart-bar"><div><strong>1 item</strong><div class="muted">GHS 970.00</div></div><button type="button" class="btn primary">View Cart / Pay</button></div></div></div></div></main></div></div></body>
 </html>

@@ -2,6 +2,27 @@
 
 Updated 2026-09-19. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
 
+## Temporary senior UX-03 authority — EXPIRED / CLOSED
+
+Closed on contributor branch `ws1/ux-03-payment-barcode-variable-range` after the UX-03 payment / barcode / variable-range handoff. This does not permanently change `OWNERSHIP.md`. Do not reuse this exception. Do not mutate PR #77 or `batch/stg-01-staging-runtime-acceptance` as part of this closeout.
+
+```text
+human: @wbdevworld
+workstream: WS1 (+ bounded WS3 integration) — EXPIRED / CLOSED
+mode: IMPLEMENT (complete)
+task: UX-03 — payment experience, barcode exception states, variable-product price ranges
+branch: ws1/ux-03-payment-barcode-variable-range
+start SHA / UX-02 baseline: 04166509c2b9505980338e4baaf630981c00d2e8
+START_FRESHNESS_SNAPSHOT UTC: 2026-09-19T08:59:20Z
+origin/main at close: 778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5
+origin/batch/stg-01-staging-runtime-acceptance / PR #77 head at close: 04166509c2b9505980338e4baaf630981c00d2e8
+was allowed WS1: apps/pos-web/src/features/**, apps/pos-web/src/ui/**, tests/frontend/**, docs/workstreams/WS-01-FRONTEND-UX/**
+was allowed bounded WS3: apps/pos-web/src/app/**, apps/pos-web/src/server/**, tests/integration/**, apps/pos-web/e2e/**
+  only as required to mount frozen PaymentPort.initialize and SalesPort.cancel plus directly required tests/composition
+was allowed control-plane: CURRENT-WORK.md, docs/workstreams/WS-01-FRONTEND-UX/**, directly relevant handoff/evidence
+forbidden (unchanged): unrelated WS2; Woo/B2BKing/WoodMart pricing formulas; frozen-contract edits for UI convenience; unrelated schema/auth/PWA; production deploy/data; protected main; VitePOS cutover; mutating PR #77 / shared STG-01 batch
+```
+
 ## Temporary senior UX-02 closeout — EXPIRED / CLOSED
 
 Closed on `ws1/ux-02-sell-demo-alignment` after the variable-parent advisory-price review remediation. Implementation SHA `6409d4264ad67184d100a3a9c806deebe9236ad9`. This exception is no longer current assignment authority. OWNERSHIP.md is unchanged. Do not treat this as permission for further WS1/WS2/WS3 cross-ownership work.

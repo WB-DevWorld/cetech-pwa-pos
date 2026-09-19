@@ -8,11 +8,13 @@ import { CheckoutDialog } from "./components/CheckoutDialog";
 import { CustomerPicker } from "./components/CustomerPicker";
 import { ProductResults, ProductSearch } from "./components/ProductSearch";
 import { SellModal } from "./components/SellModal";
+import { SellToast } from "./components/SellToast";
 import { VariationDialog } from "./components/VariationDialog";
 import { useBarcodeScanner } from "./hooks/useBarcodeScanner";
 import { canBeginNewSale, checkoutDialogOpen, type CheckoutSessionView } from "./state/checkoutSession";
 import { formatMoneyDisplay, type CheckoutEligibilityView, type QuoteDisplayState } from "./state/quotePresentation";
 import type { ElectronicPaymentSessionView, ElectronicTenderView } from "../payments/electronicPaymentView";
+import type { TenderAvailabilityView } from "./components/TenderChoice";
 import { resolveQuotePresentation } from "./state/quoteRevision";
 import { isDigitBarcodeQuery } from "./state/barcodeResolution";
 import type {
@@ -84,19 +86,21 @@ export type SellScreenProps = {
   onPrintReceipt?: () => void;
   onCheckoutNewSale?: () => void;
   onDismissCheckout?: () => void;
+  onSelectCash?: () => void;
+  onBackToPaymentChoice?: () => void;
+  onCancelPreparedSale?: () => void;
+  onSelectElectronic?: (tender: ElectronicTenderView) => void;
+  tenderAvailability?: TenderAvailabilityView;
   electronicSession?: ElectronicPaymentSessionView;
   electronicInFlight?: boolean;
-  electronicTender?: ElectronicTenderView;
-  onElectronicTenderChange?: (tender: ElectronicTenderView) => void;
-  onPresentElectronic?: () => void;
   onResolveElectronic?: () => void;
-  onContinueWaitingElectronic?: () => void;
   onContactManager?: () => void;
   searchCatalog?: (query: string) => Promise<readonly SellProductView[]>;
   resolveBarcodeCatalog?: (barcode: string) => Promise<readonly SellProductView[]>;
   loadVariations?: (parentId: string) => Promise<readonly SellProductView[]>;
   onCustomerQueryChange?: (query: string) => void;
   onWorkspaceChange?: (state: SellWorkspaceState) => void;
+  initialCashReceived?: string;
 };
 
 export function SellScreen({
@@ -131,19 +135,21 @@ export function SellScreen({
   onPrintReceipt,
   onCheckoutNewSale,
   onDismissCheckout,
+  onSelectCash,
+  onBackToPaymentChoice,
+  onCancelPreparedSale,
+  onSelectElectronic,
+  tenderAvailability,
   electronicSession,
   electronicInFlight = false,
-  electronicTender,
-  onElectronicTenderChange,
-  onPresentElectronic,
   onResolveElectronic,
-  onContinueWaitingElectronic,
   onContactManager,
   searchCatalog,
   resolveBarcodeCatalog,
   loadVariations,
   onCustomerQueryChange,
   onWorkspaceChange,
+  initialCashReceived,
 }: SellScreenProps) {
   const deps = useMemo<SellWorkspaceDeps>(
     () => ({
@@ -180,6 +186,17 @@ export function SellScreen({
   const closeNotice = useCallback(() => {
     setState((current) => dismissNotice(current));
   }, []);
+
+  useEffect(() => {
+    if (displayed.notice?.kind !== "unknown") {
+      return;
+    }
+    const barcode = displayed.notice.barcode;
+    const timer = window.setTimeout(() => {
+      setState((current) => (current.notice?.kind === "unknown" && current.notice.barcode === barcode ? dismissNotice(current) : current));
+    }, 6000);
+    return () => window.clearTimeout(timer);
+  }, [displayed.notice]);
 
   const closeCustomerPicker = useCallback(() => {
     setCustomerPickerOpen(false);
@@ -338,13 +355,11 @@ export function SellScreen({
   return (
     <div className="sell-workspace" id="sell-workspace">
       <h1 className="sr-only">Sell</h1>
+      {displayed.notice?.kind === "unknown" ? (
+        <SellToast title="Product not found for barcode" detail={displayed.notice.barcode} />
+      ) : null}
       <div className="sell-workspace-body" inert={modalOpen ? true : undefined}>
         <CatalogStatusBanners availability={displayed.catalogAvailability} />
-        {displayed.notice?.kind === "unknown" ? (
-          <div className="banner danger" role="alert">
-            Product not found for barcode {displayed.notice.barcode}.
-          </div>
-        ) : null}
         <div className="sell-layout">
           <section className="sell-products" aria-label="Products">
             <ProductSearch
@@ -463,14 +478,16 @@ export function SellScreen({
           onPrint={() => onPrintReceipt?.()}
           onNewSale={handleNewSale}
           onDismiss={() => onDismissCheckout?.()}
+          onSelectCash={onSelectCash}
+          onBackToPaymentChoice={onBackToPaymentChoice}
+          onCancelPreparedSale={onCancelPreparedSale}
+          onSelectElectronic={onSelectElectronic}
+          tenderAvailability={tenderAvailability}
           electronicSession={electronicSession}
           electronicInFlight={electronicInFlight}
-          electronicTender={electronicTender}
-          onElectronicTenderChange={onElectronicTenderChange}
-          onPresentElectronic={onPresentElectronic}
           onResolveElectronic={onResolveElectronic}
-          onContinueWaitingElectronic={onContinueWaitingElectronic}
           onContactManager={onContactManager}
+          initialCashReceived={initialCashReceived}
         />
       ) : null}
     </div>

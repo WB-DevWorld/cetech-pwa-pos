@@ -85,9 +85,11 @@ test.describe("FE-03 isolated Sell visual harness", () => {
     await page.screenshot({ path: resolve(evidenceDir, "sell-variation.png"), fullPage: true });
   });
 
-  test("unknown barcode is announced as an alert", async ({ page }) => {
+  test("unknown barcode is a non-blocking toast", async ({ page }) => {
     await openHarness(page, readEvidence("sell-unknown-barcode.html"), { width: 1440, height: 900 });
-    await expect(page.getByRole("alert")).toContainText("9999999999999");
+    await expect(page.locator("[data-sell-toast='unknown-barcode']")).toContainText("Product not found for barcode");
+    await expect(page.locator("[data-sell-toast='unknown-barcode']")).toContainText("9999999999999");
+    await expect(page.locator(".sell-dialog")).toHaveCount(0);
     await page.screenshot({ path: resolve(evidenceDir, "sell-unknown-barcode.png"), fullPage: true });
   });
 

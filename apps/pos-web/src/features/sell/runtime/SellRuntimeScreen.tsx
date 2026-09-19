@@ -4,9 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CartDraftStore, CatalogPort, CheckoutUseCases, CustomerPort, PaymentPort, PricingPort, PrintPort, ReceiptPort, SalesPort } from "../../../../../../docs/contracts/ports";
 import { SellScreen } from "../SellScreen";
 import { useElectronicPayment } from "../../payments/useElectronicPayment";
-import type { ElectronicTenderView } from "../../payments/electronicPaymentView";
+import { type TenderAvailabilityView } from "../components/TenderChoice";
 import type { CatalogAvailability, CustomerSearchResultView, SellProductView, SellWorkspaceState } from "../state/sellView";
-import { lookupBarcodeViews, lookupVariations, searchCatalogViews } from "./catalogLookup";
+import type { ProductDisplayPriceView } from "../state/variableDisplayPrice";
+import { lookupBarcodeViews, lookupVariations, searchCatalogViews, enrichSellProductPrices } from "./catalogLookup";
+import { electronicSessionLocksCheckout } from "../components/PaymentWaiting";
 import { customerViewFromSummary, workspaceToCartDraft } from "./mapCartDraft";
 import { restoreSellWorkspace } from "./restoreWorkspace";
 import { useCartQuote } from "./useCartQuote";
@@ -28,12 +30,13 @@ export type SellSessionPorts = {
   readonly shiftOpen?: boolean;
   readonly checkout?: CheckoutUseCases;
   readonly payments?: Pick<PaymentPort, "confirmCash" | "resolve"> & Partial<Pick<PaymentPort, "initialize">>;
-  readonly sales?: Pick<SalesPort, "resolve">;
+  readonly sales?: Pick<SalesPort, "resolve" | "cancel">;
   readonly receipts?: ReceiptPort;
   readonly printer?: PrintPort;
   readonly checkoutScope?: CashCheckoutScope;
   readonly createCheckoutUuid?: () => string;
   readonly catalogAvailability?: CatalogAvailability;
+  readonly electronicPaymentsAvailable?: boolean;
 };
 
 function defaultNow(): Date {
@@ -94,6 +97,7 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
   const [availability, setAvailability] = useState<CatalogAvailability>(ports.catalogAvailability ?? "fresh");
   const [workspace, setWorkspace] = useState<SellWorkspaceState | undefined>(undefined);
   const [restoreCount, setRestoreCount] = useState(0);
+  const priceCacheRef = useRef(new Map<string, ProductDisplayPriceView>());
   const connected = online();
   const presentedQuote = useCartQuote({
     pricing: ports.pricing,
@@ -139,8 +143,16 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
     };
   }, [ports.createCheckoutUuid, ports.payments]);
   const electronic = useElectronicPayment(electronicPorts);
-  const [electronicTender, setElectronicTender] = useState<ElectronicTenderView>("mobile_money");
   const cashCheckoutRef = useRef(cashCheckout);
+  const tenderAvailability = useMemo<TenderAvailabilityView>(() => {
+    const electronicReady = Boolean(ports.electronicPaymentsAvailable && ports.payments?.initialize);
+    return {
+      cash: true,
+      mobileMoney: electronicReady,
+      card: electronicReady,
+      externalElectronic: electronicReady,
+    };
+  }, [ports.electronicPaymentsAvailable, ports.payments?.initialize]);
 
   useEffect(() => {
     cashCheckoutRef.current = cashCheckout;
@@ -163,7 +175,7 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
       const connectedNow = onlineRef.current();
       const browse = await searchCatalogViews(catalog, "");
       const customerPage = await customersPort.search("");
-      const views = browse.ok ? browse.items : [];
+      const views = browse.ok ? await enrichSellProductPrices(catalog, browse.items, priceCacheRef.current) : [];
       const restored = await restoreSellWorkspace({
         catalog,
         customers: customersPort,
@@ -211,7 +223,7 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
         );
         return [];
       }
-      return result.items;
+      return enrichSellProductPrices(catalog, result.items, priceCacheRef.current);
     },
     [catalog, online],
   );
@@ -232,16 +244,17 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
         );
         return browseCatalog;
       }
+      const enriched = await enrichSellProductPrices(catalog, result.items, priceCacheRef.current);
       setSearchStatus("ready");
       setAvailability((current) =>
         preserveProjectionAvailability(
           current,
           online(),
           false,
-          result.items.length > 0 || browseCatalog.length > 0,
+          enriched.length > 0 || browseCatalog.length > 0,
         ),
       );
-      return result.items;
+      return enriched;
     },
     [browseCatalog, catalog, online],
   );
@@ -316,28 +329,57 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
         }}
         onCheckoutNewSale={() => {
           cashCheckout.resetForNewSale();
-          electronic.reset();
+          const status = electronic.session.status;
+          if (
+            cashCheckout.session.saleCompleted ||
+            status === "idle" ||
+            status === "failed" ||
+            status === "cancelled"
+          ) {
+            electronic.reset();
+          }
         }}
         onDismissCheckout={cashCheckout.dismiss}
+        onSelectCash={() => {
+          if (electronicSessionLocksCheckout(electronic.session)) {
+            return;
+          }
+          cashCheckout.selectCash();
+        }}
+        onBackToPaymentChoice={() => {
+          if (electronicSessionLocksCheckout(electronic.session)) {
+            return;
+          }
+          if (electronic.session.status === "failed" || electronic.session.status === "cancelled") {
+            electronic.reset();
+          }
+          cashCheckout.backToPaymentChoice();
+        }}
+        onCancelPreparedSale={() => {
+          if (electronicSessionLocksCheckout(electronic.session)) {
+            void electronic.resolve();
+            void cashCheckout.resolvePayment();
+            return;
+          }
+          void cashCheckout.cancelPreparedSale();
+        }}
+        onSelectElectronic={(tender) => {
+          if (!tenderAvailability.mobileMoney && !tenderAvailability.card && !tenderAvailability.externalElectronic) {
+            return;
+          }
+          if (electronicSessionLocksCheckout(electronic.session)) {
+            return;
+          }
+          const transactionId = cashCheckout.session.transactionId;
+          if (!transactionId || !electronic.ready) {
+            return;
+          }
+          void electronic.present({ transactionId, tender });
+        }}
+        tenderAvailability={tenderAvailability}
         electronicSession={electronic.ready ? electronic.session : undefined}
         electronicInFlight={electronic.inFlight}
-        electronicTender={electronicTender}
-        onElectronicTenderChange={setElectronicTender}
-        onPresentElectronic={
-          electronic.ready
-            ? () => {
-                const transactionId = cashCheckout.session.transactionId;
-                if (!transactionId) {
-                  return;
-                }
-                void electronic.present({ transactionId, tender: electronicTender });
-              }
-            : undefined
-        }
         onResolveElectronic={() => {
-          void electronic.resolve();
-        }}
-        onContinueWaitingElectronic={() => {
           void electronic.resolve();
         }}
         onContactManager={() => {

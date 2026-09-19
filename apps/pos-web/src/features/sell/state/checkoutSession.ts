@@ -52,9 +52,12 @@ export type CheckoutStageView =
   | "preparing"
   | "prepare_failed"
   | "resolving_sale"
+  | "choose_payment"
   | "cash"
   | "confirming_cash"
   | "cash_failed"
+  | "cancelling"
+  | "cancel_failed"
   | "resolving_payment"
   | "finalizing"
   | "finalize_failed"
@@ -90,6 +93,7 @@ export function checkoutCommandInFlight(stage: CheckoutStageView): boolean {
     stage === "preparing" ||
     stage === "resolving_sale" ||
     stage === "confirming_cash" ||
+    stage === "cancelling" ||
     stage === "resolving_payment" ||
     stage === "finalizing" ||
     stage === "printing"
@@ -108,9 +112,12 @@ export function hasOutstandingPreparedSale(session: CheckoutSessionView): boolea
     return true;
   }
   return (
+    session.stage === "choose_payment" ||
     session.stage === "cash" ||
     session.stage === "cash_failed" ||
     session.stage === "confirming_cash" ||
+    session.stage === "cancelling" ||
+    session.stage === "cancel_failed" ||
     session.stage === "resolving_payment" ||
     session.stage === "finalizing" ||
     session.stage === "finalize_failed"
@@ -144,6 +151,14 @@ export function checkoutDismissAllowed(session: CheckoutSessionView): boolean {
   return session.stage === "prepare_failed" && !hasOutstandingPreparedSale(session);
 }
 
+export function canReturnToPaymentChoice(stage: CheckoutStageView): boolean {
+  return stage === "cash" || stage === "cash_failed";
+}
+
+export function checkoutCloseRequestsCancel(stage: CheckoutStageView): boolean {
+  return stage === "choose_payment" || stage === "cash" || stage === "cash_failed" || stage === "cancel_failed";
+}
+
 export function formatMinorDecimal(minor: number): string {
   if (!Number.isInteger(minor) || minor < 0) {
     return "";
@@ -162,7 +177,7 @@ export function describeCheckoutStage(stage: CheckoutStageView): {
     case "idle":
       return { title: "Checkout", status: "" };
     case "preparing":
-      return { title: "Checking price and stock…", status: "Checking price and stock before money is accepted." };
+      return { title: "Checking price and stock…", status: "Checking price and stock…" };
     case "prepare_failed":
       return { title: "Sale couldn't be started", status: "The sale was not started. The cart is unchanged." };
     case "resolving_sale":
@@ -170,8 +185,14 @@ export function describeCheckoutStage(stage: CheckoutStageView): {
         title: "Checking sale",
         status: "Sale status is uncertain. Do not start another sale.",
       };
+    case "choose_payment":
+      return { title: "Choose payment", status: "" };
     case "cash":
-      return { title: "Cash payment", status: "Enter the cash handed to you. Change will be shown after payment." };
+      return { title: "Cash payment", status: "" };
+    case "cancelling":
+      return { title: "Cancelling sale", status: "Checking sale status…" };
+    case "cancel_failed":
+      return { title: "Sale could not be cancelled", status: "The prepared sale is still held. Do not start another sale." };
     case "confirming_cash":
       return { title: "Confirming cash", status: "Confirming cash payment. Do not start another payment." };
     case "cash_failed":

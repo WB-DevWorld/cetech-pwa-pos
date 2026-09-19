@@ -1,5 +1,11 @@
 # WS1 current status
 
+Snapshot 2026-09-19. UX-03 payment / barcode / variable-range closeout on isolated `ws1/ux-03-payment-barcode-variable-range` from UX-02-containing STG-01 / PR #77 head `04166509c2b9505980338e4baaf630981c00d2e8`. Temporary senior UX-03 authority is EXPIRED / CLOSED. UX-02 Sell alignment was not reopened. Shared batch / PR #77 were not modified. Remaining: truthful per-tender electronic capability signal (methods stay disabled unless `electronicPaymentsAvailable && PaymentPort.initialize`); WS3 independent review/import. Freshness **FRESH_2** after two-pass fetch. Delivery **READY_FOR_INTEGRATION**. Do not merge; do not modify `main`; do not edit the shared batch branch.
+
+## Previous snapshot (historical; current section above controls)
+
+# WS1 current status
+
 Snapshot 2026-09-19. UX-02 variable-parent advisory-price review remediation on `ws1/ux-02-sell-demo-alignment`. Reviewed remote head `cd4f1aed0bbb5d2deb89948c53fb1b8f27f06378`. Correction implementation SHA `6409d4264ad67184d100a3a9c806deebe9236ad9` (engine `72561d0424029bfb93878d87a721c52a00810c0b`). Variable parents now omit `displayPrice` unless every visible child’s raw `get_price('edit')` converts to the same GHS minor amount. Filtered `get_variation_price*` is not used. Temporary senior UX-02 exception is EXPIRED / CLOSED. Freshness **FRESH_2**. Delivery **READY_FOR_INTEGRATION**. Do not merge; do not modify `main`; do not edit the shared batch branch.
 
 ## Previous snapshot (historical; current section above controls)

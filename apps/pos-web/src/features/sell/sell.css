@@ -263,6 +263,15 @@ button.product-card:disabled {
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.product-price-range {
+  overflow-wrap: normal;
+}
+
+.product-price-amount {
+  white-space: nowrap;
 }
 
 .product-price-empty {
@@ -768,4 +777,219 @@ button.product-card:disabled {
 .electronic-payment .banner.warning,
 .refund-reconciliation .banner.warning {
   border-color: var(--color-warning);
+}
+
+.product-price-unavailable {
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.sell-toast {
+  position: fixed;
+  top: 72px;
+  right: 20px;
+  z-index: 140;
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: #101828;
+  color: #fff;
+  box-shadow: var(--shadow-md);
+  display: grid;
+  gap: 4px;
+}
+
+.sell-toast strong {
+  font-size: 14px;
+}
+
+.sell-toast span {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  word-break: break-all;
+}
+
+.sell-dialog.payment-dialog {
+  max-width: 640px;
+  width: min(640px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+}
+
+.dialog-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--color-text-muted);
+}
+
+.dialog-close:hover:not(:disabled),
+.dialog-close:focus-visible {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.tender-choice,
+.cash-payment,
+.payment-waiting {
+  display: grid;
+  gap: 16px;
+}
+
+.tender-choice-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.tender-choice-total {
+  text-align: right;
+}
+
+.tender-choice-total strong,
+.cash-total {
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(22px, 4vw, 34px);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.tender-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.tender-card {
+  display: grid;
+  gap: 6px;
+  min-height: 96px;
+  padding: 16px;
+  text-align: left;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.tender-card:hover:not(:disabled),
+.tender-card:focus-visible {
+  border-color: var(--color-primary, #1d4ed8);
+  box-shadow: var(--shadow-sm);
+}
+
+.tender-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.tender-card strong {
+  font-size: 16px;
+}
+
+.tender-card span {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.cash-received-input {
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  min-height: 48px;
+}
+
+.change-due-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  font-size: 15px;
+}
+
+.change-due-row strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.tender-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.payment-spinner {
+  width: 28px;
+  height: 28px;
+  margin: 8px auto 0;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary, #1d4ed8);
+  border-radius: 50%;
+  animation: sell-spin 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .payment-spinner {
+    animation: none;
+  }
+}
+
+@keyframes sell-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.collision-warning {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, 0.38fr) minmax(0, 1fr);
+  gap: 4px 16px;
+  align-items: start;
+}
+
+@media (max-width: 520px) {
+  .collision-warning {
+    grid-template-columns: 1fr;
+  }
+}
+
+.collision-candidate {
+  min-height: 56px;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.tender-choice .dialog-actions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .tender-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sell-dialog.payment-dialog {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transform: none;
+    width: 100%;
+    max-width: none;
+    max-height: min(92dvh, calc(100dvh - 12px));
+    border-radius: 16px 16px 0 0;
+  }
+
+  .sell-toast {
+    top: 60px;
+    right: 12px;
+    left: 12px;
+    max-width: none;
+  }
 }

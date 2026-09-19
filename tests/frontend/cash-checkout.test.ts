@@ -193,6 +193,7 @@ function spyPorts(overrides: Partial<CashCheckoutPorts> = {}): CashCheckoutPorts
   confirmCash: ReturnType<typeof vi.fn>;
   resolvePayment: ReturnType<typeof vi.fn>;
   resolveSale: ReturnType<typeof vi.fn>;
+  cancelSale: ReturnType<typeof vi.fn>;
   getReceipt: ReturnType<typeof vi.fn>;
   print: ReturnType<typeof vi.fn>;
 } {
@@ -201,6 +202,9 @@ function spyPorts(overrides: Partial<CashCheckoutPorts> = {}): CashCheckoutPorts
   const confirmCash = vi.fn(async () => success(verifiedPayment()));
   const resolvePayment = vi.fn(async () => success(verifiedPayment()));
   const resolveSale = vi.fn(async () => success(completedSale()));
+  const cancelSale = vi.fn(async () =>
+    success({ transactionId: TX, status: "cancelled" as const, saleId: "sale-1", orderReference: "POS-1001" }),
+  );
   const getReceipt = vi.fn(async () => success(receiptSnapshot()));
   const print = vi.fn(async () => ({ status: "dialog_opened" as const }));
   const ports: CashCheckoutPorts & {
@@ -209,6 +213,7 @@ function spyPorts(overrides: Partial<CashCheckoutPorts> = {}): CashCheckoutPorts
     confirmCash: typeof confirmCash;
     resolvePayment: typeof resolvePayment;
     resolveSale: typeof resolveSale;
+    cancelSale: typeof cancelSale;
     getReceipt: typeof getReceipt;
     print: typeof print;
   } = {
@@ -217,11 +222,12 @@ function spyPorts(overrides: Partial<CashCheckoutPorts> = {}): CashCheckoutPorts
     confirmCash,
     resolvePayment,
     resolveSale,
+    cancelSale,
     getReceipt,
     print,
     checkout: { prepare, finalize },
     payments: { confirmCash, resolve: resolvePayment },
-    sales: { resolve: resolveSale },
+    sales: { resolve: resolveSale, cancel: cancelSale },
     receipts: { getByTransaction: getReceipt },
     printer: { print },
     scope: {
@@ -239,7 +245,7 @@ function spyPorts(overrides: Partial<CashCheckoutPorts> = {}): CashCheckoutPorts
     ports.payments = { confirmCash, resolve: resolvePayment };
   }
   if (!overrides.sales) {
-    ports.sales = { resolve: resolveSale };
+    ports.sales = { resolve: resolveSale, cancel: cancelSale };
   }
   if (!overrides.receipts) {
     ports.receipts = { getByTransaction: getReceipt };
@@ -252,6 +258,7 @@ function spyPorts(overrides: Partial<CashCheckoutPorts> = {}): CashCheckoutPorts
 
 async function completeSale(controller: ReturnType<typeof createCashCheckoutController>, ports: ReturnType<typeof spyPorts>) {
   await controller.startPrepare(quoteFixture());
+  controller.selectCash();
   await controller.confirmCash("20.00");
   expect(controller.getSession().stage).toBe("receipt_ready");
   expect(ports.prepare).toHaveBeenCalledTimes(1);
@@ -322,7 +329,7 @@ describe("FE-05 cash checkout and receipt UX", () => {
       }),
     );
     ports.checkout = { prepare: ports.prepare, finalize: ports.finalize };
-    ports.sales = { resolve: ports.resolveSale };
+    ports.sales = { resolve: ports.resolveSale, cancel: ports.cancelSale };
     const controller = createCashCheckoutController(ports);
     await controller.startPrepare(quoteFixture());
     expect(ports.prepare).toHaveBeenCalledTimes(1);
@@ -330,7 +337,8 @@ describe("FE-05 cash checkout and receipt UX", () => {
     expect(ports.resolveSale).toHaveBeenCalledWith(TX);
     await controller.startPrepare(quoteFixture());
     expect(ports.prepare).toHaveBeenCalledTimes(1);
-    expect(controller.getSession().stage).toBe("cash");
+    expect(controller.getSession().stage).toBe("choose_payment");
+    expect(controller.getSession().prepared?.transactionId).toBe(TX);
   });
 
   test("6. Cash confirmation cannot be started multiple times by repeated clicks", async () => {
@@ -340,6 +348,7 @@ describe("FE-05 cash checkout and receipt UX", () => {
     ports.payments = { confirmCash: ports.confirmCash, resolve: ports.resolvePayment };
     const controller = createCashCheckoutController(ports);
     await controller.startPrepare(quoteFixture());
+    controller.selectCash();
     const first = controller.confirmCash("20.00");
     const second = controller.confirmCash("20.00");
     expect(ports.confirmCash).toHaveBeenCalledTimes(1);
@@ -363,6 +372,8 @@ describe("FE-05 cash checkout and receipt UX", () => {
     ports.checkout = { prepare: ports.prepare, finalize: ports.finalize };
     const controller = createCashCheckoutController(ports);
     await controller.startPrepare(quoteFixture());
+    expect(controller.getSession().stage).toBe("choose_payment");
+    controller.selectCash();
     expect(controller.getSession().stage).toBe("cash");
     const pending = controller.confirmCash("15.00");
     for (let i = 0; i < 20 && controller.getSession().stage !== "finalizing"; i += 1) {
@@ -381,6 +392,7 @@ describe("FE-05 cash checkout and receipt UX", () => {
     await controller.startPrepare(quoteFixture());
     expect(controller.getSession().receipt).toBeUndefined();
     expect(controller.getSession().saleCompleted).toBe(false);
+    controller.selectCash();
     await controller.confirmCash("15.00");
     expect(controller.getSession().saleCompleted).toBe(true);
     expect(controller.getSession().receipt?.receiptNumber).toBe("R-PORT-99");
@@ -402,6 +414,7 @@ describe("FE-05 cash checkout and receipt UX", () => {
     ports.receipts = { getByTransaction: ports.getReceipt };
     const controller = createCashCheckoutController(ports);
     await controller.startPrepare(quoteFixture());
+    controller.selectCash();
     await controller.confirmCash("15.00");
     expect(controller.getSession().stage).toBe("receipt_failed");
     expect(controller.getSession().saleCompleted).toBe(true);
@@ -470,7 +483,7 @@ describe("FE-05 cash checkout and receipt UX", () => {
       success({ transactionId: TX, status: "preparing", message: "Still preparing" }),
     );
     ports.checkout = { prepare: ports.prepare, finalize: ports.finalize };
-    ports.sales = { resolve: ports.resolveSale };
+    ports.sales = { resolve: ports.resolveSale, cancel: ports.cancelSale };
     const controller = createCashCheckoutController(ports);
     await controller.startPrepare(quoteFixture());
     expect(draft).toEqual({ cartId: "cart-keep", lines: 2 });
@@ -482,9 +495,9 @@ describe("FE-05 cash checkout and receipt UX", () => {
     const ports = spyPorts();
     const controller = createCashCheckoutController(ports);
     await controller.startPrepare(quoteFixture());
-    expect(controller.getSession().stage).toBe("cash");
+    expect(controller.getSession().stage).toBe("choose_payment");
     controller.dismiss();
-    expect(controller.getSession().stage).toBe("cash");
+    expect(controller.getSession().stage).toBe("choose_payment");
     expect(controller.getSession().prepared?.transactionId).toBe(TX);
   });
 
@@ -494,7 +507,7 @@ describe("FE-05 cash checkout and receipt UX", () => {
     await controller.startPrepare(quoteFixture());
     expect(canBeginNewSale(controller.getSession())).toBe(false);
     controller.resetForNewSale();
-    expect(controller.getSession().stage).toBe("cash");
+    expect(controller.getSession().stage).toBe("choose_payment");
     expect(controller.getSession().prepared?.transactionId).toBe(TX);
     expect(ports.prepare).toHaveBeenCalledTimes(1);
   });
@@ -505,6 +518,7 @@ describe("FE-05 cash checkout and receipt UX", () => {
     ports.payments = { confirmCash: ports.confirmCash, resolve: ports.resolvePayment };
     const controller = createCashCheckoutController(ports);
     await controller.startPrepare(quoteFixture());
+    controller.selectCash();
     await controller.confirmCash("20.00");
     expect(controller.getSession().stage).toBe("cash_failed");
     controller.dismiss();
@@ -522,6 +536,7 @@ describe("FE-05 cash checkout and receipt UX", () => {
     ports.payments = { confirmCash: ports.confirmCash, resolve: ports.resolvePayment };
     const controller = createCashCheckoutController(ports);
     await controller.startPrepare(quoteFixture());
+    controller.selectCash();
     await controller.confirmCash("20.00");
     expect(controller.getSession().stage).toBe("cash_failed");
     await controller.confirmCash("20.00");
@@ -547,7 +562,7 @@ describe("FE-05 cash checkout and receipt UX", () => {
     await controller.startPrepare(changedQuote);
     expect(ports.prepare).toHaveBeenCalledTimes(1);
     expect(ports.prepare.mock.calls[0]?.[0].transactionId).toBe(TX);
-    expect(controller.getSession().stage).toBe("cash");
+    expect(controller.getSession().stage).toBe("choose_payment");
     expect(controller.getSession().transactionId).toBe(TX);
   });
 
@@ -578,7 +593,7 @@ describe("FE-05 cash checkout and receipt UX", () => {
     );
     ports.resolvePayment.mockResolvedValue(success(pendingPayment()));
     ports.checkout = { prepare: ports.prepare, finalize: ports.finalize };
-    ports.sales = { resolve: ports.resolveSale };
+    ports.sales = { resolve: ports.resolveSale, cancel: ports.cancelSale };
     ports.payments = { confirmCash: ports.confirmCash, resolve: ports.resolvePayment };
     const controller = createCashCheckoutController(ports);
     await controller.startPrepare(quoteFixture());
@@ -617,5 +632,42 @@ describe("FE-05 cash checkout and receipt UX", () => {
       1,
     );
     expect(previous).toEqual({ status: "missing" });
+  });
+
+  test("UX-03 prepare opens choose_payment and cash/back do not re-prepare", async () => {
+    const ports = spyPorts();
+    const controller = createCashCheckoutController(ports);
+    await controller.startPrepare(quoteFixture());
+    expect(controller.getSession().stage).toBe("choose_payment");
+    expect(controller.getSession().prepared?.orderReference).toBe("POS-1001");
+    expect(controller.getSession().prepared?.total).toEqual({ minor: 1500, currency: "GHS" });
+    const transactionId = controller.getSession().transactionId;
+    controller.selectCash();
+    expect(controller.getSession().stage).toBe("cash");
+    controller.backToPaymentChoice();
+    expect(controller.getSession().stage).toBe("choose_payment");
+    expect(controller.getSession().transactionId).toBe(transactionId);
+    expect(ports.prepare).toHaveBeenCalledTimes(1);
+    controller.selectCash();
+    expect(ports.prepare).toHaveBeenCalledTimes(1);
+  });
+
+  test("UX-03 cancel prepared sale uses a stable cancel identity and returns to idle", async () => {
+    const ports = spyPorts();
+    const controller = createCashCheckoutController(ports);
+    await controller.startPrepare(quoteFixture());
+    await controller.cancelPreparedSale();
+    expect(ports.cancelSale).toHaveBeenCalledTimes(1);
+    expect(ports.cancelSale.mock.calls[0]?.[0]).toEqual({
+      transactionId: TX,
+      reason: "cashier_cancelled_prepared_sale",
+    });
+    const firstContext = ports.cancelSale.mock.calls[0]?.[1];
+    expect(controller.getSession().stage).toBe("idle");
+    expect(controller.getSession().prepared).toBeUndefined();
+    await controller.startPrepare(quoteFixture());
+    expect(ports.prepare).toHaveBeenCalledTimes(2);
+    await controller.cancelPreparedSale();
+    expect(ports.cancelSale.mock.calls[1]?.[1]).not.toEqual(firstContext);
   });
 });

@@ -19,8 +19,10 @@ import { parseDecimalToMinorUnits } from "../../register/parseDecimalToMinorUnit
 import { cashierErrorMessage, withDoNotChargeAgain } from "../../../ui/cashier-language";
 import {
   canBeginNewSale,
+  canReturnToPaymentChoice,
   checkoutDismissAllowed,
   idleCheckoutSession,
+  type CheckoutMoneyView,
   type CheckoutSessionView,
   type PreparedSaleView,
   type ReceiptViewModel,
@@ -34,8 +36,8 @@ export type CashCheckoutScope = {
 
 export type CashCheckoutPorts = {
   readonly checkout: CheckoutUseCases;
-  readonly payments: Pick<PaymentPort, "confirmCash" | "resolve">;
-  readonly sales: Pick<SalesPort, "resolve">;
+  readonly payments: Pick<PaymentPort, "confirmCash" | "resolve"> & Partial<Pick<PaymentPort, "initialize">>;
+  readonly sales: Pick<SalesPort, "resolve" | "cancel">;
   readonly receipts: ReceiptPort;
   readonly printer: PrintPort;
   readonly scope: CashCheckoutScope;
@@ -45,11 +47,13 @@ export type CashCheckoutPorts = {
 type AttemptIdentities = {
   readonly quoteId: string;
   readonly quoteFingerprint: string;
+  readonly quoteTotal: CheckoutMoneyView;
   readonly transactionId: string;
   readonly currency: string;
   readonly prepare: CommandContext;
   readonly cash: CommandContext;
   readonly finalize: CommandContext;
+  cancel?: CommandContext;
 };
 
 type UnknownOutcome = { readonly kind: "unknown"; readonly message: string };
@@ -191,6 +195,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
     identities = {
       quoteId: quote.id,
       quoteFingerprint: quote.fingerprint,
+      quoteTotal: quote.total,
       transactionId: createUuid(),
       currency: quote.currency,
       prepare: commandContext(),
@@ -200,6 +205,34 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
     paymentId = undefined;
     printAttempted = false;
     return identities;
+  }
+
+  function cancelContextFor(attempt: AttemptIdentities): CommandContext {
+    if (!attempt.cancel) {
+      attempt.cancel = commandContext();
+    }
+    return attempt.cancel;
+  }
+
+  function preparedViewForResolution(resolution: SaleResolution): PreparedSaleView | undefined {
+    if (session.prepared && session.prepared.transactionId === resolution.transactionId) {
+      return session.prepared;
+    }
+    if (
+      identities &&
+      identities.transactionId === resolution.transactionId &&
+      identities.quoteTotal &&
+      resolution.orderReference
+    ) {
+      return {
+        transactionId: resolution.transactionId,
+        saleId: resolution.saleId ?? session.prepared?.saleId ?? "",
+        orderReference: resolution.orderReference,
+        quoteFingerprint: identities.quoteFingerprint,
+        total: identities.quoteTotal,
+      };
+    }
+    return undefined;
   }
 
   async function resolveSaleUnlocked(): Promise<void> {
@@ -249,9 +282,20 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       return;
     }
     if (resolution.status === "prepared") {
+      const prepared = preparedViewForResolution(resolution);
+      if (!prepared) {
+        patch({
+          stage: "resolving_sale",
+          message: "Sale is prepared, but the total could not be recovered. Do not start another sale.",
+          transactionId: resolution.transactionId,
+        });
+        return;
+      }
       patch({
-        stage: "cash",
-        message: "Enter the cash handed to you. Change will be shown after payment.",
+        stage: "choose_payment",
+        prepared,
+        message: "",
+        inputError: undefined,
         transactionId: resolution.transactionId,
       });
       return;
@@ -286,6 +330,12 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       return;
     }
     if (resolution.status === "cancelled" || resolution.status === "not_found") {
+      if (session.stage === "cancelling" || session.stage === "cancel_failed") {
+        identities = null;
+        paymentId = undefined;
+        setSession(idleCheckoutSession());
+        return;
+      }
       patch({
         stage: "prepare_failed",
         message: resolution.message ?? "The previous sale attempt was not found. The cart is unchanged.",
@@ -496,13 +546,17 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
         return;
       }
       if (session.prepared && !session.saleCompleted) {
-        if (identities && quoteMatches(identities, quote) && (session.stage === "idle" || session.stage === "cash" || session.stage === "cash_failed")) {
+        if (
+          identities &&
+          quoteMatches(identities, quote) &&
+          (session.stage === "idle" ||
+            session.stage === "choose_payment" ||
+            session.stage === "cash" ||
+            session.stage === "cash_failed")
+        ) {
           patch({
-            stage: session.stage === "cash_failed" ? "cash_failed" : "cash",
-            message:
-              session.stage === "cash_failed"
-                ? session.message
-                : "Enter the cash handed to you. Change will be shown after payment.",
+            stage: session.stage === "cash" || session.stage === "cash_failed" ? session.stage : "choose_payment",
+            message: session.stage === "cash_failed" ? session.message : "",
             inputError: undefined,
           });
         }
@@ -541,10 +595,10 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
         }
         if (outcome.kind === "result" && outcome.value.ok) {
           patch({
-            stage: "cash",
+            stage: "choose_payment",
             prepared: mapPrepared(outcome.value.data),
             transactionId: outcome.value.data.transactionId,
-            message: "Enter the cash handed to you. Change will be shown after payment.",
+            message: "",
           });
           return;
         }
@@ -633,6 +687,74 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       commandLock = true;
       try {
         await resolvePaymentUnlocked();
+      } finally {
+        commandLock = false;
+        notify();
+      }
+    },
+    selectCash(): void {
+      if (commandLock || session.saleCompleted || !session.prepared) {
+        return;
+      }
+      if (session.stage !== "choose_payment" && session.stage !== "cash" && session.stage !== "cash_failed") {
+        return;
+      }
+      patch({
+        stage: session.stage === "cash_failed" ? "cash_failed" : "cash",
+        message: session.stage === "cash_failed" ? session.message : "",
+        inputError: undefined,
+      });
+    },
+    backToPaymentChoice(): void {
+      if (commandLock || session.saleCompleted || !session.prepared) {
+        return;
+      }
+      if (!canReturnToPaymentChoice(session.stage)) {
+        return;
+      }
+      patch({
+        stage: "choose_payment",
+        message: "",
+        inputError: undefined,
+      });
+    },
+    async cancelPreparedSale(reason = "cashier_cancelled_prepared_sale"): Promise<void> {
+      if (commandLock || session.saleCompleted || !identities || !session.prepared) {
+        return;
+      }
+      if (
+        session.stage !== "choose_payment" &&
+        session.stage !== "cash" &&
+        session.stage !== "cash_failed" &&
+        session.stage !== "cancel_failed"
+      ) {
+        return;
+      }
+      const attempt = identities;
+      commandLock = true;
+      patch({
+        stage: "cancelling",
+        message: "Checking sale status…",
+        inputError: undefined,
+      });
+      try {
+        const outcome = await settle(() =>
+          ports.sales.cancel({ transactionId: attempt.transactionId, reason }, cancelContextFor(attempt)),
+        );
+        if (outcome.kind === "unknown" || (outcome.kind === "result" && !outcome.value.ok && shouldResolveFailure(outcome.value))) {
+          await resolveSaleUnlocked();
+          return;
+        }
+        if (outcome.kind === "result" && outcome.value.ok) {
+          await applySaleResolution(outcome.value.data);
+          return;
+        }
+        if (outcome.kind === "result" && !outcome.value.ok) {
+          patch({
+            stage: "cancel_failed",
+            message: cashierErrorMessage(outcome.value.error, "generic"),
+          });
+        }
       } finally {
         commandLock = false;
         notify();

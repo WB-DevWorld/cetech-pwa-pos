@@ -61,9 +61,12 @@ describe("SellScreen presentation", () => {
         initialState: state,
       }),
     );
-    expect(html).toContain('role="alert"');
+    expect(html).toContain('role="status"');
     expect(html).toContain("9999999999999");
-    expect(html).toContain("Product not found");
+    expect(html).toContain("Product not found for barcode");
+    expect(html).toContain('data-sell-toast="unknown-barcode"');
+    expect(html).not.toContain("sell-dialog");
+    expect(html).not.toContain("Pay GHS");
   });
 
   test("shows variation chooser copy when a parent product needs a selection", () => {
@@ -199,6 +202,57 @@ describe("SellScreen presentation", () => {
     expect(out).toContain("3-Pole Contactor");
   });
 
+  test("variable parent cards render min–max, equal, and unavailable advisory prices", () => {
+    const range = renderToStaticMarkup(
+      createElement(ProductCard, {
+        item: {
+          id: "p-range",
+          name: "Variable range parent",
+          sku: "VAR-R",
+          barcodes: [],
+          kind: "variable",
+          stockStatus: "in_stock",
+          priceView: {
+            kind: "range",
+            min: { minor: 6500, currency: "GHS" },
+            max: { minor: 56700, currency: "GHS" },
+          },
+        },
+        onSelect: () => undefined,
+      }),
+    );
+    expect(range).toContain("GHS 65.00 – GHS 567.00");
+    const equal = renderToStaticMarkup(
+      createElement(ProductCard, {
+        item: {
+          id: "p-equal",
+          name: "Equal children",
+          barcodes: [],
+          kind: "variable",
+          stockStatus: "in_stock",
+          priceView: { kind: "single", amount: { minor: 6500, currency: "GHS" } },
+        },
+        onSelect: () => undefined,
+      }),
+    );
+    expect(equal).toContain("GHS 65.00");
+    expect(equal).not.toContain("GHS 65.00 – GHS 65.00");
+    const missing = renderToStaticMarkup(
+      createElement(ProductCard, {
+        item: {
+          id: "p-missing",
+          name: "Unpriced variable",
+          barcodes: [],
+          kind: "variable",
+          stockStatus: "in_stock",
+          priceView: { kind: "unavailable" },
+        },
+        onSelect: () => undefined,
+      }),
+    );
+    expect(missing).toContain("Price unavailable");
+  });
+
   test("healthy local draft is an inline status, not a full-width banner", () => {
     let state = createSellWorkspace(deps, SELL_TEST_CATALOG);
     state = applyDraftStatus(state, { retainedLocally: true });
@@ -280,5 +334,24 @@ describe("SellScreen presentation", () => {
     expect(html).not.toContain("GHS 25.00");
     expect(html).toContain('data-eligibility-reason="QUOTE_STALE"');
     expect(html).toMatch(/pay-btn[^>]*disabled/);
+  });
+
+  test("duplicate barcode is a blocking chooser that does not guess", () => {
+    let state = createSellWorkspace(deps, SELL_TEST_CATALOG);
+    state = applyBarcodeScan(state, "5550001112223", SELL_TEST_CATALOG, deps);
+    expect(state.lines).toHaveLength(0);
+    expect(state.cartRevision).toBe(0);
+    const html = renderToStaticMarkup(
+      createElement(SellScreen, {
+        catalog: SELL_TEST_CATALOG,
+        initialState: state,
+      }),
+    );
+    expect(html).toContain("Duplicate barcode match");
+    expect(html).toContain("Barcode collision detected.");
+    expect(html).toContain("36W LED Panel Light");
+    expect(html).toContain("12-Way Distribution Board");
+    expect(html).not.toContain("p-led");
+    expect(html).not.toContain("Demo controls");
   });
 });

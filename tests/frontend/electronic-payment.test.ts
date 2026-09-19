@@ -211,6 +211,46 @@ describe("FE-06 electronic payment", () => {
   });
 });
 
+describe("UX-03 electronic waiting presentation", () => {
+  test("waiting copy has no demo harness and pending says do not charge again", async () => {
+    const { PaymentWaiting } = await import("../../apps/pos-web/src/features/sell/components/PaymentWaiting");
+    const pending = renderToStaticMarkup(
+      createElement(PaymentWaiting, {
+        session: {
+          ...idleElectronicPaymentSession(),
+          status: "pending",
+          nextAction: "wait",
+          message: "Payment is still being checked.",
+          doNotChargeAgain: true,
+          presentAllowed: false,
+          resolveAllowed: true,
+        },
+        inFlight: false,
+        onResolve: () => undefined,
+      }),
+    );
+    expect(pending).toContain("Do not charge again.");
+    expect(pending).not.toContain("Demo controls");
+    expect(pending).not.toContain("Timeout / recover");
+    const waiting = renderToStaticMarkup(
+      createElement(PaymentWaiting, {
+        session: {
+          ...idleElectronicPaymentSession(),
+          status: "awaiting_customer",
+          nextAction: "wait",
+          message: "Waiting for customer…",
+          doNotChargeAgain: true,
+          presentAllowed: false,
+        },
+        inFlight: false,
+        onResolve: () => undefined,
+      }),
+    );
+    expect(waiting).toContain("Waiting for customer");
+    expect(waiting).toContain("payment-spinner");
+  });
+});
+
 describe("FE-06 refund ambiguity", () => {
   test("21 an unknown refund keeps the same refundId", async () => {
     const resolveRefund = vi.fn(async () => {
