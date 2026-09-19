@@ -4,10 +4,12 @@ name: Exact SHA Preview
 # Dispatch only from main. Candidate application code is never checked out
 # and is never built in GitHub Actions. Vercel builds the verified Git SHA
 # remotely in the Preview environment, where Preview environment variables
-# may be available to that build/runtime. Exact-head independent approvals
-# from Ben-001-sys and Emmanuel-coder-prog are required before any Vercel
-# deployment request. This is not production promotion, not merge
-# authorization, and must not move the shared staging alias.
+# may be available to that build/runtime. Exact-head independent approval
+# from an authorized repository reviewer who is not the PR author is required
+# before any Vercel deployment request. Repository policy is one independent
+# review, matching protected-main required_approving_review_count. This is
+# not production promotion, not merge authorization, and must not move the
+# shared staging alias.
 on:
   workflow_dispatch:
     inputs:

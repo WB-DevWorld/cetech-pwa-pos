@@ -9,14 +9,15 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 from exact_sha_preview import (
     PreviewError,
-    REQUIRED_PREVIEW_REVIEWERS,
+    REQUIRED_INDEPENDENT_APPROVAL_COUNT,
+    REPOSITORY_REVIEWERS,
     build_id_report,
     create_payload,
     deploy_and_verify,
     github_actions_checks_succeeded,
     jobs_succeeded,
     main,
-    missing_exact_head_approvals,
+    independent_exact_head_approvers,
     production_hosts,
     project_git_link,
     require_main,
@@ -280,27 +281,24 @@ class ExactShaPreviewTests(unittest.TestCase):
         })
         self.assertIn("cetech-pos-staging.vercel.app", hosts)
 
-    def test_both_exact_head_approvals_satisfy_the_gate(self):
-        self.assertEqual(("Ben-001-sys", "Emmanuel-coder-prog"), REQUIRED_PREVIEW_REVIEWERS)
-        reviews = both_exact_head_approvals()
-        self.assertEqual([], missing_exact_head_approvals(reviews, SHA, author_login="wbdevworld"))
+    def test_one_independent_exact_head_approval_satisfies_the_gate(self):
+        self.assertEqual(1, REQUIRED_INDEPENDENT_APPROVAL_COUNT)
+        self.assertEqual(
+            ("Ben-001-sys", "Emmanuel-coder-prog", "wbdevworld"),
+            REPOSITORY_REVIEWERS,
+        )
+        reviews = [review("Ben-001-sys", "APPROVED", SHA, "2026-09-19T18:00:00Z", 11)]
+        self.assertEqual(
+            ["Ben-001-sys"],
+            independent_exact_head_approvers(reviews, SHA, author_login="wbdevworld"),
+        )
         verify_review_authorization(reviews, SHA, author_login="wbdevworld")
 
-    def test_approval_from_only_ben_fails(self):
-        reviews = [review("Ben-001-sys", "APPROVED", SHA, "2026-09-19T18:00:00Z", 11)]
-        with self.assertRaises(PreviewError) as caught:
-            verify_review_authorization(reviews, SHA, author_login="wbdevworld")
-        self.assertEqual("REVIEW_AUTHORIZATION_REQUIRED", caught.exception.summary)
-        self.assertIn("`Emmanuel-coder-prog`", str(caught.exception))
-        self.assertNotIn("`Ben-001-sys`", str(caught.exception))
-
-    def test_approval_from_only_emmanuel_fails(self):
-        reviews = [review("Emmanuel-coder-prog", "APPROVED", SHA, "2026-09-19T18:00:00Z", 12)]
-        with self.assertRaises(PreviewError) as caught:
-            verify_review_authorization(reviews, SHA, author_login="wbdevworld")
-        self.assertEqual("REVIEW_AUTHORIZATION_REQUIRED", caught.exception.summary)
-        self.assertIn("`Ben-001-sys`", str(caught.exception))
-        self.assertNotIn("`Emmanuel-coder-prog`", str(caught.exception))
+    def test_either_authorized_non_author_reviewer_can_satisfy_the_gate(self):
+        emmanuel = [review("Emmanuel-coder-prog", "APPROVED", SHA, "2026-09-19T18:00:00Z", 12)]
+        verify_review_authorization(emmanuel, SHA, author_login="wbdevworld")
+        both = both_exact_head_approvals()
+        verify_review_authorization(both, SHA, author_login="wbdevworld")
 
     def test_approval_on_an_old_sha_fails(self):
         reviews = [
@@ -310,52 +308,62 @@ class ExactShaPreviewTests(unittest.TestCase):
         with self.assertRaises(PreviewError) as caught:
             verify_review_authorization(reviews, SHA, author_login="wbdevworld")
         self.assertEqual("REVIEW_AUTHORIZATION_REQUIRED", caught.exception.summary)
-        self.assertIn("`Ben-001-sys`", str(caught.exception))
-        self.assertIn("`Emmanuel-coder-prog`", str(caught.exception))
+        self.assertIn("independent exact-head APPROVED review", str(caught.exception))
+        self.assertNotIn("secret", str(caught.exception))
 
     def test_old_changes_requested_then_exact_head_approved_succeeds(self):
         reviews = [
             review("Ben-001-sys", "CHANGES_REQUESTED", OLD_SHA, "2026-09-19T16:00:00Z", 1),
             review("Emmanuel-coder-prog", "CHANGES_REQUESTED", OLD_SHA, "2026-09-19T16:01:00Z", 2),
             review("Ben-001-sys", "APPROVED", SHA, "2026-09-19T18:00:00Z", 11),
-            review("Emmanuel-coder-prog", "APPROVED", SHA, "2026-09-19T18:01:00Z", 12),
         ]
         verify_review_authorization(reviews, SHA, author_login="wbdevworld")
 
-    def test_exact_head_approved_then_later_exact_head_changes_requested_fails(self):
+    def test_later_changes_requested_supersedes_prior_approval(self):
         reviews = [
             review("Ben-001-sys", "APPROVED", SHA, "2026-09-19T18:00:00Z", 11),
-            review("Emmanuel-coder-prog", "APPROVED", SHA, "2026-09-19T18:01:00Z", 12),
             review("Ben-001-sys", "CHANGES_REQUESTED", SHA, "2026-09-19T19:00:00Z", 21),
         ]
         with self.assertRaises(PreviewError) as caught:
             verify_review_authorization(reviews, SHA, author_login="wbdevworld")
         self.assertEqual("REVIEW_AUTHORIZATION_REQUIRED", caught.exception.summary)
-        self.assertIn("`Ben-001-sys`", str(caught.exception))
-        self.assertNotIn("`Emmanuel-coder-prog`", str(caught.exception))
+
+    def test_remaining_independent_approval_still_counts_after_another_reviewer_requests_changes(self):
+        reviews = [
+            review("Ben-001-sys", "APPROVED", SHA, "2026-09-19T18:00:00Z", 11),
+            review("Emmanuel-coder-prog", "APPROVED", SHA, "2026-09-19T18:01:00Z", 12),
+            review("Ben-001-sys", "CHANGES_REQUESTED", SHA, "2026-09-19T19:00:00Z", 21),
+        ]
+        verify_review_authorization(reviews, SHA, author_login="wbdevworld")
+        self.assertEqual(
+            ["Emmanuel-coder-prog"],
+            independent_exact_head_approvers(reviews, SHA, author_login="wbdevworld"),
+        )
 
     def test_unrelated_user_approval_does_not_count(self):
         reviews = [
             review("unrelated-reviewer", "APPROVED", SHA, "2026-09-19T18:00:00Z", 99),
-            review("Ben-001-sys", "APPROVED", SHA, "2026-09-19T18:01:00Z", 11),
         ]
         with self.assertRaises(PreviewError) as caught:
             verify_review_authorization(reviews, SHA, author_login="wbdevworld")
         self.assertEqual("REVIEW_AUTHORIZATION_REQUIRED", caught.exception.summary)
-        self.assertIn("`Emmanuel-coder-prog`", str(caught.exception))
         self.assertNotIn("unrelated-reviewer", str(caught.exception))
+        self.assertNotIn("do-not-print-this-review-body", str(caught.exception))
 
-    def test_author_and_integration_editor_do_not_substitute(self):
+    def test_author_self_approval_cannot_satisfy_independent_review(self):
         reviews = [
             review("wbdevworld", "APPROVED", SHA, "2026-09-19T18:00:00Z", 3),
-            review("Ben-001-sys", "APPROVED", SHA, "2026-09-19T18:01:00Z", 11),
         ]
         with self.assertRaises(PreviewError) as caught:
             verify_review_authorization(reviews, SHA, author_login="wbdevworld")
         self.assertEqual("REVIEW_AUTHORIZATION_REQUIRED", caught.exception.summary)
-        self.assertIn("`Emmanuel-coder-prog`", str(caught.exception))
-        self.assertNotIn("`Ben-001-sys`", str(caught.exception))
         self.assertNotIn("wbdevworld", str(caught.exception))
+
+    def test_author_who_is_also_an_authorized_reviewer_cannot_self_approve(self):
+        reviews = [review("Ben-001-sys", "APPROVED", SHA, "2026-09-19T18:00:00Z", 11)]
+        with self.assertRaises(PreviewError) as caught:
+            verify_review_authorization(reviews, SHA, author_login="Ben-001-sys")
+        self.assertEqual("REVIEW_AUTHORIZATION_REQUIRED", caught.exception.summary)
 
     def test_vercel_deploy_is_not_invoked_when_review_authorization_fails(self):
         reviews = [
@@ -378,8 +386,6 @@ class ExactShaPreviewTests(unittest.TestCase):
         vercel.assert_not_called()
         text = stderr.getvalue()
         self.assertIn("REVIEW_AUTHORIZATION_REQUIRED", text)
-        self.assertIn("`Ben-001-sys`", text)
-        self.assertIn("`Emmanuel-coder-prog`", text)
         self.assertNotIn("do-not-print-this-review-body", text)
 
     def test_deploy_and_verify_refuses_without_granted_review_authorization(self):
@@ -431,13 +437,16 @@ class ExactShaPreviewTests(unittest.TestCase):
         self.assertIn("trusted deployment request supplied", summary)
         self.assertNotIn("DEPLOYED_PREVIEW", summary)
 
-    def test_github_verify_grants_review_authorization_when_both_approve(self):
+    def test_github_verify_grants_review_authorization_when_one_independent_reviewer_approves(self):
         with patch(
             "exact_sha_preview.github_json",
-            side_effect=github_json_fixture(both_exact_head_approvals()),
+            side_effect=github_json_fixture([
+                review("Ben-001-sys", "APPROVED", SHA, "2026-09-19T18:00:00Z", 11),
+            ]),
         ):
             verified = verify_github(dict(ENV))
         self.assertEqual("granted", verified["review_authorization"])
+        self.assertEqual("Ben-001-sys", verified["independent_approvers"])
         self.assertEqual(SHA, verified["sha"])
 
 

@@ -2,6 +2,51 @@
 
 Updated 2026-09-19. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
 
+## Temporary senior CD-01 exact-SHA Preview authority — ACTIVE
+
+Senior/user `@wbdevworld` authorizes this bounded WS3 infrastructure/security extension so REC-01 can be qualified on an immutable Vercel Preview without merging the candidate. This does **not** permanently alter `OWNERSHIP.md`. Authority is task-specific and expires at CD-01 exact-SHA Preview merge/handoff or explicit senior close.
+
+This assignment is required because GitHub Actions Staging CD deploys only CI-green `main`, while unmerged same-repository candidates still need a trusted Preview path. Candidate source is never built in GitHub Actions with `VERCEL_TOKEN`; Vercel executes it remotely in Preview, so exact-head independent review remains required before any Vercel deployment request.
+
+```text
+human: @wbdevworld
+workstream: WS3
+mode: IMPLEMENT / INFRASTRUCTURE SECURITY REMEDIATION
+task: CD-01 exact-SHA immutable Preview deployment authority
+branch: ws3/exact-sha-preview
+issue: #64 (authorized extension of original main->staging CD; not a rewrite of historical evidence)
+PR: #81
+protected main: c320be8c5ad41c190200381cd52f853dd95212dc
+independent reviewer: @Ben-001-sys
+Emmanuel / @Emmanuel-coder-prog: UNAVAILABLE today; not a current action; not a same-day gate
+purpose: Provide a trusted protected-main workflow capable of deploying an independently reviewed, CI-green, same-repository exact PR SHA to immutable Vercel Preview without merging the candidate and without moving production/shared-staging aliases.
+allowed:
+  .github/workflows/deploy-exact-sha-preview.yml
+  scripts/exact_sha_preview.py
+  docs/runbooks/CD-01-STAGING-DEPLOYMENT.md
+  tests/tooling/**
+  CURRENT-WORK.md
+  docs/workstreams/WS-03-CORE-DATA-INTEGRATION/STATUS.md
+  issue #64 governance/scope record only
+forbidden:
+  PR #80 source
+  application feature/runtime implementation
+  WooCommerce bridge behavior
+  production promotion
+  production alias
+  shared staging alias movement
+  --prod
+  live electronic payment
+  refund/restock
+  VitePOS cutover
+  secret exposure
+  arbitrary unrelated CI/CD changes
+  self-merge
+review rule: repository policy remains one independent exact-head APPROVED review from an authorized repository reviewer who is not the PR author (GitHub required_approving_review_count=1; OWNERSHIP/ADR-014 senior-authored changes need a different competent human). Do not hard-code simultaneous Ben+Emmanuel approval.
+```
+
+Do not merge PR #81 from this assignment. Do not dispatch Preview until the replacement head is independently approved. Do not change PR #80 source.
+
 ## Temporary senior STG-01 final review-fix — ACTIVE
 
 Senior/user `@wbdevworld` authorizes Cursor working with the senior/user to make ONLY the minimum WS3 + WS2 changes required to resolve Ben's two exact review blockers on exact reviewed head `33d3748b525dfea2e4979e58e795516df27aa552`, directly on existing `batch/stg-01-staging-runtime-acceptance` / PR #77. This does **not** permanently alter `OWNERSHIP.md`. Authority expires at final review-fix handoff.

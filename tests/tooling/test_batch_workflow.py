@@ -92,6 +92,8 @@ class BatchWorkflowTests(unittest.TestCase):
         self.assertIn('BUILD_ID', script)
         self.assertIn('GIT_SOURCE_UNAVAILABLE', script)
         self.assertIn('REVIEW_AUTHORIZATION_REQUIRED', script)
+        self.assertIn('REQUIRED_INDEPENDENT_APPROVAL_COUNT', script)
+        self.assertIn('REPOSITORY_REVIEWERS', script)
         self.assertIn('Ben-001-sys', script)
         self.assertIn('Emmanuel-coder-prog', script)
         self.assertIn('PREVIEW_CREATED', script)

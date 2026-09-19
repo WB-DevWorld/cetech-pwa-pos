@@ -22,8 +22,8 @@ CI_WORKFLOW_PATH = ".github/workflows/ci.yml"
 CI_WORKFLOW_NAME = "CI"
 REQUIRED_JOBS = ("control-plane", "control-plane-windows")
 GITHUB_ACTIONS_APP_SLUG = "github-actions"
-REQUIRED_PREVIEW_REVIEWERS = ("Ben-001-sys", "Emmanuel-coder-prog")
-INTEGRATION_EDITOR_LOGINS = frozenset({"wbdevworld"})
+REPOSITORY_REVIEWERS = ("Ben-001-sys", "Emmanuel-coder-prog", "wbdevworld")
+REQUIRED_INDEPENDENT_APPROVAL_COUNT = 1
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 PR_RE = re.compile(r"^[1-9][0-9]*$")
 POLL_SECONDS = 10
@@ -137,11 +137,13 @@ def review_sort_key(review: dict):
     return (str(review.get("submitted_at") or ""), int(review.get("id") or 0))
 
 
-def is_blocked_substitute(login: str, author_login: str | None = None) -> bool:
-    blocked = set(INTEGRATION_EDITOR_LOGINS)
-    if author_login:
-        blocked.add(author_login.lower())
-    return login.lower() in blocked
+def is_authorized_independent_reviewer(login: str, author_login: str | None = None) -> bool:
+    name = login.lower()
+    if not name or name not in {item.lower() for item in REPOSITORY_REVIEWERS}:
+        return False
+    if author_login and name == author_login.lower():
+        return False
+    return True
 
 
 def latest_effective_exact_head_state(reviews: list[dict], login: str, sha: str) -> str | None:
@@ -159,20 +161,18 @@ def latest_effective_exact_head_state(reviews: list[dict], login: str, sha: str)
     return state
 
 
-def missing_exact_head_approvals(
+def independent_exact_head_approvers(
     reviews: list[dict],
     sha: str,
-    required: tuple[str, ...] = REQUIRED_PREVIEW_REVIEWERS,
     author_login: str | None = None,
 ) -> list[str]:
-    missing: list[str] = []
-    for login in required:
-        if is_blocked_substitute(login, author_login):
-            missing.append(login)
+    approvers: list[str] = []
+    for login in REPOSITORY_REVIEWERS:
+        if not is_authorized_independent_reviewer(login, author_login):
             continue
-        if latest_effective_exact_head_state(reviews, login, sha) != "APPROVED":
-            missing.append(login)
-    return missing
+        if latest_effective_exact_head_state(reviews, login, sha) == "APPROVED":
+            approvers.append(login)
+    return approvers
 
 
 def fetch_pr_reviews(pr_number: str, token: str, api: str, repo: str) -> list[dict]:
@@ -191,15 +191,17 @@ def verify_review_authorization(
     reviews: list[dict],
     sha: str,
     author_login: str | None = None,
-    required: tuple[str, ...] = REQUIRED_PREVIEW_REVIEWERS,
-) -> None:
-    missing = missing_exact_head_approvals(reviews, sha, required, author_login)
-    if missing:
-        named = ", ".join(f"`{login}`" for login in missing)
+    required_count: int = REQUIRED_INDEPENDENT_APPROVAL_COUNT,
+) -> list[str]:
+    approvers = independent_exact_head_approvers(reviews, sha, author_login)
+    if len(approvers) < required_count:
         fail(
-            "REVIEW_AUTHORIZATION_REQUIRED: missing exact-head APPROVED reviews from: " + named,
+            "REVIEW_AUTHORIZATION_REQUIRED: need "
+            f"{required_count} independent exact-head APPROVED review from an "
+            "authorized repository reviewer who is not the PR author.",
             "REVIEW_AUTHORIZATION_REQUIRED",
         )
+    return approvers
 
 
 def build_id_report(sha: str, request_supplied: bool, runtime_observed: str | None = None) -> list[str]:
@@ -465,12 +467,13 @@ def verify_github(env: dict[str, str]) -> dict[str, str]:
     github_actions_checks_succeeded(checks)
     author_login = str((pull.get("user") or {}).get("login") or "")
     reviews = fetch_pr_reviews(pr_number, token, api, repo)
-    verify_review_authorization(reviews, sha, author_login=author_login)
+    approvers = verify_review_authorization(reviews, sha, author_login=author_login)
     return {
         "sha": sha,
         "pr_number": pr_number,
         "head_ref": head_ref,
         "review_authorization": "granted",
+        "independent_approvers": ",".join(approvers),
     }
 
 
@@ -597,7 +600,7 @@ def main(argv: list[str] | None = None, env: dict[str, str] | None = None) -> in
             "",
             f"- Candidate SHA: `{result['sha']}`",
             f"- Verified open PR: #{verified['pr_number']}",
-            f"- Exact-head reviewers: `{REQUIRED_PREVIEW_REVIEWERS[0]}`, `{REQUIRED_PREVIEW_REVIEWERS[1]}`",
+            f"- Exact-head independent review: granted (`{verified.get('independent_approvers') or 'authorized reviewer'}`)",
             f"- Vercel Preview: {result['url']}",
             f"- Deployment id: `{result['deployment_id']}`",
             f"- Target: `{result['target']}`",

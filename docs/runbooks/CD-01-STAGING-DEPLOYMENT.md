@@ -247,19 +247,26 @@ Inputs:
 
 ### Exact-head review authorization
 
-Before the workflow calls Vercel `POST /v13/deployments`, it fetches PR reviews and requires **both** of these GitHub logins to have an effective `APPROVED` review whose `commit_id` equals the current `candidate_sha`:
+Before the workflow calls Vercel `POST /v13/deployments`, it fetches PR reviews and requires **one** independent exact-head `APPROVED` review.
 
-- `Ben-001-sys`
-- `Emmanuel-coder-prog`
+Canonical repository rule (not a same-day availability hack):
+
+- Protected `main` requires `required_approving_review_count: 1` and dismisses stale reviews.
+- OWNERSHIP / ADR-014: senior-authored changes need a different competent human; the PR author cannot self-approve.
+- Authorized repository reviewers are the verified humans in OWNERSHIP.md: `Ben-001-sys`, `Emmanuel-coder-prog`, and `wbdevworld`.
+- Any one of those logins may satisfy the Preview gate **except** the current PR author.
+- Simultaneous named approval from both developers is **not** repository policy and is not required by this workflow.
 
 Rules:
 
 - Only the latest effective `APPROVED` / `CHANGES_REQUESTED` review from that login on the **current** SHA counts.
 - Approvals on older SHAs do not count.
 - Older `CHANGES_REQUESTED` reviews on older SHAs do not block a later exact-head `APPROVED`.
-- A later exact-head `CHANGES_REQUESTED` from that reviewer supersedes their exact-head `APPROVED`.
-- PR author or integration-editor (`wbdevworld`) approval does not substitute for either required reviewer.
-- If either exact-head approval is absent, the job stops with `REVIEW_AUTHORIZATION_REQUIRED` and names only the missing logins. It does not print review bodies or secrets.
+- A later exact-head `CHANGES_REQUESTED` from that reviewer supersedes their exact-head `APPROVED`. If no other independent exact-head approval remains, the gate fails.
+- Unrelated GitHub users do not count.
+- If the independent exact-head approval is absent, the job stops with `REVIEW_AUTHORIZATION_REQUIRED` before any Vercel deployment request. The summary does not print review bodies or secrets.
+
+Temporary reviewer unavailability does not change this durable rule and does not weaken branch protection.
 
 ### Source approval is not merge authorization
 
@@ -272,7 +279,7 @@ It is **not** final merge authorization. Independently of this workflow, a candi
 - any acceptance failure;
 - repository merge protections.
 
-Ben and Emmanuel may therefore approve the exact source SHA before Preview execution while the PR remains explicitly non-mergeable operationally until runtime evidence passes.
+Ben or Emmanuel may therefore approve the exact source SHA before Preview execution while the PR remains explicitly non-mergeable operationally until runtime evidence passes. One independent exact-head approval is sufficient under repository policy; both are not required.
 
 ### BUILD_ID truthfulness
 
@@ -293,7 +300,7 @@ The job:
 3. verifies the candidate SHA exists in this repository;
 4. requires an open PR whose head and base repositories are exactly `WB-DevWorld/cetech-pwa-pos` and whose current head equals `candidate_sha` (forks are rejected);
 5. verifies required jobs `control-plane` and `control-plane-windows` succeeded on a GitHub Actions workflow run of `.github/workflows/ci.yml` named `CI` for that SHA, not merely any check run using those names;
-6. requires exact-head `APPROVED` reviews from both `Ben-001-sys` and `Emmanuel-coder-prog` on that SHA, then **stops with `REVIEW_AUTHORIZATION_REQUIRED` before any Vercel deployment request** if either is missing;
+6. requires **one** independent exact-head `APPROVED` review from an authorized repository reviewer who is not the PR author, then **stops with `REVIEW_AUTHORIZATION_REQUIRED` before any Vercel deployment request** if that approval is missing;
 7. uses GitHub environment `staging` secrets only inside the runner for HTTPS calls to Vercel (`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`);
 8. confirms the existing Vercel project is Git-linked to `WB-DevWorld/cetech-pwa-pos`;
 9. creates a Vercel Preview with `POST /v13/deployments` from that Git source and `BUILD_ID=<candidate_sha>` (no `target`, no `--prod`, no production/staging alias assignment);
