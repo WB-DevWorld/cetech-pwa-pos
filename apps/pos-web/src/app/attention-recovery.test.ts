@@ -14,7 +14,9 @@ import {
 import {
   closePosLocalDatabase,
   createOperationJournal,
+  createTenderActivityPort,
   deletePosLocalDatabase,
+  hasActiveTender,
   openPosLocalDatabase,
 } from "../local";
 import { createBrowserCashCheckoutPorts, LOCAL_CHECKOUT_SCOPE } from "./checkout-client";
@@ -101,6 +103,7 @@ describe("UX-04 attention recovery identity", () => {
     const name = uniqueDbName();
     const firstDb = openPosLocalDatabase(name);
     const firstJournal = createOperationJournal(firstDb);
+    const firstTenderActivity = createTenderActivityPort(firstDb);
 
     const firstPorts = createBrowserCashCheckoutPorts({
       fetchImpl: async () => {
@@ -108,6 +111,7 @@ describe("UX-04 attention recovery identity", () => {
       },
       scope: LOCAL_CHECKOUT_SCOPE,
       journal: firstJournal,
+      tenderActivity: firstTenderActivity,
     });
 
     await firstPorts.checkout.prepare(
@@ -123,12 +127,14 @@ describe("UX-04 attention recovery identity", () => {
     );
 
     expect((await firstJournal.pending())[0]?.status).toBe("response_unknown");
+    expect(await hasActiveTender(firstDb)).toBe(true);
 
     await closePosLocalDatabase(name);
 
     // Simulate mounted runtime recreation: no old checkout controller or transaction state is retained.
     const reloadedDb = openPosLocalDatabase(name);
     const reloadedJournal = createOperationJournal(reloadedDb);
+    const reloadedTenderActivity = createTenderActivityPort(reloadedDb);
     const recoveredItems = await loadLocalJournalAttentionItems(reloadedJournal);
 
     expect(recoveredItems).toHaveLength(1);
@@ -157,6 +163,7 @@ describe("UX-04 attention recovery identity", () => {
       },
       scope: LOCAL_CHECKOUT_SCOPE,
       journal: reloadedJournal,
+      tenderActivity: reloadedTenderActivity,
     });
 
     let afterRecoveryItems: readonly AttentionItemView[] = recoveredItems;
@@ -174,6 +181,78 @@ describe("UX-04 attention recovery identity", () => {
     expect(await reloadedJournal.pending()).toHaveLength(0);
     expect(afterRecoveryItems).toHaveLength(0);
     expect(hasBlockingLocalTransactionRecovery(afterRecoveryItems)).toBe(false);
+    expect(await hasActiveTender(reloadedDb)).toBe(false);
+  });
+
+  test("reload recovery keeps both the journal gate and tender lease for nonterminal prepared sale", async () => {
+    const name = uniqueDbName();
+    const firstDb = openPosLocalDatabase(name);
+    const firstJournal = createOperationJournal(firstDb);
+    const firstTenderActivity = createTenderActivityPort(firstDb);
+
+    const firstPorts = createBrowserCashCheckoutPorts({
+      fetchImpl: async () => {
+        throw new TypeError("simulated lost prepare response");
+      },
+      scope: LOCAL_CHECKOUT_SCOPE,
+      journal: firstJournal,
+      tenderActivity: firstTenderActivity,
+    });
+
+    await firstPorts.checkout.prepare(
+      {
+        transactionId: TX,
+        registerId: LOCAL_CHECKOUT_SCOPE.registerId,
+        shiftId: LOCAL_CHECKOUT_SCOPE.shiftId,
+        deviceId: LOCAL_CHECKOUT_SCOPE.deviceId,
+        quoteId: "quote-reload-nonterminal",
+        quoteFingerprint: "0123456789abcdef0123456789abcdef",
+      },
+      { idempotencyKey: "55555555-5555-4555-8555-555555555555", correlationId: CORRELATION },
+    );
+
+    expect(await hasActiveTender(firstDb)).toBe(true);
+    await closePosLocalDatabase(name);
+
+    const reloadedDb = openPosLocalDatabase(name);
+    const reloadedJournal = createOperationJournal(reloadedDb);
+    const reloadedTenderActivity = createTenderActivityPort(reloadedDb);
+    const recoveredItems = await loadLocalJournalAttentionItems(reloadedJournal);
+    expect(recoveredItems).toHaveLength(1);
+
+    const recoveryPorts = createBrowserCashCheckoutPorts({
+      fetchImpl: async () =>
+        new Response(
+          JSON.stringify({
+            ok: true,
+            correlationId: CORRELATION,
+            data: {
+              transactionId: TX,
+              status: "prepared",
+              saleId: "sale-reloaded",
+              orderReference: "ORDER-RELOADED",
+            },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      scope: LOCAL_CHECKOUT_SCOPE,
+      journal: reloadedJournal,
+      tenderActivity: reloadedTenderActivity,
+    });
+
+    let afterRecoveryItems: readonly AttentionItemView[] = recoveredItems;
+    await runAttentionRecovery({
+      item: recoveredItems[0]!,
+      lock: createAttentionRecoveryLock(),
+      ports: { payments: recoveryPorts.payments, sales: recoveryPorts.sales },
+      reload: async () => {
+        afterRecoveryItems = await loadLocalJournalAttentionItems(reloadedJournal);
+      },
+    });
+
+    expect((await reloadedJournal.pending())[0]?.status).toBe("requires_attention");
+    expect(hasBlockingLocalTransactionRecovery(afterRecoveryItems)).toBe(true);
+    expect(await hasActiveTender(reloadedDb)).toBe(true);
   });
 
   test("local payment recovery checks payment then sale using the persisted transaction identity", async () => {
