@@ -1,14 +1,50 @@
 # WS3 current status
 
-Snapshot 2026-09-18. Protected `main` `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` is accepted/merged R8 PR #69. STG-01 / #70 remains the active P0 recovery gate. R9 PR #63 must not merge while STG-01 is open.
+Snapshot 2026-09-20. Protected `main` `c49045dd02c46574af5d341cc65c177116fa7306` (PR #79 / R10 Prep squash-merged). R10 Prep is MERGED / PREPARATION COMPLETE. QA-01 / #29 and REL-01 / #30 remain OPEN. Production remains unauthorized. Next active task is PR #63 R9 reconciliation; this closeout does not edit #63. This does not permanently alter OWNERSHIP.md.
 
-## Active contributor assignment
+## Active contributor assignment (this checkout)
+
+Mode: CLOSEOUT. Owner `@wbdevworld` / WS3.
+Task: Record PR #79 squash-merge and leave R9 / #63 as the next active task.
+Branch: `ws3/r10-prep-close`.
+Merged PR: #79. Source SHA: `bb35b8790e1370bc1b0aed6f39fc73c92549019a`. Resulting main: `c49045dd02c46574af5d341cc65c177116fa7306`.
+Independent reviewer of #79: `@Ben-001-sys`. `@Emmanuel-coder-prog` is UNAVAILABLE / NOT REQUESTED.
+Do not edit PR #63. Do not implement R9 or #82–#88. Do not close #29 or #30.
+
+## Prior assignment (R10 Prep, merged / preparation complete)
+
+Mode: RECONCILE / QUALIFICATION PREPARATION. Owner `@wbdevworld` / WS3.
+Task: R10 Prep — reconcile QA/release qualification framework onto accepted REC-01 main.
+Branch: `ws3/r10-qa-release-preparation` / PR #79, squash-merged as `c49045dd02c46574af5d341cc65c177116fa7306`.
+Source SHA: `bb35b8790e1370bc1b0aed6f39fc73c92549019a`.
+Main CI: `35512758174` SUCCESS (Linux `control-plane` + Windows `control-plane-windows`).
+Staging CD: `35512916881` SUCCESS — immutable URL `https://cetech-pos-staging-fgzk1bb00-wbdevworlds-projects.vercel.app`. Ordinary staging delivery is not R9 evidence.
+
+## Prior assignment (REC-01, merged / closed)
+
+Mode: IMPLEMENT / INTEGRATE. Owner `@wbdevworld` / WS3.
+Task: REC-01 — immutable receipt product-name and SKU snapshots.
+Branch: `ws3/receipt-product-name-sku` / PR #80, squash-merged as `7c5d6ca0cd93d7aeb5a7a1c97153ca187548c3fb`.
+Accepted source SHA: `6995e1c2324432e4cba234f6844bcb224e3d7a57`.
+Application acceptance PASS only for the behavior actually exercised. Follow-ups #82–#88 are separate.
+
+## Prior assignment (CD-01 exact-SHA Preview, merged)
+
+Mode: IMPLEMENT / INFRASTRUCTURE SECURITY REMEDIATION. Owner `@wbdevworld` / WS3.
+Branch: `ws3/exact-sha-preview` / PR #81, squash-merged as `c1f659ea118a885180fe6a543797efa908abf210`.
+Exact-SHA Preview infrastructure is accepted. Dispatch remains a later authorized action and is not production promotion.
+
+## Prior snapshot 2026-09-18 (retained; not current)
+
+Protected `main` `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` was accepted/merged R8 PR #69. At that time STG-01 / #70 was the active P0 recovery gate and R9 PR #63 must not merge while STG-01 was open. STG-01 is now accepted.
+
+## Prior contributor assignment (STG-06, retained)
 
 Mode: REMEDIATE. Owner `@wbdevworld` / WS3.
 Branch: `ws3/stg-06-quote-identity-register-authority` from exact start `a02cd21875d0717adb6694d293b41575302b2415`.
 Scope: persist rebuildable `pos_catalog_items` during catalog sync; translate POS quote IDs to Woo source IDs server-side; preserve last-known register/shift on transient refresh failure; related quote URL, shift-open idempotency, register error, rebuild-catalog observability. Implementation SHA `5119054a2059ff5903a50d8b96644b63c38fdd48`. Freshness FRESH_2; not imported into `batch/stg-01-staging-runtime-acceptance` from this status file. Do not merge.
 
-## STG-01 integration (active, not this branch)
+## STG-01 integration (historical; accepted on main as `c320be8c...`)
 
 Mode: INTEGRATE. Owner `@wbdevworld` / WS3. Integration base `acd4a2f009c58f734186cf9e44f278da93499a4b`. Combined candidate SHA observed at STG-06 freshness cutoff: `a02cd21875d0717adb6694d293b41575302b2415` (previously recorded `4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897`).
 
@@ -27,7 +63,7 @@ Mounted routes: `/sell` `/orders` `/customers` `/returns` `/register` `/health` 
 
 Composition rule: mounted POS keeps STG-02 staff authority **and** STG-04 catalog authority. STG-04 contributor `CURRENT-WORK.md` was not accepted onto this integration ledger.
 
-STG-05 plugin is deployed on training Woo; authenticated bridge health/catalog/quote are verified (product 14985 equal 3000 GHS minor totals prove customer-context routing, not B2B parity). `BLOCKED_TRAINING_PLUGIN_NOT_DEPLOYED_STG05` is not current truth. Live Preview catalog is blocked by BFF service-identity denial (`bridge denied the BFF service identity`). Cash-sale acceptance is pending. `pricingParityVerified=false`. CP-04 / issue #4 remains OPEN. Do not close #70/#25/#54. Do not merge. Do not start R10.
+Historical STG-05/Preview snapshot (not current assignment truth): STG-05 plugin is deployed on training Woo; authenticated bridge health/catalog/quote were verified (product 14985 equal 3000 GHS minor totals prove customer-context routing, not B2B parity). `BLOCKED_TRAINING_PLUGIN_NOT_DEPLOYED_STG05` is not current truth. Later STG-01 acceptance closed #70/#25/#54. Later REC-01 acceptance proved a controlled staging cash sale (order `49606` / receipt `POS-49606`) on exact immutable Preview. `pricingParityVerified=false`. CP-04 / issue #4 remains OPEN. Production remains unauthorized. R10 Prep is the current assignment and remains preparation only.
 
 ## R8 (historical / accepted on main)
 

@@ -1,4 +1,5 @@
 import type { Id, PendingOperation, Quote, ReceiptSnapshot, ShiftReport, Uuid } from "../../../../../docs/contracts/domain.generated";
+import { isPrepareIntentSnapshot, type PrepareIntentSnapshot } from "../receipt/prepare-intent";
 import { mergeStoredPayment, mergeStoredSale } from "./monotonic";
 import type {
   CommandScopeBinding,
@@ -20,6 +21,7 @@ type IdempotencyRow = {
   requestHash: string;
   status: PendingOperation["status"];
   outcome?: unknown;
+  intentSnapshot?: PrepareIntentSnapshot;
   locationId?: Id;
   registerId?: Id;
   shiftId?: Uuid;
@@ -58,6 +60,7 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
     failNextPaymentWrite: false,
     failNextSaleWrite: false,
     failNextCommercialConfirmedWrite: false,
+    failNextIntentWrite: false,
     receiptWriteAttempts: 0,
 
     async withLock(key, fn) {
@@ -455,6 +458,30 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
       if (row) {
         row.status = "sent";
       }
+    },
+
+    async bindPrepareIntent(organizationId, operation, idempotencyKey, snapshot) {
+      if (store.failNextIntentWrite) {
+        store.failNextIntentWrite = false;
+        throw new Error("injected prepare-intent write failure");
+      }
+      const row = idempotency.get(idempKey(organizationId, operation, idempotencyKey));
+      if (!row) {
+        throw new Error("prepare intent requires a claimed operation");
+      }
+      if (row.intentSnapshot !== undefined) {
+        if (!isPrepareIntentSnapshot(row.intentSnapshot)) {
+          throw new Error("durable prepare intent is present but invalid");
+        }
+        return row.intentSnapshot;
+      }
+      row.intentSnapshot = snapshot;
+      return snapshot;
+    },
+
+    async getPrepareIntent(organizationId, operation, idempotencyKey) {
+      const row = idempotency.get(idempKey(organizationId, operation, idempotencyKey));
+      return row?.intentSnapshot && isPrepareIntentSnapshot(row.intentSnapshot) ? row.intentSnapshot : undefined;
     },
 
     async acknowledgeIdempotency(organizationId, operation, idempotencyKey, outcome) {

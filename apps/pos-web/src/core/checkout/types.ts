@@ -19,6 +19,7 @@ import type {
   Uuid,
   VerifiedPaymentEvidence,
 } from "../../../../../docs/contracts/domain.generated";
+import type { PrepareIntentSnapshot } from "../receipt/prepare-intent";
 
 export type StaffActor = Pick<Session, "actorId" | "displayName" | "organizationId" | "locationIds">;
 
@@ -255,6 +256,17 @@ export interface CheckoutStore {
     scope?: CommandScopeFields,
   ): Promise<IdempotencyClaim>;
   markIdempotencySent(organizationId: Id, operation: PendingOperation["operation"], idempotencyKey: Uuid): Promise<void>;
+  bindPrepareIntent(
+    organizationId: Id,
+    operation: PendingOperation["operation"],
+    idempotencyKey: Uuid,
+    snapshot: PrepareIntentSnapshot,
+  ): Promise<PrepareIntentSnapshot>;
+  getPrepareIntent(
+    organizationId: Id,
+    operation: PendingOperation["operation"],
+    idempotencyKey: Uuid,
+  ): Promise<PrepareIntentSnapshot | undefined>;
   acknowledgeIdempotency(
     organizationId: Id,
     operation: PendingOperation["operation"],
@@ -285,6 +297,7 @@ export interface FaultInjectingCheckoutStore extends CheckoutStore {
   failNextPaymentWrite: boolean;
   failNextSaleWrite: boolean;
   failNextCommercialConfirmedWrite: boolean;
+  failNextIntentWrite: boolean;
   receiptWriteAttempts: number;
 }
 

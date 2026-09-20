@@ -98,7 +98,8 @@ describe("CORE-06 producer-consumer schema harness", () => {
       customerLabel: "Walk-in",
       lines: [
         {
-          name: "p-hardener",
+          name: "Epoxy Hardener 1L",
+          displayName: "Epoxy Hardener 1L",
           quantity: "1",
           unitPrice: money,
           subtotal: money,

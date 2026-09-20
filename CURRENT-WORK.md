@@ -1,10 +1,135 @@
 # Current work ledger
 
-Updated 2026-09-19. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
+Updated 2026-09-20. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
 
-## Temporary senior STG-01 final review-fix — ACTIVE
+## Temporary senior R10 Prep reconciliation — MERGED / PREPARATION COMPLETE
 
-Senior/user `@wbdevworld` authorizes Cursor working with the senior/user to make ONLY the minimum WS3 + WS2 changes required to resolve Ben's two exact review blockers on exact reviewed head `33d3748b525dfea2e4979e58e795516df27aa552`, directly on existing `batch/stg-01-staging-runtime-acceptance` / PR #77. This does **not** permanently alter `OWNERSHIP.md`. Authority expires at final review-fix handoff.
+PR #79 squash-merged 2026-09-20T13:11:06Z. Source SHA: `bb35b8790e1370bc1b0aed6f39fc73c92549019a`. Resulting protected main: `c49045dd02c46574af5d341cc65c177116fa7306`. Ben / `@Ben-001-sys` APPROVED that exact head. This is qualification **preparation** only. QA-01 / #29 and REL-01 / #30 remain OPEN. R10 GO/NO-GO remains NO-GO. Production remains unauthorized. Follow-ups #82–#88 remain separate. Next active task is PR #63 R9 reconciliation; do not start it in this closeout. This does **not** permanently alter `OWNERSHIP.md`.
+
+Historical lease (unchanged): Senior/user `@wbdevworld` authorizes reconciling accepted REC-01 main into existing R10 Prep / PR #79 so Ben reviews current main plus the QA/release qualification framework, not obsolete `1399a8fac...`. This does **not** permanently alter `OWNERSHIP.md`. REC-01 application source and CD-01 exact-SHA Preview infrastructure are already on protected main and are inherited here by a zero-overlap two-parent merge.
+
+```text
+human: @wbdevworld
+workstream: WS3
+mode: RECONCILE / QUALIFICATION PREPARATION
+task: R10 Prep — reconcile QA/release qualification framework onto accepted REC-01 main
+branch: ws3/r10-qa-release-preparation
+PR: #79
+previous head: 1399a8fac4c7b4b77fe436ccda1c88893a072101
+new main parent: 7c5d6ca0cd93d7aeb5a7a1c97153ca187548c3fb
+independent reviewer: @Ben-001-sys
+Emmanuel / @Emmanuel-coder-prog: UNAVAILABLE / NOT A CURRENT REVIEW ACTION
+allowed:
+  existing R10 Prep 14-file scope
+  CURRENT-WORK.md
+  WS3 STATUS/HANDOFF only where necessary for exact reconciliation evidence
+  PR #79 description/evidence
+forbidden:
+  R9 implementation
+  #82–#88 implementation
+  REC-01 source changes
+  Woo commercial behavior changes
+  electronic payment execution
+  refund/restock execution
+  production promotion
+  VitePOS cutover
+  protected-main direct edits
+  self-merge
+  requesting Emmanuel
+```
+
+Do not ask Ben to review obsolete `1399a8fac...`. Request review only on the replacement exact head after CI-green qualification. Do not merge PR #79 from this assignment. This historical instruction is closed by the squash merge above.
+
+## Temporary senior REC-01 main-reconciliation — MERGED / CLOSED
+
+PR #80 merged 2026-09-20T12:27:52Z. Accepted source SHA: `6995e1c2324432e4cba234f6844bcb224e3d7a57`. Resulting protected main: `7c5d6ca0cd93d7aeb5a7a1c97153ca187548c3fb`. REC-01 application acceptance PASS for the behavior actually exercised. Follow-ups #82–#88 are separate and must not reopen REC-01. This does **not** permanently alter `OWNERSHIP.md`.
+
+Historical lease (unchanged): Senior/user `@wbdevworld` authorizes reconciling merged CD-01 exact-SHA Preview main into existing REC-01 / PR #80 so Ben reviews current main plus REC-01, not obsolete `7e9da309...`. This does **not** permanently alter `OWNERSHIP.md`. CD-01 Preview infrastructure is already on protected main and is inherited here by a zero-overlap two-parent merge.
+
+```text
+human: @wbdevworld
+workstream: WS3
+mode: IMPLEMENT / INTEGRATE
+task: REC-01 — reconcile exact-SHA Preview main into immutable receipt snapshots
+branch: ws3/receipt-product-name-sku
+PR: #80
+previous REC-01 head: 7e9da309bddbccdabf41b8ba753351e8697041d9
+new main parent: c1f659ea118a885180fe6a543797efa908abf210
+merge-base before reconcile: c320be8c5ad41c190200381cd52f853dd95212dc
+independent reviewer: @Ben-001-sys
+Emmanuel / @Emmanuel-coder-prog: UNAVAILABLE; not requested; not a current-head gate
+allowed: two-parent merge of origin/main into this REC-01 branch; CURRENT-WORK / WS3 STATUS evidence; PR #80 reviewer packet
+forbidden:
+  changing REC-01 receipt/sales behavior
+  modifying Exact SHA Preview workflow
+  dispatching Exact SHA Preview
+  Woo/synthetic commercial sale
+  merging PR #80
+  production promotion
+  --prod
+  alias movement
+  live electronic payment
+  refund/restock
+  VitePOS cutover
+  requesting Emmanuel
+```
+
+Do not ask Ben to review obsolete `7e9da309...`. Request review only on the replacement exact head after CI-green qualification.
+
+## Temporary senior CD-01 exact-SHA Preview authority — MERGED / INHERITED
+
+Merged to protected main as `c1f659ea118a885180fe6a543797efa908abf210` (PR #81 squash, 2026-09-19T19:57:06Z). REC-01 / PR #80 is now also merged. Exact-SHA Preview infrastructure is accepted; dispatch remains a later authorized action and is not production promotion. This does **not** permanently alter `OWNERSHIP.md`.
+
+## Temporary senior CD-01 exact-SHA Preview authority — HISTORICAL (merged as c1f659ea)
+
+Senior/user `@wbdevworld` authorizes this bounded WS3 infrastructure/security extension so REC-01 can be qualified on an immutable Vercel Preview without merging the candidate. This does **not** permanently alter `OWNERSHIP.md`. Authority is task-specific and expires at CD-01 exact-SHA Preview merge/handoff or explicit senior close.
+
+This assignment is required because GitHub Actions Staging CD deploys only CI-green `main`, while unmerged same-repository candidates still need a trusted Preview path. Candidate source is never built in GitHub Actions with `VERCEL_TOKEN`; Vercel executes it remotely in Preview, so exact-head independent review remains required before any Vercel deployment request.
+
+```text
+human: @wbdevworld
+workstream: WS3
+mode: IMPLEMENT / INFRASTRUCTURE SECURITY REMEDIATION
+task: CD-01 exact-SHA immutable Preview deployment authority
+branch: ws3/exact-sha-preview
+issue: #64 (authorized extension of original main->staging CD; not a rewrite of historical evidence)
+PR: #81
+protected main: c320be8c5ad41c190200381cd52f853dd95212dc
+independent reviewer: @Ben-001-sys
+Emmanuel / @Emmanuel-coder-prog: UNAVAILABLE today; not a current action; not a same-day gate
+purpose: Provide a trusted protected-main workflow capable of deploying an independently reviewed, CI-green, same-repository exact PR SHA to immutable Vercel Preview without merging the candidate and without moving production/shared-staging aliases.
+allowed:
+  .github/workflows/deploy-exact-sha-preview.yml
+  scripts/exact_sha_preview.py
+  docs/runbooks/CD-01-STAGING-DEPLOYMENT.md
+  tests/tooling/**
+  CURRENT-WORK.md
+  docs/workstreams/WS-03-CORE-DATA-INTEGRATION/STATUS.md
+  issue #64 governance/scope record only
+forbidden:
+  PR #80 source
+  application feature/runtime implementation
+  WooCommerce bridge behavior
+  production promotion
+  production alias
+  shared staging alias movement
+  --prod
+  live electronic payment
+  refund/restock
+  VitePOS cutover
+  secret exposure
+  arbitrary unrelated CI/CD changes
+  self-merge
+review rule: repository policy remains one independent exact-head APPROVED review from an authorized repository reviewer who is not the PR author (GitHub required_approving_review_count=1; OWNERSHIP/ADR-014 senior-authored changes need a different competent human). Do not hard-code simultaneous Ben+Emmanuel approval.
+```
+
+Do not merge PR #81 from this assignment. Do not dispatch Preview until the replacement head is independently approved. Do not change PR #80 source.
+
+## Temporary senior STG-01 final review-fix — MERGED / CLOSED / HISTORICAL
+
+STG-01 / PR #77 was accepted onto protected main as `c320be8c5ad41c190200381cd52f853dd95212dc`. This lease is no longer current assignment authority. Later accepted main advances: CD-01 `c1f659ea118a885180fe6a543797efa908abf210`, REC-01 `7c5d6ca0cd93d7aeb5a7a1c97153ca187548c3fb`. Do not reuse.
+
+Historical lease (unchanged): Senior/user `@wbdevworld` authorizes Cursor working with the senior/user to make ONLY the minimum WS3 + WS2 changes required to resolve Ben's two exact review blockers on exact reviewed head `33d3748b525dfea2e4979e58e795516df27aa552`, directly on existing `batch/stg-01-staging-runtime-acceptance` / PR #77. This does **not** permanently alter `OWNERSHIP.md`. Authority expires at final review-fix handoff.
 
 ```text
 human: @wbdevworld
@@ -112,11 +237,48 @@ Closed on `ws1/ux-02-sell-demo-alignment` after the variable-parent advisory-pri
 
 ## Current authority
 
-- accepted `main`: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` — squash-merged `[R8] Safe returns and payment/register states (#69)`.
-- STG-01 candidate observed on `origin/batch/stg-01-staging-runtime-acceptance` at STG-06 freshness cutoff: `a02cd21875d0717adb6694d293b41575302b2415` (forward from previously recorded `4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897` by STG-02 route persistence + docs correction; this contributor branch already starts at that SHA).
-- STG-02 route persistence docs-corrected head: `a02cd21875d0717adb6694d293b41575302b2415` on `ws3/stg-02-route-session-persistence`. This STG-06 contributor branch starts exactly there.
-- Issue #4 remains OPEN; `pricingParityVerified=false`. Production promotion, live Paystack, real refund/restock and VitePOS deactivation are not authorized.
-- R9 PR #63 remains draft / must not merge while STG-01 is open.
+- accepted `main`: `c49045dd02c46574af5d341cc65c177116fa7306` — squash-merged `[R10 PREP] QA and release qualification framework` (PR #79). Source SHA `bb35b8790e1370bc1b0aed6f39fc73c92549019a`.
+- STG-01 accepted: PR #77 merged as `c320be8c5ad41c190200381cd52f853dd95212dc`.
+- exact-SHA Preview infrastructure accepted: PR #81 squash-merged as `c1f659ea118a885180fe6a543797efa908abf210`.
+- REC-01 accepted: source `6995e1c2324432e4cba234f6844bcb224e3d7a57`; resulting main at that time `7c5d6ca0cd93d7aeb5a7a1c97153ca187548c3fb`; application acceptance PASS only for the behavior actually exercised.
+- R10 Prep / PR #79: MERGED / PREPARATION COMPLETE. QA-01 / #29 remains OPEN. REL-01 / #30 remains OPEN. R10 GO/NO-GO remains NO-GO.
+- Next active task: PR #63 R9 reconciliation. Do not begin it in this closeout.
+- Follow-ups #82–#88 remain separate.
+- Issue #4 remains OPEN; `pricingParityVerified=false`.
+- Production remains unauthorized.
+- Live electronic payment, real refund/restock and VitePOS cutover remain independently gated.
+
+```text
+human: @wbdevworld
+workstream: WS3
+mode: CLOSEOUT
+task: R10 Prep — record PR #79 squash-merge and leave R9 / #63 as the next active task
+branch: ws3/r10-prep-close
+merged PR: #79
+source SHA: bb35b8790e1370bc1b0aed6f39fc73c92549019a
+resulting main: c49045dd02c46574af5d341cc65c177116fa7306
+independent reviewer of #79: @Ben-001-sys
+Emmanuel / @Emmanuel-coder-prog: UNAVAILABLE / NOT REQUESTED
+forbidden:
+  R9 / PR #63 source edits
+  #82–#88 implementation
+  production promotion
+  live electronic payment
+  refund/restock
+  VitePOS cutover
+  closing QA-01 #29
+  closing REL-01 #30
+```
+
+Do not modify PR #63 in this closeout. Do not implement R9 or #82–#88. Production remains unauthorized.
+
+## Historical STG-06 / R8 authority (retained, not current)
+
+- historical accepted `main` at that time: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` — squash-merged `[R8] Safe returns and payment/register states (#69)`.
+- STG-01 candidate observed on `origin/batch/stg-01-staging-runtime-acceptance` at STG-06 freshness cutoff: `a02cd21875d0717adb6694d293b41575302b2415` (forward from previously recorded `4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897` by STG-02 route persistence + docs correction; that contributor branch already started at that SHA).
+- STG-02 route persistence docs-corrected head: `a02cd21875d0717adb6694d293b41575302b2415` on `ws3/stg-02-route-session-persistence`. That STG-06 contributor branch started exactly there.
+- Issue #4 remained OPEN; `pricingParityVerified=false`. Production promotion, live Paystack, real refund/restock and VitePOS deactivation were not authorized.
+- R9 PR #63 remained draft / must not merge while STG-01 was still open.
 
 ```text
 human: @wbdevworld
@@ -129,16 +291,18 @@ allowed: apps/pos-web/src/server/**, apps/pos-web/src/core/**, apps/pos-web/src/
 forbidden: main, R9, WS1 feature/ui redesign, WS2 plugin, auth/CSRF/RLS weakening, CatalogItem.id = Woo ID, sourceItemId in Sell UI contracts, B2BKing/WoodMart pricing in BFF/frontend, new pos_catalog_items migration unless schema is insufficient
 ```
 
-Senior instruction 2026-09-18 authorizes this WS3 contributor branch from the exact SHA above. Do not modify `main`. Do not merge. Do not import/start R9. Review/merge remains independent human authority.
+Senior instruction 2026-09-18 authorized that WS3 contributor branch from the exact SHA above. It is not current assignment authority.
 
-## STG-01 recovery context (retained)
+## STG-01 recovery context (historical, retained)
 
-- latest successful shared staging for merged main remains historical; application-runtime acceptance is gated on STG-01 / #70 plus this live navigation fix.
-- CORE-06 / #25 and R6 / #54 remain reopened until isolated-staging runtime evidence exists.
-- STG-02 original composition branch `ws3/stg-02-session-runtime-composition` established real session/CSRF/register authority. This assignment does not rewrite that; it persists that runtime across App Router navigations.
+This snapshot records the pre-acceptance STG-01 recovery state. STG-01 / #70, CORE-06 / #25 and R6 / #54 were later accepted via PR #77 / main `c320be8c5ad41c190200381cd52f853dd95212dc` and are not current open recovery gates.
+
+- latest successful shared staging for merged main remains historical; application-runtime acceptance was gated on STG-01 / #70 plus this live navigation fix.
+- CORE-06 / #25 and R6 / #54 remained reopened until isolated-staging runtime evidence existed.
+- STG-02 original composition branch `ws3/stg-02-session-runtime-composition` established real session/CSRF/register authority. That assignment did not rewrite that; it persisted that runtime across App Router navigations.
 
 
-## Active STG-01 assignments
+## Historical STG-01 assignments (accepted; not current authority)
 
 ### WS3 / @wbdevworld
 

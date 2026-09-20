@@ -6,6 +6,13 @@ import type {
   Quote,
   ReceiptLine,
 } from "../../../../../docs/contracts/domain.generated";
+import { loadSalePresentation } from "../../core/receipt/build-receipt-line";
+import type { CatalogPresentationLookup } from "../../core/receipt/catalog-presentation";
+import {
+  buildPrepareIntentSnapshot,
+  prepareIntentMatchesRequest,
+  type PrepareIntentSnapshot,
+} from "../../core/receipt/prepare-intent";
 import { canonicalJson, sha256Hex } from "../../local/canonical";
 import { toIsoTimestamp } from "../auth/ids";
 import { apiFailure } from "../http/api-failure";
@@ -16,6 +23,7 @@ import { assertBindingMatchesPrepareRequest, assertSaleMatchesPrepareRequest } f
 export async function prepareSale(input: {
   readonly store: CheckoutStore;
   readonly salesPort: Pick<SalesPort, "prepare" | "resolve">;
+  readonly catalogLookup: CatalogPresentationLookup;
   readonly actor: StaffActor;
   readonly request: PrepareSaleRequest;
   readonly context: CommandContext;
@@ -91,9 +99,16 @@ export async function prepareSale(input: {
       return replayPrepared(claim.outcome, context.correlationId);
     }
 
-    await store.markIdempotencySent(actor.organizationId, "sale.prepare", context.idempotencyKey);
     try {
-      const result = await completePrepare({ store, salesPort, actor, request, context, now });
+      const result = await completePrepare({
+        store,
+        salesPort,
+        catalogLookup: input.catalogLookup,
+        actor,
+        request,
+        context,
+        now,
+      });
       if (!result.ok) {
         await store.releaseIdempotency(actor.organizationId, "sale.prepare", context.idempotencyKey);
         return result;
@@ -103,7 +118,14 @@ export async function prepareSale(input: {
     } catch {
       let recovered: ApiResult<PreparedSale> | undefined;
       try {
-        recovered = await recoverPrepared({ store, salesPort, actor, request, context, now });
+        recovered = await recoverPrepared({
+          store,
+          salesPort,
+          actor,
+          request,
+          context,
+          now,
+        });
       } catch {
         recovered = undefined;
       }
@@ -121,6 +143,9 @@ export async function prepareSale(input: {
           message: "Prepare result is unknown; resolve the existing transaction before retrying",
         },
       );
+      if (recovered && !recovered.ok && recovered.error.code === "REQUIRES_ATTENTION") {
+        return recovered;
+      }
       return apiFailure(
         "INTEGRATION_UNAVAILABLE",
         "prepare result is unknown; resolve the existing transaction before creating another order",
@@ -133,6 +158,7 @@ export async function prepareSale(input: {
 async function completePrepare(input: {
   readonly store: CheckoutStore;
   readonly salesPort: Pick<SalesPort, "prepare" | "resolve">;
+  readonly catalogLookup: CatalogPresentationLookup;
   readonly actor: StaffActor;
   readonly request: PrepareSaleRequest;
   readonly context: CommandContext;
@@ -164,6 +190,23 @@ async function completePrepare(input: {
     return scoped;
   }
   const quote = scoped.data.quote;
+  const intent = await loadOrBindPrepareIntent({
+    store: input.store,
+    catalogLookup: input.catalogLookup,
+    actor: input.actor,
+    request: input.request,
+    context: input.context,
+    quote,
+  });
+  if (!intent.ok) {
+    return intent;
+  }
+
+  await input.store.markIdempotencySent(
+    input.actor.organizationId,
+    "sale.prepare",
+    input.context.idempotencyKey,
+  );
 
   const commercial = await input.salesPort.prepare(input.request, input.context);
   if (!commercial.ok) {
@@ -185,6 +228,7 @@ async function completePrepare(input: {
     request: input.request,
     prepared: commercial.data,
     quote,
+    lines: intent.data.lines,
     context: input.context,
   });
 }
@@ -242,6 +286,23 @@ async function recoverPrepared(input: {
     return scoped;
   }
   const quote = scoped.data.quote;
+  const intent = await input.store.getPrepareIntent(
+    input.actor.organizationId,
+    "sale.prepare",
+    input.context.idempotencyKey,
+  );
+  if (!intent || !prepareIntentMatchesRequest({
+    intent,
+    quoteId: input.request.quoteId,
+    quoteFingerprint: input.request.quoteFingerprint,
+    transactionId: input.request.transactionId,
+  })) {
+    return apiFailure(
+      "REQUIRES_ATTENTION",
+      "durable sale-time presentation is missing for this prepare intent; current catalog cannot substitute",
+      input.context.correlationId,
+    );
+  }
   const prepared: PreparedSale = {
     transactionId: input.request.transactionId,
     saleId: resolved.data.saleId ?? `recovered-${input.request.transactionId.slice(0, 8)}`,
@@ -262,6 +323,7 @@ async function recoverPrepared(input: {
     request: input.request,
     prepared,
     quote,
+    lines: intent.lines,
     context: input.context,
   });
 }
@@ -310,12 +372,70 @@ async function assertPrepareScope(input: {
   return { ok: true, data: { quote }, correlationId: input.context.correlationId };
 }
 
+async function loadOrBindPrepareIntent(input: {
+  readonly store: CheckoutStore;
+  readonly catalogLookup: CatalogPresentationLookup;
+  readonly actor: StaffActor;
+  readonly request: PrepareSaleRequest;
+  readonly context: CommandContext;
+  readonly quote: Quote;
+}): Promise<ApiResult<PrepareIntentSnapshot>> {
+  const existing = await input.store.getPrepareIntent(
+    input.actor.organizationId,
+    "sale.prepare",
+    input.context.idempotencyKey,
+  );
+  if (existing) {
+    if (!prepareIntentMatchesRequest({
+      intent: existing,
+      quoteId: input.request.quoteId,
+      quoteFingerprint: input.request.quoteFingerprint,
+      transactionId: input.request.transactionId,
+    })) {
+      return apiFailure(
+        "REQUIRES_ATTENTION",
+        "durable prepare intent does not match this PrepareSaleRequest",
+        input.context.correlationId,
+      );
+    }
+    return { ok: true, data: existing, correlationId: input.context.correlationId };
+  }
+  const presentation = await loadSalePresentation({
+    catalogLookup: input.catalogLookup,
+    organizationId: input.actor.organizationId,
+    quote: input.quote,
+  });
+  if (!presentation.ok) {
+    return apiFailure("INTEGRATION_UNAVAILABLE", presentation.message, input.context.correlationId);
+  }
+  try {
+    const bound = await input.store.bindPrepareIntent(
+      input.actor.organizationId,
+      "sale.prepare",
+      input.context.idempotencyKey,
+      buildPrepareIntentSnapshot({
+        quote: input.quote,
+        transactionId: input.request.transactionId,
+        lines: presentation.lines,
+      }),
+    );
+    return { ok: true, data: bound, correlationId: input.context.correlationId };
+  } catch {
+    return apiFailure(
+      "INTEGRATION_UNAVAILABLE",
+      "prepare intent could not be persisted before the commercial sale",
+      input.context.correlationId,
+    );
+  }
+}
+
 async function persistPrepared(input: {
   readonly store: CheckoutStore;
   readonly actor: StaffActor;
   readonly request: PrepareSaleRequest;
   readonly prepared: PreparedSale;
   readonly quote: Quote;
+  readonly lines: readonly ReceiptLine[];
   readonly context: CommandContext;
 }): Promise<ApiResult<PreparedSale>> {
   const existing = await input.store.getSale(input.request.transactionId);
@@ -348,7 +468,7 @@ async function persistPrepared(input: {
     customer: input.quote.customer,
     customerLabel: customerLabel(input.quote),
     prepared: input.prepared,
-    lines: receiptLinesFromQuote(input.quote),
+    lines: input.lines,
     orderLines: input.quote.lines.map((line) => ({
       orderLineId: line.lineId,
       quantity: line.quantity,
@@ -363,19 +483,6 @@ async function persistPrepared(input: {
     tax: input.quote.tax,
   });
   return { ok: true, data: input.prepared, correlationId: input.context.correlationId };
-}
-
-export function receiptLinesFromQuote(quote: Quote): readonly ReceiptLine[] {
-  return quote.lines.map((line) => ({
-    name: line.productId,
-    ...(line.variationId ? { variationLabel: line.variationId } : {}),
-    quantity: line.quantity,
-    unitPrice: line.unitPrice,
-    subtotal: line.subtotal,
-    discount: line.discount,
-    tax: line.tax,
-    total: line.total,
-  }));
 }
 
 export function customerLabel(quote: Quote): string {

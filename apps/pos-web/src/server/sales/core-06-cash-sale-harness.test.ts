@@ -3,6 +3,8 @@ import type { Quote, QuoteRequest } from "../../../../../docs/contracts/domain.g
 import { STAFF_CSRF_COOKIE, STAFF_SESSION_COOKIE } from "../../config/auth";
 import { createInMemoryCheckoutStore } from "../../core/checkout/in-memory-store";
 import type { CheckoutStore } from "../../core/checkout/types";
+import { createMemoryCatalogPresentationLookup } from "../../core/receipt/catalog-presentation";
+import { createMemoryReceiptSettingsStore } from "../../core/receipt/settings-store";
 import { createMemoryAssignmentDirectory } from "../auth/assignments";
 import { createEphemeralInMemoryStaffSessionStore } from "../auth/session-store";
 import { createCashCheckoutController } from "../../features/sell/runtime/cashCheckoutController";
@@ -199,6 +201,10 @@ async function setupSale(customer: QuoteRequest["customer"] = { kind: "walkin" }
 }
 
 function headers(opened: { cookieHeader: string; sessionStore: Awaited<ReturnType<typeof staffCookies>>["store"] }) {
+  const catalogLookup = createMemoryCatalogPresentationLookup({
+    org_a: [{ id: "p-hardener", name: "Epoxy Hardener 1L", sku: "HDN-1L", kind: "simple" }],
+  });
+  const receiptSettings = createMemoryReceiptSettingsStore();
   return {
     correlationIdHeader: CORRELATION,
     origin: ORIGIN,
@@ -209,6 +215,8 @@ function headers(opened: { cookieHeader: string; sessionStore: Awaited<ReturnTyp
     sessionStore: opened.sessionStore,
     allowedOrigins: [ORIGIN],
     assignments: cashierAssignments(),
+    catalogLookup,
+    receiptSettings,
   };
 }
 
@@ -279,6 +287,10 @@ describe("CORE-06 combined cash-sale harness", () => {
     expect(receipt.body.data.total).toEqual(ghs(1500));
     expect(receipt.body.data.customerLabel).toBe("Walk-in");
     expect(receipt.body.data.documentKind).toBe("operational_pos_receipt");
+    expect(receipt.body.data.lines[0]?.name).toBe("Epoxy Hardener 1L");
+    expect(receipt.body.data.lines[0]?.displayName).toBe("Epoxy Hardener 1L");
+    expect(receipt.body.data.lines[0]?.sku).toBeUndefined();
+    expect(receipt.body.data.lines[0]?.name).not.toBe("p-hardener");
 
     const resolved = await handleResolveSale({
       ...env,
