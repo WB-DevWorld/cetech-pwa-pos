@@ -148,9 +148,7 @@ describe("UX-04 attention recovery identity", () => {
             correlationId: CORRELATION,
             data: {
               transactionId: TX,
-              status: "prepared",
-              saleId: "sale-reloaded",
-              orderReference: "ORDER-RELOADED",
+              status: "not_found",
             },
           }),
           { status: 200, headers: { "content-type": "application/json" } },
