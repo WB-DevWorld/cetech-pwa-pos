@@ -140,6 +140,57 @@ describe("R9 mounted checkout OperationJournal", () => {
     expect((await db.journal.get(KEY))?.status).toBe("acknowledged");
   });
 
+  test("resolved not-found sale acknowledges prepare and clears the tender lease", async () => {
+    const db = uniqueDb();
+    const journal = createOperationJournal(db);
+    let active = false;
+    const tenderActivity = {
+      async markActive() {
+        active = true;
+      },
+      async clear() {
+        active = false;
+      },
+    };
+
+    const ambiguousPorts = createBrowserCashCheckoutPorts({
+      fetchImpl: async () => {
+        throw new TypeError("simulated response loss");
+      },
+      scope: LOCAL_CHECKOUT_SCOPE,
+      journal,
+      tenderActivity,
+    });
+
+    await ambiguousPorts.checkout.prepare(
+      prepareInput(),
+      { idempotencyKey: KEY, correlationId: CORR },
+    );
+    expect(active).toBe(true);
+    expect((await journal.pending())[0]?.status).toBe("response_unknown");
+
+    const recoveryPorts = createBrowserCashCheckoutPorts({
+      fetchImpl: async () =>
+        new Response(
+          JSON.stringify({
+            ok: true,
+            correlationId: CORR,
+            data: { transactionId: TX, status: "not_found" },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      scope: LOCAL_CHECKOUT_SCOPE,
+      journal,
+      tenderActivity,
+    });
+
+    const resolution = await recoveryPorts.sales.resolve(TX);
+    expect(resolution.ok).toBe(true);
+    expect(await journal.pending()).toHaveLength(0);
+    expect((await db.journal.get(KEY))?.status).toBe("acknowledged");
+    expect(active).toBe(false);
+  });
+
   test("known prepare success is acknowledged and does not leave false pending work", async () => {
     const db = uniqueDb();
     const journal = createOperationJournal(db);
