@@ -254,6 +254,7 @@ export function PosRuntime({
     function onVisible() {
       if (document.visibilityState === "visible") {
         void runtime.refreshRegister();
+        void loadAttention("refresh");
       }
     }
     window.addEventListener("online", sync);
