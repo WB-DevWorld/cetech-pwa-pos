@@ -24,6 +24,7 @@ import {
   createCartDraftStore,
   createLocalCatalogPort,
   createLocalCustomerPort,
+  createOperationJournal,
   createTenderActivityPort,
   ensureCashierLocalSeed,
   ensureCatalogProjection,
@@ -238,6 +239,7 @@ export function PosRuntime({
         ? createBrowserCashCheckoutPorts({
             fetchImpl,
             scope,
+            journal: createOperationJournal(db),
             tenderActivity: createTenderActivityPort(db),
           })
         : null;
