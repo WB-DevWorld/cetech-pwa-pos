@@ -148,14 +148,31 @@ export function PosRuntime({
       markRequiresAttention: (...args) => currentJournal().markRequiresAttention(...args),
     };
   }, []);
+  const recoveryTenderActivity = useMemo(() => {
+    const currentTenderActivity = () => createTenderActivityPort(openPosLocalDatabase());
+    return {
+      markActive: (transactionId: string) => currentTenderActivity().markActive(transactionId),
+      clear: (transactionId: string) => currentTenderActivity().clear(transactionId),
+    };
+  }, []);
   const registerPort = useMemo(() => createBrowserRegisterPort({ fetchImpl }), [fetchImpl]);
   const paymentPort = useMemo(
-    () => createBrowserPaymentPort({ fetchImpl, journal: recoveryJournal }),
-    [fetchImpl, recoveryJournal],
+    () =>
+      createBrowserPaymentPort({
+        fetchImpl,
+        journal: recoveryJournal,
+        tenderActivity: recoveryTenderActivity,
+      }),
+    [fetchImpl, recoveryJournal, recoveryTenderActivity],
   );
   const salesPort = useMemo(
-    () => createBrowserSalesResolvePort({ fetchImpl, journal: recoveryJournal }),
-    [fetchImpl, recoveryJournal],
+    () =>
+      createBrowserSalesResolvePort({
+        fetchImpl,
+        journal: recoveryJournal,
+        tenderActivity: recoveryTenderActivity,
+      }),
+    [fetchImpl, recoveryJournal, recoveryTenderActivity],
   );
   const attentionRecoveryLock = useRef(createAttentionRecoveryLock());
   const [recoveringItemId, setRecoveringItemId] = useState<string | null>(null);
