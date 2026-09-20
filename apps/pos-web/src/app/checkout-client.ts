@@ -150,13 +150,18 @@ async function reconcileSaleJournal(
   if (!options.journal || !result.ok) {
     return;
   }
-  const rows = (await options.journal.pending()).filter(
-    (row) =>
-      row.transactionId === transactionId &&
-      (row.operation === "sale.prepare" ||
-        row.operation === "sale.finalize" ||
-        row.operation === "sale.cancel"),
-  );
+  let rows: ReadonlyArray<PendingOperation>;
+  try {
+    rows = (await options.journal.pending()).filter(
+      (row) =>
+        row.transactionId === transactionId &&
+        (row.operation === "sale.prepare" ||
+          row.operation === "sale.finalize" ||
+          row.operation === "sale.cancel"),
+    );
+  } catch {
+    return;
+  }
   for (const row of rows) {
     try {
       if (result.data.status === "requires_attention") {
@@ -181,11 +186,16 @@ async function reconcilePaymentJournal(
   if (!options.journal || !result.ok) {
     return;
   }
-  const rows = (await options.journal.pending()).filter(
-    (row) =>
-      row.transactionId === transactionId &&
-      (row.operation === "payment.initialize" || row.operation === "payment.cash"),
-  );
+  let rows: ReadonlyArray<PendingOperation>;
+  try {
+    rows = (await options.journal.pending()).filter(
+      (row) =>
+        row.transactionId === transactionId &&
+        (row.operation === "payment.initialize" || row.operation === "payment.cash"),
+    );
+  } catch {
+    return;
+  }
   for (const row of rows) {
     try {
       if (result.data.status === "requires_attention") {
@@ -363,7 +373,7 @@ export function createBrowserSalesResolvePort(options: BrowserCheckoutOptions = 
         options,
       );
       await reconcileSaleJournal(options, transactionId, result);
-      if (saleTerminal(result)) {
+      if (saleTerminal(result) || (result.ok && result.data.status === "not_found")) {
         await options.tenderActivity?.clear(transactionId);
       } else if (result.ok) {
         await options.tenderActivity?.markActive(transactionId);
