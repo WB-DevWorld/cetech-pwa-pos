@@ -1,15 +1,26 @@
 # WS3 current status
 
-Snapshot 2026-09-20. Protected `main` `c49045dd02c46574af5d341cc65c177116fa7306` (PR #79 / R10 Prep squash-merged). R10 Prep is MERGED / PREPARATION COMPLETE. QA-01 / #29 and REL-01 / #30 remain OPEN. Production remains unauthorized. Next active task is PR #63 R9 reconciliation; this closeout does not edit #63. This does not permanently alter OWNERSHIP.md.
+Snapshot 2026-09-20. Protected `main` `c49045dd02c46574af5d341cc65c177116fa7306` (PR #79 / R10 Prep squash-merged). R10 Prep is MERGED / PREPARATION COMPLETE. QA-01 / #29 and REL-01 / #30 remain OPEN. Production remains unauthorized. Current active task is PR #63 R9 reconciliation / runtime qualification. Closeout `cf78330f2c5f1b9b8d231aad5b7bdc9a24e2d731` is consumed as an R9 ancestry parent and is not separately merged to main. This does not permanently alter OWNERSHIP.md.
 
 ## Active contributor assignment (this checkout)
+
+Mode: RECONCILE / RUNTIME QUALIFICATION. Owner `@wbdevworld` / WS3.
+Task: R9 — PWA recovery, operational close, update safety and genuine installed-client evidence.
+Branch: `batch/r9-pwa-recovery-operational-close` / PR #63 (DRAFT).
+Previous R9 head: `5592c29ca5a74ca59d7684ccf1a376ae10b37a13`.
+Current main: `c49045dd02c46574af5d341cc65c177116fa7306`.
+R10 closeout consumed: `cf78330f2c5f1b9b8d231aad5b7bdc9a24e2d731`.
+Independent reviewer: `@Ben-001-sys`. `@Emmanuel-coder-prog` is UNAVAILABLE / NOT REQUESTED.
+Do not implement #82–#88. Do not close #29 or #30. Do not self-merge. Keep #63 DRAFT until installed-device gates pass.
+
+## Prior assignment (R10 Prep closeout, consumed into R9)
 
 Mode: CLOSEOUT. Owner `@wbdevworld` / WS3.
 Task: Record PR #79 squash-merge and leave R9 / #63 as the next active task.
 Branch: `ws3/r10-prep-close`.
 Merged PR: #79. Source SHA: `bb35b8790e1370bc1b0aed6f39fc73c92549019a`. Resulting main: `c49045dd02c46574af5d341cc65c177116fa7306`.
 Independent reviewer of #79: `@Ben-001-sys`. `@Emmanuel-coder-prog` is UNAVAILABLE / NOT REQUESTED.
-Do not edit PR #63. Do not implement R9 or #82–#88. Do not close #29 or #30.
+This closeout did not edit PR #63. R9 now consumes it as ancestry.
 
 ## Prior assignment (R10 Prep, merged / preparation complete)
 
@@ -63,7 +74,7 @@ Mounted routes: `/sell` `/orders` `/customers` `/returns` `/register` `/health` 
 
 Composition rule: mounted POS keeps STG-02 staff authority **and** STG-04 catalog authority. STG-04 contributor `CURRENT-WORK.md` was not accepted onto this integration ledger.
 
-Historical STG-05/Preview snapshot (not current assignment truth): STG-05 plugin is deployed on training Woo; authenticated bridge health/catalog/quote were verified (product 14985 equal 3000 GHS minor totals prove customer-context routing, not B2B parity). `BLOCKED_TRAINING_PLUGIN_NOT_DEPLOYED_STG05` is not current truth. Later STG-01 acceptance closed #70/#25/#54. Later REC-01 acceptance proved a controlled staging cash sale (order `49606` / receipt `POS-49606`) on exact immutable Preview. `pricingParityVerified=false`. CP-04 / issue #4 remains OPEN. Production remains unauthorized. R10 Prep is the current assignment and remains preparation only.
+Historical STG-05/Preview snapshot (not current assignment truth): STG-05 plugin is deployed on training Woo; authenticated bridge health/catalog/quote were verified (product 14985 equal 3000 GHS minor totals prove customer-context routing, not B2B parity). `BLOCKED_TRAINING_PLUGIN_NOT_DEPLOYED_STG05` is not current truth. Later STG-01 acceptance closed #70/#25/#54. Later REC-01 acceptance proved a controlled staging cash sale (order `49606` / receipt `POS-49606`) on exact immutable Preview. `pricingParityVerified=false`. CP-04 / issue #4 remains OPEN. Production remains unauthorized. R10 Prep is MERGED / PREPARATION COMPLETE. Current assignment is R9 / PR #63.
 
 ## R8 (historical / accepted on main)
 

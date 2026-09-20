@@ -2,7 +2,46 @@
 
 Updated 2026-09-20. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
 
-## Temporary senior R10 Prep reconciliation — MERGED / PREPARATION COMPLETE
+## Temporary senior R9 reconciliation — ACTIVE
+
+Senior/user `@wbdevworld` authorizes reconciling accepted protected main plus the unmerged R10 post-merge ledger closeout into existing R9 / PR #63 so the candidate inherits current truth without merging `ws3/r10-prep-close` to protected main first. This does **not** permanently alter `OWNERSHIP.md`. Historical R10 closeout evidence below remains retained.
+
+```text
+human: @wbdevworld
+workstream: WS3
+mode: RECONCILE / RUNTIME QUALIFICATION
+task: R9 — PWA recovery, operational close, update safety and genuine installed-client evidence
+branch: batch/r9-pwa-recovery-operational-close
+PR: #63
+previous R9 head: 5592c29ca5a74ca59d7684ccf1a376ae10b37a13
+current main: c49045dd02c46574af5d341cc65c177116fa7306
+R10 closeout consumed: cf78330f2c5f1b9b8d231aad5b7bdc9a24e2d731
+independent reviewer: @Ben-001-sys
+Emmanuel: UNAVAILABLE / NOT A CURRENT REVIEW ACTION
+allowed:
+  existing R9 runtime scope
+  semantic reconciliation with accepted main
+  R9 migrations/tests
+  PWA/update/recovery/device evidence
+  operational-close/Z evidence
+  directly relevant WS3 CURRENT-WORK/STATUS/HANDOFF/evidence
+  PR #63 description/evidence
+forbidden:
+  #82–#88 implementation
+  REC-01 redesign
+  R10 implementation expansion
+  Woo pricing authority changes
+  live electronic payment
+  real refund/restock
+  production promotion
+  VitePOS cutover
+  self-merge
+  requesting Emmanuel
+```
+
+Keep PR #63 DRAFT until genuine installed-client / reconnect / multi-tab / operational-close runtime evidence exists. Do not ask Ben for final milestone approval yet. A source review may be requested after the candidate is frozen.
+
+## Temporary senior R10 Prep reconciliation — MERGED / PREPARATION COMPLETE / CONSUMED INTO R9
 
 PR #79 squash-merged 2026-09-20T13:11:06Z. Source SHA: `bb35b8790e1370bc1b0aed6f39fc73c92549019a`. Resulting protected main: `c49045dd02c46574af5d341cc65c177116fa7306`. Ben / `@Ben-001-sys` APPROVED that exact head. This is qualification **preparation** only. QA-01 / #29 and REL-01 / #30 remain OPEN. R10 GO/NO-GO remains NO-GO. Production remains unauthorized. Follow-ups #82–#88 remain separate. Next active task is PR #63 R9 reconciliation; do not start it in this closeout. This does **not** permanently alter `OWNERSHIP.md`.
 
@@ -242,11 +281,30 @@ Closed on `ws1/ux-02-sell-demo-alignment` after the variable-parent advisory-pri
 - exact-SHA Preview infrastructure accepted: PR #81 squash-merged as `c1f659ea118a885180fe6a543797efa908abf210`.
 - REC-01 accepted: source `6995e1c2324432e4cba234f6844bcb224e3d7a57`; resulting main at that time `7c5d6ca0cd93d7aeb5a7a1c97153ca187548c3fb`; application acceptance PASS only for the behavior actually exercised.
 - R10 Prep / PR #79: MERGED / PREPARATION COMPLETE. QA-01 / #29 remains OPEN. REL-01 / #30 remains OPEN. R10 GO/NO-GO remains NO-GO.
-- Next active task: PR #63 R9 reconciliation. Do not begin it in this closeout.
-- Follow-ups #82–#88 remain separate.
+- R10 post-merge ledger closeout `cf78330f2c5f1b9b8d231aad5b7bdc9a24e2d731` is consumed as an R9 ancestry parent. It is not separately merged to protected main.
+- Current active task: PR #63 R9 reconciliation / runtime qualification on `batch/r9-pwa-recovery-operational-close`.
+- Follow-ups #82–#88 remain separate and are not started here.
 - Issue #4 remains OPEN; `pricingParityVerified=false`.
 - Production remains unauthorized.
 - Live electronic payment, real refund/restock and VitePOS cutover remain independently gated.
+
+```text
+human: @wbdevworld
+workstream: WS3
+mode: RECONCILE / RUNTIME QUALIFICATION
+task: R9 — PWA recovery, operational close, update safety and genuine installed-client evidence
+branch: batch/r9-pwa-recovery-operational-close
+PR: #63
+previous R9 head: 5592c29ca5a74ca59d7684ccf1a376ae10b37a13
+current main: c49045dd02c46574af5d341cc65c177116fa7306
+R10 closeout consumed: cf78330f2c5f1b9b8d231aad5b7bdc9a24e2d731
+independent reviewer: @Ben-001-sys
+Emmanuel: UNAVAILABLE / NOT A CURRENT REVIEW ACTION
+```
+
+Do not implement #82–#88. Do not promote production. Keep PR #63 DRAFT until installed-device gates pass.
+
+## Historical R10 Prep closeout lease (consumed; not current authority)
 
 ```text
 human: @wbdevworld
@@ -270,7 +328,7 @@ forbidden:
   closing REL-01 #30
 ```
 
-Do not modify PR #63 in this closeout. Do not implement R9 or #82–#88. Production remains unauthorized.
+This historical closeout did not modify PR #63. It is now consumed as R9 ancestry; R9 is the current assignment.
 
 ## Historical STG-06 / R8 authority (retained, not current)
 
