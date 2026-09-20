@@ -177,14 +177,15 @@ describe("UX-04 attention recovery identity", () => {
   });
 
   test("local payment recovery checks payment then sale using the persisted transaction identity", async () => {
-    const {
-      paymentId: _paymentId,
-      transactionReference: _paymentReference,
-      ...paymentRecoveryBase
-    } = paymentItem;
     const localPayment: AttentionItemView = {
-      ...paymentRecoveryBase,
       id: "local-journal:payment-op",
+      title: paymentItem.title,
+      summary: paymentItem.summary,
+      typeLabel: paymentItem.typeLabel,
+      severity: paymentItem.severity,
+      transactionId: TX,
+      resolveAllowed: true,
+      recoverKind: "payment",
     };
     const paymentResolve = vi.fn(async () => paymentOk("verified"));
     const salesResolve = vi.fn(async () => saleOk("completed"));
@@ -200,10 +201,15 @@ describe("UX-04 attention recovery identity", () => {
   });
 
   test("local recovery identity wins when server attention overlaps the same transaction", () => {
-    const { transactionReference: _saleReference, ...saleRecoveryBase } = saleItem;
     const localSale: AttentionItemView = {
-      ...saleRecoveryBase,
       id: "local-journal:sale-op",
+      title: saleItem.title,
+      summary: saleItem.summary,
+      typeLabel: saleItem.typeLabel,
+      severity: saleItem.severity,
+      transactionId: TX,
+      resolveAllowed: true,
+      recoverKind: "sale",
     };
     const merged = mergeAttentionItems([saleItem], [localSale], []);
     expect(merged).toHaveLength(1);
