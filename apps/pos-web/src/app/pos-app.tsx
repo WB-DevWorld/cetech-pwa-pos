@@ -128,9 +128,19 @@ export function PosRuntime({
     [],
   );
 
+  const recoveryJournal = useMemo(
+    () => createOperationJournal(openPosLocalDatabase()),
+    [],
+  );
   const registerPort = useMemo(() => createBrowserRegisterPort({ fetchImpl }), [fetchImpl]);
-  const paymentPort = useMemo(() => createBrowserPaymentPort({ fetchImpl }), [fetchImpl]);
-  const salesPort = useMemo(() => createBrowserSalesResolvePort({ fetchImpl }), [fetchImpl]);
+  const paymentPort = useMemo(
+    () => createBrowserPaymentPort({ fetchImpl, journal: recoveryJournal }),
+    [fetchImpl, recoveryJournal],
+  );
+  const salesPort = useMemo(
+    () => createBrowserSalesResolvePort({ fetchImpl, journal: recoveryJournal }),
+    [fetchImpl, recoveryJournal],
+  );
   const attentionRecoveryLock = useRef(createAttentionRecoveryLock());
   const [recoveringItemId, setRecoveringItemId] = useState<string | null>(null);
   const runtime = useMemo<StaffRuntimeController>(
