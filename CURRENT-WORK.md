@@ -2,9 +2,11 @@
 
 Updated 2026-09-20. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
 
-## Temporary senior R10 Prep reconciliation — ACTIVE
+## Temporary senior R10 Prep reconciliation — MERGED / PREPARATION COMPLETE
 
-Senior/user `@wbdevworld` authorizes reconciling accepted REC-01 main into existing R10 Prep / PR #79 so Ben reviews current main plus the QA/release qualification framework, not obsolete `1399a8fac...`. This does **not** permanently alter `OWNERSHIP.md`. REC-01 application source and CD-01 exact-SHA Preview infrastructure are already on protected main and are inherited here by a zero-overlap two-parent merge.
+PR #79 squash-merged 2026-09-20T13:11:06Z. Source SHA: `bb35b8790e1370bc1b0aed6f39fc73c92549019a`. Resulting protected main: `c49045dd02c46574af5d341cc65c177116fa7306`. Ben / `@Ben-001-sys` APPROVED that exact head. This is qualification **preparation** only. QA-01 / #29 and REL-01 / #30 remain OPEN. R10 GO/NO-GO remains NO-GO. Production remains unauthorized. Follow-ups #82–#88 remain separate. Next active task is PR #63 R9 reconciliation; do not start it in this closeout. This does **not** permanently alter `OWNERSHIP.md`.
+
+Historical lease (unchanged): Senior/user `@wbdevworld` authorizes reconciling accepted REC-01 main into existing R10 Prep / PR #79 so Ben reviews current main plus the QA/release qualification framework, not obsolete `1399a8fac...`. This does **not** permanently alter `OWNERSHIP.md`. REC-01 application source and CD-01 exact-SHA Preview infrastructure are already on protected main and are inherited here by a zero-overlap two-parent merge.
 
 ```text
 human: @wbdevworld
@@ -36,7 +38,7 @@ forbidden:
   requesting Emmanuel
 ```
 
-Do not ask Ben to review obsolete `1399a8fac...`. Request review only on the replacement exact head after CI-green qualification. Do not merge PR #79 from this assignment.
+Do not ask Ben to review obsolete `1399a8fac...`. Request review only on the replacement exact head after CI-green qualification. Do not merge PR #79 from this assignment. This historical instruction is closed by the squash merge above.
 
 ## Temporary senior REC-01 main-reconciliation — MERGED / CLOSED
 
@@ -235,13 +237,13 @@ Closed on `ws1/ux-02-sell-demo-alignment` after the variable-parent advisory-pri
 
 ## Current authority
 
-- accepted `main`: `7c5d6ca0cd93d7aeb5a7a1c97153ca187548c3fb` — squash-merged `[REC-01] Persist immutable sale-time receipt product names and SKUs` (PR #80).
+- accepted `main`: `c49045dd02c46574af5d341cc65c177116fa7306` — squash-merged `[R10 PREP] QA and release qualification framework` (PR #79). Source SHA `bb35b8790e1370bc1b0aed6f39fc73c92549019a`.
 - STG-01 accepted: PR #77 merged as `c320be8c5ad41c190200381cd52f853dd95212dc`.
 - exact-SHA Preview infrastructure accepted: PR #81 squash-merged as `c1f659ea118a885180fe6a543797efa908abf210`.
-- REC-01 accepted: source `6995e1c2324432e4cba234f6844bcb224e3d7a57`; resulting main `7c5d6ca0cd93d7aeb5a7a1c97153ca187548c3fb`; application acceptance PASS only for the behavior actually exercised.
-- Active immediate assignment: R10 Prep / PR #79 on `ws3/r10-qa-release-preparation` (preparation only; do not close QA-01 / #29 or REL-01 / #30).
-- R9 / PR #63 remains later and still requires installed-device/PWA evidence. Do not begin #63 reconciliation in this assignment.
-- Follow-ups #82–#88 are separate; do not implement them in #79.
+- REC-01 accepted: source `6995e1c2324432e4cba234f6844bcb224e3d7a57`; resulting main at that time `7c5d6ca0cd93d7aeb5a7a1c97153ca187548c3fb`; application acceptance PASS only for the behavior actually exercised.
+- R10 Prep / PR #79: MERGED / PREPARATION COMPLETE. QA-01 / #29 remains OPEN. REL-01 / #30 remains OPEN. R10 GO/NO-GO remains NO-GO.
+- Next active task: PR #63 R9 reconciliation. Do not begin it in this closeout.
+- Follow-ups #82–#88 remain separate.
 - Issue #4 remains OPEN; `pricingParityVerified=false`.
 - Production remains unauthorized.
 - Live electronic payment, real refund/restock and VitePOS cutover remain independently gated.
@@ -249,17 +251,26 @@ Closed on `ws1/ux-02-sell-demo-alignment` after the variable-parent advisory-pri
 ```text
 human: @wbdevworld
 workstream: WS3
-mode: RECONCILE / QUALIFICATION PREPARATION
-task: R10 Prep — reconcile QA/release qualification framework onto accepted REC-01 main
-branch: ws3/r10-qa-release-preparation
-PR: #79
-previous head: 1399a8fac4c7b4b77fe436ccda1c88893a072101
-new main parent: 7c5d6ca0cd93d7aeb5a7a1c97153ca187548c3fb
-independent reviewer: @Ben-001-sys
-Emmanuel / @Emmanuel-coder-prog: UNAVAILABLE / NOT A CURRENT REVIEW ACTION
+mode: CLOSEOUT
+task: R10 Prep — record PR #79 squash-merge and leave R9 / #63 as the next active task
+branch: ws3/r10-prep-close
+merged PR: #79
+source SHA: bb35b8790e1370bc1b0aed6f39fc73c92549019a
+resulting main: c49045dd02c46574af5d341cc65c177116fa7306
+independent reviewer of #79: @Ben-001-sys
+Emmanuel / @Emmanuel-coder-prog: UNAVAILABLE / NOT REQUESTED
+forbidden:
+  R9 / PR #63 source edits
+  #82–#88 implementation
+  production promotion
+  live electronic payment
+  refund/restock
+  VitePOS cutover
+  closing QA-01 #29
+  closing REL-01 #30
 ```
 
-Do not merge PR #79. Do not modify protected `main` directly. Do not implement R9 or #82–#88. Review/merge remains independent human authority.
+Do not modify PR #63 in this closeout. Do not implement R9 or #82–#88. Production remains unauthorized.
 
 ## Historical STG-06 / R8 authority (retained, not current)
 

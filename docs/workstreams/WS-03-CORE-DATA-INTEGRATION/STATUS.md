@@ -1,17 +1,24 @@
 # WS3 current status
 
-Snapshot 2026-09-20. Protected `main` `7c5d6ca0cd93d7aeb5a7a1c97153ca187548c3fb` (PR #80 / REC-01 merged). Controlling assignment for this checkout is R10 Prep reconciliation in CURRENT-WORK.md. This does not permanently alter OWNERSHIP.md.
+Snapshot 2026-09-20. Protected `main` `c49045dd02c46574af5d341cc65c177116fa7306` (PR #79 / R10 Prep squash-merged). R10 Prep is MERGED / PREPARATION COMPLETE. QA-01 / #29 and REL-01 / #30 remain OPEN. Production remains unauthorized. Next active task is PR #63 R9 reconciliation; this closeout does not edit #63. This does not permanently alter OWNERSHIP.md.
 
 ## Active contributor assignment (this checkout)
 
+Mode: CLOSEOUT. Owner `@wbdevworld` / WS3.
+Task: Record PR #79 squash-merge and leave R9 / #63 as the next active task.
+Branch: `ws3/r10-prep-close`.
+Merged PR: #79. Source SHA: `bb35b8790e1370bc1b0aed6f39fc73c92549019a`. Resulting main: `c49045dd02c46574af5d341cc65c177116fa7306`.
+Independent reviewer of #79: `@Ben-001-sys`. `@Emmanuel-coder-prog` is UNAVAILABLE / NOT REQUESTED.
+Do not edit PR #63. Do not implement R9 or #82–#88. Do not close #29 or #30.
+
+## Prior assignment (R10 Prep, merged / preparation complete)
+
 Mode: RECONCILE / QUALIFICATION PREPARATION. Owner `@wbdevworld` / WS3.
 Task: R10 Prep — reconcile QA/release qualification framework onto accepted REC-01 main.
-Branch: `ws3/r10-qa-release-preparation` / PR #79.
-Previous #79 head: `1399a8fac4c7b4b77fe436ccda1c88893a072101`.
-New main parent: `7c5d6ca0cd93d7aeb5a7a1c97153ca187548c3fb`.
-Zero changed-file overlap with merged PR #80 and PR #81; R10 Prep files are inherited unchanged by the two-parent merge.
-Independent reviewer: `@Ben-001-sys` on the replacement exact head. Do not review obsolete `1399a8fac...`. `@Emmanuel-coder-prog` is UNAVAILABLE / NOT A CURRENT REVIEW ACTION.
-Do not merge #79. Do not implement R9 or #82–#88. Do not change REC-01 source. Production remains unauthorized.
+Branch: `ws3/r10-qa-release-preparation` / PR #79, squash-merged as `c49045dd02c46574af5d341cc65c177116fa7306`.
+Source SHA: `bb35b8790e1370bc1b0aed6f39fc73c92549019a`.
+Main CI: `35512758174` SUCCESS (Linux `control-plane` + Windows `control-plane-windows`).
+Staging CD: `35512916881` SUCCESS — immutable URL `https://cetech-pos-staging-fgzk1bb00-wbdevworlds-projects.vercel.app`. Ordinary staging delivery is not R9 evidence.
 
 ## Prior assignment (REC-01, merged / closed)
 
