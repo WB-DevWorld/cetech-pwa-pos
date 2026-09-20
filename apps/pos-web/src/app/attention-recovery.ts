@@ -66,16 +66,17 @@ export function mergeAttentionItems(
   localItems: readonly AttentionItemView[],
   extras: readonly AttentionItemView[],
 ): readonly AttentionItemView[] {
-  const next: AttentionItemView[] = [...serverItems];
-  for (const local of localItems) {
+  const next: AttentionItemView[] = [...localItems];
+  for (const server of serverItems) {
     const duplicate = next.some(
       (item) =>
         Boolean(item.transactionId) &&
-        item.transactionId === local.transactionId &&
-        item.recoverKind === local.recoverKind &&
-        item.resolveAllowed,
+        item.transactionId === server.transactionId &&
+        item.recoverKind === server.recoverKind &&
+        item.resolveAllowed &&
+        server.resolveAllowed,
     );
-    if (!duplicate) next.push(local);
+    if (!duplicate) next.push(server);
   }
   next.push(...extras);
   return next;
