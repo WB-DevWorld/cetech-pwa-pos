@@ -41,6 +41,8 @@ forbidden:
 
 Keep PR #63 DRAFT until genuine installed-client / reconnect / multi-tab / operational-close runtime evidence exists. Do not ask Ben for final milestone approval yet. A source review may be requested after the candidate is frozen.
 
+Ben / `@Ben-001-sys` submitted CHANGES_REQUESTED on exact head `51c2c9bf0148d04113090565585fad3a4c7c2371`. The current slice is a bounded review-fix of SHA `BUILD_ID` minimum-version deadlock only. Do not start installed-device evidence until Ben confirms the source fix. Do not request Emmanuel.
+
 ## Temporary senior R10 Prep reconciliation — MERGED / PREPARATION COMPLETE / CONSUMED INTO R9
 
 PR #79 squash-merged 2026-09-20T13:11:06Z. Source SHA: `bb35b8790e1370bc1b0aed6f39fc73c92549019a`. Resulting protected main: `c49045dd02c46574af5d341cc65c177116fa7306`. Ben / `@Ben-001-sys` APPROVED that exact head. This is qualification **preparation** only. QA-01 / #29 and REL-01 / #30 remain OPEN. R10 GO/NO-GO remains NO-GO. Production remains unauthorized. Follow-ups #82–#88 remain separate. Next active task is PR #63 R9 reconciliation; do not start it in this closeout. This does **not** permanently alter `OWNERSHIP.md`.

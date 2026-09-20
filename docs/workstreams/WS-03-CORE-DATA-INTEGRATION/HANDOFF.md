@@ -1,4 +1,48 @@
-# WS3 current handoff — R9 / PR #63 reconcile onto accepted main + R10 closeout
+# WS3 current handoff — R9 / PR #63 Ben review-fix: SHA minimum-version deadlock
+
+Kind: PROGRESS_CHECKPOINT. Date: 2026-09-20.
+
+Task / batch / workstream: R9 review-fix / WS3.
+Owner / integration editor: `@wbdevworld` / WS3.
+Requested human reviewer: `@Ben-001-sys` re-review of the replacement exact head. Emmanuel / `@Emmanuel-coder-prog`: UNAVAILABLE / NOT REQUESTED.
+Mode: IMPLEMENT (review-fix).
+Branch: `batch/r9-pwa-recovery-operational-close` / PR #63 (DRAFT).
+Previous reviewed head: `51c2c9bf0148d04113090565585fad3a4c7c2371` (CHANGES_REQUESTED).
+Final task head SHA: record from `git rev-parse HEAD` after this evidence commit; do not embed it here.
+
+Allowed: existing R9 PWA/update safety comparison semantics and tests; CURRENT-WORK/STATUS/HANDOFF; PR #63 description.
+Forbidden: #82–#88; R9 redesign; installed-device evidence; frozen-contract churn; production; Emmanuel request; self-merge.
+
+Contracts changed: none. Database migrations: none. Architecture decisions: none.
+
+## Blocker and remediation
+
+Ben HIGH: default SHA `BUILD_ID` deployments set `latestBuild = recommendedBuild = minimumSupportedBuild = B_SHA`. `compareBuildIds()` treated opaque inequality as older, so `UNSUPPORTED_APP_VERSION` deadlocked `activateWaitingUpdate()`.
+
+Remediation: keep advertised-build discovery (`shouldDiscoverAdvertisedWorker` / `compareBuildIds`) so A SHA can discover B SHA. Minimum enforcement uses `isBelowMinimumSupportedBuild`, which requires genuinely orderable numeric/dotted versions. 40-character Git SHAs are opaque identities, not version numbers. Frozen `ReleasePolicy` shape unchanged.
+
+## Local qualification (before this evidence commit)
+
+- focused release-policy / PWA lifecycle / mounted / R9 suites: PASS
+- `python scripts/verify_control_plane.py`: PASS
+- tooling: 72 PASS
+- lint / typecheck: PASS
+- Vitest: 130 files / 985 tests PASS
+- production build: PASS
+- Playwright E2E: 15 passed
+- `git diff --check`: PASS
+- `supabase.exe` reset + pgTAP: 10 files / 224 PASS
+
+Installed-device A→B evidence: NOT STARTED.
+#82–#88: NOT STARTED.
+Production authorized: NO.
+Next exact action: push, require fresh Linux/Windows CI, keep DRAFT, request Ben re-review. Do not start device evidence until Ben confirms the source fix.
+
+Pass 3: NOT PERMITTED for this assignment.
+
+---
+
+# WS3 previous handoff — R9 / PR #63 reconcile onto accepted main + R10 closeout
 
 Kind: PROGRESS_CHECKPOINT. Date: 2026-09-20.
 

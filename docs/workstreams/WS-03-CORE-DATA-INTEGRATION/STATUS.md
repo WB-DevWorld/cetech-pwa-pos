@@ -10,8 +10,8 @@ Branch: `batch/r9-pwa-recovery-operational-close` / PR #63 (DRAFT).
 Previous R9 head: `5592c29ca5a74ca59d7684ccf1a376ae10b37a13`.
 Current main: `c49045dd02c46574af5d341cc65c177116fa7306`.
 R10 closeout consumed: `cf78330f2c5f1b9b8d231aad5b7bdc9a24e2d731`.
-Independent reviewer: `@Ben-001-sys`. `@Emmanuel-coder-prog` is UNAVAILABLE / NOT REQUESTED.
-Do not implement #82–#88. Do not close #29 or #30. Do not self-merge. Keep #63 DRAFT until installed-device gates pass.
+Independent reviewer: `@Ben-001-sys` CHANGES_REQUESTED on `51c2c9bf...` (SHA BUILD_ID minimum-version deadlock). Current slice is that bounded review-fix. `@Emmanuel-coder-prog` is UNAVAILABLE / NOT REQUESTED.
+Do not implement #82–#88. Do not close #29 or #30. Do not self-merge. Keep #63 DRAFT. Do not start installed-device evidence until Ben confirms the source fix.
 
 ## Prior assignment (R10 Prep closeout, consumed into R9)
 

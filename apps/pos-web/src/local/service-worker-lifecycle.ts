@@ -2,7 +2,7 @@ import type { ReleasePolicy } from "../../../../docs/contracts/domain.generated"
 import {
   acquireLifecycleLease,
   assessUpdateActivation,
-  compareBuildIds,
+  shouldDiscoverAdvertisedWorker,
   type UpdateActivationDecision,
   type UpdateSafetySnapshot,
 } from "./pwa-lifecycle";
@@ -108,7 +108,7 @@ export function createServiceWorkerLifecycle(
   }
 
   function targetWorkerUrl(policy: ReleasePolicy | null): string {
-    if (policy && compareBuildIds(options.appBuild, policy.latestBuild) < 0) {
+    if (policy && shouldDiscoverAdvertisedWorker(options.appBuild, policy.latestBuild)) {
       return serviceWorkerUrlForBuild(policy.latestBuild);
     }
     return options.workerUrl ?? serviceWorkerUrlForBuild(options.appBuild);

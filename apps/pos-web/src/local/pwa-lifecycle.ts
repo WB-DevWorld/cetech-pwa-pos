@@ -47,7 +47,7 @@ export function assessUpdateActivation(snapshot: UpdateSafetySnapshot): UpdateAc
   }
   if (
     snapshot.releasePolicy &&
-    compareBuildIds(snapshot.appBuild, snapshot.releasePolicy.minimumSupportedBuild) < 0
+    isBelowMinimumSupportedBuild(snapshot.appBuild, snapshot.releasePolicy.minimumSupportedBuild)
   ) {
     reasons.push("UNSUPPORTED_APP_VERSION");
   }
@@ -55,23 +55,27 @@ export function assessUpdateActivation(snapshot: UpdateSafetySnapshot): UpdateAc
   return reasons.length === 0 ? { safe: true } : { safe: false, reasons };
 }
 
-/**
- * Build IDs are compared as dot-separated non-negative integer sequences when possible.
- * Unknown formats compare conservatively by exact equality only.
- */
-export function compareBuildIds(left: string, right: string): number {
-  if (left === right) {
-    return 0;
+const GIT_SHA1_BUILD_IDENTITY = /^[0-9a-f]{40}$/i;
+
+function isOpaqueBuildIdentity(value: string): boolean {
+  return GIT_SHA1_BUILD_IDENTITY.test(value);
+}
+
+function parseOrderableAppVersion(value: string): ReadonlyArray<number> | null {
+  if (isOpaqueBuildIdentity(value)) {
+    return null;
   }
-  const leftParts = parseNumericBuild(left);
-  const rightParts = parseNumericBuild(right);
-  if (!leftParts || !rightParts) {
-    return -1;
+  if (!/^\d+(?:\.\d+)*$/.test(value)) {
+    return null;
   }
-  const length = Math.max(leftParts.length, rightParts.length);
+  return value.split(".").map((part) => Number(part));
+}
+
+function compareOrderableAppVersions(left: ReadonlyArray<number>, right: ReadonlyArray<number>): number {
+  const length = Math.max(left.length, right.length);
   for (let index = 0; index < length; index += 1) {
-    const a = leftParts[index] ?? 0;
-    const b = rightParts[index] ?? 0;
+    const a = left[index] ?? 0;
+    const b = right[index] ?? 0;
     if (a !== b) {
       return a > b ? 1 : -1;
     }
@@ -79,11 +83,57 @@ export function compareBuildIds(left: string, right: string): number {
   return 0;
 }
 
-function parseNumericBuild(value: string): ReadonlyArray<number> | null {
-  if (!/^\d+(?:\.\d+)*$/.test(value)) {
-    return null;
+/**
+ * Advertised-build identity comparison for release discovery.
+ * This is not minimum-supported-version ordering.
+ *
+ * Equal IDs are the same advertised identity. Genuinely orderable numeric/dotted
+ * app versions compare numerically so an older running app can discover a newer
+ * advertised worker. Opaque identities (including 40-character Git SHAs) are not
+ * version numbers: inequality is reported as negative so installed A can discover
+ * advertised B. That does not mean A is below a compatibility minimum.
+ */
+export function compareBuildIds(left: string, right: string): number {
+  if (left === right) {
+    return 0;
   }
-  return value.split(".").map((part) => Number(part));
+  const leftParts = parseOrderableAppVersion(left);
+  const rightParts = parseOrderableAppVersion(right);
+  if (!leftParts || !rightParts) {
+    return -1;
+  }
+  return compareOrderableAppVersions(leftParts, rightParts);
+}
+
+/**
+ * True when the running identity is a different advertised release that the
+ * client should discover without loading the new application bundle first.
+ * Opaque SHA inequality is sufficient. Orderable versions discover only a
+ * numerically newer advertised identity.
+ */
+export function shouldDiscoverAdvertisedWorker(
+  runningBuild: string,
+  advertisedLatestBuild: string,
+): boolean {
+  return compareBuildIds(runningBuild, advertisedLatestBuild) < 0;
+}
+
+/**
+ * Minimum-compatibility decision. Returns true only when `running` is proven
+ * older than `minimum` under orderable numeric/dotted version semantics.
+ * Equal IDs are never below minimum. Opaque/non-orderable identifiers, including
+ * Git SHAs, never imply UNSUPPORTED_APP_VERSION merely because they differ.
+ */
+export function isBelowMinimumSupportedBuild(running: string, minimum: string): boolean {
+  if (running === minimum) {
+    return false;
+  }
+  const runningParts = parseOrderableAppVersion(running);
+  const minimumParts = parseOrderableAppVersion(minimum);
+  if (!runningParts || !minimumParts) {
+    return false;
+  }
+  return compareOrderableAppVersions(runningParts, minimumParts) < 0;
 }
 
 const LIFECYCLE_LEASE_KEY = "pwa.lifecycle.leader";

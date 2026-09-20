@@ -1,9 +1,11 @@
+import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import type { ReleasePolicy } from "../../../../docs/contracts/domain.generated";
 import { createServiceWorkerLifecycle } from "./service-worker-lifecycle";
 import { RELEASE_POLICY_PATH, serviceWorkerUrlForBuild } from "./release-policy-client";
 import type { UpdateSafetySnapshot } from "./pwa-lifecycle";
+import { deletePosLocalDatabase } from "./pos-local-db";
 
 const workerSource = readFileSync(new URL("../../public/sw.js", import.meta.url), "utf8");
 const lifecycleSource = readFileSync(new URL("./service-worker-lifecycle.ts", import.meta.url), "utf8");
@@ -20,6 +22,16 @@ const POLICY_B: ReleasePolicy = {
   latestBuild: "1.0.1",
   recommendedBuild: "1.0.1",
   minimumSupportedBuild: "1.0.0",
+  minimumApiVersion: "1.0.0",
+  minimumLocalSchema: 4,
+};
+
+const A_SHA = "1111111111111111111111111111111111111111";
+const B_SHA = "2222222222222222222222222222222222222222";
+const SHA_POLICY_B: ReleasePolicy = {
+  latestBuild: B_SHA,
+  recommendedBuild: B_SHA,
+  minimumSupportedBuild: B_SHA,
   minimumApiVersion: "1.0.0",
   minimumLocalSchema: 4,
 };
@@ -109,9 +121,10 @@ function installBrowserFakes() {
   return { register, registrations, documentListeners, windowListeners, visibility };
 }
 
-afterEach(() => {
+afterEach(async () => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
+  await deletePosLocalDatabase();
 });
 
 describe("CORE-07 service worker safety invariants", () => {
@@ -127,6 +140,7 @@ describe("CORE-07 service worker safety invariants", () => {
   });
 
   test("each release can register a build-specific worker and cache namespace", () => {
+    expect(lifecycleSource).toContain("shouldDiscoverAdvertisedWorker");
     expect(lifecycleSource).toContain("serviceWorkerUrlForBuild(policy.latestBuild)");
     expect(lifecycleSource).toContain("navigator.serviceWorker.register(workerUrl");
     expect(workerSource).toContain('WORKER_URL.searchParams.get("build")');
@@ -183,6 +197,60 @@ describe("installed build A discovers deployed build B", () => {
     expect(fakes.register).not.toHaveBeenCalledWith("/sw.js?build=1.0.0", expect.anything());
     expect(lifecycle.discoveredWorkerUrl()).toBe("/sw.js?build=1.0.1");
     expect(onUpdateReady).toHaveBeenCalled();
+    expect(fakes.registrations[0]?.waiting?.postMessage).not.toHaveBeenCalled();
+  });
+
+  test("exact SHA A→B discovery stays safe and activates the waiting B worker", async () => {
+    const fakes = installBrowserFakes();
+    const onUpdateReady = vi.fn();
+    const lifecycle = createServiceWorkerLifecycle({
+      ownerId: "tab-sha-a",
+      appBuild: A_SHA,
+      fetchReleasePolicy: async () => SHA_POLICY_B,
+      getSafetySnapshot: () => snapshot({ appBuild: A_SHA, releasePolicy: SHA_POLICY_B }),
+      onUpdateReady,
+    });
+
+    await lifecycle.start();
+
+    expect(fakes.register).toHaveBeenCalledWith(`/sw.js?build=${B_SHA}`, { scope: "/" });
+    expect(lifecycle.discoveredWorkerUrl()).toBe(`/sw.js?build=${B_SHA}`);
+    expect(onUpdateReady).toHaveBeenCalled();
+    expect(fakes.registrations[0]?.waiting).toBeTruthy();
+
+    const decision = await lifecycle.activationDecision();
+    expect(decision).toEqual({ safe: true });
+    expect(JSON.stringify(decision)).not.toContain("UNSUPPORTED_APP_VERSION");
+
+    const activation = await lifecycle.activateWaitingUpdate();
+    expect(activation).toEqual({ safe: true });
+    expect(fakes.registrations[0]?.waiting?.postMessage).toHaveBeenCalledWith({
+      type: "CORE07_ACTIVATE_WAITING_UPDATE",
+    });
+  });
+
+  test("orderable unsupported versions still block waiting-worker activation", async () => {
+    const fakes = installBrowserFakes();
+    const policy: ReleasePolicy = {
+      latestBuild: "1.5.0",
+      recommendedBuild: "1.5.0",
+      minimumSupportedBuild: "1.4.0",
+      minimumApiVersion: "1.0.0",
+      minimumLocalSchema: 4,
+    };
+    const lifecycle = createServiceWorkerLifecycle({
+      ownerId: "tab-unsupported",
+      appBuild: "1.3.9",
+      fetchReleasePolicy: async () => policy,
+      getSafetySnapshot: () => snapshot({ appBuild: "1.3.9", releasePolicy: policy }),
+      onUpdateReady: () => undefined,
+    });
+
+    await lifecycle.start();
+    const decision = await lifecycle.activateWaitingUpdate();
+
+    expect(fakes.register).toHaveBeenCalledWith("/sw.js?build=1.5.0", { scope: "/" });
+    expect(decision).toEqual({ safe: false, reasons: ["UNSUPPORTED_APP_VERSION"] });
     expect(fakes.registrations[0]?.waiting?.postMessage).not.toHaveBeenCalled();
   });
 

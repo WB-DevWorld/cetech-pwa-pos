@@ -4,8 +4,10 @@ import {
   acquireLifecycleLease,
   assessUpdateActivation,
   compareBuildIds,
+  isBelowMinimumSupportedBuild,
   releaseLifecycleLease,
   renewLifecycleLease,
+  shouldDiscoverAdvertisedWorker,
 } from "./pwa-lifecycle";
 import { deletePosLocalDatabase, openPosLocalDatabase } from "./pos-local-db";
 
@@ -58,7 +60,7 @@ describe("CORE-07 update activation safety", () => {
     });
   });
 
-  test("marks builds below release policy minimum as unsupported", () => {
+  test("marks orderable builds below the release-policy minimum as unsupported", () => {
     const decision = assessUpdateActivation({
       activeTender: false,
       criticalOperationCount: 0,
@@ -77,11 +79,77 @@ describe("CORE-07 update activation safety", () => {
     expect(decision).toEqual({ safe: false, reasons: ["UNSUPPORTED_APP_VERSION"] });
   });
 
-  test("numeric build comparison is deterministic and unknown formats fail conservatively", () => {
+  test("equal or newer orderable versions are not below minimum", () => {
+    const base = {
+      activeTender: false,
+      criticalOperationCount: 0,
+      syncMutationInProgress: false,
+      localMigrationInProgress: false,
+      activeWindow: true,
+      releasePolicy: {
+        latestBuild: "1.5.0",
+        recommendedBuild: "1.5.0",
+        minimumSupportedBuild: "1.4.0",
+        minimumApiVersion: "1.0.0",
+        minimumLocalSchema: 4,
+      },
+    } as const;
+    expect(assessUpdateActivation({ ...base, appBuild: "1.4.0" })).toEqual({ safe: true });
+    expect(assessUpdateActivation({ ...base, appBuild: "1.5.0" })).toEqual({ safe: true });
+  });
+
+  test("opaque Git SHA inequality does not mark the running app unsupported", () => {
+    const running = "1111111111111111111111111111111111111111";
+    const advertised = "2222222222222222222222222222222222222222";
+    const decision = assessUpdateActivation({
+      activeTender: false,
+      criticalOperationCount: 0,
+      syncMutationInProgress: false,
+      localMigrationInProgress: false,
+      activeWindow: true,
+      appBuild: running,
+      releasePolicy: {
+        latestBuild: advertised,
+        recommendedBuild: advertised,
+        minimumSupportedBuild: advertised,
+        minimumApiVersion: "1.0.0",
+        minimumLocalSchema: 4,
+      },
+    });
+    expect(decision).toEqual({ safe: true });
+    expect(decision).not.toEqual({ safe: false, reasons: ["UNSUPPORTED_APP_VERSION"] });
+  });
+
+  test("advertised-build discovery is not minimum-version ordering", () => {
     expect(compareBuildIds("1.10.0", "1.9.9")).toBe(1);
     expect(compareBuildIds("1.0", "1.0.0")).toBe(0);
     expect(compareBuildIds("build-a", "build-a")).toBe(0);
     expect(compareBuildIds("build-b", "build-a")).toBe(-1);
+    expect(
+      compareBuildIds(
+        "1111111111111111111111111111111111111111",
+        "2222222222222222222222222222222222222222",
+      ),
+    ).toBe(-1);
+    expect(
+      shouldDiscoverAdvertisedWorker(
+        "1111111111111111111111111111111111111111",
+        "2222222222222222222222222222222222222222",
+      ),
+    ).toBe(true);
+  });
+
+  test("minimum compatibility requires orderable versions and never infers SHA inequality", () => {
+    expect(isBelowMinimumSupportedBuild("1.3.9", "1.4.0")).toBe(true);
+    expect(isBelowMinimumSupportedBuild("1.4.0", "1.4.0")).toBe(false);
+    expect(isBelowMinimumSupportedBuild("1.5.0", "1.4.0")).toBe(false);
+    expect(
+      isBelowMinimumSupportedBuild(
+        "1111111111111111111111111111111111111111",
+        "2222222222222222222222222222222222222222",
+      ),
+    ).toBe(false);
+    expect(isBelowMinimumSupportedBuild("build-b", "build-a")).toBe(false);
   });
 });
 
