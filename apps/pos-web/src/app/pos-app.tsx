@@ -129,7 +129,7 @@ export function PosRuntime({
   );
 
   const recoveryJournal = useMemo(
-    () => createOperationJournal(openPosLocalDatabase()),
+    () => (typeof window === "undefined" ? undefined : createOperationJournal(openPosLocalDatabase())),
     [],
   );
   const registerPort = useMemo(() => createBrowserRegisterPort({ fetchImpl }), [fetchImpl]);
