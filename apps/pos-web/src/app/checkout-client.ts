@@ -285,7 +285,9 @@ export function createBrowserCheckoutUseCases(options: BrowserCheckoutOptions = 
         options,
         input,
         { operation: "sale.prepare", transactionId: input.transactionId },
-        async () => options.tenderActivity?.markActive(input.transactionId),
+        async () => {
+          await options.tenderActivity?.markActive(input.transactionId);
+        },
       );
       if (!result.ok && result.error.nextAction !== "resolve") {
         await options.tenderActivity?.clear(input.transactionId);
