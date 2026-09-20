@@ -73,6 +73,9 @@ describe("R9 tender activity on current checkout composition", () => {
       { idempotencyKey: KEY, correlationId: CORR },
     );
     expect(active).toBe(true);
+    expect(events.indexOf(`active:${TX}`)).toBeLessThan(
+      events.indexOf("fetch:/api/pos/v1/sales/prepare"),
+    );
     expect(assessUpdateActivation({
       activeTender: active,
       criticalOperationCount: 0,
