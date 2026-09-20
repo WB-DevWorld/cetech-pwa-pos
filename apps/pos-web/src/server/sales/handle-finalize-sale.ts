@@ -6,6 +6,8 @@ import { apiFailure } from "../http/api-failure";
 import type { StaffSessionStore } from "../auth/session-store";
 import { httpStatusFor } from "../http/status";
 import type { CheckoutStore } from "../../core/checkout/types";
+import type { ReceiptSettingsStore } from "../../core/receipt/settings-store";
+import { createMemoryReceiptSettingsStore } from "../../core/receipt/settings-store";
 import { authorizeCheckoutMutation, mutationProtectionFrom } from "./authorize-checkout";
 import { finalizeSale } from "./finalize-sale";
 import { guardStaffCommand, type CommandHttpHeaders } from "./guard-staff-command";
@@ -24,6 +26,7 @@ export type HandleFinalizeSaleInput = {
   readonly allowedOrigins: readonly string[];
   readonly checkoutStore: CheckoutStore;
   readonly salesPort: Pick<SalesPort, "confirmPayment">;
+  readonly receiptSettings?: ReceiptSettingsStore;
   readonly assignments: StaffAssignmentDirectory;
 };
 
@@ -79,6 +82,7 @@ export async function handleFinalizeSale(input: HandleFinalizeSaleInput): Promis
   const result = await finalizeSale({
     store: input.checkoutStore,
     salesPort: input.salesPort,
+    receiptSettings: input.receiptSettings ?? createMemoryReceiptSettingsStore(),
     actor: guard.session,
     request: input.body,
     context: { idempotencyKey: guard.idempotencyKey, correlationId: guard.correlationId },

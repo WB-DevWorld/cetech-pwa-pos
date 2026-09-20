@@ -4,7 +4,7 @@
   "transactionId": "11111111-1111-4111-8111-111111111401",
   "saleId": "woo-rt01",
   "economicsVersion": "0123456789abcdef0123456789abcdef",
-  "fingerprint": "6df564818dbad836b17124638099b1d44ddb98040718df0554ecda4f7e49a14a",
+  "fingerprint": "86eedd7ee49f6fa6a1e05e4009d01c2962d4b0420b59e40077c9567a5b1aa7e4",
   "lines": [
     {
       "orderLineId": "cccccccc-cccc-4ccc-8ccc-cccccccccc01",

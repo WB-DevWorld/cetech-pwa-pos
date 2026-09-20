@@ -2,6 +2,89 @@
 
 Updated 2026-09-19. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
 
+## Temporary senior REC-01 main-reconciliation — ACTIVE
+
+Senior/user `@wbdevworld` authorizes reconciling merged CD-01 exact-SHA Preview main into existing REC-01 / PR #80 so Ben reviews current main plus REC-01, not obsolete `7e9da309...`. This does **not** permanently alter `OWNERSHIP.md`. CD-01 Preview infrastructure is already on protected main and is inherited here by a zero-overlap two-parent merge.
+
+```text
+human: @wbdevworld
+workstream: WS3
+mode: IMPLEMENT / INTEGRATE
+task: REC-01 — reconcile exact-SHA Preview main into immutable receipt snapshots
+branch: ws3/receipt-product-name-sku
+PR: #80
+previous REC-01 head: 7e9da309bddbccdabf41b8ba753351e8697041d9
+new main parent: c1f659ea118a885180fe6a543797efa908abf210
+merge-base before reconcile: c320be8c5ad41c190200381cd52f853dd95212dc
+independent reviewer: @Ben-001-sys
+Emmanuel / @Emmanuel-coder-prog: UNAVAILABLE; not requested; not a current-head gate
+allowed: two-parent merge of origin/main into this REC-01 branch; CURRENT-WORK / WS3 STATUS evidence; PR #80 reviewer packet
+forbidden:
+  changing REC-01 receipt/sales behavior
+  modifying Exact SHA Preview workflow
+  dispatching Exact SHA Preview
+  Woo/synthetic commercial sale
+  merging PR #80
+  production promotion
+  --prod
+  alias movement
+  live electronic payment
+  refund/restock
+  VitePOS cutover
+  requesting Emmanuel
+```
+
+Do not ask Ben to review obsolete `7e9da309...`. Request review only on the replacement exact head after CI-green qualification.
+
+## Temporary senior CD-01 exact-SHA Preview authority — MERGED / INHERITED
+
+Merged to protected main as `c1f659ea118a885180fe6a543797efa908abf210` (PR #81 squash, 2026-09-19T19:57:06Z). Preview dispatch remains a later authorized action after Ben exact-head approval of the reconciled REC-01 SHA. This does **not** permanently alter `OWNERSHIP.md`.
+
+## Temporary senior CD-01 exact-SHA Preview authority — HISTORICAL (merged as c1f659ea)
+
+Senior/user `@wbdevworld` authorizes this bounded WS3 infrastructure/security extension so REC-01 can be qualified on an immutable Vercel Preview without merging the candidate. This does **not** permanently alter `OWNERSHIP.md`. Authority is task-specific and expires at CD-01 exact-SHA Preview merge/handoff or explicit senior close.
+
+This assignment is required because GitHub Actions Staging CD deploys only CI-green `main`, while unmerged same-repository candidates still need a trusted Preview path. Candidate source is never built in GitHub Actions with `VERCEL_TOKEN`; Vercel executes it remotely in Preview, so exact-head independent review remains required before any Vercel deployment request.
+
+```text
+human: @wbdevworld
+workstream: WS3
+mode: IMPLEMENT / INFRASTRUCTURE SECURITY REMEDIATION
+task: CD-01 exact-SHA immutable Preview deployment authority
+branch: ws3/exact-sha-preview
+issue: #64 (authorized extension of original main->staging CD; not a rewrite of historical evidence)
+PR: #81
+protected main: c320be8c5ad41c190200381cd52f853dd95212dc
+independent reviewer: @Ben-001-sys
+Emmanuel / @Emmanuel-coder-prog: UNAVAILABLE today; not a current action; not a same-day gate
+purpose: Provide a trusted protected-main workflow capable of deploying an independently reviewed, CI-green, same-repository exact PR SHA to immutable Vercel Preview without merging the candidate and without moving production/shared-staging aliases.
+allowed:
+  .github/workflows/deploy-exact-sha-preview.yml
+  scripts/exact_sha_preview.py
+  docs/runbooks/CD-01-STAGING-DEPLOYMENT.md
+  tests/tooling/**
+  CURRENT-WORK.md
+  docs/workstreams/WS-03-CORE-DATA-INTEGRATION/STATUS.md
+  issue #64 governance/scope record only
+forbidden:
+  PR #80 source
+  application feature/runtime implementation
+  WooCommerce bridge behavior
+  production promotion
+  production alias
+  shared staging alias movement
+  --prod
+  live electronic payment
+  refund/restock
+  VitePOS cutover
+  secret exposure
+  arbitrary unrelated CI/CD changes
+  self-merge
+review rule: repository policy remains one independent exact-head APPROVED review from an authorized repository reviewer who is not the PR author (GitHub required_approving_review_count=1; OWNERSHIP/ADR-014 senior-authored changes need a different competent human). Do not hard-code simultaneous Ben+Emmanuel approval.
+```
+
+Do not merge PR #81 from this assignment. Do not dispatch Preview until the replacement head is independently approved. Do not change PR #80 source.
+
 ## Temporary senior STG-01 final review-fix — ACTIVE
 
 Senior/user `@wbdevworld` authorizes Cursor working with the senior/user to make ONLY the minimum WS3 + WS2 changes required to resolve Ben's two exact review blockers on exact reviewed head `33d3748b525dfea2e4979e58e795516df27aa552`, directly on existing `batch/stg-01-staging-runtime-acceptance` / PR #77. This does **not** permanently alter `OWNERSHIP.md`. Authority expires at final review-fix handoff.

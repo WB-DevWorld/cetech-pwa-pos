@@ -219,6 +219,107 @@ CD-01 deploys only accepted `main`. Do not expose GitHub/Vercel deployment crede
 
 Provider-managed PR previews may be reconsidered later with an explicit safe-credentials model; they are not required for the shared staging deployment.
 
+## Exact SHA Preview (manual)
+
+Use this only when an immutable Vercel Preview of a CI-green candidate SHA is required **without** merging that candidate to `main` and **without** moving the shared staging alias.
+
+Automatic Vercel Git previews may be disabled while GitHub Actions owns shared staging. That does **not** by itself prove a targeted Git-source deployment is impossible. Vercel can still create a Preview from a Git commit SHA when the project remains linked to `WB-DevWorld/cetech-pwa-pos`:
+
+- Dashboard: Project → Deployments → Create Deployment → commit SHA
+- REST: `POST /v13/deployments` with `gitSource.type=github` and the exact `sha`, omitting `target` so the deployment is Preview
+
+Do not change Vercel Git settings merely to test that path. Do not use a local `vercel build --token` of unmerged candidate code: that executes candidate build scripts in a process that holds the deployment credential.
+
+The trusted workflow is `.github/workflows/deploy-exact-sha-preview.yml` plus `scripts/exact_sha_preview.py` on protected `main`. `workflow_dispatch` is the invocation method. Do not add `pull_request_target`. Do not dispatch from a contributor branch.
+
+Inputs:
+
+- `candidate_sha` (required): full 40-character commit SHA
+- `pr_number` (required): open same-repository PR whose **current** head must equal `candidate_sha`
+
+### Credential boundary
+
+- Candidate source is **never** checked out or built in GitHub Actions with `VERCEL_TOKEN`. The Actions runner holds the Vercel credential only for HTTPS calls to Vercel and authenticated `vercel curl` smoke.
+- Candidate source **is** executed remotely by Vercel after a Git-source Preview request. Vercel may expose the project's Preview environment variables, including sensitive Preview variables, to that unmerged candidate build/runtime.
+- Therefore CI-green plus same-repository is **not** sufficient authorization. Exact-head independent source review is required before any `POST /v13/deployments`.
+- Preview remains non-production. The job does **not** pass `--prod`, does **not** assign a production alias, does **not** move the shared staging alias, and does **not** authorize live payment, refund, or restock.
+- Do not print, enumerate, or retrieve secret **values**. Policy is enforced by workflow/script behavior, not by dumping environment contents.
+
+### Exact-head review authorization
+
+Before the workflow calls Vercel `POST /v13/deployments`, it fetches PR reviews and requires **one** independent exact-head `APPROVED` review.
+
+Canonical repository rule (not a same-day availability hack):
+
+- Protected `main` requires `required_approving_review_count: 1` and dismisses stale reviews.
+- OWNERSHIP / ADR-014: senior-authored changes need a different competent human; the PR author cannot self-approve.
+- Authorized repository reviewers are the verified humans in OWNERSHIP.md: `Ben-001-sys`, `Emmanuel-coder-prog`, and `wbdevworld`.
+- Any one of those logins may satisfy the Preview gate **except** the current PR author.
+- Simultaneous named approval from both developers is **not** repository policy and is not required by this workflow.
+
+Rules:
+
+- Only the latest effective `APPROVED` / `CHANGES_REQUESTED` review from that login on the **current** SHA counts.
+- Approvals on older SHAs do not count.
+- Older `CHANGES_REQUESTED` reviews on older SHAs do not block a later exact-head `APPROVED`.
+- A later exact-head `CHANGES_REQUESTED` from that reviewer supersedes their exact-head `APPROVED`. If no other independent exact-head approval remains, the gate fails.
+- Unrelated GitHub users do not count.
+- If the independent exact-head approval is absent, the job stops with `REVIEW_AUTHORIZATION_REQUIRED` before any Vercel deployment request. The summary does not print review bodies or secrets.
+
+Temporary reviewer unavailability does not change this durable rule and does not weaken branch protection.
+
+### Source approval is not merge authorization
+
+Exact-head approval of a candidate SHA is permission for **that reviewed source** to enter the credentialed Preview build/runtime so immutable Preview acceptance can proceed.
+
+It is **not** final merge authorization. Independently of this workflow, a candidate such as REC-01 / PR #80 remains blocked by:
+
+- immutable Preview runtime acceptance;
+- REC-01 receipt / finalize / reprint acceptance;
+- any acceptance failure;
+- repository merge protections.
+
+Ben or Emmanuel may therefore approve the exact source SHA before Preview execution while the PR remains explicitly non-mergeable operationally until runtime evidence passes. One independent exact-head approval is sufficient under repository policy; both are not required.
+
+### BUILD_ID truthfulness
+
+The trusted request supplies `BUILD_ID=<candidate_sha>` as a **request assertion**. Vercel Git metadata proving the Git source SHA is separate from observing the running application.
+
+Summary language:
+
+- Git source SHA: **VERIFIED** from Vercel deployment metadata.
+- BUILD_ID request: **VERIFIED** that the trusted deployment request supplied the candidate SHA.
+- Running application BUILD_ID: **PENDING RUNTIME VERIFICATION** until a later authenticated or otherwise safe application observation reports it.
+
+Do not emit `DEPLOYED_PREVIEW` language that implies the running app BUILD_ID was verified unless that value has actually been observed. Do not add a public diagnostic endpoint on a candidate PR merely to satisfy this workflow. If an existing authenticated or safe endpoint can truthfully report the running build ID, later REC-01 acceptance may use it.
+
+The job:
+
+1. refuses to run unless the dispatch ref is `main` in `WB-DevWorld/cetech-pwa-pos`;
+2. checks out the trusted dispatch SHA (`github.sha` / main), never the candidate SHA;
+3. verifies the candidate SHA exists in this repository;
+4. requires an open PR whose head and base repositories are exactly `WB-DevWorld/cetech-pwa-pos` and whose current head equals `candidate_sha` (forks are rejected);
+5. verifies required jobs `control-plane` and `control-plane-windows` succeeded on a GitHub Actions workflow run of `.github/workflows/ci.yml` named `CI` for that SHA, not merely any check run using those names;
+6. requires **one** independent exact-head `APPROVED` review from an authorized repository reviewer who is not the PR author, then **stops with `REVIEW_AUTHORIZATION_REQUIRED` before any Vercel deployment request** if that approval is missing;
+7. uses GitHub environment `staging` secrets only inside the runner for HTTPS calls to Vercel (`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`);
+8. confirms the existing Vercel project is Git-linked to `WB-DevWorld/cetech-pwa-pos`;
+9. creates a Vercel Preview with `POST /v13/deployments` from that Git source and `BUILD_ID=<candidate_sha>` (no `target`, no `--prod`, no production/staging alias assignment);
+10. polls until `READY` or `ERROR`;
+11. proves Preview target and Git source SHA, records the BUILD_ID **request** as verified, leaves running-app BUILD_ID pending, and proves protected production aliases were not assigned;
+12. smokes `/` on the immutable URL with authenticated `vercel curl`.
+
+If the Vercel project is not Git-linked, or the Git-source API cannot address the exact SHA, the job stops with `GIT_SOURCE_UNAVAILABLE`. It does **not** fall back to checking out candidate code or running `vercel build --token`.
+
+It does **not** assign a production alias, does **not** pass `--prod`, and does **not** consume or move `VERCEL_STAGING_ALIAS`. It uses a distinct concurrency group so it cannot cancel shared Staging CD.
+
+After this workflow exists on `main`, an authorized operator may dispatch it **only after** the exact-head review gate is satisfied. Example for an open PR candidate:
+
+```text
+gh workflow run "Exact SHA Preview" --ref main -f candidate_sha=<40-char-sha> -f pr_number=<n>
+```
+
+Merging this workflow to `main` will itself cause ordinary Staging CD of that merge SHA. That is not a preview of an unmerged candidate. Production promotion, live electronic payment, refund/restock, and VitePOS cutover remain unauthorized.
+
 ## Production remains separate
 
 Production promotion should later be implemented as a separate release workflow with all of the following:

@@ -1,24 +1,35 @@
 import { createInMemoryCheckoutStore } from "../../core/checkout/in-memory-store";
 import type { CheckoutStore, FaultInjectingCheckoutStore } from "../../core/checkout/types";
+import { createMemoryCatalogPresentationLookup } from "../../core/receipt/catalog-presentation";
+import type { CatalogPresentationLookup } from "../../core/receipt/catalog-presentation";
+import { createMemoryReceiptSettingsStore } from "../../core/receipt/settings-store";
+import type { ReceiptSettingsStore } from "../../core/receipt/settings-store";
 import type { SalesPort } from "../../../../../docs/contracts/ports";
 import { readSupabaseInfrastructureEnv } from "../../config/env";
+import { createSupabaseCatalogPresentationLookup } from "../catalog/presentation-lookup";
 import type { PosRestFetch } from "../http/server-fetch";
+import { createSupabaseReceiptSettingsStore } from "../receipt/settings-store";
 import { composeSalesBridge } from "./compose-sales-bridge";
 import { createMockSalesPort, createQuoteSnapshotSalesPort, type MockSalesPort } from "./mock-sales-port";
 import { createSupabaseCheckoutStore } from "./supabase-checkout-store";
 
 export type CheckoutSalesPort = Pick<SalesPort, "prepare" | "resolve" | "confirmPayment" | "cancel">;
 
+export type CheckoutPresentationRuntime = {
+  readonly catalogLookup: CatalogPresentationLookup;
+  readonly receiptSettings: ReceiptSettingsStore;
+};
+
 export type CheckoutRuntime = {
   readonly store: FaultInjectingCheckoutStore;
   readonly salesPort: MockSalesPort;
-};
+} & CheckoutPresentationRuntime;
 
 let processMemoryRuntime:
   | {
       readonly store: CheckoutStore;
       readonly salesPort: CheckoutSalesPort;
-    }
+    } & CheckoutPresentationRuntime
   | undefined;
 
 export function assertEphemeralCheckoutStoreAllowed(
@@ -34,6 +45,32 @@ export function createCheckoutRuntime(): CheckoutRuntime {
   return {
     store: createInMemoryCheckoutStore(),
     salesPort: createMockSalesPort(),
+    catalogLookup: createMemoryCatalogPresentationLookup(),
+    receiptSettings: createMemoryReceiptSettingsStore(),
+  };
+}
+
+function presentationFor(
+  infrastructure: { readonly url: string; readonly serviceRoleKey: string } | undefined,
+  fetchImpl: PosRestFetch | undefined,
+): CheckoutPresentationRuntime {
+  if (infrastructure && fetchImpl) {
+    return {
+      catalogLookup: createSupabaseCatalogPresentationLookup({
+        url: infrastructure.url,
+        serviceRoleKey: infrastructure.serviceRoleKey,
+        fetchImpl,
+      }),
+      receiptSettings: createSupabaseReceiptSettingsStore({
+        url: infrastructure.url,
+        serviceRoleKey: infrastructure.serviceRoleKey,
+        fetchImpl,
+      }),
+    };
+  }
+  return {
+    catalogLookup: createMemoryCatalogPresentationLookup(),
+    receiptSettings: createMemoryReceiptSettingsStore(),
   };
 }
 
@@ -57,7 +94,7 @@ export function composeCheckoutRuntime(
 ): {
   readonly store: CheckoutStore;
   readonly salesPort: CheckoutSalesPort;
-} {
+} & CheckoutPresentationRuntime {
   const appEnv = env.APP_ENV ?? "local";
   const infrastructure = readSupabaseInfrastructureEnv(env);
   if (appEnv === "production" || appEnv === "staging") {
@@ -69,7 +106,11 @@ export function composeCheckoutRuntime(
       serviceRoleKey: infrastructure.serviceRoleKey,
       fetchImpl,
     });
-    return { store, salesPort: salesPortFor(env, store, fetchImpl) };
+    return {
+      store,
+      salesPort: salesPortFor(env, store, fetchImpl),
+      ...presentationFor(infrastructure, fetchImpl),
+    };
   }
   if (infrastructure && fetchImpl) {
     const store = createSupabaseCheckoutStore({
@@ -77,18 +118,30 @@ export function composeCheckoutRuntime(
       serviceRoleKey: infrastructure.serviceRoleKey,
       fetchImpl,
     });
-    return { store, salesPort: salesPortFor(env, store, fetchImpl) };
+    return {
+      store,
+      salesPort: salesPortFor(env, store, fetchImpl),
+      ...presentationFor(infrastructure, fetchImpl),
+    };
   }
   assertEphemeralCheckoutStoreAllowed(env);
   if (env === process.env) {
     processMemoryRuntime ??= (() => {
       const store = createInMemoryCheckoutStore();
-      return { store, salesPort: salesPortFor(env, store, fetchImpl) };
+      return {
+        store,
+        salesPort: salesPortFor(env, store, fetchImpl),
+        ...presentationFor(undefined, fetchImpl),
+      };
     })();
     return processMemoryRuntime;
   }
   const store = createInMemoryCheckoutStore();
-  return { store, salesPort: salesPortFor(env, store, fetchImpl) };
+  return {
+    store,
+    salesPort: salesPortFor(env, store, fetchImpl),
+    ...presentationFor(undefined, fetchImpl),
+  };
 }
 
 export type { MockSalesPort };
