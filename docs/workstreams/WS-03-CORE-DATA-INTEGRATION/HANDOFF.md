@@ -1,4 +1,64 @@
-# WS3 current handoff — STG-06 quote identity + register authority
+# WS3 current handoff — R10 Prep reconcile onto accepted REC-01 main
+
+Kind: TASK_COMPLETION / SESSION_HANDOFF. Date: 2026-09-20.
+
+Task / batch / workstream: R10 Prep / QA-01 / REL-01 qualification framework reconcile / WS3.
+Owner / integration editor: `@wbdevworld` / WS3.
+Requested human reviewer: `@Ben-001-sys` only. Emmanuel / `@Emmanuel-coder-prog`: UNAVAILABLE / NOT REQUESTED.
+Mode: RECONCILE / QUALIFICATION PREPARATION.
+Branch: `ws3/r10-qa-release-preparation` / PR #79.
+Previous #79 head: `1399a8fac4c7b4b77fe436ccda1c88893a072101`
+Start `origin/main`: `7c5d6ca0cd93d7aeb5a7a1c97153ca187548c3fb`
+Reconciliation merge: `5e41031cf90794e55bda9ca82ab11eaccab1a084` (parents `1399a8fac...` + `7c5d6ca0...`; non-force two-parent merge)
+Old merge-base: `c320be8c5ad41c190200381cd52f853dd95212dc`
+New merge-base: `7c5d6ca0cd93d7aeb5a7a1c97153ca187548c3fb`
+Overlap with merged #80 / #81: ZERO
+Final task head SHA: record from `git rev-parse HEAD` after this evidence commit; do not embed it here.
+
+Allowed: existing R10 Prep 14-file scope; CURRENT-WORK.md; WS3 STATUS/HANDOFF for exact reconciliation evidence; PR #79 description.
+Forbidden: R9 implementation; #82–#88 implementation; REC-01 source changes; Woo commercial behavior; electronic payment execution; refund/restock execution; production promotion; VitePOS cutover; protected-main direct edits; self-merge; requesting Emmanuel.
+
+Contracts changed: none. Database migrations: none. Architecture decisions: none.
+
+## Local qualification (this checkout, before the evidence commit)
+
+- `python scripts/verify_control_plane.py`: PASS
+- `python -m unittest discover -s tests/tooling -v`: 72 PASS
+- five R10 fail-closed files: 5 files / 13 tests PASS
+- `pnpm --dir apps/pos-web lint`: PASS
+- `pnpm --dir apps/pos-web typecheck`: PASS
+- `pnpm --dir apps/pos-web test`: 119 files / 941 tests PASS (untracked #82 regression file was moved to `doc/` and not committed)
+- `pnpm --dir apps/pos-web build`: PASS
+- `pnpm --dir apps/pos-web test:e2e`: 15 passed
+- `git diff --check`: PASS
+- Windows `npx supabase@2.117.0 db reset --yes --local`: BLOCKED (cmd.exe heredoc). Linux CI remains reset+pgTAP authority.
+
+Do not merge #79. Do not close QA-01 / #29 or REL-01 / #30. Production remains unauthorized. Next exact action: Ben independent exact-head review. After #79: PR #63 R9 reconciliation. Do not begin R9 in this assignment.
+
+Freshness protocol:
+START_FRESHNESS_SNAPSHOT UTC: 2026-09-20T12:40:00Z (assignment start; fetch completed 2026-09-20T12:42Z)
+Start main SHA: `7c5d6ca0cd93d7aeb5a7a1c97153ca187548c3fb`
+Start batch ref/SHA: `origin/ws3/r10-qa-release-preparation` = `1399a8fac4c7b4b77fe436ccda1c88893a072101`
+Applicable contracts / ADRs / ownership / queue revision: CURRENT-WORK R10 Prep lease; ADR-012/014; OWNERSHIP unchanged.
+
+Pass 1 fetch UTC / success evidence: 2026-09-20T12:42Z `git fetch origin --prune` succeeded
+Pass 1 main SHA: `7c5d6ca0cd93d7aeb5a7a1c97153ca187548c3fb`
+Pass 1 batch SHA: `1399a8fac4c7b4b77fe436ccda1c88893a072101`
+Relevant upstream: merged #81 CD-01 + merged #80 REC-01; zero changed-file overlap with #79
+Classification: COMPATIBLE inherit via two-parent merge; STALE_REQUIRES_FIX for R10 qualification truth and CURRENT-WORK current-authority
+Actions taken: merge `5e41031...`; surgical CURRENT-WORK/STATUS; R10 docs refresh for accepted REC-01 evidence and #82–#88 GO/NO-GO truth
+Tests rerun: listed above
+
+Pass 2 fetch UTC / success evidence: recorded in the PR body after the independent post-commit fetch
+Pass 2 main SHA: record after post-commit fetch
+Final freshness status: pending Pass 2 observation
+Delivery status: READY_FOR_INTEGRATION only after Pass 2 confirms main unchanged and exact-head CI is green
+Pass 3: NOT PERMITTED for this assignment.
+Review/merge/release status: independent Ben review required; no self-merge; production NO.
+
+---
+
+# WS3 previous handoff — STG-06 quote identity + register authority
 
 Kind: TASK_COMPLETION. Date: 2026-09-18.
 
