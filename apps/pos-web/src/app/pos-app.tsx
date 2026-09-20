@@ -137,24 +137,17 @@ export function PosRuntime({
     [],
   );
 
-  const recoveryJournalRef = useRef<OperationJournal | null>(null);
-  const getRecoveryJournal = useCallback((): OperationJournal => {
-    if (!recoveryJournalRef.current) {
-      recoveryJournalRef.current = createOperationJournal(openPosLocalDatabase());
-    }
-    return recoveryJournalRef.current;
+  const recoveryJournal = useMemo<OperationJournal>(() => {
+    const currentJournal = () => createOperationJournal(openPosLocalDatabase());
+    return {
+      appendBeforeSend: (...args) => currentJournal().appendBeforeSend(...args),
+      pending: () => currentJournal().pending(),
+      markSent: (...args) => currentJournal().markSent(...args),
+      markResponseUnknown: (...args) => currentJournal().markResponseUnknown(...args),
+      markAcknowledged: (...args) => currentJournal().markAcknowledged(...args),
+      markRequiresAttention: (...args) => currentJournal().markRequiresAttention(...args),
+    };
   }, []);
-  const recoveryJournal = useMemo<OperationJournal>(
-    () => ({
-      appendBeforeSend: (...args) => getRecoveryJournal().appendBeforeSend(...args),
-      pending: () => getRecoveryJournal().pending(),
-      markSent: (...args) => getRecoveryJournal().markSent(...args),
-      markResponseUnknown: (...args) => getRecoveryJournal().markResponseUnknown(...args),
-      markAcknowledged: (...args) => getRecoveryJournal().markAcknowledged(...args),
-      markRequiresAttention: (...args) => getRecoveryJournal().markRequiresAttention(...args),
-    }),
-    [getRecoveryJournal],
-  );
   const registerPort = useMemo(() => createBrowserRegisterPort({ fetchImpl }), [fetchImpl]);
   const paymentPort = useMemo(
     () => createBrowserPaymentPort({ fetchImpl, journal: recoveryJournal }),
