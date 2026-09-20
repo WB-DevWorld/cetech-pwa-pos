@@ -12,6 +12,7 @@ import {
   runAttentionRecovery,
 } from "./attention-recovery";
 import {
+  assessUpdateActivation,
   closePosLocalDatabase,
   createOperationJournal,
   createTenderActivityPort,
@@ -181,7 +182,18 @@ describe("UX-04 attention recovery identity", () => {
     expect(await reloadedJournal.pending()).toHaveLength(0);
     expect(afterRecoveryItems).toHaveLength(0);
     expect(hasBlockingLocalTransactionRecovery(afterRecoveryItems)).toBe(false);
-    expect(await hasActiveTender(reloadedDb)).toBe(false);
+    const terminalTenderActive = await hasActiveTender(reloadedDb);
+    expect(terminalTenderActive).toBe(false);
+    expect(
+      assessUpdateActivation({
+        activeTender: terminalTenderActive,
+        criticalOperationCount: 0,
+        syncMutationInProgress: false,
+        localMigrationInProgress: false,
+        activeWindow: true,
+        appBuild: "recovery-test",
+      }).reasons,
+    ).not.toContain("ACTIVE_TENDER");
   });
 
   test("reload recovery keeps both the journal gate and tender lease for nonterminal prepared sale", async () => {
@@ -252,7 +264,18 @@ describe("UX-04 attention recovery identity", () => {
 
     expect((await reloadedJournal.pending())[0]?.status).toBe("requires_attention");
     expect(hasBlockingLocalTransactionRecovery(afterRecoveryItems)).toBe(true);
-    expect(await hasActiveTender(reloadedDb)).toBe(true);
+    const nonterminalTenderActive = await hasActiveTender(reloadedDb);
+    expect(nonterminalTenderActive).toBe(true);
+    expect(
+      assessUpdateActivation({
+        activeTender: nonterminalTenderActive,
+        criticalOperationCount: 1,
+        syncMutationInProgress: false,
+        localMigrationInProgress: false,
+        activeWindow: true,
+        appBuild: "recovery-test",
+      }).reasons,
+    ).toContain("ACTIVE_TENDER");
   });
 
   test("local payment recovery checks payment then sale using the persisted transaction identity", async () => {
