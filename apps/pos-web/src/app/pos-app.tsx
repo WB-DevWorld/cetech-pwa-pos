@@ -165,7 +165,7 @@ export function PosRuntime({
     return runtime.subscribe(() => {
       setAuthority(runtime.getState());
     });
-  }, [loadAttention, runtime]);
+  }, [runtime]);
 
   useEffect(() => {
     restoreCountRef.current += 1;
@@ -256,7 +256,7 @@ export function PosRuntime({
       window.removeEventListener("offline", sync);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [runtime]);
+  }, [loadAttention, runtime]);
 
   const mountPorts = useCallback(
     async (
