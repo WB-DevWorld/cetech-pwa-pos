@@ -91,7 +91,7 @@ describe("R9 mounted checkout OperationJournal", () => {
     expect(diagnostics.recommendedActions).toContain("RESOLVE_PENDING_OPERATIONS");
   });
 
-  test("sale resolution acknowledges the same response-unknown prepare before retry", async () => {
+  test("nonterminal prepared resolution keeps the same response-unknown prepare blocked", async () => {
     const db = uniqueDb();
     const journal = createOperationJournal(db);
 
@@ -136,8 +136,10 @@ describe("R9 mounted checkout OperationJournal", () => {
 
     const resolution = await recoveryPorts.sales.resolve(TX);
     expect(resolution.ok).toBe(true);
-    expect(await journal.pending()).toHaveLength(0);
-    expect((await db.journal.get(KEY))?.status).toBe("acknowledged");
+    const pending = await journal.pending();
+    expect(pending).toHaveLength(1);
+    expect(pending[0]?.status).toBe("requires_attention");
+    expect((await db.journal.get(KEY))?.status).toBe("requires_attention");
   });
 
   test("resolved not-found sale acknowledges prepare and clears the tender lease", async () => {
