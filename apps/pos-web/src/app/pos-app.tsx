@@ -136,10 +136,11 @@ export function PosRuntime({
     [],
   );
 
-  const recoveryJournal = useMemo(
-    () => (typeof window === "undefined" ? undefined : createOperationJournal(openPosLocalDatabase())),
-    [],
-  );
+  const [recoveryJournal, setRecoveryJournal] = useState<ReturnType<typeof createOperationJournal> | undefined>();
+
+  useEffect(() => {
+    setRecoveryJournal(createOperationJournal(openPosLocalDatabase()));
+  }, []);
   const registerPort = useMemo(() => createBrowserRegisterPort({ fetchImpl }), [fetchImpl]);
   const paymentPort = useMemo(
     () => createBrowserPaymentPort({ fetchImpl, journal: recoveryJournal }),
@@ -198,9 +199,11 @@ export function PosRuntime({
     }
     const [result, localResult] = await Promise.all([
       fetchAttentionInbox(fetchImpl),
-      loadLocalJournalAttentionItems(recoveryJournal)
-        .then((items) => ({ ok: true as const, items }))
-        .catch(() => ({ ok: false as const, items: [] as readonly AttentionItemView[] })),
+      recoveryJournal
+        ? loadLocalJournalAttentionItems(recoveryJournal)
+            .then((items) => ({ ok: true as const, items }))
+            .catch(() => ({ ok: false as const, items: [] as readonly AttentionItemView[] }))
+        : Promise.resolve({ ok: false as const, items: [] as readonly AttentionItemView[] }),
     ]);
 
     if (localResult.ok) {
@@ -219,6 +222,11 @@ export function PosRuntime({
     setServerAttention(result.data.items);
     setAttentionState(localResult.ok ? "ready" : "degraded");
   }, [fetchImpl, recoveryJournal]);
+
+  useEffect(() => {
+    setLocalRecoveryChecked(false);
+    setLocalAttention([]);
+  }, [authority.session?.actorId]);
 
   useEffect(() => {
     if (authority.status !== "ready" || !authority.session) {
