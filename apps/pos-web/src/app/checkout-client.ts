@@ -105,7 +105,6 @@ async function beginJournalEffect(
   };
 
   await options.journal.appendBeforeSend(pending, serialized);
-  await options.journal.markSent(operationId);
   return operationId;
 }
 
@@ -220,6 +219,7 @@ async function command<T>(
   options: BrowserCheckoutOptions,
   body?: unknown,
   journalEffect?: JournalEffect,
+  beforeSend?: () => Promise<void>,
 ): Promise<ApiResult<T>> {
   const fetchImpl = options.fetchImpl ?? fetch;
   const csrfCookie = options.csrfCookie ?? "cetech_pos_csrf";
@@ -232,6 +232,17 @@ async function command<T>(
     return unavailable(
       context.correlationId,
       "Local recovery journal is unavailable. Resolve existing work before retrying.",
+    );
+  }
+  try {
+    await beforeSend?.();
+    if (options.journal && journalOperationId) {
+      await options.journal.markSent(journalOperationId);
+    }
+  } catch {
+    return unavailable(
+      context.correlationId,
+      "Local recovery state could not be secured. Resolve existing work before retrying.",
     );
   }
   try {
@@ -274,9 +285,10 @@ export function createBrowserCheckoutUseCases(options: BrowserCheckoutOptions = 
         options,
         input,
         { operation: "sale.prepare", transactionId: input.transactionId },
+        async () => options.tenderActivity?.markActive(input.transactionId),
       );
-      if (result.ok) {
-        await options.tenderActivity?.markActive(input.transactionId);
+      if (!result.ok && result.error.nextAction !== "resolve") {
+        await options.tenderActivity?.clear(input.transactionId);
       }
       return result;
     },
