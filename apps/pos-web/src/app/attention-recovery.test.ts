@@ -184,16 +184,15 @@ describe("UX-04 attention recovery identity", () => {
     expect(hasBlockingLocalTransactionRecovery(afterRecoveryItems)).toBe(false);
     const terminalTenderActive = await hasActiveTender(reloadedDb);
     expect(terminalTenderActive).toBe(false);
-    expect(
-      assessUpdateActivation({
-        activeTender: terminalTenderActive,
-        criticalOperationCount: 0,
-        syncMutationInProgress: false,
-        localMigrationInProgress: false,
-        activeWindow: true,
-        appBuild: "recovery-test",
-      }).reasons,
-    ).not.toContain("ACTIVE_TENDER");
+    const terminalUpdateDecision = assessUpdateActivation({
+      activeTender: terminalTenderActive,
+      criticalOperationCount: 0,
+      syncMutationInProgress: false,
+      localMigrationInProgress: false,
+      activeWindow: true,
+      appBuild: "recovery-test",
+    });
+    expect(terminalUpdateDecision.safe).toBe(true);
   });
 
   test("reload recovery keeps both the journal gate and tender lease for nonterminal prepared sale", async () => {
@@ -266,16 +265,19 @@ describe("UX-04 attention recovery identity", () => {
     expect(hasBlockingLocalTransactionRecovery(afterRecoveryItems)).toBe(true);
     const nonterminalTenderActive = await hasActiveTender(reloadedDb);
     expect(nonterminalTenderActive).toBe(true);
-    expect(
-      assessUpdateActivation({
-        activeTender: nonterminalTenderActive,
-        criticalOperationCount: 1,
-        syncMutationInProgress: false,
-        localMigrationInProgress: false,
-        activeWindow: true,
-        appBuild: "recovery-test",
-      }).reasons,
-    ).toContain("ACTIVE_TENDER");
+    const nonterminalUpdateDecision = assessUpdateActivation({
+      activeTender: nonterminalTenderActive,
+      criticalOperationCount: 1,
+      syncMutationInProgress: false,
+      localMigrationInProgress: false,
+      activeWindow: true,
+      appBuild: "recovery-test",
+    });
+    expect(nonterminalUpdateDecision.safe).toBe(false);
+    if (nonterminalUpdateDecision.safe) {
+      throw new Error("nonterminal tender recovery unexpectedly became update-safe");
+    }
+    expect(nonterminalUpdateDecision.reasons).toContain("ACTIVE_TENDER");
   });
 
   test("local payment recovery checks payment then sale using the persisted transaction identity", async () => {
