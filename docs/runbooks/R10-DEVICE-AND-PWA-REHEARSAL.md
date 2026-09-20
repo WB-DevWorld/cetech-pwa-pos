@@ -18,7 +18,7 @@ Record exact model, OS/browser, installed PWA state and build ID. An unavailable
 ## Preconditions
 
 1. Candidate SHA is frozen and deployable to an authorized non-production environment.
-2. Candidate includes the accepted STG-01 application-runtime baseline (`c320be8c...`) or a later verified successor for the path being exercised.
+2. Candidate includes the accepted STG-01 application-runtime baseline (`c320be8c...`) or a later verified successor. Current accepted successor is REC-01 main `7c5d6ca0cd93d7aeb5a7a1c97153ca187548c3fb`.
 3. No live payment/refund/restock is enabled merely for this rehearsal.
 4. A known test cashier/register/shift and synthetic commerce fixture are available.
 5. Evidence template is copied and populated before external effects.
@@ -100,7 +100,7 @@ If hardware is available:
 3. reprint the same receipt;
 4. verify reprint cannot create another sale/payment/stock effect;
 5. verify essential fields are readable;
-6. record any browser print-dialog limitation separately from transaction correctness.
+6. record any browser print-dialog limitation separately from transaction correctness. Issue #85 (browser reprint prints the full POS shell instead of an 80mm receipt) is a P0 production-MVP print-layout defect; it is not a REC-01 receipt-snapshot defect and must not rewrite historic receipt `49585`.
 
 ## Exit
 

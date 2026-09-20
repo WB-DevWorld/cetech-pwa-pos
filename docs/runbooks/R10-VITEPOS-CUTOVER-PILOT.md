@@ -9,15 +9,17 @@ This is the REL-01 operational procedure. Preparing this document does not autho
 Do not begin the cutover unless:
 
 1. STG-01 functional staging acceptance is complete.
-2. R9 installed-client/update/recovery acceptance is complete.
-3. QA-01 qualification is accepted for every enabled capability.
-4. CP-04 production/write-safety blockers for the affected capability are resolved.
-5. Backup/restore and rollback evidence is accepted.
-6. Business/fiscal/statutory receipt process is signed off where applicable.
-7. Actual devices and staff workflow are rehearsed.
-8. A human release authority explicitly approves the pilot.
-9. Live payment/refund capabilities are enabled only if independently authorized.
-10. There will not be two uncontrolled active POS writers for the pilot register.
+2. REC-01 receipt-snapshot acceptance is complete for the exercised cash-sale/reprint path only.
+3. R9 installed-client/update/recovery acceptance is complete.
+4. Production-MVP follow-ups #82–#85 are resolved or explicitly waived for the enabled pilot capabilities.
+5. QA-01 qualification is accepted for every enabled capability.
+6. CP-04 production/write-safety blockers for the affected capability are resolved.
+7. Backup/restore and rollback evidence is accepted.
+8. Business/fiscal/statutory receipt process is signed off where applicable.
+9. Actual devices and staff workflow are rehearsed.
+10. A human release authority explicitly approves the pilot.
+11. Live payment/refund capabilities are enabled only if independently authorized.
+12. There will not be two uncontrolled active POS writers for the pilot register.
 
 ## A. VitePOS reconciliation before changeover
 

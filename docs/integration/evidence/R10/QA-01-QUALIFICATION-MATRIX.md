@@ -86,19 +86,25 @@ This matrix converts QA-01 / #29 into explicit evidence rows. It deliberately se
 | Q-REG-02 | Non-zero variance fails closed to requires_attention | R8 remediation | Final-candidate regression | PREPARED |
 | Q-REG-03 | Invented approval UUID cannot authorize variance close | R8 remediation | Regression suite | REUSE_EXISTING_EVIDENCE |
 | Q-REG-04 | Close retry yields one immutable Z report | R9 implementation | Runtime/device evidence | PENDING_R9 |
-| Q-REC-01 | Receipt reprint resolves original completed sale and cannot repeat sale | R6 evidence + accepted STG-01 receipt/reprint runtime trace | Final-candidate regression if receipt/finalize path changes | REUSE_EXISTING_EVIDENCE |
+| Q-REC-01 | Receipt reprint resolves original completed sale and cannot repeat sale | R6 evidence + accepted STG-01 receipt/reprint runtime trace + accepted REC-01 reprint of order `49606` / receipt `POS-49606` (human-readable `Fix-Am Admix 300 Polymer Emulsion Based Mortar`; no second commercial effect; historic `49585` unchanged) | Final-candidate regression if receipt/finalize path changes. Browser thermal print layout is #85, not this row. Historic UUID-like lines are #88, not corruption. | REUSE_EXISTING_EVIDENCE |
 
 ## Operational qualification
 
 | ID | Scenario / invariant | Required evidence | Status |
 | --- | --- | --- | --- |
-| Q-OPS-01 | Desktop cashier path | STG-01 accepted on PR #77 / main `c320be8c5ad41c190200381cd52f853dd95212dc`; repeat affected steps on later release candidate | REUSE_EXISTING_EVIDENCE |
+| Q-OPS-01 | Desktop cashier path | STG-01 accepted on PR #77 / main `c320be8c...`; REC-01 accepted on PR #80 / main `7c5d6ca0...` for the exercised cash-sale/receipt-snapshot path; repeat affected steps on later release candidate | REUSE_EXISTING_EVIDENCE |
 | Q-OPS-02 | Supported mobile/PWA path | Device rehearsal runbook evidence | PENDING_R9 |
 | Q-OPS-03 | Keyboard-wedge scanner | Physical device/model + sale/search trace | PENDING_AUTHORIZATION |
-| Q-OPS-04 | Receipt printer | Physical printer/model + print/reprint evidence | PENDING_AUTHORIZATION |
+| Q-OPS-04 | Receipt printer | Physical printer/model + print/reprint evidence. Browser fallback currently blocked by #85 (prints full POS shell). Transaction reprint correctness is Q-REC-01 / REC-01, not print layout. | PREPARED |
 | Q-OPS-05 | Backup restore | Isolated restore evidence; never production-destructive | PENDING_AUTHORIZATION |
 | Q-OPS-06 | VitePOS queue/shift/inventory reconciliation | REL-01 pre-cutover evidence | PENDING_AUTHORIZATION |
 | Q-OPS-07 | Application rollback without erasing legitimate new business effects | Rehearsal evidence | PENDING_AUTHORIZATION |
+| Q-OPS-08 | Orders → Return items selected-sale handoff | Issue #82 | OPEN P0 production-MVP blocker unless later waived |
+| Q-OPS-09 | Sell customer picker remote-first search | Issue #83 | OPEN P0 production-MVP blocker unless later waived |
+| Q-OPS-10 | Sale-time customer presentation snapshot in Orders | Issue #84 | OPEN P0 production-MVP blocker unless later waived |
+| Q-OPS-11 | Intermittent staff sign-in diagnostics | Issue #86 | OPEN P1 staging reliability; not an automatic production blocker |
+| Q-OPS-12 | Catalog freshness after failed refresh | Issue #87 | OPEN P1 staging reliability; not an automatic production blocker |
+| Q-OPS-13 | Historic receipts without product snapshots remain immutable | Issue #88; historic `49585` UUID-like line is retained evidence | OPEN P2 documented historical limitation |
 
 ## QA-01 exit rule
 

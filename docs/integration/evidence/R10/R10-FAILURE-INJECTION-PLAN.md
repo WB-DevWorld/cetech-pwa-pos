@@ -44,7 +44,7 @@ Expected:
 - retry does not create another order;
 - stock/reservation effect is not repeated.
 
-Existing R6 automated evidence covers the algorithm. STG-01 now provides the accepted production-intent happy-path runtime baseline on PR #77 / main `c320be8c5ad41c190200381cd52f853dd95212dc`; R10 still must execute the lost-response injection on the final candidate.
+Existing R6 automated evidence covers the algorithm. STG-01 provides the accepted production-intent happy-path runtime baseline on PR #77 / main `c320be8c...`. REC-01 later accepted a new cash-sale snapshot/reprint path on PR #80 / main `7c5d6ca0...` (order `49606` / `POS-49606`). R10 still must execute the lost-response injection on the final candidate.
 
 ### FI-SALE-03 — quote/stock changes immediately before prepare
 

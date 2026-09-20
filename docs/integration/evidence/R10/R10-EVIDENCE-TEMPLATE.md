@@ -17,6 +17,7 @@ Use one copy of this template per qualification/rehearsal event. Do not overwrit
 - WordPress/Woo bridge version where relevant:
 - Supabase/project identifier (non-secret) where relevant:
 - Device/browser/OS where relevant:
+- Related follow-up issues (#82–#88) if observed:
 
 ## Authorization
 

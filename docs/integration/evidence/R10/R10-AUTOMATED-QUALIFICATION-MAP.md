@@ -2,7 +2,7 @@
 
 Status: **PREPARED / EXECUTABLE ON THIS BRANCH**
 
-Purpose: map the already-merged R6–R8 executable evidence plus the accepted STG-01 runtime baseline to the QA-01 qualification matrix and identify the remaining gaps. Accepted STG-01 evidence is reusable only for the behavior it actually exercised; it does not convert unexecuted failure-injection rows into PASS.
+Purpose: map the already-merged R6–R8 executable evidence plus the accepted STG-01 runtime baseline and accepted REC-01 snapshot evidence to the QA-01 qualification matrix and identify the remaining gaps. Accepted STG-01/REC-01 evidence is reusable only for the behavior actually exercised; it does not convert unexecuted failure-injection rows into PASS.
 
 ## Discovery rule
 
@@ -28,7 +28,7 @@ The new R10 guard tests therefore live under the existing `tests/integration/pay
 | Q-TX-03 | same file — lost prepare response recovers existing Woo order | resolve-before-retry at commercial boundary | STG-01 baseline accepted; final-candidate lost-response injection remains |
 | Q-TX-04 | same file — duplicate cash/finalize | one cash ledger + one commercial/stock effect | STG-01 one-sale baseline accepted; final-candidate duplicate-finalize exercise remains |
 | Q-TX-06 | `tests/integration/payments/r10-fail-closed-payment-guards.test.ts` — missing prepared sale | absent commercial prerequisite cannot reach payment initialize | staging outage/failure injection later |
-| Q-REC-01 | CORE-06 harness + `tests/contracts/producer-consumer.test.ts` | completed sale resolves stable receipt contract | accepted STG-01 receipt/reprint trace exists; rerun if later receipt/finalize path changes |
+| Q-REC-01 | CORE-06 harness + `tests/contracts/producer-consumer.test.ts` + accepted REC-01 runtime reprint of `POS-49606` | completed sale resolves stable receipt contract; sale-time product name/SKU snapshot reprints without a second commercial effect | historic `49585` UUID-like line is #88 (immutable limitation, not rewrite). Browser thermal print layout is #85, not this row. Final-candidate regression if receipt/finalize path changes. |
 
 ## Cash payment mapping
 
@@ -90,6 +90,8 @@ These remain runtime/device/release evidence, not unit-test substitutes:
 - Q-PWA-01 through Q-PWA-06 installed-client/update/reconnect/multi-tab proof;
 - Q-REG-04 one immutable Z report under real R9 close/retry path;
 - physical scanner/printer evidence;
+- browser thermal receipt printing (#85) — distinct from REC-01 receipt snapshot correctness;
+- Orders → Return items handoff (#82), Sell customer picker remote search (#83), and sale-time customer presentation snapshot (#84);
 - backup/restore rehearsal;
 - VitePOS queue/shift/inventory reconciliation;
 - application rollback and pilot.

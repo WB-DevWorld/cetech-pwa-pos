@@ -2,7 +2,7 @@
 
 Status: **PREPARED — execution requires the appropriate environment/operator authorization**
 
-This runbook separates application rollback from business-effect recovery. Reverting code does not reverse orders, payments, stock changes, refunds, messages or applied database changes.
+STG-01 and REC-01 acceptance do not satisfy this rehearsal. Backup/restore remains unexecuted. This runbook separates application rollback from business-effect recovery. Reverting code does not reverse orders, payments, stock changes, refunds, messages or applied database changes.
 
 ## Recovery inventory
 
