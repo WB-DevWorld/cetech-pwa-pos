@@ -7,6 +7,7 @@ import {
   createAttentionRecoveryLock,
   hasBlockingLocalTransactionRecovery,
   loadLocalJournalAttentionItems,
+  mergeAttentionItems,
   recoverAttentionItem,
   runAttentionRecovery,
 } from "./attention-recovery";
@@ -173,6 +174,37 @@ describe("UX-04 attention recovery identity", () => {
     expect(await reloadedJournal.pending()).toHaveLength(0);
     expect(afterRecoveryItems).toHaveLength(0);
     expect(hasBlockingLocalTransactionRecovery(afterRecoveryItems)).toBe(false);
+  });
+
+  test("local payment recovery checks payment then sale using the persisted transaction identity", async () => {
+    const localPayment: AttentionItemView = {
+      ...paymentItem,
+      id: "local-journal:payment-op",
+      paymentId: undefined,
+      transactionReference: undefined,
+    };
+    const paymentResolve = vi.fn(async () => paymentOk("verified"));
+    const salesResolve = vi.fn(async () => saleOk("completed"));
+
+    const outcome = await recoverAttentionItem(localPayment, {
+      payments: { resolve: paymentResolve },
+      sales: { resolve: salesResolve },
+    });
+
+    expect(outcome).toBe("attempted");
+    expect(paymentResolve).toHaveBeenCalledWith({ transactionId: TX, paymentId: undefined });
+    expect(salesResolve).toHaveBeenCalledWith(TX);
+  });
+
+  test("local recovery identity wins when server attention overlaps the same transaction", () => {
+    const localSale: AttentionItemView = {
+      ...saleItem,
+      id: "local-journal:sale-op",
+      transactionReference: undefined,
+    };
+    const merged = mergeAttentionItems([saleItem], [localSale], []);
+    expect(merged).toHaveLength(1);
+    expect(merged[0]?.id).toBe("local-journal:sale-op");
   });
 
   test("payment Check / Recover calls PaymentPort.resolve once for the same transaction/payment and never initialize", async () => {
