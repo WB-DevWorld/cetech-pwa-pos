@@ -371,7 +371,7 @@ describe("R6-REM-02 transaction scope binding", () => {
     expect(salesPort.prepareCount).toBe(1);
   });
 
-  test("remote resolve without a local prepare binding does not call the bridge", async () => {
+  test("remote resolve without a local prepare binding returns safe not_found and does not call the bridge", async () => {
     const store = await seedScopedStore();
     const salesPort = countingPort();
     const resolved = await resolveSale({
@@ -381,10 +381,11 @@ describe("R6-REM-02 transaction scope binding", () => {
       transactionId: TX_A,
       correlationId: CORRELATION,
     });
-    expect(resolved.ok).toBe(false);
+    expect(resolved.ok).toBe(true);
     if (!resolved.ok) {
-      expect(resolved.error.code).toBe("NOT_FOUND");
+      throw new Error("expected successful not_found resolution");
     }
+    expect(resolved.data).toEqual({ transactionId: TX_A, status: "not_found" });
     expect(salesPort.resolveCount).toBe(0);
     expect(await store.getSale(TX_A)).toBeUndefined();
   });
