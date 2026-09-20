@@ -125,6 +125,9 @@ export async function recoverAttentionItem(
       transactionId: item.transactionId,
       paymentId: item.paymentId,
     });
+    if (item.id.startsWith("local-journal:")) {
+      await ports.sales.resolve(item.transactionId);
+    }
     return "attempted";
   }
   if (item.recoverKind === "sale") {
