@@ -157,21 +157,42 @@ async function reconcileSaleJournal(
         row.transactionId === transactionId &&
         (row.operation === "sale.prepare" ||
           row.operation === "sale.finalize" ||
-          row.operation === "sale.cancel"),
+          row.operation === "sale.cancel" ||
+          row.operation === "payment.initialize" ||
+          row.operation === "payment.cash" ||
+          row.operation === "payment.resolve"),
     );
   } catch {
     return;
   }
+
+  const saleIsTerminal = result.data.status === "completed" || result.data.status === "cancelled";
   for (const row of rows) {
     try {
-      if (result.data.status === "requires_attention") {
-        await options.journal.markRequiresAttention(
-          row.id,
-          result.data.message ?? "Sale resolution requires attention",
-        );
-      } else if (result.data.status !== "preparing") {
+      const isPaymentRow = row.operation.startsWith("payment.");
+      if (result.data.status === "completed") {
         await options.journal.markAcknowledged(row.id);
+        continue;
       }
+      if (result.data.status === "not_found") {
+        if (isPaymentRow) {
+          await options.journal.markRequiresAttention(
+            row.id,
+            "Payment work exists but the sale was not found; manager review is required",
+          );
+        } else {
+          await options.journal.markAcknowledged(row.id);
+        }
+        continue;
+      }
+      if (saleIsTerminal && !isPaymentRow) {
+        await options.journal.markAcknowledged(row.id);
+        continue;
+      }
+      await options.journal.markRequiresAttention(
+        row.id,
+        result.data.message ?? "Existing transaction is not terminal; resolve it before starting another attempt",
+      );
     } catch {
       // Keep unresolved local evidence visible if reconciliation persistence fails.
     }
@@ -191,18 +212,21 @@ async function reconcilePaymentJournal(
     rows = (await options.journal.pending()).filter(
       (row) =>
         row.transactionId === transactionId &&
-        (row.operation === "payment.initialize" || row.operation === "payment.cash"),
+        (row.operation === "payment.initialize" ||
+          row.operation === "payment.cash" ||
+          row.operation === "payment.resolve"),
     );
   } catch {
     return;
   }
   for (const row of rows) {
     try {
-      if (result.data.status === "requires_attention") {
-        await options.journal.markRequiresAttention(row.id, "Payment resolution requires attention");
-      } else {
-        await options.journal.markAcknowledged(row.id);
-      }
+      await options.journal.markRequiresAttention(
+        row.id,
+        result.data.status === "verified"
+          ? "Payment is verified; confirm the sale outcome before starting another attempt"
+          : "Payment state is known but the sale still needs recovery before another attempt",
+      );
     } catch {
       // Keep unresolved local evidence visible if reconciliation persistence fails.
     }
