@@ -52,6 +52,7 @@ import {
 } from "../core/identity";
 import type { AuthNoticeState } from "../features/auth";
 import { isUuidLike, toCashierError } from "../ui/cashier-language";
+import type { OperationJournal } from "../../../../docs/contracts/ports";
 import type { Shift } from "../../../../docs/contracts/domain.generated";
 import type { CustomerSummary } from "../../../../docs/contracts/domain.generated";
 import type { CustomerSearchResultView } from "../features/sell";
@@ -122,7 +123,7 @@ export function PosRuntime({
   const [buildId, setBuildId] = useState<string | undefined>();
   const [serverAttention, setServerAttention] = useState<readonly AttentionItemView[]>([]);
   const [localAttention, setLocalAttention] = useState<readonly AttentionItemView[]>([]);
-  const [localRecoveryChecked, setLocalRecoveryChecked] = useState(false);
+  const [localRecoveryActorId, setLocalRecoveryActorId] = useState<string | null>(null);
   const [attentionState, setAttentionState] = useState<OperationalLoadState>("loading");
   const [nextSaleCustomer, setNextSaleCustomer] = useState<CustomerSearchResultView | null>(null);
   const [pendingReturnSaleId, setPendingReturnSaleId] = useState<string | null>(null);
@@ -136,11 +137,24 @@ export function PosRuntime({
     [],
   );
 
-  const [recoveryJournal, setRecoveryJournal] = useState<ReturnType<typeof createOperationJournal> | undefined>();
-
-  useEffect(() => {
-    setRecoveryJournal(createOperationJournal(openPosLocalDatabase()));
+  const recoveryJournalRef = useRef<OperationJournal | null>(null);
+  const getRecoveryJournal = useCallback((): OperationJournal => {
+    if (!recoveryJournalRef.current) {
+      recoveryJournalRef.current = createOperationJournal(openPosLocalDatabase());
+    }
+    return recoveryJournalRef.current;
   }, []);
+  const recoveryJournal = useMemo<OperationJournal>(
+    () => ({
+      appendBeforeSend: (...args) => getRecoveryJournal().appendBeforeSend(...args),
+      pending: () => getRecoveryJournal().pending(),
+      markSent: (...args) => getRecoveryJournal().markSent(...args),
+      markResponseUnknown: (...args) => getRecoveryJournal().markResponseUnknown(...args),
+      markAcknowledged: (...args) => getRecoveryJournal().markAcknowledged(...args),
+      markRequiresAttention: (...args) => getRecoveryJournal().markRequiresAttention(...args),
+    }),
+    [getRecoveryJournal],
+  );
   const registerPort = useMemo(() => createBrowserRegisterPort({ fetchImpl }), [fetchImpl]);
   const paymentPort = useMemo(
     () => createBrowserPaymentPort({ fetchImpl, journal: recoveryJournal }),
@@ -199,19 +213,17 @@ export function PosRuntime({
     }
     const [result, localResult] = await Promise.all([
       fetchAttentionInbox(fetchImpl),
-      recoveryJournal
-        ? loadLocalJournalAttentionItems(recoveryJournal)
-            .then((items) => ({ ok: true as const, items }))
-            .catch(() => ({ ok: false as const, items: [] as readonly AttentionItemView[] }))
-        : Promise.resolve({ ok: false as const, items: [] as readonly AttentionItemView[] }),
+      loadLocalJournalAttentionItems(recoveryJournal)
+        .then((items) => ({ ok: true as const, items }))
+        .catch(() => ({ ok: false as const, items: [] as readonly AttentionItemView[] })),
     ]);
 
     if (localResult.ok) {
       setLocalAttention(localResult.items);
-      setLocalRecoveryChecked(true);
+      setLocalRecoveryActorId(authority.session?.actorId ?? null);
     } else {
       setLocalAttention([]);
-      setLocalRecoveryChecked(false);
+      setLocalRecoveryActorId(null);
     }
 
     if (!result.ok) {
@@ -221,12 +233,7 @@ export function PosRuntime({
     }
     setServerAttention(result.data.items);
     setAttentionState(localResult.ok ? "ready" : "degraded");
-  }, [fetchImpl, recoveryJournal]);
-
-  useEffect(() => {
-    setLocalRecoveryChecked(false);
-    setLocalAttention([]);
-  }, [authority.session?.actorId]);
+  }, [authority.session?.actorId, fetchImpl, recoveryJournal]);
 
   useEffect(() => {
     if (authority.status !== "ready" || !authority.session) {
@@ -479,9 +486,11 @@ export function PosRuntime({
 
   const deviceId = authority.shift?.deviceId ?? readOrCreateLocalDeviceId();
   const extras = clientAttentionExtras({ catalogAvailability: projectionAvailability, authority });
-  const attentionItems = mergeAttentionItems(serverAttention, localAttention, extras);
+  const localRecoveryChecked = localRecoveryActorId === authority.session.actorId;
+  const effectiveLocalAttention = localRecoveryChecked ? localAttention : [];
+  const attentionItems = mergeAttentionItems(serverAttention, effectiveLocalAttention, extras);
   const localTransactionRecoveryBlocked =
-    !localRecoveryChecked || hasBlockingLocalTransactionRecovery(localAttention);
+    !localRecoveryChecked || hasBlockingLocalTransactionRecovery(effectiveLocalAttention);
   const attentionCount = attentionItems.length;
   const sellPorts =
     ports && localTransactionRecoveryBlocked
