@@ -11,7 +11,13 @@ import {
   createBrowserReturnPort,
   createBrowserSalesResolvePort,
 } from "./checkout-client";
-import { createAttentionRecoveryLock, runAttentionRecovery } from "./attention-recovery";
+import {
+  createAttentionRecoveryLock,
+  hasBlockingLocalTransactionRecovery,
+  loadLocalJournalAttentionItems,
+  mergeAttentionItems,
+  runAttentionRecovery,
+} from "./attention-recovery";
 import { RegisterRuntimeScreen } from "./register-runtime";
 import { ReturnsRuntimeScreen, createBrowserHistoricReturnSaleLookup } from "./returns-runtime";
 import { StaffAuthGate } from "./staff-auth-gate";
@@ -115,6 +121,8 @@ export function PosRuntime({
   const toastTimer = useRef<number | null>(null);
   const [buildId, setBuildId] = useState<string | undefined>();
   const [serverAttention, setServerAttention] = useState<readonly AttentionItemView[]>([]);
+  const [localAttention, setLocalAttention] = useState<readonly AttentionItemView[]>([]);
+  const [localRecoveryChecked, setLocalRecoveryChecked] = useState(false);
   const [attentionState, setAttentionState] = useState<OperationalLoadState>("loading");
   const [nextSaleCustomer, setNextSaleCustomer] = useState<CustomerSearchResultView | null>(null);
   const [pendingReturnSaleId, setPendingReturnSaleId] = useState<string | null>(null);
@@ -157,7 +165,7 @@ export function PosRuntime({
     return runtime.subscribe(() => {
       setAuthority(runtime.getState());
     });
-  }, [runtime]);
+  }, [loadAttention, runtime]);
 
   useEffect(() => {
     restoreCountRef.current += 1;
@@ -188,15 +196,29 @@ export function PosRuntime({
     if (mode === "full") {
       setAttentionState("loading");
     }
-    const result = await fetchAttentionInbox(fetchImpl);
+    const [result, localResult] = await Promise.all([
+      fetchAttentionInbox(fetchImpl),
+      loadLocalJournalAttentionItems(recoveryJournal)
+        .then((items) => ({ ok: true as const, items }))
+        .catch(() => ({ ok: false as const, items: [] as readonly AttentionItemView[] })),
+    ]);
+
+    if (localResult.ok) {
+      setLocalAttention(localResult.items);
+      setLocalRecoveryChecked(true);
+    } else {
+      setLocalAttention([]);
+      setLocalRecoveryChecked(false);
+    }
+
     if (!result.ok) {
       setServerAttention([]);
-      setAttentionState("error");
+      setAttentionState(localResult.ok ? "degraded" : "error");
       return;
     }
     setServerAttention(result.data.items);
-    setAttentionState("ready");
-  }, [fetchImpl]);
+    setAttentionState(localResult.ok ? "ready" : "degraded");
+  }, [fetchImpl, recoveryJournal]);
 
   useEffect(() => {
     if (authority.status !== "ready" || !authority.session) {
@@ -218,6 +240,7 @@ export function PosRuntime({
       setOnline(navigator.onLine);
       if (navigator.onLine) {
         void runtime.refreshRegister();
+        void loadAttention("refresh");
       }
     }
     function onVisible() {
@@ -447,8 +470,14 @@ export function PosRuntime({
 
   const deviceId = authority.shift?.deviceId ?? readOrCreateLocalDeviceId();
   const extras = clientAttentionExtras({ catalogAvailability: projectionAvailability, authority });
-  const attentionItems = [...serverAttention, ...extras];
+  const attentionItems = mergeAttentionItems(serverAttention, localAttention, extras);
+  const localTransactionRecoveryBlocked =
+    !localRecoveryChecked || hasBlockingLocalTransactionRecovery(localAttention);
   const attentionCount = attentionItems.length;
+  const sellPorts =
+    ports && localTransactionRecoveryBlocked
+      ? { ...ports, checkout: undefined, payments: undefined, sales: undefined }
+      : ports;
 
   return (
     <PosRuntimeOwner
@@ -480,18 +509,35 @@ export function PosRuntime({
         </p>
       ) : null}
       {route === "sell" ? (
-        ports ? (
+        sellPorts ? (
           <>
             {projectionAvailability === "unavailable" ? (
               <p className="muted" role="status">
                 {"Products couldn't be loaded. Check the connection and try again."}
               </p>
             ) : null}
+            {localTransactionRecoveryBlocked ? (
+              <div className="banner warning" role="alert" data-local-recovery-blocked="true">
+                <strong>
+                  {localRecoveryChecked ? "Previous transaction needs a status check." : "Checking saved transaction work…"}
+                </strong>
+                <span>
+                  {localRecoveryChecked
+                    ? "Open Needs attention and check the existing transaction before taking another payment."
+                    : "Checkout will stay unavailable until saved transaction work has been checked."}
+                </span>
+                {localRecoveryChecked ? (
+                  <button className="btn small" type="button" onClick={() => onNavigate("attention")}>
+                    View issues
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
             <SellRuntimeScreen
-              {...ports}
+              {...sellPorts}
               shiftOpen={authority.shiftOpen}
               online={readOnline}
-              catalogAvailability={ports.catalogAvailability}
+              catalogAvailability={sellPorts.catalogAvailability}
               nextSaleCustomer={nextSaleCustomer}
               onNextSaleCustomerApplied={() => setNextSaleCustomer(null)}
             />
