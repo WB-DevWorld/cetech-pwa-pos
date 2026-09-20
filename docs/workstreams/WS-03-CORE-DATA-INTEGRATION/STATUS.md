@@ -1,16 +1,23 @@
 # WS3 current status
 
-Snapshot 2026-09-19. Protected `main` `c320be8c5ad41c190200381cd52f853dd95212dc`. Controlling assignment for this checkout is the bounded CD-01 exact-SHA Preview authority in CURRENT-WORK.md. This does not permanently alter OWNERSHIP.md.
+Snapshot 2026-09-19. Protected `main` `c1f659ea118a885180fe6a543797efa908abf210` (PR #81 merged). Controlling assignment for this checkout is REC-01 main-reconciliation in CURRENT-WORK.md. This does not permanently alter OWNERSHIP.md.
 
 ## Active contributor assignment (this checkout)
 
+Mode: IMPLEMENT / INTEGRATE. Owner `@wbdevworld` / WS3.
+Task: REC-01 — reconcile exact-SHA Preview main into immutable receipt snapshots.
+Branch: `ws3/receipt-product-name-sku` / PR #80.
+Previous REC-01 head: `7e9da309bddbccdabf41b8ba753351e8697041d9`.
+New main parent: `c1f659ea118a885180fe6a543797efa908abf210`.
+Zero changed-file overlap with PR #81; REC-01 source unchanged by the two-parent merge.
+Independent reviewer: `@Ben-001-sys` on the replacement exact head. Do not review obsolete `7e9da309...`. `@Emmanuel-coder-prog` is unavailable and is not requested.
+Do not merge #80. Do not dispatch Exact SHA Preview. Do not create a Woo sale.
+
+## Prior assignment (CD-01 exact-SHA Preview, merged)
+
 Mode: IMPLEMENT / INFRASTRUCTURE SECURITY REMEDIATION. Owner `@wbdevworld` / WS3.
-Task: CD-01 exact-SHA immutable Preview deployment authority (issue #64 authorized extension).
-Branch: `ws3/exact-sha-preview` / PR #81.
-Allowed: `.github/workflows/deploy-exact-sha-preview.yml`, `scripts/exact_sha_preview.py`, `docs/runbooks/CD-01-STAGING-DEPLOYMENT.md`, `tests/tooling/**`, CURRENT-WORK.md, this status record, issue #64 scope record.
-Forbidden: PR #80 source; application/runtime/bridge changes; production promotion; `--prod`; production or shared-staging alias movement; live payment/refund/restock; VitePOS cutover; secret exposure; self-merge.
-Independent reviewer: `@Ben-001-sys`. `@Emmanuel-coder-prog` is unavailable today and is not a current action.
-Do not merge #81. Do not dispatch Preview from this status file.
+Branch: `ws3/exact-sha-preview` / PR #81, squash-merged as `c1f659ea118a885180fe6a543797efa908abf210`.
+Preview dispatch remains a later authorized action after Ben exact-head approval of reconciled REC-01.
 
 ## Prior snapshot 2026-09-18 (retained)
 

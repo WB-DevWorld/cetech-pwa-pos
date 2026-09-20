@@ -2,7 +2,45 @@
 
 Updated 2026-09-19. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
 
-## Temporary senior CD-01 exact-SHA Preview authority — ACTIVE
+## Temporary senior REC-01 main-reconciliation — ACTIVE
+
+Senior/user `@wbdevworld` authorizes reconciling merged CD-01 exact-SHA Preview main into existing REC-01 / PR #80 so Ben reviews current main plus REC-01, not obsolete `7e9da309...`. This does **not** permanently alter `OWNERSHIP.md`. CD-01 Preview infrastructure is already on protected main and is inherited here by a zero-overlap two-parent merge.
+
+```text
+human: @wbdevworld
+workstream: WS3
+mode: IMPLEMENT / INTEGRATE
+task: REC-01 — reconcile exact-SHA Preview main into immutable receipt snapshots
+branch: ws3/receipt-product-name-sku
+PR: #80
+previous REC-01 head: 7e9da309bddbccdabf41b8ba753351e8697041d9
+new main parent: c1f659ea118a885180fe6a543797efa908abf210
+merge-base before reconcile: c320be8c5ad41c190200381cd52f853dd95212dc
+independent reviewer: @Ben-001-sys
+Emmanuel / @Emmanuel-coder-prog: UNAVAILABLE; not requested; not a current-head gate
+allowed: two-parent merge of origin/main into this REC-01 branch; CURRENT-WORK / WS3 STATUS evidence; PR #80 reviewer packet
+forbidden:
+  changing REC-01 receipt/sales behavior
+  modifying Exact SHA Preview workflow
+  dispatching Exact SHA Preview
+  Woo/synthetic commercial sale
+  merging PR #80
+  production promotion
+  --prod
+  alias movement
+  live electronic payment
+  refund/restock
+  VitePOS cutover
+  requesting Emmanuel
+```
+
+Do not ask Ben to review obsolete `7e9da309...`. Request review only on the replacement exact head after CI-green qualification.
+
+## Temporary senior CD-01 exact-SHA Preview authority — MERGED / INHERITED
+
+Merged to protected main as `c1f659ea118a885180fe6a543797efa908abf210` (PR #81 squash, 2026-09-19T19:57:06Z). Preview dispatch remains a later authorized action after Ben exact-head approval of the reconciled REC-01 SHA. This does **not** permanently alter `OWNERSHIP.md`.
+
+## Temporary senior CD-01 exact-SHA Preview authority — HISTORICAL (merged as c1f659ea)
 
 Senior/user `@wbdevworld` authorizes this bounded WS3 infrastructure/security extension so REC-01 can be qualified on an immutable Vercel Preview without merging the candidate. This does **not** permanently alter `OWNERSHIP.md`. Authority is task-specific and expires at CD-01 exact-SHA Preview merge/handoff or explicit senior close.
 

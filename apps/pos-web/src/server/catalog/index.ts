@@ -1,4 +1,8 @@
 export { toCatalogProjectionRow, type CatalogProjectionRow } from "./projection-rows";
+export {
+  createSupabaseCatalogPresentationLookup,
+  type SupabaseCatalogPresentationLookupOptions,
+} from "./presentation-lookup";
 export { catalogUrl, composeCatalogBridge, withCatalogQuery } from "./compose-catalog-bridge";
 export type { CatalogBridge, BridgeCatalogPageQuery, BridgeCatalogProducerResult } from "./compose-catalog-bridge";
 export { handleCatalogSync, CATALOG_SYNC_DEFAULT_LIMIT, CATALOG_SYNC_MAX_LIMIT } from "./handle-catalog-sync";

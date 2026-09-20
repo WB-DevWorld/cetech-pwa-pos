@@ -2,9 +2,12 @@ import type { ApiResult, SalesPort } from "../../../../../docs/contracts/ports";
 import type {
   CommandContext,
   FinalizeSaleRequest,
+  ReceiptSettings,
   ReceiptSnapshot,
   SaleResolution,
 } from "../../../../../docs/contracts/domain.generated";
+import { freezeReceiptLines } from "../../core/receipt/build-receipt-line";
+import type { ReceiptSettingsStore } from "../../core/receipt/settings-store";
 import { canonicalJson, sha256Hex } from "../../local/canonical";
 import { toIsoTimestamp } from "../auth/ids";
 import { apiFailure } from "../http/api-failure";
@@ -22,6 +25,7 @@ import { isSaleResolution } from "./schema";
 export async function finalizeSale(input: {
   readonly store: CheckoutStore;
   readonly salesPort: Pick<SalesPort, "confirmPayment">;
+  readonly receiptSettings: ReceiptSettingsStore;
   readonly actor: StaffActor;
   readonly request: FinalizeSaleRequest;
   readonly context: CommandContext;
@@ -54,7 +58,15 @@ export async function finalizeSale(input: {
 
     await store.markIdempotencySent(actor.organizationId, "sale.finalize", context.idempotencyKey);
     try {
-      const result = await completeFinalize({ store, salesPort, actor, request, context, now });
+      const result = await completeFinalize({
+        store,
+        salesPort,
+        receiptSettings: input.receiptSettings,
+        actor,
+        request,
+        context,
+        now,
+      });
       if (!result.ok) {
         await store.releaseIdempotency(actor.organizationId, "sale.finalize", context.idempotencyKey);
         return result;
@@ -100,6 +112,7 @@ export async function finalizeSale(input: {
 async function completeFinalize(input: {
   readonly store: CheckoutStore;
   readonly salesPort: Pick<SalesPort, "confirmPayment">;
+  readonly receiptSettings: ReceiptSettingsStore;
   readonly actor: StaffActor;
   readonly request: FinalizeSaleRequest;
   readonly context: CommandContext;
@@ -153,7 +166,15 @@ async function completeFinalize(input: {
     context,
   );
   if (sale.commercialConfirmed) {
-    return persistReceiptOrAttention({ store, sale, payment, request, context, now });
+    return persistReceiptOrAttention({
+      store,
+      receiptSettings: input.receiptSettings,
+      sale,
+      payment,
+      request,
+      context,
+      now,
+    });
   }
   if (!commercial.ok) {
     sale = { ...sale, status: "requires_attention" };
@@ -217,11 +238,20 @@ async function completeFinalize(input: {
       "POS sale persistence failed after commercial finalization; retry without creating a second sale",
     );
   }
-  return persistReceiptOrAttention({ store, sale, payment, request, context, now });
+  return persistReceiptOrAttention({
+    store,
+    receiptSettings: input.receiptSettings,
+    sale,
+    payment,
+    request,
+    context,
+    now,
+  });
 }
 
 async function persistReceiptOrAttention(input: {
   readonly store: CheckoutStore;
+  readonly receiptSettings: ReceiptSettingsStore;
   readonly sale: PosSaleRecord;
   readonly payment: StoredPayment;
   readonly request: FinalizeSaleRequest;
@@ -237,7 +267,8 @@ async function persistReceiptOrAttention(input: {
     return successResolution(sale, request.paymentId, context.correlationId, existing.id);
   }
 
-  const receipt = buildReceipt(sale, payment, now);
+  const settings = await input.receiptSettings.get(sale.organizationId, sale.locationId);
+  const receipt = buildReceipt(sale, payment, now, settings);
   if (!validateCanonicalDef("ReceiptSnapshot", receipt)) {
     sale = { ...sale, status: "requires_attention" };
     await store.saveSale(sale);
@@ -278,7 +309,12 @@ async function persistReceiptOrAttention(input: {
   return successResolution(sale, request.paymentId, context.correlationId, receipt.id);
 }
 
-function buildReceipt(sale: PosSaleRecord, payment: StoredPayment, now: Date): ReceiptSnapshot {
+function buildReceipt(
+  sale: PosSaleRecord,
+  payment: StoredPayment,
+  now: Date,
+  settings: ReceiptSettings,
+): ReceiptSnapshot {
   const snapshot: ReceiptSnapshot = {
     id: `rcpt-${sale.prepared.transactionId.slice(0, 8)}`,
     transactionId: sale.prepared.transactionId,
@@ -289,7 +325,7 @@ function buildReceipt(sale: PosSaleRecord, payment: StoredPayment, now: Date): R
     registerName: sale.registerName,
     cashierName: sale.cashierName,
     customerLabel: sale.customerLabel,
-    lines: sale.lines,
+    lines: freezeReceiptLines(sale.lines, settings),
     subtotal: sale.subtotal,
     discount: sale.discount,
     tax: sale.tax,
