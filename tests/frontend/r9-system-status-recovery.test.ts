@@ -20,7 +20,7 @@ describe("R9 recovery on the accepted STG-01 operational surface", () => {
 
   test("mounted runtime discovers local journal recovery after reload and blocks new checkout until resolved", () => {
     expect(posAppSource).toContain("loadLocalJournalAttentionItems(recoveryJournal)");
-    expect(posAppSource).toContain("mergeAttentionItems(serverAttention, localAttention, extras)");
+    expect(posAppSource).toContain("mergeAttentionItems(serverAttention, effectiveLocalAttention, extras)");
     expect(posAppSource).toContain("hasBlockingLocalTransactionRecovery(localAttention)");
     expect(posAppSource).toContain("checkout: undefined, payments: undefined, sales: undefined");
     expect(posAppSource).toContain('data-local-recovery-blocked="true"');
