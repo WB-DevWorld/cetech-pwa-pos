@@ -23,6 +23,8 @@ describe("R9 recovery on the accepted STG-01 operational surface", () => {
     expect(posAppSource).toContain("mergeAttentionItems(serverAttention, effectiveLocalAttention, extras)");
     expect(posAppSource).toContain("hasBlockingLocalTransactionRecovery(effectiveLocalAttention)");
     expect(posAppSource).toContain("checkout: undefined, payments: undefined, sales: undefined");
+    expect(posAppSource).toContain("const recoveryTenderActivity = useMemo");
+    expect(posAppSource).toContain("tenderActivity: recoveryTenderActivity");
     expect(posAppSource).toContain('data-local-recovery-blocked="true"');
     expect(posAppSource).toContain('void loadAttention("refresh")');
     expect(attentionRecoverySource).toContain('id: `local-journal:${row.id}`');
