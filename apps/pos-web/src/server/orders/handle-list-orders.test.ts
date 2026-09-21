@@ -113,6 +113,12 @@ describe("UX-04 order history read model", () => {
       cashierName: "Cashier A",
       customer: { kind: "b2b", customerId: "cust-buildworks" },
       customerLabel: "Accra Buildworks Ltd",
+      customerSnapshot: {
+        id: "cust-buildworks",
+        kind: "b2b",
+        displayName: "Accra Buildworks Ltd",
+        company: "BuildWorks Ghana Ltd",
+      },
       prepared: prepared(),
       lines: [line()],
       orderLines: [{ orderLineId: "ol-1", quantity: "2", subtotal: ghs(115000), discount: ghs(0), tax: ghs(0), total: ghs(115000) }],
@@ -145,6 +151,9 @@ describe("UX-04 order history read model", () => {
     expect(item?.paymentStatus).toBe("verified");
     expect(item?.status).toBe("completed");
     expect(item?.customerKind).toBe("b2b");
+    expect(item?.customerLabel).toBe("Accra Buildworks Ltd");
+    expect(item?.customerId).toBe("cust-buildworks");
+    expect(item?.customerCompany).toBe("BuildWorks Ghana Ltd");
 
     const searched = await handleListOrders({
       correlationIdHeader: CORRELATION,
@@ -156,7 +165,7 @@ describe("UX-04 order history read model", () => {
       allowedOrigins: [ORIGIN],
       checkoutStore: checkout,
       assignments: assignments(),
-      query: "Buildworks",
+      query: "Ghana Ltd",
     });
     expect(searched.body.ok).toBe(true);
     if (searched.body.ok) expect(searched.body.data.items).toHaveLength(1);
@@ -193,6 +202,67 @@ describe("UX-04 order history read model", () => {
     if (detail.body.ok) {
       expect(detail.body.data.saleId).toBe("sale-24091");
       expect(detail.body.data.lines[0]?.name).toContain("Emulsion");
+    }
+  });
+
+  test("presents legacy opaque customer ids with a neutral fallback and separate canonical id", async () => {
+    const checkout = createInMemoryCheckoutStore();
+    const seeded = await checkout.seedPreparedSale({
+      organizationId: "org_a",
+      locationId: "loc_a1",
+      locationName: "Main store",
+      registerId: "reg_a1",
+      registerName: "Front Counter",
+      deviceId: DEVICE,
+      shiftId: SHIFT,
+      cashierId: "cashier_a",
+      cashierName: "Cashier A",
+      customer: { kind: "b2b", customerId: "cust-legacy" },
+      customerLabel: "cust-legacy",
+      prepared: prepared(),
+      lines: [line()],
+      subtotal: ghs(115000),
+      discount: ghs(0),
+      tax: ghs(0),
+    });
+    await checkout.saveSale({ ...seeded, status: "completed", commercialConfirmed: true });
+
+    const { store, cookieHeader } = await staffCookies();
+    const listed = await handleListOrders({
+      correlationIdHeader: CORRELATION,
+      origin: ORIGIN,
+      referer: ORIGIN,
+      cookieHeader,
+      now: NOW,
+      sessionStore: store,
+      allowedOrigins: [ORIGIN],
+      checkoutStore: checkout,
+      assignments: assignments(),
+      query: "",
+    });
+    expect(listed.body.ok).toBe(true);
+    if (!listed.body.ok) return;
+    const item = listed.body.data.items[0];
+    expect(item?.customerLabel).toBe("Saved customer account");
+    expect(item?.customerId).toBe("cust-legacy");
+    expect(item?.customerCompany).toBeUndefined();
+
+    const detail = await handleGetOrder({
+      correlationIdHeader: CORRELATION,
+      origin: ORIGIN,
+      referer: ORIGIN,
+      cookieHeader,
+      now: NOW,
+      sessionStore: store,
+      allowedOrigins: [ORIGIN],
+      checkoutStore: checkout,
+      assignments: assignments(),
+      transactionId: TX,
+    });
+    expect(detail.body.ok).toBe(true);
+    if (detail.body.ok) {
+      expect(detail.body.data.customerLabel).toBe("Saved customer account");
+      expect(detail.body.data.customerId).toBe("cust-legacy");
     }
   });
 
