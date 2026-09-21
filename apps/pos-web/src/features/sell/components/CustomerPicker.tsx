@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { customerSecondaryText, filterCustomerResults } from "../state/customerSearch";
 import type { CustomerSearchResultView } from "../state/sellView";
 import { SellModal } from "./SellModal";
@@ -23,6 +23,12 @@ export function CustomerPicker({
   const [query, setQuery] = useState("");
   const results = useMemo(() => filterCustomerResults(customers, query), [customers, query]);
 
+  useEffect(() => {
+    if (!onQueryChange) return;
+    const timer = window.setTimeout(() => onQueryChange(query), 250);
+    return () => window.clearTimeout(timer);
+  }, [onQueryChange, query]);
+
   return (
     <SellModal titleId="customer-picker-title" onClose={onCancel}>
       <h2 id="customer-picker-title">Select customer</h2>
@@ -33,9 +39,7 @@ export function CustomerPicker({
           className="input"
           value={query}
           onChange={(event) => {
-            const next = event.target.value;
-            setQuery(next);
-            onQueryChange?.(next);
+            setQuery(event.target.value);
           }}
           placeholder="Search name, company, phone…"
           autoComplete="off"
