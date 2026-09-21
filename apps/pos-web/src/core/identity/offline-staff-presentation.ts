@@ -64,13 +64,14 @@ export function createLocalOfflineStaffPresentationStore(): OfflineStaffPresenta
     },
     write(authority, now = new Date()) {
       if (authority.status !== "ready" || !authority.session || authority.presentationOnly) return;
+      const { errorMessage: _errorMessage, ...presentation } = authority;
+      void _errorMessage;
       const snapshot: StoredOfflinePresentation = {
         version: 1,
         verifiedAt: now.toISOString(),
         authority: {
-          ...authority,
+          ...presentation,
           presentationOnly: false,
-          errorMessage: undefined,
         },
       };
       const storage = browserStorage();
@@ -104,13 +105,14 @@ export function createMemoryOfflineStaffPresentationStore(): OfflineStaffPresent
     },
     write(authority, now = new Date()) {
       if (authority.status !== "ready" || !authority.session || authority.presentationOnly) return;
+      const { errorMessage: _errorMessage, ...presentation } = authority;
+      void _errorMessage;
       stored = {
         version: 1,
         verifiedAt: now.toISOString(),
         authority: {
-          ...authority,
+          ...presentation,
           presentationOnly: false,
-          errorMessage: undefined,
         },
       };
     },
