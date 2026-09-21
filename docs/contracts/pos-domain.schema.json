@@ -473,6 +473,9 @@
           "type": "string",
           "minLength": 32,
           "maxLength": 128
+        },
+        "customerSnapshot": {
+          "$ref": "#/$defs/CustomerSummary"
         }
       },
       "required": [
