@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Quote } from "../../../../../../docs/contracts/domain.generated";
+import type { CustomerSummary, Quote } from "../../../../../../docs/contracts/domain.generated";
 import { checkoutCommandInFlight, idleCheckoutSession, type CheckoutSessionView } from "../state/checkoutSession";
 import {
   createCashCheckoutController,
@@ -14,7 +14,7 @@ export function useCashCheckout(ports: CashCheckoutPorts | undefined): {
   readonly ready: boolean;
   readonly session: CheckoutSessionView;
   readonly inFlight: boolean;
-  readonly startPrepare: (quote: Quote | undefined) => Promise<void>;
+  readonly startPrepare: (quote: Quote | undefined, customerSnapshot?: CustomerSummary) => Promise<void>;
   readonly confirmCash: (cashReceivedText: string) => Promise<void>;
   readonly resolveSale: () => Promise<void>;
   readonly resolvePayment: () => Promise<void>;
@@ -50,7 +50,7 @@ export function useCashCheckout(ports: CashCheckoutPorts | undefined): {
     ready,
     session,
     inFlight,
-    startPrepare: (quote) => controller?.startPrepare(quote) ?? Promise.resolve(),
+    startPrepare: (quote, customerSnapshot) => controller?.startPrepare(quote, customerSnapshot) ?? Promise.resolve(),
     confirmCash: (cashReceivedText) => controller?.confirmCash(cashReceivedText) ?? Promise.resolve(),
     resolveSale: () => controller?.resolveSale() ?? Promise.resolve(),
     resolvePayment: () => controller?.resolvePayment() ?? Promise.resolve(),
