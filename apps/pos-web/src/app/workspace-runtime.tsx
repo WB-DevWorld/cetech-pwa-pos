@@ -514,12 +514,16 @@ function AttentionWorkspace({
           onSuccess: onRebuildSuccess,
         });
       }}
-      onResolveItem={(id) => {
-        const item = items.find((row) => row.id === id);
-        if (item) {
-          onResolveAttention?.(item);
-        }
-      }}
+      onResolveItem={
+        onResolveAttention
+          ? (id) => {
+              const item = items.find((row) => row.id === id);
+              if (item) {
+                onResolveAttention(item);
+              }
+            }
+          : undefined
+      }
     />
   );
 }
