@@ -8,7 +8,7 @@ export interface LocalRecoveryDiagnostics {
   readonly localSchema: number;
   readonly expectedSchema: number;
   readonly schemaCompatible: boolean;
-  readonly cartDraftCount: number;
+  readonly recoverableCartCount: number;
   readonly pendingOperationCount: number;
   readonly attentionOperationCount: number;
   readonly rebuildableCatalogItemCount: number;
@@ -36,7 +36,9 @@ export async function inspectLocalRecoveryState(
   const attentionOperationCount = journalRows.filter(
     (row) => row.status === "requires_attention" || row.status === "response_unknown",
   ).length;
-  const cartDraftCount = await db.cartDrafts.count();
+  const activeCartId = (await db.kv.get("active-cart"))?.value ?? null;
+  const activeDraft = activeCartId ? await db.cartDrafts.get(activeCartId) : undefined;
+  const recoverableCartCount = activeDraft && activeDraft.lines.length > 0 ? 1 : 0;
   const rebuildableCatalogItemCount = await db.catalogItems.count();
   const schemaCompatible = localSchema === POS_LOCAL_SCHEMA_CURRENT;
 
@@ -61,7 +63,7 @@ export async function inspectLocalRecoveryState(
     localSchema,
     expectedSchema: POS_LOCAL_SCHEMA_CURRENT,
     schemaCompatible,
-    cartDraftCount,
+    recoverableCartCount,
     pendingOperationCount,
     attentionOperationCount,
     rebuildableCatalogItemCount,
