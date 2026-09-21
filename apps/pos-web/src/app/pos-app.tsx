@@ -606,7 +606,7 @@ export function PosRuntime({
             ) : null}
             <SellRuntimeScreen
               {...sellPorts}
-              shiftOpen={authority.shiftOpen}
+              shiftOpen={authoritativeActionsAllowed ? authority.shiftOpen : false}
               online={readOnline}
               catalogAvailability={sellPorts.catalogAvailability}
               nextSaleCustomer={nextSaleCustomer}
