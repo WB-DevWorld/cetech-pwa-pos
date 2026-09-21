@@ -9,7 +9,7 @@ export {
   deletePosLocalDatabase,
   openPosLocalDatabase,
 } from "./pos-local-db";
-export { createCartDraftStore } from "./cart-draft-store";
+export { createCartDraftStore, retireCartDraft } from "./cart-draft-store";
 export { createOperationJournal, loadJournalPayload } from "./operation-journal";
 export {
   applyCatalogIncremental,
