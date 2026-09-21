@@ -11,10 +11,12 @@ export function ReturnsRuntimeScreen({
   returns,
   lookup,
   initialSaleId,
+  onSaleSelected,
 }: {
   readonly returns: ReturnPort;
   readonly lookup?: HistoricSaleLookup;
   readonly initialSaleId?: string | null;
+  readonly onSaleSelected?: (saleId: string) => void;
 }) {
   const flow = useReturnFlow(useMemo(() => ({ returns }), [returns]));
 
@@ -38,7 +40,10 @@ export function ReturnsRuntimeScreen({
       session={flow.session}
       inFlight={flow.inFlight}
       lookup={lookup}
-      onSelectSale={(sale) => flow.controller?.selectSale(sale)}
+      onSelectSale={(sale) => {
+        flow.controller?.selectSale(sale);
+        onSaleSelected?.(sale.saleId);
+      }}
       onUpdateLine={(orderLineId, patch) => flow.controller?.updateLine(orderLineId, patch)}
       onPreview={() => {
         void flow.controller?.preview();
