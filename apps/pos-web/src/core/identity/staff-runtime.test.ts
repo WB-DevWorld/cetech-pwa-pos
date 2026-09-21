@@ -479,7 +479,41 @@ describe("assigned register selection", () => {
     expect(store.read("org_a", "cashier_a")).toBeNull();
   });
 
-  test("H. poisoned forbidden stored register is cleared on restore without sign-in loop", async () => {
+  test("H. forbidden explicit switch preserves previously valid register and preference", async () => {
+    const store = createMemorySelectedRegisterStore({
+      [selectedRegisterStorageKey("org_a", "cashier_a")]: "reg_a",
+    });
+    const registers = stubRegisters();
+    const originalGet = registers.getImpl;
+    registers.getImpl = async (id) =>
+      id === "reg_b" ? fail("FORBIDDEN", "register is out of staff scope") : originalGet(id);
+    const { runtime } = controller(registers, ["reg_a", "reg_b"], store);
+
+    await runtime.restore();
+    expect(runtime.getState()).toMatchObject({
+      status: "ready",
+      selectedRegisterId: "reg_a",
+      register: { id: "reg_a" },
+      shift: { id: SHIFT_A.id },
+      shiftOpen: true,
+    });
+
+    const accepted = await runtime.selectRegister("reg_b");
+
+    expect(accepted).toBe(false);
+    expect(runtime.getState()).toMatchObject({
+      status: "ready",
+      session: { actorId: "cashier_a" },
+      selectedRegisterId: "reg_a",
+      register: { id: "reg_a" },
+      shift: { id: SHIFT_A.id },
+      shiftOpen: true,
+    });
+    expect(store.read("org_a", "cashier_a")).toBe("reg_a");
+    expect(runtime.getState().errorMessage).toContain("not permitted");
+  });
+
+  test("I. poisoned forbidden stored register is cleared on restore without sign-in loop", async () => {
     const store = createMemorySelectedRegisterStore({
       [selectedRegisterStorageKey("org_a", "cashier_a")]: "reg_b",
     });
@@ -502,7 +536,7 @@ describe("assigned register selection", () => {
     expect(store.read("org_a", "cashier_a")).toBeNull();
   });
 
-  test("G. checkout scope uses selected B / shift B, not A", async () => {
+  test("J. checkout scope uses selected B / shift B, not A", async () => {
     const { runtime } = controller(stubRegisters(), ["reg_a", "reg_b"]);
     await runtime.restore();
     await runtime.selectRegister("reg_b");
