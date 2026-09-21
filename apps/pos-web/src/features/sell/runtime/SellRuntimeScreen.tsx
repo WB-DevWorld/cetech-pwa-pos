@@ -41,6 +41,7 @@ export type SellSessionPorts = {
   readonly electronicPaymentsAvailable?: boolean;
   readonly nextSaleCustomer?: CustomerSearchResultView | null;
   readonly onNextSaleCustomerApplied?: (customer: CustomerSearchResultView) => void;
+  readonly customerSearch?: (query: string) => Promise<readonly CustomerSearchResultView[]>;
 };
 
 function defaultNow(): Date {
@@ -102,6 +103,7 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
   const [workspace, setWorkspace] = useState<SellWorkspaceState | undefined>(undefined);
   const [restoreCount, setRestoreCount] = useState(0);
   const priceCacheRef = useRef(new Map<string, ProductDisplayPriceView>());
+  const customerSearchSeqRef = useRef(0);
   const observedProjectionGenerationRef = useRef<number | undefined>(undefined);
   const browseProjectionGenerationRef = useRef<number | undefined>(undefined);
   const projectionGeneration = ports.catalogProjectionGeneration ?? 0;
@@ -309,13 +311,20 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
 
   const searchCustomers = useCallback(
     async (query: string) => {
+      const seq = ++customerSearchSeqRef.current;
+      if (ports.customerSearch) {
+        const results = await ports.customerSearch(query);
+        if (seq !== customerSearchSeqRef.current) return;
+        setCustomers(results);
+        return;
+      }
       const result = await customersPort.search(query);
-      if (!result.ok) {
+      if (!result.ok || seq !== customerSearchSeqRef.current) {
         return;
       }
       setCustomers(result.data.map(customerViewFromSummary));
     },
-    [customersPort],
+    [customersPort, ports.customerSearch],
   );
 
   if (!ready || !initialState) {
