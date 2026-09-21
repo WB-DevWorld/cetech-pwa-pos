@@ -563,10 +563,10 @@ export function PosRuntime({
     >
       {authority.presentationOnly ? (
         <div className="banner warning" role="status" data-offline-presentation-only="true">
-          <strong>Offline mode.</strong>
+          <strong>{online ? "Connection unavailable." : "Offline mode."}</strong>
           <span>
             Showing the last verified cashier, register, saved products and cart. Payments, authoritative pricing,
-            returns and register changes stay unavailable until reconnect.
+            returns and register changes stay unavailable until {online ? "the service recovers." : "reconnect."}
           </span>
         </div>
       ) : cashierAuthorityError ? (
