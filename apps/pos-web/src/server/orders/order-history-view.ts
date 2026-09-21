@@ -25,6 +25,7 @@ export type OrderHistoryListItem = {
   readonly orderReference: string;
   readonly receiptNumber?: string;
   readonly customerLabel: string;
+  readonly customerCompany?: string;
   readonly customerKind?: "walkin" | "retail" | "b2b";
   readonly createdAt: string;
   readonly paymentLabel: string;
@@ -109,6 +110,7 @@ export function presentOrderHistoryItem(
     orderReference: sale.prepared.orderReference || sale.prepared.saleId,
     receiptNumber: receipt?.receiptNumber,
     customerLabel: sale.customerLabel,
+    customerCompany: sale.customerSnapshot?.company,
     customerKind: sale.customer.kind,
     createdAt: receipt?.issuedAt ?? sale.prepared.preparedAt,
     paymentLabel: tenderLabel(payment?.tender ?? receipt?.tender),
@@ -130,6 +132,7 @@ export function matchesOrderQuery(item: OrderHistoryListItem, query: string): bo
     item.orderReference,
     item.receiptNumber,
     item.customerLabel,
+    item.customerCompany,
     item.transactionReference,
     item.saleId,
     item.itemSummary,
