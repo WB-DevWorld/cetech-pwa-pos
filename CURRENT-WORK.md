@@ -1,5 +1,51 @@
 # Current work ledger
 
+## 5PM emergency senior expansion — ACTIVE until 2026-09-21 17:00 Africa/Accra
+
+Owner/user explicitly authorizes a bounded same-day expansion so production-MVP usability defects #82, #83 and #84 can be resolved in parallel before the 17:00 deadline. This is a temporary task-specific reassignment only and does **not** permanently alter `OWNERSHIP.md`.
+
+```text
+human / implementing editor: @wbdevworld
+independent reviewer: @Ben-001-sys
+deadline: 2026-09-21 17:00 Africa/Accra
+mode: IMPLEMENT / INTEGRATE / REVIEW-HANDOFF
+authorized issues:
+  #82 Orders → Return items selected-flow visibility/focus/durable handoff
+  #83 Sell customer picker remote-first BFF search
+  #84 immutable sale-time customer presentation snapshot
+already integrated:
+  #85 receipt-only 80mm browser printing
+allowed WS1 for #82/#83 only:
+  apps/pos-web/src/features/returns/**
+  apps/pos-web/src/features/orders/**
+  apps/pos-web/src/features/sell/**
+  apps/pos-web/src/features/customers/loadCustomerSearch*
+  tests/frontend/**
+allowed WS3 for #82/#83 bounded composition only:
+  apps/pos-web/src/app/returns-runtime.tsx
+  apps/pos-web/src/app/pos-app.tsx
+  apps/pos-web/src/app/workspace-runtime.tsx
+  apps/pos-web/src/app/operational-client.ts
+allowed WS3 for #84:
+  docs/contracts/**
+  apps/pos-web/src/core/**
+  apps/pos-web/src/server/**
+  apps/pos-web/src/app/** where required for composition
+  supabase/** only if persistence schema truly requires it
+  relevant integration/unit tests
+forbidden:
+  pricing authority changes
+  electronic-payment expansion
+  real refund/restock execution
+  production promotion
+  VitePOS cutover
+  unrelated #78/#86/#87/#88 implementation
+review rule:
+  each exact candidate must be CI-green and independently reviewed by @Ben-001-sys before integration
+```
+
+This block explicitly overrides the earlier temporary R9 line `forbidden: #82–#88 implementation` **only for #82, #83 and #84 during this emergency window**. Historical ownership/provenance before this authorization remains historical and must not be rewritten.
+
 Updated 2026-09-20. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
 
 ## Temporary senior R9 reconciliation — ACTIVE
