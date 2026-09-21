@@ -23,6 +23,7 @@ import { ReturnsRuntimeScreen, createBrowserHistoricReturnSaleLookup } from "./r
 import { StaffAuthGate } from "./staff-auth-gate";
 import { ApprovedWorkspaceScreens, clientAttentionExtras } from "./workspace-runtime";
 import { AppShell, POS_ROUTE_HREFS, type PosRoute } from "../ui/shell";
+import { returnSelectionHref } from "./pos-route";
 import { resolveBrowserCatalogSourcePolicy } from "../core/catalog/source-policy";
 import {
   CASHIER_SEED_LOCATION_ID,
@@ -88,9 +89,7 @@ export function PosApp({
       fetchImpl={fetchImpl}
       initialReturnSaleId={initialReturnSaleId}
       onNavigate={(next) => router.push(POS_ROUTE_HREFS[next])}
-      onReturnSaleSelected={(saleId) =>
-        router.push(`${POS_ROUTE_HREFS.returns}?sale=${encodeURIComponent(saleId)}`)
-      }
+      onReturnSaleSelected={(saleId) => router.push(returnSelectionHref(saleId))}
     />
   );
 }
