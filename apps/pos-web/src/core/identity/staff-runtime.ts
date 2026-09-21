@@ -267,10 +267,18 @@ export function createStaffRuntimeController(input: {
 
   async function applyContext(result: ApiResult<StaffSessionContext>): Promise<void> {
     if (!result.ok) {
-      if (result.error.code === "INTEGRATION_UNAVAILABLE" && !isOnline()) {
+      if (result.error.code === "INTEGRATION_UNAVAILABLE") {
         const cached = offlinePresentationStore?.read(now()) ?? null;
         if (cached) {
-          setState(cached);
+          setState(
+            isOnline()
+              ? {
+                  ...cached,
+                  errorMessage:
+                    "Connection unavailable. Showing the last verified cashier and register. Selling and register changes stay blocked until service recovers.",
+                }
+              : cached,
+          );
           return;
         }
       }
