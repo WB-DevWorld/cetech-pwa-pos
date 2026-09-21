@@ -59,8 +59,9 @@ import type { CustomerSearchResultView } from "../features/sell";
 import type { AppToastView } from "../ui/toast";
 import type { AttentionItemView, OperationalLoadState } from "../ui/operational";
 import { applyAppearance, readStoredAppearance, type AppearancePreference } from "../features/settings/appearance";
+import { loadCustomerSearchPresentation } from "../features/customers/loadCustomerSearch";
 import { customerViewFromSummary } from "../features/sell/runtime/mapCartDraft";
-import { fetchAttentionInbox, fetchStoreHealth } from "./operational-client";
+import { fetchAttentionInbox, fetchCustomerDirectory, fetchStoreHealth } from "./operational-client";
 
 function bumpCatalogProjectionGeneration(
   generationRef: { current: number },
@@ -291,6 +292,7 @@ export function PosRuntime({
       catalogProjectionGeneration: number,
     ) => {
       const db = openPosLocalDatabase();
+      const customers = createLocalCustomerPort({ db });
       const locationId = current.register?.locationId ?? current.assignedLocationIds[0] ?? CASHIER_SEED_LOCATION_ID;
       const deviceId = current.shift?.deviceId ?? readOrCreateLocalDeviceId();
       const scope = checkoutScopeFromStaffAuthority(current, deviceId);
@@ -305,7 +307,15 @@ export function PosRuntime({
       setProjectionAvailability(availability);
       setPorts({
         catalog: createLocalCatalogPort({ db }),
-        customers: createLocalCustomerPort({ db }),
+        customers,
+        customerSearch: async (query) => {
+          const result = await loadCustomerSearchPresentation({
+            query,
+            remoteSearch: (needle) => fetchCustomerDirectory(needle, fetchImpl),
+            localSearch: (needle) => customers.search(needle),
+          });
+          return result.ok ? result.customers.map(customerViewFromSummary) : [];
+        },
         drafts: createCartDraftStore(db),
         rememberCartId: (cartId) => rememberActiveCartId(cartId, db),
         recallCartId: () => recallActiveCartId(db),
