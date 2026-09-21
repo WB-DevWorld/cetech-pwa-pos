@@ -25,6 +25,7 @@ export type SellSessionPorts = {
   readonly drafts: CartDraftStore;
   readonly rememberCartId: (cartId: string) => Promise<void>;
   readonly recallCartId: () => Promise<string | null>;
+  readonly retireCartId?: (cartId: string) => Promise<void>;
   readonly locationId: string;
   readonly now?: () => Date;
   readonly online?: () => boolean;
@@ -357,6 +358,9 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
         onNextSaleCustomerApplied={ports.onNextSaleCustomerApplied}
         onCustomerQueryChange={searchCustomers}
         onWorkspaceChange={persist}
+        onRetireCart={(cartId) => {
+          void ports.retireCartId?.(cartId);
+        }}
         quote={presentedQuote.quote}
         eligibility={presentedQuote.eligibility}
         checkoutReady={cashCheckout.ready}
