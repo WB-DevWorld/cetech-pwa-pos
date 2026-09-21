@@ -280,6 +280,65 @@ describe("offline cold-start presentation continuity", () => {
     });
   });
 
+  test("transport failure restores cached presentation even when browser connectivity reports online", async () => {
+    const offlineStore = createMemoryOfflineStaffPresentationStore();
+    offlineStore.write(
+      {
+        status: "ready",
+        session: SESSION,
+        assignedLocationIds: ["loc_a1"],
+        assignedRegisterIds: ["reg_a"],
+        assignedRegisters: [REGISTER_A],
+        selectedRegisterId: "reg_a",
+        register: REGISTER_A,
+        shift: SHIFT_A,
+        shiftOpen: true,
+      },
+      new Date("2026-09-21T10:00:00.000Z"),
+    );
+
+    const unavailableResult: ApiResult<{
+      session: Session;
+      assignedLocationIds: readonly string[];
+      assignedRegisterIds: readonly string[];
+    }> = fail("INTEGRATION_UNAVAILABLE", "staff session transport failed");
+    const gateway = {
+      async establish() {
+        return unavailableResult;
+      },
+      async readContext() {
+        return unavailableResult;
+      },
+      async read() {
+        return null;
+      },
+      async clear() {
+        return;
+      },
+    };
+
+    const runtime = createStaffRuntimeController({
+      gateway,
+      auth: authStub(),
+      registers: stubRegisters(),
+      offlinePresentationStore: offlineStore,
+      isOnline: () => true,
+      now: () => new Date("2026-09-21T11:00:00.000Z"),
+    });
+
+    await runtime.restore();
+    const degraded = runtime.getState();
+    expect(degraded).toMatchObject({
+      status: "ready",
+      presentationOnly: true,
+      session: { actorId: "cashier_a" },
+      register: { id: "reg_a" },
+      shift: { id: SHIFT_A.id },
+    });
+    expect(degraded.errorMessage).toContain("Connection unavailable");
+    expect(checkoutScopeFromStaffAuthority(degraded, "fallback-device")).toBeUndefined();
+  });
+
   test("explicit sign-out clears the offline presentation cache", async () => {
     const offlineStore = createMemoryOfflineStaffPresentationStore();
     const registers = stubRegisters();

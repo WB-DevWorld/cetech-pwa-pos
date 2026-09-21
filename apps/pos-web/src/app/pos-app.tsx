@@ -75,6 +75,10 @@ function bumpCatalogProjectionGeneration(
   return generationRef.current;
 }
 
+export function hasFreshStaffActionAuthority(authority: StaffRuntimeAuthority): boolean {
+  return authority.status === "ready" && Boolean(authority.session) && !authority.presentationOnly;
+}
+
 export function PosApp({
   route,
   fetchImpl,
@@ -524,6 +528,7 @@ export function PosRuntime({
     );
   }
 
+  const authoritativeActionsAllowed = hasFreshStaffActionAuthority(authority);
   const deviceId = authority.shift?.deviceId ?? readOrCreateLocalDeviceId();
   const extras = clientAttentionExtras({ catalogAvailability: projectionAvailability, authority });
   const localRecoveryChecked = localRecoveryActorId === authority.session.actorId;
@@ -563,10 +568,10 @@ export function PosRuntime({
     >
       {authority.presentationOnly ? (
         <div className="banner warning" role="status" data-offline-presentation-only="true">
-          <strong>Offline mode.</strong>
+          <strong>{online ? "Connection unavailable." : "Offline mode."}</strong>
           <span>
             Showing the last verified cashier, register, saved products and cart. Payments, authoritative pricing,
-            returns and register changes stay unavailable until reconnect.
+            returns and register changes stay unavailable until {online ? "the service recovers." : "reconnect."}
           </span>
         </div>
       ) : cashierAuthorityError ? (
@@ -601,7 +606,7 @@ export function PosRuntime({
             ) : null}
             <SellRuntimeScreen
               {...sellPorts}
-              shiftOpen={authority.shiftOpen}
+              shiftOpen={authoritativeActionsAllowed ? authority.shiftOpen : false}
               online={readOnline}
               catalogAvailability={sellPorts.catalogAvailability}
               nextSaleCustomer={nextSaleCustomer}
@@ -612,17 +617,26 @@ export function PosRuntime({
           <p className="muted">Loading products…</p>
         )
       ) : route === "returns" ? (
-        <ReturnsRuntimeScreen
-          returns={returns}
-          lookup={lookup}
-          initialSaleId={initialReturnSaleId ?? pendingReturnSaleId}
-          onSaleSelected={(saleId) => {
-            setPendingReturnSaleId(saleId);
-            onReturnSaleSelected?.(saleId);
-          }}
-        />
+        authoritativeActionsAllowed ? (
+          <ReturnsRuntimeScreen
+            returns={returns}
+            lookup={lookup}
+            initialSaleId={initialReturnSaleId ?? pendingReturnSaleId}
+            onSaleSelected={(saleId) => {
+              setPendingReturnSaleId(saleId);
+              onReturnSaleSelected?.(saleId);
+            }}
+          />
+        ) : (
+          <section className="card card-pad" data-presentation-only-returns="true">
+            <h1>Returns</h1>
+            <p className="banner warning">
+              Reconnect and restore the staff session before reviewing or completing a return.
+            </p>
+          </section>
+        )
       ) : route === "register" ? (
-        authority.presentationOnly ? (
+        !authoritativeActionsAllowed ? (
           <section className="card card-pad">
             <h1>Register</h1>
             <p className="banner warning">Reconnect before opening, closing, or changing a register.</p>
@@ -694,33 +708,41 @@ export function PosRuntime({
           selectedCustomerId={nextSaleCustomer?.id}
           receipts={ports?.receipts}
           printer={ports?.printer}
-          onStartReturn={(saleId) => {
-            setPendingReturnSaleId(saleId);
-            if (onReturnSaleSelected) {
-              onReturnSaleSelected(saleId);
-            } else {
-              onNavigate("returns");
-            }
-          }}
+          onStartReturn={
+            authoritativeActionsAllowed
+              ? (saleId) => {
+                  setPendingReturnSaleId(saleId);
+                  if (onReturnSaleSelected) {
+                    onReturnSaleSelected(saleId);
+                  } else {
+                    onNavigate("returns");
+                  }
+                }
+              : undefined
+          }
           recoveringItemId={recoveringItemId}
-          onResolveAttention={(item: AttentionItemView) => {
-            if (item.recoverKind === "register" || item.recoverKind === "shift") {
-              onNavigate("register");
-              return;
-            }
-            if (item.recoverKind === "catalog") {
-              onNavigate("health");
-              return;
-            }
-            void runAttentionRecovery({
-              item,
-              lock: attentionRecoveryLock.current,
-              ports: { payments: paymentPort, sales: salesPort },
-              reload: () => loadAttention("refresh"),
-              onStart: (id) => setRecoveringItemId(id),
-              onFinish: (id) => setRecoveringItemId((current) => (current === id ? null : current)),
-            });
-          }}
+          onResolveAttention={
+            authoritativeActionsAllowed
+              ? (item: AttentionItemView) => {
+                  if (item.recoverKind === "register" || item.recoverKind === "shift") {
+                    onNavigate("register");
+                    return;
+                  }
+                  if (item.recoverKind === "catalog") {
+                    onNavigate("health");
+                    return;
+                  }
+                  void runAttentionRecovery({
+                    item,
+                    lock: attentionRecoveryLock.current,
+                    ports: { payments: paymentPort, sales: salesPort },
+                    reload: () => loadAttention("refresh"),
+                    onStart: (id) => setRecoveringItemId(id),
+                    onFinish: (id) => setRecoveringItemId((current) => (current === id ? null : current)),
+                  });
+                }
+              : undefined
+          }
         />
       )}
     </AppShell>
