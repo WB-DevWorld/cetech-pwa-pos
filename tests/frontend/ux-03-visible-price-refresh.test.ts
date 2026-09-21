@@ -1,4 +1,4 @@
-import { createElement, useMemo, type ReactNode } from "react";
+import { createElement, useMemo, type ComponentProps, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { act } from "react";
 import { readFileSync } from "node:fs";
@@ -303,12 +303,18 @@ function Harness({
   cache,
   initialState,
   onWorkspaceChange,
+  checkoutSession,
+  createCartId,
+  onRetireCart,
 }: {
   readonly generation: number;
   readonly catalog: CatalogPort;
   readonly cache: Map<string, ProductDisplayPriceView>;
   readonly initialState: SellWorkspaceState;
   readonly onWorkspaceChange: (state: SellWorkspaceState) => void;
+  readonly checkoutSession?: ComponentProps<typeof SellScreen>["checkoutSession"];
+  readonly createCartId?: () => string;
+  readonly onRetireCart?: ComponentProps<typeof SellScreen>["onRetireCart"];
 }): ReactNode {
   const observed = useMemo(() => ({ current: undefined as number | undefined }), []);
   bindPriceCacheToGeneration(cache, observed, generation);
@@ -328,8 +334,10 @@ function Harness({
     initialState,
     catalogProjectionGeneration: generation,
     searchCatalog,
-    createCartId: () => "cart-should-not-recreate",
+    createCartId: createCartId ?? (() => "cart-should-not-recreate"),
     createLineId: () => "line-should-not-recreate",
+    checkoutSession,
+    onRetireCart,
     onWorkspaceChange,
   });
 }
@@ -342,6 +350,9 @@ async function renderHarness(
     readonly cache: Map<string, ProductDisplayPriceView>;
     readonly initialState: SellWorkspaceState;
     readonly onWorkspaceChange: (state: SellWorkspaceState) => void;
+    readonly checkoutSession?: ComponentProps<typeof SellScreen>["checkoutSession"];
+    readonly createCartId?: () => string;
+    readonly onRetireCart?: ComponentProps<typeof SellScreen>["onRetireCart"];
   },
 ): Promise<void> {
   await act(async () => {
@@ -475,6 +486,82 @@ describe("UX-03 visible ProductCard refresh after projection generation", () => 
       expect(latest.cartId).toBe("cart-unavailable");
       expect(latest.cartRevision).toBe(0);
       expect(latest.lines).toEqual([]);
+    } finally {
+      await act(async () => {
+        root.unmount();
+      });
+      fake.cleanup();
+    }
+  });
+
+  test("completed sale retires the sold cart and rotates to one fresh cart exactly once", async () => {
+    const fake = installFakeDom();
+    const catalog = mutableCatalog([6_500, 56_700]);
+    const cache = new Map<string, ProductDisplayPriceView>();
+    const search = await searchCatalogViews(catalog, "");
+    expect(search.ok).toBe(true);
+    if (!search.ok) {
+      throw new Error("search");
+    }
+    const views = await enrichSellProductPrices(catalog, search.items, cache);
+    const simple = views.find((item) => item.id === "simple") as SellProductView;
+    const deps = {
+      createCartId: () => "cart-completed",
+      createLineId: () => "line-completed",
+    };
+    let state = createSellWorkspace(deps, views);
+    state = applyProductSelect(state, simple, views, deps);
+
+    const retired: Array<{ cartId: string; reason: "completed" | "discarded" }> = [];
+    let latest = state;
+    let nextCartCalls = 0;
+    const completedSession = {
+      stage: "complete" as const,
+      message: "The sale is complete.",
+      printStatus: "idle" as const,
+      saleCompleted: true,
+      transactionId: "11111111-1111-4111-8111-111111111099",
+    };
+    const root = createRoot(fake.container as unknown as Element);
+
+    try {
+      const props = {
+        generation: 1,
+        catalog,
+        cache,
+        initialState: state,
+        checkoutSession: completedSession,
+        createCartId: () => {
+          nextCartCalls += 1;
+          return "cart-next";
+        },
+        onRetireCart: (cartId: string, reason: "completed" | "discarded") => {
+          retired.push({ cartId, reason });
+        },
+        onWorkspaceChange: (next: SellWorkspaceState) => {
+          latest = next;
+        },
+      };
+
+      await renderHarness(root, props);
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(retired).toEqual([{ cartId: "cart-completed", reason: "completed" }]);
+      expect(latest.cartId).toBe("cart-next");
+      expect(latest.cartRevision).toBe(0);
+      expect(latest.lines).toEqual([]);
+      expect(nextCartCalls).toBe(1);
+
+      await renderHarness(root, props);
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(retired).toHaveLength(1);
+      expect(latest.cartId).toBe("cart-next");
+      expect(nextCartCalls).toBe(1);
     } finally {
       await act(async () => {
         root.unmount();
