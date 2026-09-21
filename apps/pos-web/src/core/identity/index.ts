@@ -17,3 +17,9 @@ export {
   type SelectedRegisterStore,
 } from "./selected-register-preference";
 export { readOrCreateLocalDeviceId } from "./local-device";
+export {
+  createLocalOfflineStaffPresentationStore,
+  createMemoryOfflineStaffPresentationStore,
+  OFFLINE_STAFF_PRESENTATION_MAX_AGE_MS,
+  type OfflineStaffPresentationStore,
+} from "./offline-staff-presentation";

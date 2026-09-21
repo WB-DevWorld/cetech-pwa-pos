@@ -45,6 +45,7 @@ import {
   checkoutScopeFromStaffAuthority,
   createBffStaffSessionGateway,
   createPublicSupabaseStaffAuthProvider,
+  createLocalOfflineStaffPresentationStore,
   createStaffIdentityPort,
   createStaffRuntimeController,
   readOrCreateLocalDeviceId,
@@ -195,6 +196,8 @@ export function PosRuntime({
         gateway: createBffStaffSessionGateway({ fetchImpl }),
         auth: createPublicSupabaseStaffAuthProvider({ fetchImpl }),
         registers: registerPort,
+        offlinePresentationStore: createLocalOfflineStaffPresentationStore(),
+        isOnline: () => (typeof navigator === "undefined" ? true : navigator.onLine),
       }),
     [fetchImpl, registerPort],
   );
@@ -308,14 +311,15 @@ export function PosRuntime({
       const locationId = current.register?.locationId ?? current.assignedLocationIds[0] ?? CASHIER_SEED_LOCATION_ID;
       const deviceId = current.shift?.deviceId ?? readOrCreateLocalDeviceId();
       const scope = checkoutScopeFromStaffAuthority(current, deviceId);
-      const checkout = scope
-        ? createBrowserCashCheckoutPorts({
-            fetchImpl,
-            scope,
-            journal: createOperationJournal(db),
-            tenderActivity: createTenderActivityPort(db),
-          })
-        : null;
+      const checkout =
+        scope && !current.presentationOnly
+          ? createBrowserCashCheckoutPorts({
+              fetchImpl,
+              scope,
+              journal: createOperationJournal(db),
+              tenderActivity: createTenderActivityPort(db),
+            })
+          : null;
       setProjectionAvailability(availability);
       setPorts({
         catalog: createLocalCatalogPort({ db }),
@@ -332,8 +336,8 @@ export function PosRuntime({
         rememberCartId: (cartId) => rememberActiveCartId(cartId, db),
         recallCartId: () => recallActiveCartId(db),
         locationId,
-        pricing: createBrowserPricingPort({ fetchImpl }),
-        shiftOpen: current.shiftOpen,
+        pricing: current.presentationOnly ? undefined : createBrowserPricingPort({ fetchImpl }),
+        shiftOpen: current.presentationOnly ? false : current.shiftOpen,
         checkout: checkout?.checkout,
         payments: checkout?.payments,
         sales: checkout?.sales,
@@ -356,6 +360,10 @@ export function PosRuntime({
     catalogBootstrapCountRef.current += 1;
     writeOwnerCounts(ownerNodeRef.current, restoreCountRef.current, catalogBootstrapCountRef.current);
     void (async () => {
+      if (snapshot.presentationOnly) {
+        await mountPorts("stale", snapshot, catalogProjectionGenerationRef.current);
+        return;
+      }
       try {
         const synced = await ensureCatalogProjection({
           policy,
@@ -397,7 +405,7 @@ export function PosRuntime({
   ]);
 
   useEffect(() => {
-    if (authority.status !== "ready" || !authority.session) {
+    if (authority.status !== "ready" || !authority.session || authority.presentationOnly) {
       return;
     }
     async function refresh(force: boolean) {
@@ -443,7 +451,7 @@ export function PosRuntime({
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("online", onOnline);
     };
-  }, [authority.session, authority.status, fetchImpl, policy]);
+  }, [authority.presentationOnly, authority.session, authority.status, fetchImpl, policy]);
 
   const returns = useMemo(() => createBrowserReturnPort({ fetchImpl }), [fetchImpl]);
   const lookup = useMemo(() => createBrowserHistoricReturnSaleLookup({ fetchImpl }), [fetchImpl]);
@@ -540,7 +548,7 @@ export function PosRuntime({
       activeRoute={route}
       registerName={authority.register?.name ?? "No register"}
       cashierDisplayName={authority.session.displayName}
-      shiftOpen={authority.shiftOpen}
+      shiftOpen={authority.presentationOnly ? false : authority.shiftOpen}
       online={online}
       liveMessage={cashierAuthorityError}
       attentionCount={attentionCount}
@@ -553,7 +561,15 @@ export function PosRuntime({
         })();
       }}
     >
-      {cashierAuthorityError ? (
+      {authority.presentationOnly ? (
+        <div className="banner warning" role="status" data-offline-presentation-only="true">
+          <strong>Offline mode.</strong>
+          <span>
+            Showing the last verified cashier, register, saved products and cart. Payments, authoritative pricing,
+            returns and register changes stay unavailable until reconnect.
+          </span>
+        </div>
+      ) : cashierAuthorityError ? (
         <p className="banner danger" role="status" data-register-authority-degraded="">
           {cashierAuthorityError} Last known register and shift stay visible until we get an updated result.
         </p>
@@ -606,7 +622,12 @@ export function PosRuntime({
           }}
         />
       ) : route === "register" ? (
-        authority.assignedRegisterIds.length > 0 ? (
+        authority.presentationOnly ? (
+          <section className="card card-pad">
+            <h1>Register</h1>
+            <p className="banner warning">Reconnect before opening, closing, or changing a register.</p>
+          </section>
+        ) : authority.assignedRegisterIds.length > 0 ? (
           <RegisterRuntimeScreen
             register={registerPort}
             registerId={authority.selectedRegisterId}

@@ -4,6 +4,7 @@ import type { StaffAuthProvider, StaffSignInRequest } from "./staff-auth-provide
 import { StaffAuthError } from "./staff-auth-provider";
 import type { StaffSessionBffGateway } from "./bff-staff-session-gateway";
 import type { StaffSessionContext } from "./staff-session-context";
+import type { OfflineStaffPresentationStore } from "./offline-staff-presentation";
 import {
   createLocalSelectedRegisterStore,
   resolveSelectedRegisterId,
@@ -29,6 +30,7 @@ export type StaffRuntimeAuthority = {
   readonly shift: Shift | null;
   readonly shiftOpen: boolean;
   readonly errorMessage?: string;
+  readonly presentationOnly?: boolean;
 };
 
 export type StaffRuntimeController = {
@@ -140,10 +142,16 @@ export function createStaffRuntimeController(input: {
   readonly auth: StaffAuthProvider;
   readonly registers: RegisterPort;
   readonly selectedRegisterStore?: SelectedRegisterStore;
+  readonly offlinePresentationStore?: OfflineStaffPresentationStore;
+  readonly isOnline?: () => boolean;
+  readonly now?: () => Date;
 }): StaffRuntimeController {
   let state: StaffRuntimeAuthority = idle;
   const listeners = new Set<() => void>();
   const selectedRegisterStore = input.selectedRegisterStore ?? createLocalSelectedRegisterStore();
+  const offlinePresentationStore = input.offlinePresentationStore;
+  const isOnline = input.isOnline ?? (() => true);
+  const now = input.now ?? (() => new Date());
 
   function notify(): void {
     for (const listener of listeners) {
@@ -259,6 +267,13 @@ export function createStaffRuntimeController(input: {
 
   async function applyContext(result: ApiResult<StaffSessionContext>): Promise<void> {
     if (!result.ok) {
+      if (result.error.code === "INTEGRATION_UNAVAILABLE" && !isOnline()) {
+        const cached = offlinePresentationStore?.read(now()) ?? null;
+        if (cached) {
+          setState(cached);
+          return;
+        }
+      }
       setState({
         ...idle,
         status: noticeFromFailure(result),
@@ -266,7 +281,11 @@ export function createStaffRuntimeController(input: {
       });
       return;
     }
-    setState(await loadRegister(result.data, state));
+    const next = await loadRegister(result.data, state);
+    setState(next);
+    if (next.status === "ready" && next.session && !next.presentationOnly) {
+      offlinePresentationStore?.write(next, now());
+    }
   }
 
   return {
@@ -302,13 +321,14 @@ export function createStaffRuntimeController(input: {
     async signOut() {
       await input.gateway.clear();
       await input.auth.signOut();
+      offlinePresentationStore?.clear();
       setState({
         ...idle,
         status: "signed_out",
       });
     },
     async refreshRegister() {
-      if (!state.session) {
+      if (!state.session || state.presentationOnly) {
         await applyContext(await input.gateway.readContext());
         return;
       }
@@ -325,7 +345,7 @@ export function createStaffRuntimeController(input: {
       );
     },
     async selectRegister(registerId) {
-      if (!state.session) {
+      if (!state.session || state.presentationOnly) {
         return false;
       }
       if (!state.assignedRegisterIds.includes(registerId)) {
@@ -341,7 +361,7 @@ export function createStaffRuntimeController(input: {
       return state.selectedRegisterId === registerId;
     },
     applyShift(shift) {
-      if (!state.session || !state.register) {
+      if (!state.session || !state.register || state.presentationOnly) {
         return;
       }
       if (shift && shift.registerId !== state.register.id) {

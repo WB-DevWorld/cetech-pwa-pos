@@ -10,6 +10,9 @@ export function checkoutScopeFromStaffAuthority(
   authority: StaffRuntimeAuthority,
   fallbackDeviceId: string,
 ): CashCheckoutScope | undefined {
+  if (authority.presentationOnly) {
+    return undefined;
+  }
   const registerId = authority.register?.id ?? authority.selectedRegisterId;
   const shift = authority.shift;
   if (!registerId || !authority.shiftOpen || !shift?.id) {
