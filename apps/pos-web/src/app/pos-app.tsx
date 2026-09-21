@@ -589,7 +589,7 @@ export function PosRuntime({
         <ReturnsRuntimeScreen
           returns={returns}
           lookup={lookup}
-          initialSaleId={initialReturnSaleId ?? null}
+          initialSaleId={initialReturnSaleId ?? pendingReturnSaleId}
           onSaleSelected={(saleId) => {
             setPendingReturnSaleId(saleId);
             onReturnSaleSelected?.(saleId);
