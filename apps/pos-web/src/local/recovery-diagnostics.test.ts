@@ -45,13 +45,63 @@ describe("CORE-07 non-destructive recovery diagnostics", () => {
 
     expect(await inspectLocalRecoveryState(db)).toMatchObject({
       schemaCompatible: true,
-      cartDraftCount: 0,
+      recoverableCartCount: 0,
       pendingOperationCount: 0,
       attentionOperationCount: 0,
       rebuildableCatalogItemCount: 1,
       destructiveResetAllowed: false,
       recommendedActions: ["NONE"],
     });
+  });
+
+  test("counts only meaningful active cart work and ignores orphan draft rows", async () => {
+    const db = testDb();
+    await db.cartDrafts.bulkPut([
+      {
+        cartId: "11111111-1111-4111-8111-111111111111",
+        revision: 3,
+        customer: { kind: "walkin" },
+        locationId: "loc_a1",
+        lines: [
+          {
+            lineId: "21111111-1111-4111-8111-111111111111",
+            productId: "item-orphan",
+            quantity: "1",
+          },
+        ],
+        updatedAt: "2026-09-21T12:00:00.000Z",
+      },
+      {
+        cartId: "33333333-3333-4333-8333-333333333333",
+        revision: 0,
+        customer: { kind: "walkin" },
+        locationId: "loc_a1",
+        lines: [],
+        updatedAt: "2026-09-21T12:01:00.000Z",
+      },
+    ]);
+    await db.kv.put({ key: "active-cart", value: "33333333-3333-4333-8333-333333333333" });
+
+    expect((await inspectLocalRecoveryState(db)).recoverableCartCount).toBe(0);
+    expect(await db.cartDrafts.count()).toBe(2);
+
+    await db.cartDrafts.put({
+      cartId: "33333333-3333-4333-8333-333333333333",
+      revision: 1,
+      customer: { kind: "walkin" },
+      locationId: "loc_a1",
+      lines: [
+        {
+          lineId: "43333333-3333-4333-8333-333333333333",
+          productId: "item-active",
+          quantity: "1",
+        },
+      ],
+      updatedAt: "2026-09-21T12:02:00.000Z",
+    });
+
+    expect((await inspectLocalRecoveryState(db)).recoverableCartCount).toBe(1);
+    expect(await db.cartDrafts.count()).toBe(2);
   });
 
   test("unresolved journal work is surfaced without deleting durable state", async () => {
