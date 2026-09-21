@@ -993,3 +993,55 @@ button.product-card:disabled {
     max-width: none;
   }
 }
+
+
+.receipt-print-host {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 2mm;
+  }
+
+  html,
+  body {
+    width: 80mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .receipt-print-host {
+    display: block !important;
+  }
+
+  .receipt-paper,
+  .receipt-paper * {
+    visibility: visible !important;
+  }
+
+  .receipt-paper {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    width: 76mm !important;
+    max-width: 76mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    color: #000 !important;
+    overflow: visible !important;
+    break-inside: avoid;
+  }
+
+  .receipt-paper .muted {
+    color: #000 !important;
+  }
+}
