@@ -70,7 +70,7 @@ describe("FE-02 isolated visual harness markup", () => {
 
     expect(desktop).toContain("Scan barcode or search products, SKU");
     expect(desktop).toContain("Epoxy Hardener 1L");
-    expect(desktop).toContain("Price confirmed");
+    expect(desktop).toContain("Price ready");
     expect(desktop).toContain("Clear");
     expect(desktop).toContain("Start your shift before taking payment.");
     expect(desktop).not.toContain(">Scan<");
