@@ -204,6 +204,58 @@ describe("CORE-02 staff session HTTP", () => {
     expect(expired.status).toBe(401);
   });
 
+  test("GET scopes register choices to the verified session location intersection", async () => {
+    const store = createEphemeralInMemoryStaffSessionStore();
+    const established = await handleEstablishStaffSession({
+      correlationIdHeader: CORRELATION,
+      origin: ORIGIN,
+      referer: null,
+      authorizationHeader: "Bearer synthetic-staff-access-token",
+      now: NOW,
+      verifier: verifierOk(),
+      store,
+      allowedOrigins: [ORIGIN],
+      secureCookies: true,
+    });
+    expect(established.body.ok).toBe(true);
+    const sessionCookie = established.cookies.find((cookie) => cookie.startsWith("cetech_pos_sid="));
+    const sessionId = sessionCookie?.split(";")[0]?.split("=")[1] ?? "";
+
+    const recovered = await handleReadStaffSession({
+      correlationIdHeader: CORRELATION,
+      origin: ORIGIN,
+      referer: null,
+      cookieHeader: `cetech_pos_sid=${sessionId}`,
+      now: NOW,
+      store,
+      assignments: {
+        async lookup() {
+          return {
+            locationIds: ["loc_a1", "loc_a2"],
+            registerIds: ["reg_a", "reg_b"],
+            registerAssignments: [
+              { registerId: "reg_a", locationId: "loc_a1" },
+              { registerId: "reg_b", locationId: "loc_a2" },
+            ],
+            locationRoles: [
+              { locationId: "loc_a1", role: "manager" as const },
+              { locationId: "loc_a2", role: "manager" as const },
+            ],
+          };
+        },
+      },
+      allowedOrigins: [ORIGIN],
+    });
+
+    expect(recovered.status).toBe(200);
+    expect(recovered.body.ok).toBe(true);
+    if (!recovered.body.ok) {
+      throw new Error("expected recovered session");
+    }
+    expect(recovered.body.data.assignedLocationIds).toEqual(["loc_a1"]);
+    expect(recovered.body.data.assignedRegisterIds).toEqual(["reg_a"]);
+  });
+
   test("Next session route does not embed privileged secrets", () => {
     const source = readFileSync(
       new URL("../../../apps/pos-web/src/app/api/pos/v1/session/route.ts", import.meta.url),
