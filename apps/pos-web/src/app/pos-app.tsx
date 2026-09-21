@@ -140,12 +140,6 @@ export function PosRuntime({
   );
   const readOnline = useCallback(() => online, [online]);
 
-  useEffect(() => {
-    if (route === "returns") {
-      setPendingReturnSaleId(initialReturnSaleId ?? null);
-    }
-  }, [initialReturnSaleId, route]);
-
   const policy = useMemo(
     () =>
       resolveBrowserCatalogSourcePolicy({
@@ -595,7 +589,7 @@ export function PosRuntime({
         <ReturnsRuntimeScreen
           returns={returns}
           lookup={lookup}
-          initialSaleId={pendingReturnSaleId}
+          initialSaleId={initialReturnSaleId ?? null}
           onSaleSelected={(saleId) => {
             setPendingReturnSaleId(saleId);
             onReturnSaleSelected?.(saleId);
