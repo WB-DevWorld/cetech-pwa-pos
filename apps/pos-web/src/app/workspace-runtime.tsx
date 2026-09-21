@@ -4,6 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { CustomerPort, PrintPort, ReceiptPort } from "../../../../docs/contracts/ports";
 import type { CustomerSummary, StoreHealth } from "../../../../docs/contracts/domain.generated";
 import { OrdersScreen, OrderDetailDialog, type OrderDetailView, type OrderListItemView } from "../features/orders";
+import { ReceiptPaper } from "../features/sell/components/ReceiptPaper";
+import type { ReceiptViewModel } from "../features/sell/state/checkoutSession";
+import { mapReceiptSnapshot } from "../features/sell/runtime/cashCheckoutController";
 import { CustomersScreen } from "../features/customers";
 import { loadCustomerSearchPresentation } from "../features/customers/loadCustomerSearch";
 import { SettingsScreen, type AppearancePreference } from "../features/settings";
@@ -175,6 +178,7 @@ function OrdersWorkspace({
   const [state, setState] = useState<"ready" | "loading" | "error" | "offline">("loading");
   const [detail, setDetail] = useState<OrderDetailView | undefined>();
   const [detailOpen, setDetailOpen] = useState(false);
+  const [printReceipt, setPrintReceipt] = useState<ReceiptViewModel | null>(null);
 
   const load = useCallback(async () => {
     setState("loading");
@@ -226,7 +230,12 @@ function OrdersWorkspace({
                   if (!receipt.ok) {
                     return;
                   }
-                  await printer.print({ receiptId: receipt.data.id, reason: "reprint" });
+                  setPrintReceipt(mapReceiptSnapshot(receipt.data));
+                  window.setTimeout(() => {
+                    void printer
+                      .print({ receiptId: receipt.data.id, reason: "reprint" })
+                      .finally(() => setPrintReceipt(null));
+                  }, 0);
                 })();
               }
             : undefined
@@ -240,6 +249,11 @@ function OrdersWorkspace({
             : undefined
         }
       />
+      {printReceipt ? (
+        <div className="receipt-print-host" aria-hidden="true">
+          <ReceiptPaper receipt={printReceipt} />
+        </div>
+      ) : null}
     </>
   );
 }
