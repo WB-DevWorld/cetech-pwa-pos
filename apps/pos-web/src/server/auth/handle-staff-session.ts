@@ -223,7 +223,18 @@ export async function handleReadStaffSession(
       );
     }
     assignedLocationIds = intersectIds(stored.session.locationIds, assignments.locationIds);
-    assignedRegisterIds = assignments.registerIds;
+    if (assignments.registerAssignments) {
+      const permittedLocations = new Set(assignedLocationIds);
+      assignedRegisterIds = [
+        ...new Set(
+          assignments.registerAssignments
+            .filter((assignment) => permittedLocations.has(assignment.locationId))
+            .map((assignment) => assignment.registerId),
+        ),
+      ];
+    } else {
+      assignedRegisterIds = assignments.registerIds;
+    }
   } catch {
     return fail(
       headers,
