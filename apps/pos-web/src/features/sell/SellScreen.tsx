@@ -448,6 +448,8 @@ export function SellScreen({
       onNewSale?.();
       setCustomerPickerOpen(false);
       setClearConfirmOpen(false);
+    } catch {
+      return;
     } finally {
       setCartTransitioning(false);
     }
