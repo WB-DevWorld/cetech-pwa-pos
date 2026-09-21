@@ -339,7 +339,7 @@ export function PosRuntime({
     writeOwnerCounts(ownerNodeRef.current, restoreCountRef.current, catalogBootstrapCountRef.current);
     void (async () => {
       if (snapshot.presentationOnly) {
-        await mountPorts("offline_cached", snapshot, catalogProjectionGenerationRef.current);
+        await mountPorts("stale", snapshot, catalogProjectionGenerationRef.current);
         return;
       }
       try {
@@ -429,7 +429,7 @@ export function PosRuntime({
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("online", onOnline);
     };
-  }, [authority.session, authority.status, fetchImpl, policy]);
+  }, [authority.presentationOnly, authority.session, authority.status, fetchImpl, policy]);
 
   const returns = useMemo(() => createBrowserReturnPort({ fetchImpl }), [fetchImpl]);
   const lookup = useMemo(() => createBrowserHistoricReturnSaleLookup({ fetchImpl }), [fetchImpl]);
