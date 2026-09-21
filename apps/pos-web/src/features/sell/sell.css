@@ -993,3 +993,79 @@ button.product-card:disabled {
     max-width: none;
   }
 }
+
+
+.receipt-print-host {
+  display: none;
+}
+
+@media print {
+  @page {
+    margin: 2mm;
+  }
+
+  html,
+  body {
+    width: 76mm !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  /*
+   * Keep only the ancestor chain needed to reach the print host. Everything
+   * else is removed from print layout so hidden POS chrome cannot paginate
+   * into blank sheets.
+   */
+  body *:not(:has(.receipt-print-host)):not(.receipt-print-host):not(.receipt-print-host *) {
+    display: none !important;
+  }
+
+  body *:has(.receipt-print-host) {
+    position: static !important;
+    display: block !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  .receipt-print-host {
+    position: static !important;
+    display: block !important;
+    width: 76mm !important;
+    max-width: 76mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .receipt-paper {
+    position: static !important;
+    width: 76mm !important;
+    max-width: 76mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    color: #000 !important;
+    overflow: visible !important;
+  }
+
+  .receipt-paper .muted {
+    color: #000 !important;
+  }
+}
