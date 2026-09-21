@@ -4,6 +4,7 @@ import type { Register, Session, Shift } from "../../../../../docs/contracts/dom
 import { createBffStaffSessionGateway } from "./bff-staff-session-gateway";
 import { checkoutScopeFromStaffAuthority } from "./checkout-scope";
 import { createMemorySelectedRegisterStore, selectedRegisterStorageKey } from "./selected-register-preference";
+import { createMemoryOfflineStaffPresentationStore } from "./offline-staff-presentation";
 import { createStaffRuntimeController } from "./staff-runtime";
 
 const CORRELATION = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -197,6 +198,107 @@ describe("STG-06 staff runtime register authority", () => {
       shift: null,
       shiftOpen: false,
     });
+  });
+});
+
+describe("offline cold-start presentation continuity", () => {
+  test("offline session transport failure restores the last verified presentation but never checkout authority", async () => {
+    const offlineStore = createMemoryOfflineStaffPresentationStore();
+    const verifiedAuthority = {
+      status: "ready" as const,
+      session: SESSION,
+      assignedLocationIds: ["loc_a1"],
+      assignedRegisterIds: ["reg_a"],
+      assignedRegisters: [REGISTER_A],
+      selectedRegisterId: "reg_a",
+      register: REGISTER_A,
+      shift: SHIFT_A,
+      shiftOpen: true,
+    };
+    const verifiedAt = new Date("2026-09-21T10:00:00.000Z");
+    offlineStore.write(verifiedAuthority, verifiedAt);
+
+    let online = false;
+    let sessionResult: ApiResult<{
+      session: Session;
+      assignedLocationIds: readonly string[];
+      assignedRegisterIds: readonly string[];
+    }> = fail("INTEGRATION_UNAVAILABLE", "staff session transport failed");
+
+    const gateway = {
+      async establish() {
+        return sessionResult;
+      },
+      async readContext() {
+        return sessionResult;
+      },
+      async read() {
+        return sessionResult.ok ? sessionResult.data.session : null;
+      },
+      async clear() {
+        return;
+      },
+    };
+
+    const runtime = createStaffRuntimeController({
+      gateway,
+      auth: authStub(),
+      registers: stubRegisters(),
+      offlinePresentationStore: offlineStore,
+      isOnline: () => online,
+      now: () => new Date("2026-09-21T11:00:00.000Z"),
+    });
+
+    await runtime.restore();
+    const offline = runtime.getState();
+    expect(offline).toMatchObject({
+      status: "ready",
+      presentationOnly: true,
+      session: { actorId: "cashier_a" },
+      register: { id: "reg_a" },
+      shift: { id: SHIFT_A.id },
+    });
+    expect(checkoutScopeFromStaffAuthority(offline, "fallback-device")).toBeUndefined();
+
+    online = true;
+    sessionResult = ok({
+      session: SESSION,
+      assignedLocationIds: ["loc_a1"],
+      assignedRegisterIds: ["reg_a"],
+    });
+    await runtime.refreshRegister();
+
+    const restored = runtime.getState();
+    expect(restored.status).toBe("ready");
+    expect(restored.presentationOnly).not.toBe(true);
+    expect(restored.register?.id).toBe("reg_a");
+    expect(restored.shift?.id).toBe(SHIFT_A.id);
+    expect(checkoutScopeFromStaffAuthority(restored, "fallback-device")).toEqual({
+      registerId: "reg_a",
+      shiftId: SHIFT_A.id,
+      deviceId: SHIFT_A.deviceId,
+    });
+  });
+
+  test("explicit sign-out clears the offline presentation cache", async () => {
+    const offlineStore = createMemoryOfflineStaffPresentationStore();
+    const registers = stubRegisters();
+    const runtime = createStaffRuntimeController({
+      gateway: createBffStaffSessionGateway({
+        fetchImpl: sessionFetch(() => ["reg_a"]),
+        correlationId: () => CORRELATION,
+      }),
+      auth: authStub(),
+      registers,
+      offlinePresentationStore: offlineStore,
+      isOnline: () => true,
+      now: () => new Date("2026-09-21T11:00:00.000Z"),
+    });
+
+    await runtime.restore();
+    expect(offlineStore.read(new Date("2026-09-21T11:01:00.000Z"))).not.toBeNull();
+    await runtime.signOut();
+    expect(offlineStore.read(new Date("2026-09-21T11:01:00.000Z"))).toBeNull();
   });
 });
 
