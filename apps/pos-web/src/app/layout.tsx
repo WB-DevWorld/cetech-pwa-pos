@@ -11,7 +11,7 @@ import "@/features/orders/orders.css";
 import "@/features/customers/customers.css";
 import "@/features/settings/settings.css";
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { readServerEnv } from "../config/env";
 import { readReleasePolicy } from "../config/release-policy";
 import { PosSessionProvider } from "./pos-session-provider";
@@ -30,7 +30,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body>
         <PwaLifecycleRuntime appBuild={env.buildId} initialReleasePolicy={initialReleasePolicy}>
-          <PosSessionProvider>{children}</PosSessionProvider>
+          <Suspense fallback={children}>
+            <PosSessionProvider>{children}</PosSessionProvider>
+          </Suspense>
         </PwaLifecycleRuntime>
       </body>
     </html>

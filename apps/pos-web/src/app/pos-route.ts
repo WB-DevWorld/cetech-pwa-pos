@@ -14,3 +14,7 @@ export function posRouteFromPathname(pathname: string | null | undefined): PosRo
   }
   return HREF_TO_ROUTE.get(normalized) ?? null;
 }
+
+export function returnSelectionHref(saleId: string): string {
+  return `${POS_ROUTE_HREFS.returns}?sale=${encodeURIComponent(saleId)}`;
+}

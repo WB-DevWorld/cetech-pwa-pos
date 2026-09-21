@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { posRouteFromPathname } from "./pos-route";
+import { posRouteFromPathname, returnSelectionHref } from "./pos-route";
 
 describe("posRouteFromPathname", () => {
   test("maps mounted POS hrefs and the root sell alias", () => {
@@ -19,5 +19,11 @@ describe("posRouteFromPathname", () => {
     expect(posRouteFromPathname("/missing")).toBeNull();
     expect(posRouteFromPathname(null)).toBeNull();
     expect(posRouteFromPathname(undefined)).toBeNull();
+  });
+});
+
+describe("return selection href", () => {
+  test("persists the selected sale identity in the Returns URL", () => {
+    expect(returnSelectionHref("sale/24091")).toBe("/returns?sale=sale%2F24091");
   });
 });

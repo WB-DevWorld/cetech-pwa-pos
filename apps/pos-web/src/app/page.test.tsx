@@ -4,6 +4,7 @@ import { describe, expect, test, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: () => undefined }),
+  useSearchParams: () => new URLSearchParams(),
   usePathname: () => "/",
 }));
 

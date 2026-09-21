@@ -37,4 +37,41 @@ describe("Returns discovery", () => {
     expect(html).not.toContain("Look up sale");
     expect(html).not.toContain("Original sale");
   });
+
+  test("selected return flow is above discovery cards and the selected sale is explicit", () => {
+    const selected = {
+      ...idleReturnSession(),
+      stage: "selecting" as const,
+      saleId: sale.saleId,
+      lines: sale.lines.map((line) => ({
+        ...line,
+        quantity: "0",
+        reason: "",
+        condition: "resellable" as const,
+      })),
+    };
+    const html = renderToStaticMarkup(
+      createElement(ReturnsScreen, {
+        session: selected,
+        inFlight: false,
+        lookup: { async search() { return [sale]; } },
+        matches: [sale],
+        onSelectSale: () => undefined,
+        onUpdateLine: () => undefined,
+        onPreview: () => undefined,
+        onExecute: () => undefined,
+        onResolve: () => undefined,
+      }),
+    );
+
+    const flowIndex = html.indexOf('data-selected-return-flow="sale-24091"');
+    const gridIndex = html.indexOf('class="returns-card-grid"');
+    expect(flowIndex).toBeGreaterThanOrEqual(0);
+    expect(gridIndex).toBeGreaterThanOrEqual(0);
+    expect(flowIndex).toBeLessThan(gridIndex);
+    expect(html).toContain('data-selected-sale="true"');
+    expect(html).toContain('aria-pressed="true"');
+    expect(html).toContain("Select return items");
+  });
+
 });

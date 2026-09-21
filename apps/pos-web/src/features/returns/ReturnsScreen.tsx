@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { cashierErrorMessage, formatMoneyLabel, formatOperationalDateTime } from "../../ui/cashier-language";
 import { ReturnFlow } from "./ReturnFlow";
 import { OUTSTANDING_RETURN_COPY, type HistoricReturnSaleView, type ReturnConditionView, type ReturnSessionView } from "./returnView";
@@ -44,9 +44,19 @@ export function ReturnsScreen({
   const [localMatches, setLocalMatches] = useState<readonly HistoricReturnSaleView[] | null>(null);
   const [lookupError, setLookupError] = useState<string | undefined>();
   const [searching, setSearching] = useState(false);
+  const selectedFlowRef = useRef<HTMLDivElement | null>(null);
   const locked = session.identityLocked;
   const lookupDisabled = searching || inFlight || locked || !lookup;
   const matches = localMatches ?? initialMatches ?? [];
+
+  useEffect(() => {
+    if (!session.saleId) return;
+    const frame = window.requestAnimationFrame(() => {
+      selectedFlowRef.current?.focus();
+      selectedFlowRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [session.saleId]);
 
   useEffect(() => {
     if (!lookup || locked || initialMatches) {
@@ -139,10 +149,31 @@ export function ReturnsScreen({
         ) : null}
         {searching ? <p className="muted" role="status">Looking up original sales…</p> : null}
       </form>
+      {session.saleId ? (
+        <div
+          ref={selectedFlowRef}
+          className="returns-selected-flow"
+          tabIndex={-1}
+          data-selected-return-flow={session.saleId}
+        >
+          <ReturnFlow
+            session={session}
+            inFlight={inFlight}
+            onUpdateLine={onUpdateLine}
+            onPreview={onPreview}
+            onExecute={onExecute}
+            onResolve={onResolve}
+          />
+        </div>
+      ) : null}
       {matches.length > 0 ? (
         <div className="returns-card-grid">
           {matches.map((sale) => (
-            <article className="card card-pad returns-sale-card" key={sale.saleId}>
+            <article
+              className={sale.saleId === session.saleId ? "card card-pad returns-sale-card selected" : "card card-pad returns-sale-card"}
+              key={sale.saleId}
+              data-selected-sale={sale.saleId === session.saleId ? "true" : "false"}
+            >
               <div className="returns-sale-head">
                 <strong>{sale.orderReference}</strong>
                 {sale.total ? <strong>{formatMoneyLabel(sale.total)}</strong> : null}
@@ -155,7 +186,8 @@ export function ReturnsScreen({
               {itemSummary(sale) ? <p className="workspace-subline">{itemSummary(sale)}</p> : null}
               <button
                 type="button"
-                className="btn"
+                className={sale.saleId === session.saleId ? "btn selected" : "btn"}
+                aria-pressed={sale.saleId === session.saleId}
                 disabled={inFlight || locked}
                 onClick={() => {
                   if (locked) {
@@ -170,16 +202,7 @@ export function ReturnsScreen({
           ))}
         </div>
       ) : null}
-      {session.saleId ? (
-        <ReturnFlow
-          session={session}
-          inFlight={inFlight}
-          onUpdateLine={onUpdateLine}
-          onPreview={onPreview}
-          onExecute={onExecute}
-          onResolve={onResolve}
-        />
-      ) : null}
+
     </div>
   );
 }
