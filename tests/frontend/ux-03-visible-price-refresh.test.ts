@@ -330,7 +330,7 @@ function Harness({
   onWorkspaceChange,
   checkoutSession,
   createCartId,
-  onRetireCart,
+  onTransitionCart,
 }: {
   readonly generation: number;
   readonly catalog: CatalogPort;
@@ -339,7 +339,7 @@ function Harness({
   readonly onWorkspaceChange: (state: SellWorkspaceState) => void;
   readonly checkoutSession?: ComponentProps<typeof SellScreen>["checkoutSession"];
   readonly createCartId?: () => string;
-  readonly onRetireCart?: ComponentProps<typeof SellScreen>["onRetireCart"];
+  readonly onTransitionCart?: ComponentProps<typeof SellScreen>["onTransitionCart"];
 }): ReactNode {
   const observed = useMemo(() => ({ current: undefined as number | undefined }), []);
   bindPriceCacheToGeneration(cache, observed, generation);
@@ -362,7 +362,7 @@ function Harness({
     createCartId: createCartId ?? (() => "cart-should-not-recreate"),
     createLineId: () => "line-should-not-recreate",
     checkoutSession,
-    onRetireCart,
+    onTransitionCart,
     onWorkspaceChange,
   });
 }
@@ -377,7 +377,7 @@ async function renderHarness(
     readonly onWorkspaceChange: (state: SellWorkspaceState) => void;
     readonly checkoutSession?: ComponentProps<typeof SellScreen>["checkoutSession"];
     readonly createCartId?: () => string;
-    readonly onRetireCart?: ComponentProps<typeof SellScreen>["onRetireCart"];
+    readonly onTransitionCart?: ComponentProps<typeof SellScreen>["onTransitionCart"];
   },
 ): Promise<void> {
   await act(async () => {
@@ -560,8 +560,13 @@ describe("UX-03 visible ProductCard refresh after projection generation", () => 
           nextCartCalls += 1;
           return "cart-next";
         },
-        onRetireCart: (cartId: string, reason: "completed" | "discarded") => {
-          retired.push({ cartId, reason });
+        onTransitionCart: async (
+          previous: SellWorkspaceState,
+          next: SellWorkspaceState,
+          reason: "completed" | "discarded",
+        ) => {
+          retired.push({ cartId: previous.cartId, reason });
+          expect(next.lines).toEqual([]);
         },
         onWorkspaceChange: (next: SellWorkspaceState) => {
           latest = next;
