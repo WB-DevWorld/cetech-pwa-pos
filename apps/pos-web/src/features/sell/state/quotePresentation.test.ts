@@ -46,21 +46,21 @@ describe("FE-04 quote presentation", () => {
   test("confirmed displays cashier confirmation without mixing in totals", () => {
     const quote = { status: "confirmed" as const, revision: 2, quote: snapshot(4500) };
     const view = describeQuoteDisplay(quote);
-    expect(view.message).toBe("Price confirmed");
+    expect(view.message).toBe("Price ready");
     expect(view.amounts).toBeUndefined();
     expect(quoteSnapshotAmountRows(quote.quote).map((row) => row.label)).toEqual(["Subtotal", "Tax", "Total"]);
     expect(quoteSnapshotAmountRows(quote.quote).map((row) => row.value)).toEqual(["GHS 43.00", "GHS 2.00", "GHS 45.00"]);
   });
 
-  test("zero discount remains visible when the quote supplies it", () => {
+  test("zero discount is omitted while tax and total remain visible", () => {
     const rows = quoteSnapshotAmountRows({
       total: { minor: 3000, currency: "GHS" },
       subtotal: { minor: 3000, currency: "GHS" },
       discount: { minor: 0, currency: "GHS" },
       tax: { minor: 0, currency: "GHS" },
     });
-    expect(rows.map((row) => row.label)).toEqual(["Subtotal", "Discount", "Tax", "Total"]);
-    expect(rows.find((row) => row.label === "Discount")?.value).toBe("GHS 0.00");
+    expect(rows.map((row) => row.label)).toEqual(["Subtotal", "Tax", "Total"]);
+    expect(rows.find((row) => row.label === "Discount")).toBeUndefined();
   });
 
   test("changed discloses previous and current snapshots without replacing one", () => {

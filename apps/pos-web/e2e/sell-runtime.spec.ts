@@ -170,21 +170,21 @@ test("New Sale Cart B quote is accepted even when Cart A had a higher revision",
     await page.getByRole("button", { name: "Increase quantity" }).click();
   }
   await expect(cart.locator(".qty-input")).toHaveValue("4");
-  await expect(cart).toContainText("Cart · Rev 4");
+  await expect(cart).toHaveAttribute("data-cart-revision", "4");
   await expect(page.locator("[data-quote-status='confirmed']")).toBeVisible({ timeout: 15_000 });
   await expect(page.locator(".cart-totals")).toContainText("GHS 40.00");
 
   await page.getByRole("button", { name: "Clear", exact: true }).click();
   await page.getByRole("button", { name: "Clear sale" }).click();
   await expect(cart.getByText("Your cart is empty")).toBeVisible();
-  await expect(cart).toContainText("Cart · Rev 0");
+  await expect(cart).toHaveAttribute("data-cart-revision", "0");
   await expect(page.locator("[data-quote-status='confirmed']")).toHaveCount(0);
   await expect(page.locator("[data-quote-status='changed']")).toHaveCount(0);
   await expect(page.getByText("GHS 40.00")).toHaveCount(0);
 
   await scanHardener(page);
   await expect(cart.getByText("Epoxy Hardener 1L")).toBeVisible();
-  await expect(cart).toContainText("Cart · Rev 1");
+  await expect(cart).toHaveAttribute("data-cart-revision", "1");
   await expect(page.locator("[data-quote-status='quoting']")).toBeVisible();
   await expect(page.getByText("GHS 40.00")).toHaveCount(0);
   await expect(page.locator("[data-eligibility-allowed='false']")).toBeVisible();
@@ -205,7 +205,7 @@ test("equal revision across New Sale cannot reuse Cart A quote while Cart B is q
   await scanHardener(page);
   const cart = page.getByRole("complementary", { name: "Current sale" });
   await expect(cart.getByText("Epoxy Hardener 1L")).toBeVisible();
-  await expect(cart).toContainText("Cart · Rev 1");
+  await expect(cart).toHaveAttribute("data-cart-revision", "1");
   await expect(page.locator("[data-quote-status='confirmed']")).toBeVisible({ timeout: 15_000 });
   await expect(page.locator(".cart-totals")).toContainText("GHS 40.00");
 
@@ -216,7 +216,7 @@ test("equal revision across New Sale cannot reuse Cart A quote while Cart B is q
 
   await scanHardener(page);
   await expect(cart.getByText("Epoxy Hardener 1L")).toBeVisible();
-  await expect(cart).toContainText("Cart · Rev 1");
+  await expect(cart).toHaveAttribute("data-cart-revision", "1");
   await expect(page.locator("[data-quote-status='quoting']")).toBeVisible();
   await expect(page.getByText("GHS 40.00")).toHaveCount(0);
   await expect(page.locator("[data-eligibility-allowed='false']")).toBeVisible();

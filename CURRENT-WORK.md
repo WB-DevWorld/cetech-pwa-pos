@@ -1,3 +1,29 @@
+## 5PM bounded UX-01 cashier-copy slice — ACTIVE until 2026-09-21 17:00 Africa/Accra
+
+Owner/user explicitly authorizes only this narrow #78 slice for today's release candidate.
+
+```text
+human / implementing editor: @wbdevworld
+independent reviewer: @Ben-001-sys
+issue: #78
+branch: ws1/ux-78-5pm-cashier-copy
+allowed:
+  apps/pos-web/src/features/sell/components/CartPanel.tsx
+  apps/pos-web/src/features/sell/state/quotePresentation.ts
+  tests/frontend/cashier-language-surfaces.test.ts
+scope:
+  hide cashier-facing cart revision
+  change confirmed-price copy to "Price ready"
+  hide zero discount row
+forbidden:
+  auth diagnostics
+  returns/register terminology sweep
+  payment-provider behavior
+  pricing authority changes
+  contract/schema changes
+  production promotion
+```
+
 # Current work ledger
 
 ## 5PM emergency senior expansion — ACTIVE until 2026-09-21 17:00 Africa/Accra

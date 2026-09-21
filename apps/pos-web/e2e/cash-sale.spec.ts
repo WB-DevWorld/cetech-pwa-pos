@@ -42,7 +42,7 @@ test("combined Sell UI completes a B2B cash sale using the authoritative quoted 
   await page.getByRole("button", { name: /Buildworks Ltd/ }).click();
   await scanHardener(page);
   await expect(page.locator("[data-quote-status='confirmed']")).toBeVisible({ timeout: 15_000 });
-  await expect(page.locator("[data-quote-status='confirmed']")).toContainText("Price confirmed");
+  await expect(page.locator("[data-quote-status='confirmed']")).toContainText("Price ready");
   await expect(page.locator(".cart-totals")).toContainText("GHS 12.00");
   await page.getByRole("button", { name: "Pay" }).click();
   await expect(page.locator("[data-checkout-stage='choose_payment']")).toBeVisible();

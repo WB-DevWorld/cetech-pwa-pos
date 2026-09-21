@@ -146,7 +146,7 @@ export function formatMoneyDisplay(money: QuotePresentationMoney): string {
 export function quoteSnapshotAmountRows(snapshot: QuotePresentationSnapshot): QuoteAmountRow[] {
   const rows: QuoteAmountRow[] = [];
   if (snapshot.subtotal) rows.push({ label: "Subtotal", value: formatMoneyDisplay(snapshot.subtotal) });
-  if (snapshot.discount) {
+  if (snapshot.discount && snapshot.discount.minor !== 0) {
     rows.push({ label: "Discount", value: formatMoneyDisplay(snapshot.discount) });
   }
   if (snapshot.tax) rows.push({ label: "Tax", value: formatMoneyDisplay(snapshot.tax) });
@@ -175,7 +175,7 @@ export function describeQuoteDisplay(quote: QuoteDisplayState, options?: QuoteDi
     case "confirmed":
       return {
         tone: "confirmed",
-        message: "Price confirmed",
+        message: "Price ready",
       };
     case "changed":
       return {
