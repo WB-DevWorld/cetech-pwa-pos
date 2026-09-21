@@ -179,7 +179,6 @@ export function CartPanel({
         <div className="cart-head-row">
           <div className="cart-title">
             <strong>Cart</strong>
-            <span className="muted cart-rev"> · Rev {revision}</span>
           </div>
           <div className="cart-head-actions">
             <button type="button" className="btn cart-back" onClick={onCloseMobile}>
