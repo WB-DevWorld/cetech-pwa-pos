@@ -38,7 +38,7 @@ export async function inspectLocalRecoveryState(
   ).length;
   const activeCartId = (await db.kv.get("active-cart"))?.value ?? null;
   const activeDraft = activeCartId ? await db.cartDrafts.get(activeCartId) : undefined;
-  const recoverableCartCount = activeDraft && activeDraft.lines.length > 0 ? 1 : 0;
+  const recoverableCartCount = activeDraft && (activeDraft.lines.length > 0 || activeDraft.customer.kind !== "walkin") ? 1 : 0;
   const rebuildableCatalogItemCount = await db.catalogItems.count();
   const schemaCompatible = localSchema === POS_LOCAL_SCHEMA_CURRENT;
 
