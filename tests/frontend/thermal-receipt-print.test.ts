@@ -15,11 +15,17 @@ const checkout = readFileSync(
 );
 
 describe("BUG #85 thermal browser receipt printing", () => {
-  test("browser print hides the POS shell and exposes an 80mm receipt only", () => {
+  test("browser print removes the POS shell from layout and exposes an 80mm receipt only", () => {
     expect(css).toContain("@media print");
-    expect(css).toContain("size: 80mm auto");
-    expect(css).toContain("body *");
-    expect(css).toContain("visibility: hidden !important");
+    expect(css).toContain("@page");
+    expect(css).toContain("margin: 2mm");
+    expect(css).not.toContain("size: 80mm auto");
+    expect(css).toContain(
+      "body *:not(:has(.receipt-print-host)):not(.receipt-print-host):not(.receipt-print-host *)",
+    );
+    expect(css).toContain("display: none !important");
+    expect(css).not.toContain("visibility: hidden !important");
+    expect(css).toContain(".receipt-print-host");
     expect(css).toContain(".receipt-paper");
     expect(css).toContain("width: 76mm !important");
   });
