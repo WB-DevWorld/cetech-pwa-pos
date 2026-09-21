@@ -71,7 +71,7 @@ export {
   type LocalRecoveryDiagnostics,
 } from "./recovery-diagnostics";
 export { assertJournalPayloadHasNoSecrets, journalPayloadContainsSecrets } from "./secrets-guard";
-export { clearActiveCartId, recallActiveCartId, rememberActiveCartId } from "./active-cart";
+export { clearActiveCartId, recallActiveCartId, rememberActiveCartId, replaceActiveCartDraft } from "./active-cart";
 export {
   CASHIER_SEED_CATALOG,
   CASHIER_SEED_CUSTOMERS,
