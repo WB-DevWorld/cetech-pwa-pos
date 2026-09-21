@@ -5,9 +5,19 @@ export type StaffLocationRole = {
   readonly role: StaffAssignmentRole;
 };
 
+export type StaffRegisterAssignment = {
+  readonly registerId: string;
+  readonly locationId: string;
+};
+
 export type StaffAssignments = {
   readonly locationIds: readonly string[];
   readonly registerIds: readonly string[];
+  /**
+   * Optional register-to-location mapping for callers that must intersect
+   * durable assignments with a narrower verified session location scope.
+   */
+  readonly registerAssignments?: readonly StaffRegisterAssignment[];
   /** Trusted per-location role from pos_staff_location_assignments. */
   readonly locationRoles: readonly StaffLocationRole[];
 };
