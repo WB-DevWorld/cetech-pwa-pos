@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import type { CartDraftStore, CatalogPort, CheckoutUseCases, CustomerPort, PaymentPort, PricingPort, PrintPort, ReceiptPort, SalesPort } from "../../../../../../docs/contracts/ports";
 import { SellScreen } from "../SellScreen";
+import { ReceiptPaper } from "../components/ReceiptPaper";
 import { useElectronicPayment } from "../../payments/useElectronicPayment";
 import { type TenderAvailabilityView, electronicTenderAvailable } from "../components/TenderChoice";
 import type { CatalogAvailability, CustomerSearchResultView, SellProductView, SellWorkspaceState } from "../state/sellView";
@@ -14,6 +16,7 @@ import { customerSummaryFromSelection, customerViewFromSummary, workspaceToCartD
 import { restoreSellWorkspace } from "./restoreWorkspace";
 import { useCartQuote } from "./useCartQuote";
 import { useCashCheckout, type CashCheckoutPorts } from "./useCashCheckout";
+import type { ReceiptViewModel } from "../state/checkoutSession";
 import type { CashCheckoutScope } from "./cashCheckoutController";
 
 export type SellSessionPorts = {
@@ -139,6 +142,7 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
     ports.sales,
   ]);
   const cashCheckout = useCashCheckout(checkoutPorts);
+  const [printReceipt, setPrintReceipt] = useState<ReceiptViewModel | null>(null);
   const electronicPorts = useMemo(() => {
     if (!ports.payments?.initialize || !ports.payments.resolve) {
       return undefined;
@@ -380,7 +384,16 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
           void cashCheckout.loadReceipt();
         }}
         onPrintReceipt={() => {
-          void cashCheckout.printReceipt();
+          const receipt = cashCheckout.session.receipt;
+          if (!receipt) {
+            return;
+          }
+          flushSync(() => {
+            setPrintReceipt(receipt);
+          });
+          void cashCheckout.printReceipt().finally(() => {
+            setPrintReceipt(null);
+          });
         }}
         onCheckoutNewSale={() => {
           cashCheckout.resetForNewSale();
@@ -441,6 +454,11 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
           void electronic.resolve();
         }}
       />
+      {printReceipt ? (
+        <div className="receipt-print-host" aria-hidden="true">
+          <ReceiptPaper receipt={printReceipt} />
+        </div>
+      ) : null}
     </div>
   );
 }
