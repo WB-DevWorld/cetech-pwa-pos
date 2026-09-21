@@ -1,6 +1,7 @@
 import type {
   ApiFailure,
   CommandContext,
+  CustomerSummary,
   PaymentState,
   PreparedSale,
   Quote,
@@ -538,7 +539,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
     isLocked(): boolean {
       return commandLock;
     },
-    async startPrepare(quote: Quote | undefined): Promise<void> {
+    async startPrepare(quote: Quote | undefined, customerSnapshot?: CustomerSummary): Promise<void> {
       if (commandLock || session.saleCompleted) {
         return;
       }
@@ -585,6 +586,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
               deviceId: ports.scope.deviceId,
               quoteId: quote.id,
               quoteFingerprint: quote.fingerprint,
+              ...(customerSnapshot ? { customerSnapshot } : {}),
             },
             attempt.prepare,
           ),
