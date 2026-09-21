@@ -88,6 +88,16 @@ describe("CORE-07 non-destructive recovery diagnostics", () => {
     await db.cartDrafts.put({
       cartId: "33333333-3333-4333-8333-333333333333",
       revision: 1,
+      customer: { kind: "retail", customerId: "cust-active" },
+      locationId: "loc_a1",
+      lines: [],
+      updatedAt: "2026-09-21T12:01:30.000Z",
+    });
+    expect((await inspectLocalRecoveryState(db)).recoverableCartCount).toBe(1);
+
+    await db.cartDrafts.put({
+      cartId: "33333333-3333-4333-8333-333333333333",
+      revision: 2,
       customer: { kind: "walkin" },
       locationId: "loc_a1",
       lines: [
