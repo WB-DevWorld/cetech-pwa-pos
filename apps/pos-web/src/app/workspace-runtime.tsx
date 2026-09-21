@@ -405,6 +405,10 @@ function HealthWorkspace({
         <p className="banner danger" role="alert" data-catalog-rebuild-phase={rebuild.phase}>
           {rebuildText}
         </p>
+      ) : rebuild.phase === "stale" && rebuildText ? (
+        <p className="banner warning" role="status" data-catalog-rebuild-phase={rebuild.phase}>
+          {rebuildText}
+        </p>
       ) : null}
       {recovery ? (
         <section className="card card-pad operational-panel" aria-labelledby="recovery-summary-title">
@@ -579,10 +583,20 @@ async function runCatalogRebuild(input: {
       fetchImpl: input.fetchImpl,
       force: true,
     });
-    if (result.producerUnavailable && result.availability === "unavailable") {
+    if (result.availability === "unavailable") {
       input.setRebuild({
         phase: "failure",
-        message: "catalog producer is unavailable",
+        message: "Products couldn't be refreshed. Check the connection and try again.",
+      });
+      input.onCatalogProjectionChange?.(result);
+      return;
+    }
+    if (result.availability === "stale") {
+      input.setRebuild({
+        phase: "stale",
+        itemCount: result.itemCount,
+        availability: "stale",
+        message: "Saved products are still available, but the latest product update failed. Try again when the connection is stable.",
       });
       input.onCatalogProjectionChange?.(result);
       return;
@@ -590,7 +604,7 @@ async function runCatalogRebuild(input: {
     input.setRebuild({
       phase: "success",
       itemCount: result.itemCount,
-      availability: result.availability,
+      availability: "fresh",
     });
     input.onCatalogProjectionChange?.(result);
     input.onSuccess?.();
