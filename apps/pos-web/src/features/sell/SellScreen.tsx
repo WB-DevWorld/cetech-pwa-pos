@@ -75,6 +75,7 @@ export type SellScreenProps = {
   onSelectCustomer?: (customerId: string) => void;
   onClearCustomer?: () => void;
   onNewSale?: () => void;
+  onRetireCart?: (cartId: string, reason: "completed" | "discarded") => void;
   quote?: QuoteDisplayState;
   eligibility?: CheckoutEligibilityView;
   checkoutReady?: boolean;
@@ -127,6 +128,7 @@ export function SellScreen({
   onSelectCustomer,
   onClearCustomer,
   onNewSale,
+  onRetireCart,
   quote,
   eligibility,
   checkoutReady = false,
@@ -173,10 +175,35 @@ export function SellScreen({
   const searchSeq = useRef(0);
   const barcodeSeq = useRef(0);
   const observedProjectionGenerationRef = useRef<number | undefined>(undefined);
+  const completedSaleRotationRef = useRef<string | null>(null);
 
   useEffect(() => {
     onWorkspaceChange?.(state);
   }, [onWorkspaceChange, state]);
+
+  useEffect(() => {
+    if (!checkoutSession?.saleCompleted) {
+      return;
+    }
+    const completedToken = checkoutSession.transactionId ?? checkoutSession.receipt?.transactionId;
+    if (!completedToken || completedSaleRotationRef.current === completedToken) {
+      return;
+    }
+    const retiredCartId = state.cartId;
+    completedSaleRotationRef.current = completedToken;
+    onRetireCart?.(retiredCartId, "completed");
+    setState((current) =>
+      current.cartId === retiredCartId ? applyNewSale(current, catalog, deps) : current,
+    );
+  }, [
+    catalog,
+    checkoutSession?.receipt?.transactionId,
+    checkoutSession?.saleCompleted,
+    checkoutSession?.transactionId,
+    deps,
+    onRetireCart,
+    state.cartId,
+  ]);
 
   useEffect(() => {
     const decision = decideNextSaleCustomer({
@@ -371,11 +398,33 @@ export function SellScreen({
     if (checkoutSession && !canBeginNewSale(checkoutSession)) {
       return;
     }
+
+    if (checkoutSession?.saleCompleted) {
+      const completedToken = checkoutSession.transactionId ?? checkoutSession.receipt?.transactionId;
+      if (completedToken && completedSaleRotationRef.current !== completedToken) {
+        const retiredCartId = state.cartId;
+        completedSaleRotationRef.current = completedToken;
+        onRetireCart?.(retiredCartId, "completed");
+        setState((current) =>
+          current.cartId === retiredCartId ? applyNewSale(current, catalog, deps) : current,
+        );
+      }
+      onCheckoutNewSale?.();
+      onNewSale?.();
+      setCustomerPickerOpen(false);
+      setClearConfirmOpen(false);
+      return;
+    }
+
+    const retiredCartId = state.cartId;
+    onRetireCart?.(retiredCartId, "discarded");
     onCheckoutNewSale?.();
     onNewSale?.();
     setCustomerPickerOpen(false);
     setClearConfirmOpen(false);
-    setState((current) => (applyNewSale(current, catalog, deps)));
+    setState((current) =>
+      current.cartId === retiredCartId ? applyNewSale(current, catalog, deps) : current,
+    );
   }
 
   function handleClearRequest() {
