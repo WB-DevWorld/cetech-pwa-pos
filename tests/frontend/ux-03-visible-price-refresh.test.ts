@@ -41,7 +41,10 @@ type FakeNode = {
   innerHTML: string;
   setAttribute: (name: string, value: string) => void;
   getAttribute: (name: string) => string | null;
+  hasAttribute: (name: string) => boolean;
   removeAttribute: (name: string) => void;
+  querySelector: (selector: string) => FakeNode | null;
+  querySelectorAll: (selector: string) => FakeNode[];
   appendChild: (child: FakeNode) => FakeNode;
   removeChild: (child: FakeNode) => FakeNode;
   insertBefore: (child: FakeNode, ref: FakeNode | null) => FakeNode;
@@ -109,8 +112,30 @@ function createFakeNode(document: FakeDocument, nodeType: number, tagName: strin
       if (name === "class" && this.className) return this.className;
       return this.attributes.get(name) ?? null;
     },
+    hasAttribute(name) {
+      return this.attributes.has(name);
+    },
     removeAttribute(name) {
       this.attributes.delete(name);
+    },
+    querySelector(selector) {
+      return this.querySelectorAll(selector)[0] ?? null;
+    },
+    querySelectorAll(selector) {
+      const matches: FakeNode[] = [];
+      const visit = (candidate: FakeNode) => {
+        const idMatch = selector.startsWith("#") && candidate.getAttribute("id") === selector.slice(1);
+        const attrMatch =
+          selector.startsWith("[") &&
+          selector.endsWith("]") &&
+          candidate.hasAttribute(selector.slice(1, -1));
+        if (idMatch || attrMatch) {
+          matches.push(candidate);
+        }
+        candidate.childNodes.forEach(visit);
+      };
+      this.childNodes.forEach(visit);
+      return matches;
     },
     appendChild(child) {
       if (child.parentNode) child.parentNode.removeChild(child);
