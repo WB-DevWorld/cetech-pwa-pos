@@ -148,7 +148,7 @@ describe("CORE-07 service worker safety invariants", () => {
     expect(serviceWorkerUrlForBuild("1.0.0")).not.toBe(serviceWorkerUrlForBuild("1.0.1"));
   });
 
-  test("API/business and navigation responses are excluded from persistent caching", () => {
+  test("API/business responses stay uncached while the replaceable POS shell supports offline launch", () => {
     const apiGuard = 'if (url.pathname.startsWith("/api/")) return;';
     const staticBranch = 'if (url.pathname.startsWith("/_next/static/")) {';
     const navigationBranch = 'if (request.mode === "navigate") {';
@@ -164,10 +164,29 @@ describe("CORE-07 service worker safety invariants", () => {
     const staticCacheBlock = workerSource.slice(staticBranchIndex, navigationBranchIndex);
     expect(staticCacheBlock).toContain("cache.put(request, response.clone())");
 
+    expect(workerSource).toContain('const APP_SHELL_URL = "/"');
+    expect(workerSource).toContain("cacheAppShell(cache)");
+    expect(workerSource).toContain("shellAssetPaths(html)");
+    expect(workerSource).toContain('contentType.includes("text/html")');
+    expect(workerSource).toContain("cache.put(request, response.clone())");
+
     const navigationBlock = workerSource.slice(navigationBranchIndex);
-    expect(navigationBlock).not.toContain("cache.put(request");
-    expect(navigationBlock).toContain("fetch(request).catch");
+    expect(navigationBlock).toContain("cache.match(request, { ignoreSearch: true })");
+    expect(navigationBlock).toContain("cache.match(APP_SHELL_URL)");
     expect(navigationBlock).toContain("cache.match(OFFLINE_URL)");
+    expect(navigationBlock).not.toContain('url.pathname.startsWith("/api/")');
+  });
+
+  test("worker installation keeps a real app-shell fallback without destructive cache semantics", () => {
+    const installBlock = workerSource.slice(
+      workerSource.indexOf('self.addEventListener("install"'),
+      workerSource.indexOf('self.addEventListener("activate"'),
+    );
+    expect(installBlock).toContain("cache.add(OFFLINE_URL)");
+    expect(installBlock).toContain("cacheAppShell(cache)");
+    expect(workerSource).toContain('fetch(APP_SHELL_URL, { cache: "no-store" })');
+    expect(workerSource).not.toContain("indexedDB.deleteDatabase");
+    expect(workerSource).not.toContain("localStorage.clear");
   });
 
   test("manifest is standalone and uses the controlled root scope", () => {
