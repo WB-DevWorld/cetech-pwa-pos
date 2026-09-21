@@ -75,16 +75,22 @@ function bumpCatalogProjectionGeneration(
 export function PosApp({
   route,
   fetchImpl,
+  initialReturnSaleId,
 }: {
   readonly route: PosRoute;
   readonly fetchImpl?: typeof fetch;
+  readonly initialReturnSaleId?: string | null;
 }) {
   const router = useRouter();
   return (
     <PosRuntime
       route={route}
       fetchImpl={fetchImpl}
+      initialReturnSaleId={initialReturnSaleId}
       onNavigate={(next) => router.push(POS_ROUTE_HREFS[next])}
+      onReturnSaleSelected={(saleId) =>
+        router.push(`${POS_ROUTE_HREFS.returns}?sale=${encodeURIComponent(saleId)}`)
+      }
     />
   );
 }
@@ -93,10 +99,14 @@ export function PosRuntime({
   route,
   fetchImpl,
   onNavigate,
+  initialReturnSaleId,
+  onReturnSaleSelected,
 }: {
   readonly route: PosRoute;
   readonly fetchImpl?: typeof fetch;
   readonly onNavigate: (route: PosRoute) => void;
+  readonly initialReturnSaleId?: string | null;
+  readonly onReturnSaleSelected?: (saleId: string) => void;
 }) {
   const [online, setOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
   const [ports, setPorts] = useState<SellSessionPorts | null>(null);
@@ -126,8 +136,17 @@ export function PosRuntime({
   const [localRecoveryActorId, setLocalRecoveryActorId] = useState<string | null>(null);
   const [attentionState, setAttentionState] = useState<OperationalLoadState>("loading");
   const [nextSaleCustomer, setNextSaleCustomer] = useState<CustomerSearchResultView | null>(null);
-  const [pendingReturnSaleId, setPendingReturnSaleId] = useState<string | null>(null);
+  const [pendingReturnSaleId, setPendingReturnSaleId] = useState<string | null>(
+    initialReturnSaleId ?? null,
+  );
   const readOnline = useCallback(() => online, [online]);
+
+  useEffect(() => {
+    if (route === "returns") {
+      setPendingReturnSaleId(initialReturnSaleId ?? null);
+    }
+  }, [initialReturnSaleId, route]);
+
   const policy = useMemo(
     () =>
       resolveBrowserCatalogSourcePolicy({
@@ -574,7 +593,15 @@ export function PosRuntime({
           <p className="muted">Loading products…</p>
         )
       ) : route === "returns" ? (
-        <ReturnsRuntimeScreen returns={returns} lookup={lookup} initialSaleId={pendingReturnSaleId} />
+        <ReturnsRuntimeScreen
+          returns={returns}
+          lookup={lookup}
+          initialSaleId={pendingReturnSaleId}
+          onSaleSelected={(saleId) => {
+            setPendingReturnSaleId(saleId);
+            onReturnSaleSelected?.(saleId);
+          }}
+        />
       ) : route === "register" ? (
         authority.assignedRegisterIds.length > 0 ? (
           <RegisterRuntimeScreen
@@ -645,7 +672,11 @@ export function PosRuntime({
           printer={ports?.printer}
           onStartReturn={(saleId) => {
             setPendingReturnSaleId(saleId);
-            onNavigate("returns");
+            if (onReturnSaleSelected) {
+              onReturnSaleSelected(saleId);
+            } else {
+              onNavigate("returns");
+            }
           }}
           recoveringItemId={recoveringItemId}
           onResolveAttention={(item: AttentionItemView) => {
