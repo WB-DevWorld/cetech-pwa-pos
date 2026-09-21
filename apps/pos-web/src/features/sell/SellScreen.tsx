@@ -75,7 +75,11 @@ export type SellScreenProps = {
   onSelectCustomer?: (customerId: string) => void;
   onClearCustomer?: () => void;
   onNewSale?: () => void;
-  onRetireCart?: (cartId: string, reason: "completed" | "discarded") => void;
+  onTransitionCart?: (
+    previous: SellWorkspaceState,
+    next: SellWorkspaceState,
+    reason: "completed" | "discarded",
+  ) => Promise<void>;
   quote?: QuoteDisplayState;
   eligibility?: CheckoutEligibilityView;
   checkoutReady?: boolean;
@@ -128,7 +132,7 @@ export function SellScreen({
   onSelectCustomer,
   onClearCustomer,
   onNewSale,
-  onRetireCart,
+  onTransitionCart,
   quote,
   eligibility,
   checkoutReady = false,
@@ -172,6 +176,7 @@ export function SellScreen({
   const [state, setState] = useState(() => initialState ?? createSellWorkspace(deps, catalog));
   const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+  const [cartTransitioning, setCartTransitioning] = useState(false);
   const searchSeq = useRef(0);
   const barcodeSeq = useRef(0);
   const observedProjectionGenerationRef = useRef<number | undefined>(undefined);
@@ -189,20 +194,30 @@ export function SellScreen({
     if (!completedToken || completedSaleRotationRef.current === completedToken) {
       return;
     }
-    const retiredCartId = state.cartId;
+
+    const previous = state;
+    const next = applyNewSale(previous, catalog, deps);
     completedSaleRotationRef.current = completedToken;
-    onRetireCart?.(retiredCartId, "completed");
-    setState((current) =>
-      current.cartId === retiredCartId ? applyNewSale(current, catalog, deps) : current,
-    );
+    setCartTransitioning(true);
+
+    void (async () => {
+      try {
+        await onTransitionCart?.(previous, next, "completed");
+        setState((current) => (current.cartId === previous.cartId ? next : current));
+      } catch {
+        completedSaleRotationRef.current = null;
+      } finally {
+        setCartTransitioning(false);
+      }
+    })();
   }, [
     catalog,
     checkoutSession?.receipt?.transactionId,
     checkoutSession?.saleCompleted,
     checkoutSession?.transactionId,
     deps,
-    onRetireCart,
-    state.cartId,
+    onTransitionCart,
+    state,
   ]);
 
   useEffect(() => {
@@ -394,20 +409,27 @@ export function SellScreen({
     setCustomerPickerOpen(false);
   }
 
-  function handleNewSale() {
-    if (checkoutSession && !canBeginNewSale(checkoutSession)) {
+  async function handleNewSale() {
+    if (cartTransitioning || (checkoutSession && !canBeginNewSale(checkoutSession))) {
       return;
     }
 
     if (checkoutSession?.saleCompleted) {
       const completedToken = checkoutSession.transactionId ?? checkoutSession.receipt?.transactionId;
       if (completedToken && completedSaleRotationRef.current !== completedToken) {
-        const retiredCartId = state.cartId;
+        const previous = state;
+        const next = applyNewSale(previous, catalog, deps);
         completedSaleRotationRef.current = completedToken;
-        onRetireCart?.(retiredCartId, "completed");
-        setState((current) =>
-          current.cartId === retiredCartId ? applyNewSale(current, catalog, deps) : current,
-        );
+        setCartTransitioning(true);
+        try {
+          await onTransitionCart?.(previous, next, "completed");
+          setState((current) => (current.cartId === previous.cartId ? next : current));
+        } catch {
+          completedSaleRotationRef.current = null;
+          return;
+        } finally {
+          setCartTransitioning(false);
+        }
       }
       onCheckoutNewSale?.();
       onNewSale?.();
@@ -416,15 +438,19 @@ export function SellScreen({
       return;
     }
 
-    const retiredCartId = state.cartId;
-    onRetireCart?.(retiredCartId, "discarded");
-    onCheckoutNewSale?.();
-    onNewSale?.();
-    setCustomerPickerOpen(false);
-    setClearConfirmOpen(false);
-    setState((current) =>
-      current.cartId === retiredCartId ? applyNewSale(current, catalog, deps) : current,
-    );
+    const previous = state;
+    const next = applyNewSale(previous, catalog, deps);
+    setCartTransitioning(true);
+    try {
+      await onTransitionCart?.(previous, next, "discarded");
+      setState((current) => (current.cartId === previous.cartId ? next : current));
+      onCheckoutNewSale?.();
+      onNewSale?.();
+      setCustomerPickerOpen(false);
+      setClearConfirmOpen(false);
+    } finally {
+      setCartTransitioning(false);
+    }
   }
 
   function handleClearRequest() {
@@ -452,7 +478,7 @@ export function SellScreen({
     [quote, eligibility, displayed.cartRevision],
   );
 
-  const newSaleBlocked = Boolean(checkoutSession && !canBeginNewSale(checkoutSession));
+  const newSaleBlocked = cartTransitioning || Boolean(checkoutSession && !canBeginNewSale(checkoutSession));
 
   return (
     <div className="sell-workspace" id="sell-workspace">
@@ -571,7 +597,7 @@ export function SellScreen({
       {checkoutSession && checkoutDialogOpen(checkoutSession.stage) ? (
         <CheckoutDialog
           session={checkoutSession}
-          inFlight={checkoutInFlight}
+          inFlight={checkoutInFlight || cartTransitioning}
           onConfirmCash={(value) => onConfirmCash?.(value)}
           onResolveSale={() => onResolveSale?.()}
           onResolvePayment={() => onResolvePayment?.()}
