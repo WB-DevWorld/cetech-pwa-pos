@@ -13,6 +13,21 @@ export function customerContextFromSelection(
   };
 }
 
+export function customerSummaryFromSelection(
+  customer: CustomerSearchResultView | null | undefined,
+): CustomerSummary | undefined {
+  if (!customer) {
+    return undefined;
+  }
+  return {
+    id: customer.id,
+    kind: customer.kind === "b2b" ? "b2b" : "retail",
+    displayName: customer.displayName,
+    ...(customer.company ? { company: customer.company } : {}),
+    ...(customer.phoneMasked ? { phoneMasked: customer.phoneMasked } : {}),
+  };
+}
+
 export function customerViewFromSummary(customer: CustomerSummary): CustomerSearchResultView {
   return {
     id: customer.id,

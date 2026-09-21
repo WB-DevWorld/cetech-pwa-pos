@@ -13,6 +13,8 @@ export interface OrderListItemView {
   readonly orderReference: string;
   readonly receiptNumber?: string;
   readonly customerLabel: string;
+  readonly customerId?: string;
+  readonly customerCompany?: string;
   readonly customerKind?: "walkin" | "retail" | "b2b";
   readonly createdAt: string;
   readonly paymentLabel: string;
@@ -73,6 +75,25 @@ function formatDateTime(value: string): string {
   return formatOperationalDateTime(value);
 }
 
+export function matchesOrderSearch(order: OrderListItemView, query: string): boolean {
+  const needle = query.trim().toLocaleLowerCase();
+  if (!needle) return true;
+  return [
+    order.orderReference,
+    order.receiptNumber,
+    order.customerLabel,
+    order.customerId,
+    order.customerCompany,
+    order.transactionReference,
+    order.saleId,
+    order.itemSummary,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLocaleLowerCase()
+    .includes(needle);
+}
+
 function badgeTone(status: OrderWorkspaceStatus | NonNullable<OrderListItemView["paymentStatus"]>): string {
   if (status === "completed" || status === "verified") return "success";
   if (status === "needs_attention" || status === "failed" || status === "requires_attention") return "danger";
@@ -92,21 +113,9 @@ export function OrdersScreen({
   const [status, setStatus] = useState<"all" | OrderWorkspaceStatus>("all");
 
   const filtered = useMemo(() => {
-    const needle = query.trim().toLocaleLowerCase();
     return orders.filter((order) => {
       const matchesStatus = status === "all" || order.status === status;
-      const haystack = [
-        order.orderReference,
-        order.receiptNumber,
-        order.customerLabel,
-        order.transactionReference,
-        order.saleId,
-        order.itemSummary,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLocaleLowerCase();
-      return matchesStatus && (!needle || haystack.includes(needle));
+      return matchesStatus && matchesOrderSearch(order, query);
     });
   }, [orders, query, status]);
 
@@ -229,6 +238,7 @@ export function OrdersScreen({
                   </td>
                   <td data-label="Customer">
                     {order.customerLabel}
+                    {order.customerCompany ? <span className="workspace-subline">{order.customerCompany}</span> : null}
                     {order.customerKind === "b2b" ? <span className="workspace-badge info">Wholesale</span> : null}
                   </td>
                   <td data-label="Date">{formatDateTime(order.createdAt)}</td>
@@ -289,7 +299,13 @@ export function OrderDetailDialog({ open, order, canReturn = true, onClose, onRe
         <div className="order-detail-body">
           <div className="order-detail-grid">
             <div className="stack">
-              <div><span className="eyebrow">Customer</span><strong>{order.customerLabel}</strong>{order.customerKind === "b2b" ? <span className="workspace-badge info">Wholesale</span> : null}</div>
+              <div>
+                <span className="eyebrow">Customer</span>
+                <strong>{order.customerLabel}</strong>
+                {order.customerCompany ? <span className="workspace-subline">{order.customerCompany}</span> : null}
+                {order.customerKind === "b2b" ? <span className="workspace-badge info">Wholesale</span> : null}
+              </div>
+              {order.customerId ? <div><span className="eyebrow">Customer account ID</span><strong>{order.customerId}</strong></div> : null}
               {order.transactionReference ? <div><span className="eyebrow">Reference</span><strong>{order.transactionReference}</strong></div> : null}
               <div><span className="eyebrow">Payment</span><strong>{order.paymentLabel}</strong>{order.paymentStatus ? <span className={`workspace-badge ${badgeTone(order.paymentStatus)}`}>{paymentStatusLabel(order.paymentStatus)}</span> : null}</div>
             </div>

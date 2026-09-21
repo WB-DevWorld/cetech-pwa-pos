@@ -10,7 +10,7 @@ import type { ProductDisplayPriceView } from "../state/variableDisplayPrice";
 import { lookupBarcodeViews, lookupVariations, searchCatalogViews, enrichSellProductPrices } from "./catalogLookup";
 import { bindPriceCacheToGeneration } from "./productDisplayPriceCache";
 import { electronicSessionLocksCheckout } from "../components/PaymentWaiting";
-import { customerViewFromSummary, workspaceToCartDraft } from "./mapCartDraft";
+import { customerSummaryFromSelection, customerViewFromSummary, workspaceToCartDraft } from "./mapCartDraft";
 import { restoreSellWorkspace } from "./restoreWorkspace";
 import { useCartQuote } from "./useCartQuote";
 import { useCashCheckout, type CashCheckoutPorts } from "./useCashCheckout";
@@ -359,7 +359,10 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
         checkoutInFlight={cashCheckout.inFlight}
         checkoutSession={cashCheckout.session}
         onPay={() => {
-          void cashCheckout.startPrepare(presentedQuote.confirmedQuote);
+          void cashCheckout.startPrepare(
+            presentedQuote.confirmedQuote,
+            customerSummaryFromSelection(workspace?.selectedCustomer),
+          );
         }}
         onConfirmCash={(value) => {
           void cashCheckout.confirmCash(value);

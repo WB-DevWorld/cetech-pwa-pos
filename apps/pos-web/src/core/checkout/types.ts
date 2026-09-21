@@ -1,6 +1,7 @@
 import type {
   CashMovement,
   CustomerContext,
+  CustomerSummary,
   Id,
   Money,
   PaymentTender,
@@ -119,6 +120,7 @@ export type PosSaleRecord = {
   readonly cashierName: string;
   readonly customer: CustomerContext;
   readonly customerLabel: string;
+  readonly customerSnapshot?: CustomerSummary;
   readonly prepared: PreparedSale;
   readonly lines: readonly ReceiptLine[];
   readonly orderLines?: readonly StoredSaleOrderLine[];
@@ -177,6 +179,7 @@ export type SeedPreparedSaleInput = {
   readonly cashierName: string;
   readonly customer: CustomerContext;
   readonly customerLabel: string;
+  readonly customerSnapshot?: CustomerSummary;
   readonly prepared: PreparedSale;
   readonly lines: readonly ReceiptLine[];
   readonly orderLines?: readonly StoredSaleOrderLine[];

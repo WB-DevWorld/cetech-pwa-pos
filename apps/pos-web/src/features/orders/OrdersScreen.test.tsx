@@ -1,13 +1,15 @@
 import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
-import { OrderDetailDialog, OrdersScreen, type OrderDetailView, type OrderListItemView } from "./OrdersScreen";
+import { OrderDetailDialog, OrdersScreen, matchesOrderSearch, type OrderDetailView, type OrderListItemView } from "./OrdersScreen";
 
 const order: OrderListItemView = {
   id: "order-1",
   orderReference: "#1042",
   receiptNumber: "POS-1042",
   customerLabel: "Accra Builders Ltd",
+  customerId: "cust-buildworks",
+  customerCompany: "BuildWorks Ghana Ltd",
   customerKind: "b2b",
   createdAt: "2026-09-17T10:00:00.000Z",
   paymentLabel: "Mobile Money",
@@ -36,9 +38,16 @@ describe("OrdersScreen", () => {
     expect(html).toContain("Search orders");
     expect(html).toContain("#1042");
     expect(html).toContain("POS-1042");
+    expect(html).toContain("BuildWorks Ghana Ltd");
     expect(html).toContain("Wholesale");
     expect(html).toContain("GHS 245.00");
     expect(html).toContain("Completed");
+  });
+
+  test("matches company and canonical customer identity in the Orders search predicate", () => {
+    expect(matchesOrderSearch(order, "buildworks ghana")).toBe(true);
+    expect(matchesOrderSearch(order, "cust-buildworks")).toBe(true);
+    expect(matchesOrderSearch(order, "no-such-customer")).toBe(false);
   });
 
   test.each([
@@ -63,6 +72,9 @@ describe("OrdersScreen", () => {
     expect(html).toContain("Order detail");
     expect(html).toContain("Reference");
     expect(html).toContain("Cashier / register");
+    expect(html).toContain("Customer account ID");
+    expect(html).toContain("cust-buildworks");
+    expect(html).toContain("BuildWorks Ghana Ltd");
     expect(html).toContain("Reprint");
     expect(html).toContain("Return items");
     expect(html).toContain("LED Panel");

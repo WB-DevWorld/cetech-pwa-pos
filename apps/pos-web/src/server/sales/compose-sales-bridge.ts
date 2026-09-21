@@ -89,11 +89,13 @@ export function composeSalesBridge(
 
   return {
     async prepare(input: PrepareSaleRequest, context: CommandContext): Promise<ApiResult<PreparedSale>> {
+      const { customerSnapshot: _customerSnapshot, ...bridgeInput } = input;
+      void _customerSnapshot;
       return postJson(
         prepareUrl(root),
         context.correlationId,
         context.idempotencyKey,
-        input,
+        bridgeInput,
         isPreparedSale,
         "sales bridge returned an invalid PreparedSale",
       );
