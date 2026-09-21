@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { afterEach, describe, expect, test } from "vitest";
-import { createCartDraftStore } from "../../../apps/pos-web/src/local/cart-draft-store";
+import { createCartDraftStore, retireCartDraft } from "../../../apps/pos-web/src/local/cart-draft-store";
 import { deletePosLocalDatabase, openPosLocalDatabase } from "../../../apps/pos-web/src/local/pos-local-db";
 import type { CartDraft } from "../../../docs/contracts/domain.generated";
 
@@ -57,6 +57,25 @@ describe("CORE-04 CartDraftStore", () => {
     const loaded = await store.load(draft().cartId);
     expect(loaded?.revision).toBe(5);
     expect(loaded?.customer).toEqual({ kind: "walkin" });
+  });
+
+  test("retires only the exact cart draft and leaves other local drafts untouched", async () => {
+    const db = uniqueDb();
+    const store = createCartDraftStore(db);
+    const first = draft({ cartId: "11111111-1111-4111-8111-111111111111" });
+    const second = draft({
+      cartId: "33333333-3333-4333-8333-333333333333",
+      revision: 2,
+      updatedAt: "2026-09-13T20:03:00.000Z",
+    });
+    await store.save(first);
+    await store.save(second);
+
+    await retireCartDraft(first.cartId, db);
+
+    expect(await store.load(first.cartId)).toBeNull();
+    expect(await store.load(second.cartId)).toMatchObject({ revision: 2 });
+    expect(await db.cartDrafts.count()).toBe(1);
   });
 
   test("customer switch and new-sale reset persist distinct carts", async () => {

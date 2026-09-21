@@ -414,12 +414,12 @@ function HealthWorkspace({
         <section className="card card-pad operational-panel" aria-labelledby="recovery-summary-title">
           <h2 id="recovery-summary-title">Saved work & recovery</h2>
           <p className="muted">
-            Saved carts and pending work are kept separately from replaceable app files and the product list.
+            Your current sale and pending work are kept separately from replaceable app files and the product list.
           </p>
           <div className="operational-metrics" aria-label="Recovery summary">
             <div className="card operational-metric">
-              <span className="eyebrow">Saved carts</span>
-              <strong>{recovery.cartDraftCount}</strong>
+              <span className="eyebrow">Current sale saved</span>
+              <strong>{recovery.recoverableCartCount > 0 ? "Yes" : "No"}</strong>
             </div>
             <div className="card operational-metric">
               <span className="eyebrow">Pending work</span>
@@ -433,7 +433,7 @@ function HealthWorkspace({
           {!recovery.schemaCompatible ? (
             <div className="banner danger" role="alert">
               <strong>Saved offline data needs a safe update.</strong>
-              <span>Do not clear saved carts or pending work as a normal repair step.</span>
+              <span>Do not clear the current sale or pending work as a normal repair step.</span>
             </div>
           ) : null}
           {recovery.pendingOperationCount > 0 ? (

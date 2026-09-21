@@ -9,7 +9,7 @@ export {
   deletePosLocalDatabase,
   openPosLocalDatabase,
 } from "./pos-local-db";
-export { createCartDraftStore } from "./cart-draft-store";
+export { createCartDraftStore, retireCartDraft } from "./cart-draft-store";
 export { createOperationJournal, loadJournalPayload } from "./operation-journal";
 export {
   applyCatalogIncremental,
@@ -71,7 +71,7 @@ export {
   type LocalRecoveryDiagnostics,
 } from "./recovery-diagnostics";
 export { assertJournalPayloadHasNoSecrets, journalPayloadContainsSecrets } from "./secrets-guard";
-export { clearActiveCartId, recallActiveCartId, rememberActiveCartId } from "./active-cart";
+export { clearActiveCartId, recallActiveCartId, rememberActiveCartId, replaceActiveCartDraft } from "./active-cart";
 export {
   CASHIER_SEED_CATALOG,
   CASHIER_SEED_CUSTOMERS,

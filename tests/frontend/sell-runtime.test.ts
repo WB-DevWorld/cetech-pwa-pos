@@ -145,6 +145,52 @@ describe("FE-03 CatalogPort barcode and draft runtime", () => {
     expect(restored.catalogAvailability).toBe("offline_cached");
   });
 
+  test("reload restores a customer-only active cart with no product lines", async () => {
+    const drafts = memoryDrafts();
+    const catalog = engineCatalog();
+    const page = await catalog.search({ query: "" });
+    if (!page.ok) throw new Error("catalog");
+    const views = page.data.items.map(catalogItemToSellView);
+    const deps = {
+      createCartId: () => "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      createLineId: () => "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    };
+    let state = createSellWorkspace(deps, views);
+    state = applySelectCustomer(state, {
+      id: "cust-only",
+      displayName: "Customer Only",
+      kind: "retail",
+    });
+    expect(state.lines).toHaveLength(0);
+
+    await drafts.save(workspaceToCartDraft(state, "loc-front-1", "2026-09-21T18:30:00.000Z"));
+    const restored = await restoreSellWorkspace({
+      catalog,
+      customers: {
+        async search() {
+          return {
+            ok: true,
+            data: [{ id: "cust-only", displayName: "Customer Only", kind: "retail" }],
+            correlationId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+          };
+        },
+      },
+      drafts,
+      recallCartId: async () => state.cartId,
+      browseCatalog: views,
+      deps,
+      availability: "fresh",
+    });
+
+    expect(restored.lines).toHaveLength(0);
+    expect(restored.selectedCustomer).toMatchObject({
+      id: "cust-only",
+      displayName: "Customer Only",
+      kind: "retail",
+    });
+    expect(restored.draftStatus.retainedLocally).toBe(true);
+  });
+
   test("new sale persists a distinct cart id at revision 0", async () => {
     const drafts = memoryDrafts();
     const deps = {

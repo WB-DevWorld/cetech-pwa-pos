@@ -38,6 +38,7 @@ import {
   openPosLocalDatabase,
   recallActiveCartId,
   rememberActiveCartId,
+  replaceActiveCartDraft,
 } from "../local";
 import type { CatalogProjectionAvailability, CatalogProjectionSyncResult } from "../local/catalog-sync";
 import { catalogProjectionSyncApplied } from "../local/catalog-sync";
@@ -339,6 +340,7 @@ export function PosRuntime({
         drafts: createCartDraftStore(db),
         rememberCartId: (cartId) => rememberActiveCartId(cartId, db),
         recallCartId: () => recallActiveCartId(db),
+        replaceActiveCart: (previousCartId, next) => replaceActiveCartDraft(previousCartId, next, db),
         locationId,
         pricing: current.presentationOnly ? undefined : createBrowserPricingPort({ fetchImpl }),
         shiftOpen: current.presentationOnly ? false : current.shiftOpen,

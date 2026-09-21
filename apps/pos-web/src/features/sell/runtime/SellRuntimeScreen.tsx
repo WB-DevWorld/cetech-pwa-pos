@@ -18,6 +18,7 @@ import { useCartQuote } from "./useCartQuote";
 import { useCashCheckout, type CashCheckoutPorts } from "./useCashCheckout";
 import type { ReceiptViewModel } from "../state/checkoutSession";
 import type { CashCheckoutScope } from "./cashCheckoutController";
+import type { CartDraft } from "../../../../../../docs/contracts/domain.generated";
 
 export type SellSessionPorts = {
   readonly catalog: CatalogPort;
@@ -25,6 +26,7 @@ export type SellSessionPorts = {
   readonly drafts: CartDraftStore;
   readonly rememberCartId: (cartId: string) => Promise<void>;
   readonly recallCartId: () => Promise<string | null>;
+  readonly replaceActiveCart: (previousCartId: string, next: CartDraft) => Promise<void>;
   readonly locationId: string;
   readonly now?: () => Date;
   readonly online?: () => boolean;
@@ -97,6 +99,7 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
   const locationId = ports.locationId;
   const nowRef = useRef(now);
   const onlineRef = useRef(online);
+  const persistenceQueueRef = useRef<Promise<void>>(Promise.resolve());
   const [ready, setReady] = useState(false);
   const [initialState, setInitialState] = useState<SellWorkspaceState | undefined>(undefined);
   const [browseCatalog, setBrowseCatalog] = useState<readonly SellProductView[]>([]);
@@ -251,13 +254,35 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
     };
   }, [catalog, createCartId, createLineId, customersPort, drafts, locationId, ports.catalogAvailability, recallCartId, rememberCartId]);
 
+  const enqueuePersistence = useCallback((task: () => Promise<void>): Promise<void> => {
+    const next = persistenceQueueRef.current.catch(() => undefined).then(task);
+    persistenceQueueRef.current = next;
+    return next;
+  }, []);
+
   const persist = useCallback(
     (state: SellWorkspaceState) => {
       setWorkspace(state);
-      void drafts.save(workspaceToCartDraft(state, locationId, now().toISOString()));
-      void rememberCartId(state.cartId);
+      const draft = workspaceToCartDraft(state, locationId, now().toISOString());
+      void enqueuePersistence(async () => {
+        await drafts.save(draft);
+        await rememberCartId(state.cartId);
+      }).catch(() => undefined);
     },
-    [drafts, locationId, now, rememberCartId],
+    [drafts, enqueuePersistence, locationId, now, rememberCartId],
+  );
+
+  const transitionActiveCart = useCallback(
+    async (
+      previous: SellWorkspaceState,
+      next: SellWorkspaceState,
+      _reason: "completed" | "discarded",
+    ): Promise<void> => {
+      const nextDraft = workspaceToCartDraft(next, locationId, now().toISOString());
+      await enqueuePersistence(() => ports.replaceActiveCart(previous.cartId, nextDraft));
+      setWorkspace(next);
+    },
+    [enqueuePersistence, locationId, now, ports],
   );
 
   const resolveBarcodeCatalog = useCallback(
@@ -357,6 +382,7 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
         onNextSaleCustomerApplied={ports.onNextSaleCustomerApplied}
         onCustomerQueryChange={searchCustomers}
         onWorkspaceChange={persist}
+        onTransitionCart={transitionActiveCart}
         quote={presentedQuote.quote}
         eligibility={presentedQuote.eligibility}
         checkoutReady={cashCheckout.ready}
