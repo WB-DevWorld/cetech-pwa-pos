@@ -25,7 +25,6 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
 
   useEffect(() => {
     let cancelled = false;
-    setResult(null);
     void fetchManagementContext(fetchImpl).then((next) => {
       if (!cancelled) setResult(next);
     });
@@ -53,7 +52,6 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
   useEffect(() => {
     if (!context || allowedSection !== "staff_access") return;
     let cancelled = false;
-    setStaffResult(null);
     void fetchStaffAccess(fetchImpl).then((next) => {
       if (!cancelled) setStaffResult(next);
     });
@@ -65,7 +63,6 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
   useEffect(() => {
     if (!context || allowedSection !== "policies") return;
     let cancelled = false;
-    setPolicyResult(null);
     void fetchOperationalPolicy(policyScope, fetchImpl).then((next) => {
       if (!cancelled) setPolicyResult(next);
     });
@@ -119,7 +116,11 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
     <ManagementScreen
       context={result.data}
       activeSection={allowedSection}
-      onSelectSection={setSection}
+      onSelectSection={(next) => {
+        if (next === "staff_access") setStaffResult(null);
+        if (next === "policies") setPolicyResult(null);
+        setSection(next);
+      }}
       onBackToPos={() => router.push("/sell")}
       staffRows={staffResult?.ok ? staffResult.data : []}
       staffLoading={allowedSection === "staff_access" && staffResult === null}
