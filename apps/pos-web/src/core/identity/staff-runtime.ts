@@ -180,9 +180,18 @@ export function createStaffRuntimeController(input: {
     previous: StaffRuntimeAuthority,
     selectedRegisterId: string,
     assignedRegisters: readonly Register[],
+    mode: "restore" | "explicit_switch" = "restore",
   ): Promise<StaffRuntimeAuthority> {
     const registerResult = await input.registers.get(selectedRegisterId);
     if (!registerResult.ok) {
+      if (registerResult.error.code === "FORBIDDEN") {
+        const message = "This register is not permitted for the current staff session. Choose another assigned register.";
+        if (mode === "explicit_switch" && previous.status === "ready" && previous.session) {
+          return { ...previous, errorMessage: message };
+        }
+        selectedRegisterStore.clear(context.session.organizationId, context.session.actorId);
+        return readyWithoutRegister(context, assignedRegisters, null, message);
+      }
       const notice = noticeFromFailure(registerResult);
       if (isAuthClosed(notice)) {
         return authClosedAuthority(notice, registerResult.error.message);
@@ -209,6 +218,14 @@ export function createStaffRuntimeController(input: {
     }
     const shiftResult = await input.registers.activeShift(selectedRegisterId);
     if (!shiftResult.ok) {
+      if (shiftResult.error.code === "FORBIDDEN") {
+        const message = "This register is not permitted for the current staff session. Choose another assigned register.";
+        if (mode === "explicit_switch" && previous.status === "ready" && previous.session) {
+          return { ...previous, errorMessage: message };
+        }
+        selectedRegisterStore.clear(context.session.organizationId, context.session.actorId);
+        return readyWithoutRegister(context, assignedRegisters, null, message);
+      }
       const notice = noticeFromFailure(shiftResult);
       if (isAuthClosed(notice)) {
         return authClosedAuthority(notice, shiftResult.error.message);
@@ -364,9 +381,18 @@ export function createStaffRuntimeController(input: {
         assignedLocationIds: state.assignedLocationIds,
         assignedRegisterIds: state.assignedRegisterIds,
       };
-      selectedRegisterStore.write(state.session.organizationId, state.session.actorId, registerId);
-      setState(await hydrateSelectedRegister(context, state, registerId, state.assignedRegisters));
-      return state.selectedRegisterId === registerId;
+      const next = await hydrateSelectedRegister(
+        context,
+        state,
+        registerId,
+        state.assignedRegisters,
+        "explicit_switch",
+      );
+      if (next.register?.id === registerId && next.selectedRegisterId === registerId) {
+        selectedRegisterStore.write(state.session.organizationId, state.session.actorId, registerId);
+      }
+      setState(next);
+      return next.selectedRegisterId === registerId && next.register?.id === registerId;
     },
     applyShift(shift) {
       if (!state.session || !state.register || state.presentationOnly) {

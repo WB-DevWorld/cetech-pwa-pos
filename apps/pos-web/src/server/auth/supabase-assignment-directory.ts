@@ -56,6 +56,7 @@ export function createSupabaseStaffAssignmentDirectory(
         }
         const allowedLocations = new Set(locationIds);
         const registerIds: string[] = [];
+        const registerAssignments: Array<{ registerId: string; locationId: string }> = [];
         for (const row of registerRows) {
           if (row.actor_id !== actorId || row.organization_id !== organizationId) {
             continue;
@@ -67,8 +68,9 @@ export function createSupabaseStaffAssignmentDirectory(
             continue;
           }
           registerIds.push(row.register_id);
+          registerAssignments.push({ registerId: row.register_id, locationId: row.location_id });
         }
-        return { locationIds, registerIds, locationRoles };
+        return { locationIds, registerIds, registerAssignments, locationRoles };
       } catch {
         return "unavailable";
       }

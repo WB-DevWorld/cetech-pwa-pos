@@ -65,6 +65,7 @@ describe("R6-REM-01 durable staff assignment directory", () => {
     await expect(directory.lookup({ actorId: "cashier_a", organizationId: "org_a" })).resolves.toEqual({
       locationIds: ["loc_a1"],
       registerIds: ["reg_a"],
+      registerAssignments: [{ registerId: "reg_a", locationId: "loc_a1" }],
       locationRoles: [{ locationId: "loc_a1", role: "cashier" }],
     });
   });
@@ -85,6 +86,7 @@ describe("R6-REM-01 durable staff assignment directory", () => {
     await expect(directory.lookup({ actorId: "cashier_a", organizationId: "org_b" })).resolves.toEqual({
       locationIds: [],
       registerIds: [],
+      registerAssignments: [],
       locationRoles: [],
     });
   });
@@ -99,6 +101,7 @@ describe("R6-REM-01 durable staff assignment directory", () => {
     await expect(directory.lookup({ actorId: "cashier_a", organizationId: "org_a" })).resolves.toEqual({
       locationIds: [],
       registerIds: [],
+      registerAssignments: [],
       locationRoles: [],
     });
   });
@@ -145,6 +148,7 @@ describe("R6-REM-01 durable staff assignment directory", () => {
     }
     expect(result.locationRoles).toEqual([{ locationId: "loc_a1", role: "cashier" }]);
     expect(result.registerIds).toEqual(["reg_a"]);
+    expect(result.registerAssignments).toEqual([{ registerId: "reg_a", locationId: "loc_a1" }]);
   });
 
   test("network and least-privilege infrastructure failures are unavailable", async () => {
