@@ -132,3 +132,144 @@ CREATE INDEX pos_admin_audit_org_created_idx
 
 CREATE INDEX pos_admin_audit_actor_created_idx
   ON pos_admin_audit_events (organization_id, actor_id, created_at DESC);
+
+
+-- Atomic trusted-server policy mutation + audit. service_role invocation is
+-- infrastructure access only; the BFF must authorize the actor first.
+CREATE OR REPLACE FUNCTION pos_admin_set_operational_policy(
+  p_organization_id text,
+  p_location_id text,
+  p_register_id text,
+  p_actor_id text,
+  p_correlation_id uuid,
+  p_cashier_can_close_shift boolean,
+  p_manager_can_close_shift boolean,
+  p_cashier_own_shift_only boolean,
+  p_manager_can_close_others_shift boolean,
+  p_non_zero_variance_requires_manager boolean,
+  p_variance_tolerance_minor bigint,
+  p_variance_currency character
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  existing public.pos_operational_policies%ROWTYPE;
+  saved public.pos_operational_policies%ROWTYPE;
+  before_json jsonb;
+  after_json jsonb;
+BEGIN
+  IF p_organization_id IS NULL OR p_actor_id IS NULL THEN
+    RAISE EXCEPTION 'organization and actor are required' USING ERRCODE = '23502';
+  END IF;
+
+  IF p_register_id IS NOT NULL AND p_location_id IS NULL THEN
+    RAISE EXCEPTION 'register policy requires location scope' USING ERRCODE = '23514';
+  END IF;
+
+  IF p_variance_tolerance_minor IS NULL AND p_variance_currency IS NOT NULL THEN
+    RAISE EXCEPTION 'variance currency requires tolerance' USING ERRCODE = '23514';
+  END IF;
+  IF p_variance_tolerance_minor IS NOT NULL AND p_variance_currency IS NULL THEN
+    RAISE EXCEPTION 'variance tolerance requires currency' USING ERRCODE = '23514';
+  END IF;
+  IF p_variance_tolerance_minor IS NOT NULL AND p_variance_tolerance_minor < 0 THEN
+    RAISE EXCEPTION 'variance tolerance cannot be negative' USING ERRCODE = '23514';
+  END IF;
+
+  SELECT *
+  INTO existing
+  FROM public.pos_operational_policies
+  WHERE organization_id = p_organization_id
+    AND location_id IS NOT DISTINCT FROM p_location_id
+    AND register_id IS NOT DISTINCT FROM p_register_id
+  FOR UPDATE;
+
+  IF FOUND THEN
+    before_json := to_jsonb(existing);
+    UPDATE public.pos_operational_policies
+    SET cashier_can_close_shift = p_cashier_can_close_shift,
+        manager_can_close_shift = p_manager_can_close_shift,
+        cashier_own_shift_only = p_cashier_own_shift_only,
+        manager_can_close_others_shift = p_manager_can_close_others_shift,
+        non_zero_variance_requires_manager = p_non_zero_variance_requires_manager,
+        variance_tolerance_minor = p_variance_tolerance_minor,
+        variance_currency = p_variance_currency,
+        updated_by_actor_id = p_actor_id,
+        updated_at = now()
+    WHERE id = existing.id
+    RETURNING * INTO saved;
+  ELSE
+    INSERT INTO public.pos_operational_policies (
+      organization_id,
+      location_id,
+      register_id,
+      cashier_can_close_shift,
+      manager_can_close_shift,
+      cashier_own_shift_only,
+      manager_can_close_others_shift,
+      non_zero_variance_requires_manager,
+      variance_tolerance_minor,
+      variance_currency,
+      updated_by_actor_id
+    ) VALUES (
+      p_organization_id,
+      p_location_id,
+      p_register_id,
+      p_cashier_can_close_shift,
+      p_manager_can_close_shift,
+      p_cashier_own_shift_only,
+      p_manager_can_close_others_shift,
+      p_non_zero_variance_requires_manager,
+      p_variance_tolerance_minor,
+      p_variance_currency,
+      p_actor_id
+    )
+    RETURNING * INTO saved;
+    before_json := NULL;
+  END IF;
+
+  after_json := to_jsonb(saved);
+
+  INSERT INTO public.pos_admin_audit_events (
+    organization_id,
+    actor_id,
+    action,
+    target_type,
+    target_id,
+    location_id,
+    register_id,
+    before_state,
+    after_state,
+    correlation_id
+  ) VALUES (
+    p_organization_id,
+    p_actor_id,
+    'operational_policy.set',
+    'operational_policy',
+    saved.id::text,
+    p_location_id,
+    p_register_id,
+    before_json,
+    after_json,
+    p_correlation_id
+  );
+
+  RETURN after_json;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION pos_admin_set_operational_policy(
+  text, text, text, text, uuid, boolean, boolean, boolean, boolean, boolean, bigint, character
+) FROM PUBLIC, anon, authenticated;
+
+GRANT EXECUTE ON FUNCTION pos_admin_set_operational_policy(
+  text, text, text, text, uuid, boolean, boolean, boolean, boolean, boolean, bigint, character
+) TO service_role;
+
+COMMENT ON FUNCTION pos_admin_set_operational_policy(
+  text, text, text, text, uuid, boolean, boolean, boolean, boolean, boolean, bigint, character
+) IS
+  'Atomic trusted-server operational-policy upsert plus append-only admin audit. Business authorization is required in the BFF before service_role invocation.';
