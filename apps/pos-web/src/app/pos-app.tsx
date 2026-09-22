@@ -64,7 +64,7 @@ import type { AttentionItemView, OperationalLoadState } from "../ui/operational"
 import { applyAppearance, readStoredAppearance, type AppearancePreference } from "../features/settings/appearance";
 import { loadCustomerSearchPresentation } from "../features/customers/loadCustomerSearch";
 import { customerViewFromSummary } from "../features/sell/runtime/mapCartDraft";
-import { fetchAttentionInbox, fetchCustomerDirectory, fetchStoreHealth } from "./operational-client";
+import { fetchAttentionInbox, fetchCustomerDirectory } from "./operational-client";
 import { fetchManagementContext } from "./management-client";
 
 function bumpCatalogProjectionGeneration(
@@ -140,7 +140,6 @@ export function PosRuntime({
   const [appearance, setAppearance] = useState<AppearancePreference>("system");
   const [toast, setToast] = useState<AppToastView | null>(null);
   const toastTimer = useRef<number | null>(null);
-  const [buildId, setBuildId] = useState<string | undefined>();
   const [serverAttention, setServerAttention] = useState<readonly AttentionItemView[]>([]);
   const [localAttention, setLocalAttention] = useState<readonly AttentionItemView[]>([]);
   const [localRecoveryActorId, setLocalRecoveryActorId] = useState<string | null>(null);
@@ -277,11 +276,6 @@ export function PosRuntime({
     }
     const timer = window.setTimeout(() => {
       void loadAttention();
-      void fetchStoreHealth(fetchImpl).then((result) => {
-        if (result.ok) {
-          setBuildId(result.data.buildId);
-        }
-      });
     }, 0);
     return () => window.clearTimeout(timer);
   }, [authority.session, authority.status, fetchImpl, loadAttention]);
@@ -708,7 +702,6 @@ export function PosRuntime({
           catalogAvailability={projectionAvailability}
           fetchImpl={fetchImpl}
           appearance={appearance}
-          buildId={buildId}
           attentionItems={attentionItems}
           attentionCount={attentionCount}
           attentionState={attentionState}

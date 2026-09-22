@@ -17,20 +17,17 @@ import {
   toCashierError,
 } from "../ui/cashier-language";
 import {
-  FixAppPanel,
   NeedsAttentionScreen,
   StoreHealthScreen,
   type AttentionItemView,
   type OperationalLoadState,
 } from "../ui/operational";
-import { inspectLocalRecoveryState, POS_LOCAL_SCHEMA_CURRENT, type LocalRecoveryDiagnostics } from "../local";
 import type { CatalogProjectionAvailability, CatalogProjectionSyncResult } from "../local/catalog-sync";
 import { ensureCatalogProjection } from "../local/catalog-sync";
 import { resolveBrowserCatalogSourcePolicy } from "../core/catalog/source-policy";
 import { readOrCreateLocalDeviceId, type StaffRuntimeAuthority } from "../core/identity";
 import type { PosRoute } from "../ui/shell";
-import { catalogRebuildStatusText, type CatalogRebuildView } from "./catalog-rebuild-status";
-import { usePwaLifecycle } from "./pwa-lifecycle-runtime";
+import type { CatalogRebuildView } from "./catalog-rebuild-status";
 import {
   fetchCustomerDirectory,
   fetchOrderDetail,
@@ -46,7 +43,6 @@ export function ApprovedWorkspaceScreens({
   catalogAvailability,
   fetchImpl,
   appearance,
-  buildId,
   attentionItems,
   attentionCount,
   attentionState,
@@ -70,7 +66,6 @@ export function ApprovedWorkspaceScreens({
   readonly catalogAvailability: CatalogProjectionAvailability | null;
   readonly fetchImpl?: typeof fetch;
   readonly appearance: AppearancePreference;
-  readonly buildId?: string;
   readonly attentionItems: readonly AttentionItemView[];
   readonly attentionCount: number;
   readonly attentionState: OperationalLoadState;
@@ -119,9 +114,6 @@ export function ApprovedWorkspaceScreens({
           scannerLabel: KEYBOARD_SCANNER_CAPABILITY,
           printerLabel: BROWSER_PRINT_CAPABILITY,
           appearance,
-          buildId: buildId ?? "Unverified",
-          contractVersion: "1.0.0",
-          localSchemaVersion: String(POS_LOCAL_SCHEMA_CURRENT),
         }}
         state={online ? "ready" : "offline"}
         onAppearanceChange={onAppearanceChange}
@@ -137,8 +129,6 @@ export function ApprovedWorkspaceScreens({
         online={online}
         attentionCount={attentionCount}
         onNavigate={onNavigate}
-        onCatalogProjectionChange={onCatalogProjectionChange}
-        onRebuildSuccess={onRebuildSuccess}
       />
     );
   }
@@ -326,36 +316,29 @@ function HealthWorkspace({
   online,
   attentionCount,
   onNavigate,
-  onCatalogProjectionChange,
-  onRebuildSuccess,
 }: {
   readonly catalogAvailability: CatalogProjectionAvailability | null;
   readonly fetchImpl?: typeof fetch;
   readonly online: boolean;
   readonly attentionCount: number;
   readonly onNavigate: (route: PosRoute) => void;
-  readonly onCatalogProjectionChange?: (result: CatalogProjectionSyncResult) => void;
-  readonly onRebuildSuccess: () => void;
 }) {
-  const lifecycle = usePwaLifecycle();
   const [health, setHealth] = useState<StoreHealth | undefined>();
   const [state, setState] = useState<OperationalLoadState>("loading");
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
-  const [showFix, setShowFix] = useState(false);
-  const [rebuild, setRebuild] = useState<CatalogRebuildView>({ phase: "idle" });
-  const [recovery, setRecovery] = useState<LocalRecoveryDiagnostics | undefined>();
-  const [updateCheckBusy, setUpdateCheckBusy] = useState(false);
 
   const load = useCallback(async () => {
-    const [result, diagnostics] = await Promise.all([
-      fetchStoreHealth(fetchImpl),
-      inspectLocalRecoveryState().catch(() => undefined),
-    ]);
-    setRecovery(diagnostics);
+    const result = await fetchStoreHealth(fetchImpl);
     if (!result.ok) {
       setHealth(undefined);
       setState("error");
-      setErrorMessage(toCashierError({ code: result.error.code, message: result.error.message, domain: "health" }).message);
+      setErrorMessage(
+        toCashierError({
+          code: result.error.code,
+          message: result.error.message,
+          domain: "health",
+        }).message,
+      );
       return;
     }
     setHealth(result.data);
@@ -370,111 +353,20 @@ function HealthWorkspace({
     return () => clearTimeout(timer);
   }, [load]);
 
-  const rebuildCatalog = useCallback(() => {
-    void runCatalogRebuild({
-      fetchImpl,
-      onCatalogProjectionChange,
-      setRebuild,
-      onSuccess: onRebuildSuccess,
-    });
-  }, [fetchImpl, onCatalogProjectionChange, onRebuildSuccess]);
-
-  const rebuildText = catalogRebuildStatusText(rebuild);
-
   return (
-    <>
-      <StoreHealthScreen
-        health={health}
-        state={state}
-        errorMessage={errorMessage}
-        deviceName={readOrCreateLocalDeviceId()}
-        appVersion={health?.buildId}
-        localSchemaVersion={String(POS_LOCAL_SCHEMA_CURRENT)}
-        online={online}
-        catalogAvailability={catalogAvailability}
-        electronicPaymentsAvailable={false}
-        attentionCountOverride={attentionCount}
-        onRetry={() => {
-          void load();
-        }}
-        onFixApp={() => setShowFix(true)}
-        onOpenAttention={() => onNavigate("attention")}
-        onRebuildCatalog={rebuildCatalog}
-      />
-      {rebuild.phase === "failure" && rebuildText ? (
-        <p className="banner danger" role="alert" data-catalog-rebuild-phase={rebuild.phase}>
-          {rebuildText}
-        </p>
-      ) : rebuild.phase === "stale" && rebuildText ? (
-        <p className="banner warning" role="status" data-catalog-rebuild-phase={rebuild.phase}>
-          {rebuildText}
-        </p>
-      ) : null}
-      {recovery ? (
-        <section className="card card-pad operational-panel" aria-labelledby="recovery-summary-title">
-          <h2 id="recovery-summary-title">Saved work & recovery</h2>
-          <p className="muted">
-            Your current sale and pending work are kept separately from replaceable app files and the product list.
-          </p>
-          <div className="operational-metrics" aria-label="Recovery summary">
-            <div className="card operational-metric">
-              <span className="eyebrow">Current sale saved</span>
-              <strong>{recovery.recoverableCartCount > 0 ? "Yes" : "No"}</strong>
-            </div>
-            <div className="card operational-metric">
-              <span className="eyebrow">Pending work</span>
-              <strong>{recovery.pendingOperationCount}</strong>
-            </div>
-            <div className="card operational-metric">
-              <span className="eyebrow">Needs attention</span>
-              <strong>{recovery.attentionOperationCount}</strong>
-            </div>
-          </div>
-          {!recovery.schemaCompatible ? (
-            <div className="banner danger" role="alert">
-              <strong>Saved offline data needs a safe update.</strong>
-              <span>Do not clear the current sale or pending work as a normal repair step.</span>
-            </div>
-          ) : null}
-          {recovery.pendingOperationCount > 0 ? (
-            <div className="banner warning" role="status">
-              <strong>Pending work must be resolved before an app update.</strong>
-              <span>Do not repeat a sale just because its result is not yet confirmed.</span>
-            </div>
-          ) : null}
-          {lifecycle?.updateReady ? (
-            <div className="banner info" role="status">
-              <strong>Update ready.</strong>
-              <span>The app will wait for a safe point before applying it.</span>
-            </div>
-          ) : null}
-          {lifecycle ? (
-            <div className="operational-actions">
-              <button
-                className="btn"
-                type="button"
-                disabled={updateCheckBusy}
-                onClick={() => {
-                  setUpdateCheckBusy(true);
-                  void lifecycle.checkForUpdate().finally(() => setUpdateCheckBusy(false));
-                }}
-              >
-                {updateCheckBusy ? "Checking for update…" : "Check for update"}
-              </button>
-            </div>
-          ) : null}
-        </section>
-      ) : null}
-      {showFix ? (
-        <FixAppPanel
-          criticalOperationActive={(recovery?.pendingOperationCount ?? 0) > 0}
-          onCheckHealth={() => {
-            void load();
-          }}
-          onRebuildCatalog={rebuildCatalog}
-        />
-      ) : null}
-    </>
+    <StoreHealthScreen
+      health={health}
+      state={state}
+      errorMessage={errorMessage}
+      online={online}
+      catalogAvailability={catalogAvailability}
+      electronicPaymentsAvailable={false}
+      attentionCountOverride={attentionCount}
+      onRetry={() => {
+        void load();
+      }}
+      onOpenAttention={() => onNavigate("attention")}
+    />
   );
 }
 

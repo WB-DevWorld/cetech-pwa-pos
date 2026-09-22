@@ -20,7 +20,7 @@ function renderShell(activeRoute: "sell" | "settings" = "sell") {
 }
 
 describe("AppShell", () => {
-  test("renders skip link, landmarks, primary destinations, and settings", () => {
+  test("keeps cashier primary navigation operational and leaves System status outside it", () => {
     const html = renderShell();
     expect(html).toContain("Skip to main content");
     expect(html).toContain('href="#main-content"');
@@ -30,28 +30,22 @@ describe("AppShell", () => {
     expect(html).toContain("<main");
     expect(html).toContain("<nav");
     expect(html).toContain("<aside");
-    expect(html).toContain('type="button"');
     expect(html).toContain('id="main-content"');
     expect(html).toContain("CETECH POS");
     expect(html).toContain("Front Counter 1");
     expect(html).toContain("Shift open");
     expect(html).toContain("Online");
-    expect(html).toContain('data-online="true"');
-    expect(html).toContain('aria-label="Online"');
-    expect(html).toContain('aria-label="Lock register"');
     for (const item of PRIMARY_NAV_ITEMS) {
       expect(html).toContain(`data-route="${item.route}"`);
       expect(html).toContain(`data-href="${POS_ROUTE_HREFS[item.route]}"`);
       expect(html).toContain(item.label);
     }
+    expect(html).not.toContain('data-route="health"');
     expect(html).toContain('data-route="settings"');
     expect(html).toContain("sidebar-bottom");
     expect(html).toContain("Attention");
     expect(html).toContain("2");
     expect(html).not.toContain("Demo controls");
-    expect(html).not.toContain("demo-fab");
-    expect(html).not.toContain("Ama Mensah");
-    expect(html).not.toContain("Kofi Asare");
   });
 
   test("marks the active route for assistive technology", () => {

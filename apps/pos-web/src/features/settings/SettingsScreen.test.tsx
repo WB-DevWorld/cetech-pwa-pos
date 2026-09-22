@@ -8,22 +8,22 @@ const settings: PosSettingsView = {
   scannerLabel: "Keyboard scanner input",
   printerLabel: "Browser print",
   appearance: "system",
-  buildId: "build-r8",
-  contractVersion: "1.0.0",
-  localSchemaVersion: "8",
 };
 
 describe("SettingsScreen", () => {
-  test("renders the approved compact operational settings surface", () => {
+  test("renders operational settings without engineering diagnostics", () => {
     const html = renderToStaticMarkup(<SettingsScreen settings={settings} onOpenStoreHealth={() => undefined} />);
     expect(html).toContain("Device &amp; register");
     expect(html).toContain("Counter tablet 1");
     expect(html).toContain("Main Counter");
     expect(html).toContain("Keyboard-wedge scanner");
     expect(html).toContain("Browser print (80mm/A4)");
-    expect(html).toContain("Technical details");
     expect(html).toContain("Open System status");
-    expect(html).toContain("build-r8");
+    expect(html).not.toContain("Diagnostics");
+    expect(html).not.toContain("Technical details");
+    expect(html).not.toContain("API contract");
+    expect(html).not.toContain("Local schema");
+    expect(html).not.toContain("Build ID");
   });
 
   test.each([

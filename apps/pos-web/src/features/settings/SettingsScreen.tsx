@@ -5,7 +5,6 @@ import {
   printerCapabilityLabel,
   scannerCapabilityLabel,
   toCashierError,
-  TechnicalDetails,
 } from "../../ui/cashier-language";
 
 export type SettingsWorkspaceState = "ready" | "loading" | "empty" | "offline" | "degraded" | "error";
@@ -17,9 +16,6 @@ export interface PosSettingsView {
   readonly scannerLabel: string;
   readonly printerLabel: string;
   readonly appearance: AppearancePreference;
-  readonly buildId: string;
-  readonly contractVersion: string;
-  readonly localSchemaVersion?: string;
 }
 
 export interface SettingsScreenProps {
@@ -44,7 +40,7 @@ export function SettingsScreen({
       <div className="page-head">
         <div>
           <h1 id="settings-title">Settings</h1>
-          <p>Small operational settings surface — not a WordPress-style control panel.</p>
+          <p>Device, register and appearance settings for this POS.</p>
         </div>
       </div>
 
@@ -71,22 +67,10 @@ export function SettingsScreen({
         <div className="settings-grid">
           <section className="card card-pad stack" aria-labelledby="device-register-title">
             <h2 id="device-register-title">Device & register</h2>
-            <div className="settings-value">
-              <span className="label">Device</span>
-              <strong>{friendlyDeviceName(settings.deviceName)}</strong>
-            </div>
-            <div className="settings-value">
-              <span className="label">Register</span>
-              <strong>{settings.registerName}</strong>
-            </div>
-            <div className="settings-value">
-              <span className="label">Scanner</span>
-              <span>{scannerCapabilityLabel(settings.scannerLabel)}</span>
-            </div>
-            <div className="settings-value">
-              <span className="label">Printer</span>
-              <span>{printerCapabilityLabel(settings.printerLabel)}</span>
-            </div>
+            <div className="settings-value"><span className="label">Device</span><strong>{friendlyDeviceName(settings.deviceName)}</strong></div>
+            <div className="settings-value"><span className="label">Register</span><strong>{settings.registerName}</strong></div>
+            <div className="settings-value"><span className="label">Scanner</span><span>{scannerCapabilityLabel(settings.scannerLabel)}</span></div>
+            <div className="settings-value"><span className="label">Printer</span><span>{printerCapabilityLabel(settings.printerLabel)}</span></div>
           </section>
 
           <section className="card card-pad stack settings-side" aria-labelledby="appearance-title">
@@ -105,29 +89,16 @@ export function SettingsScreen({
                 <option value="dark">Dark</option>
               </select>
             </label>
-            <div className="settings-divider" />
-            <h2 id="diagnostics-title">Diagnostics</h2>
-            <div className="settings-value">
-              <span className="label">Build</span>
-              <strong>{settings.buildId}</strong>
-            </div>
-            <div className="settings-value">
-              <span className="label">Frontend contracts</span>
-              <span>{settings.contractVersion}</span>
-            </div>
             {onOpenStoreHealth ? (
-              <button className="btn block" type="button" onClick={onOpenStoreHealth}>
-                Open System status
-              </button>
+              <>
+                <div className="settings-divider" />
+                <h2>System status</h2>
+                <p className="muted">Check connection and service availability. Management diagnostics stay in the Management workspace.</p>
+                <button className="btn block" type="button" onClick={onOpenStoreHealth}>
+                  Open System status
+                </button>
+              </>
             ) : null}
-            <TechnicalDetails
-              rows={[
-                { label: "Build ID", value: settings.buildId },
-                { label: "API contract", value: settings.contractVersion },
-                ...(settings.localSchemaVersion ? [{ label: "Local schema", value: settings.localSchemaVersion }] : []),
-                { label: "Device ID", value: settings.deviceName },
-              ]}
-            />
           </section>
         </div>
       ) : null}
