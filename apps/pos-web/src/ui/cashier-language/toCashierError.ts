@@ -89,7 +89,7 @@ export function domainFallback(domain: CashierErrorDomain): string {
     case "payment":
       return "Payment couldn't be completed. Check the connection. Do not charge again if a payment may already have started.";
     case "health":
-      return "Store Health couldn't be refreshed. Check the connection and try again.";
+      return "System status couldn't be refreshed. Check the connection and try again.";
     case "auth":
       return "Sign-in is temporarily unavailable. Try again.";
     case "register":

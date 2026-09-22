@@ -1,5 +1,86 @@
-import type { PaymentPort, SalesPort } from "../../../../docs/contracts/ports";
+import type { OperationJournal, PaymentPort, SalesPort } from "../../../../docs/contracts/ports";
+import type { PendingOperation } from "../../../../docs/contracts/domain.generated";
 import type { AttentionItemView } from "../ui/operational";
+
+
+const SALE_RECOVERY_OPERATIONS = new Set<PendingOperation["operation"]>([
+  "sale.prepare",
+  "sale.finalize",
+  "sale.cancel",
+]);
+
+const PAYMENT_RECOVERY_OPERATIONS = new Set<PendingOperation["operation"]>([
+  "payment.initialize",
+  "payment.cash",
+  "payment.resolve",
+]);
+
+export function localJournalRecoveryKind(
+  operation: PendingOperation["operation"],
+): "sale" | "payment" | null {
+  if (SALE_RECOVERY_OPERATIONS.has(operation)) return "sale";
+  if (PAYMENT_RECOVERY_OPERATIONS.has(operation)) return "payment";
+  return null;
+}
+
+export async function loadLocalJournalAttentionItems(
+  journal: OperationJournal | undefined,
+): Promise<readonly AttentionItemView[]> {
+  if (!journal) return [];
+  const pending = await journal.pending();
+  return pending.flatMap((row): AttentionItemView[] => {
+    if (!row.transactionId) return [];
+    const recoverKind = localJournalRecoveryKind(row.operation);
+    if (!recoverKind) return [];
+    const uncertain = row.status === "response_unknown" || row.status === "requires_attention";
+    return [{
+      id: `local-journal:${row.id}`,
+      title: recoverKind === "payment" ? "Payment needs a status check" : "Sale needs a status check",
+      summary: uncertain
+        ? "The result was not confirmed. Check the existing transaction before starting another attempt."
+        : "Saved transaction work was interrupted. Check its status before starting another attempt.",
+      typeLabel: recoverKind === "payment" ? "Payment recovery" : "Sale recovery",
+      severity: uncertain ? "critical" : "medium",
+      transactionId: row.transactionId,
+      resolveAllowed: true,
+      retryAllowed: false,
+      reviewAllowed: false,
+      recoverKind,
+    }];
+  });
+}
+
+export function hasBlockingLocalTransactionRecovery(
+  items: readonly AttentionItemView[],
+): boolean {
+  return items.some(
+    (item) =>
+      item.id.startsWith("local-journal:") &&
+      item.resolveAllowed &&
+      (item.recoverKind === "sale" || item.recoverKind === "payment"),
+  );
+}
+
+export function mergeAttentionItems(
+  serverItems: readonly AttentionItemView[],
+  localItems: readonly AttentionItemView[],
+  extras: readonly AttentionItemView[],
+): readonly AttentionItemView[] {
+  const next: AttentionItemView[] = [...localItems];
+  for (const server of serverItems) {
+    const duplicate = next.some(
+      (item) =>
+        Boolean(item.transactionId) &&
+        item.transactionId === server.transactionId &&
+        item.recoverKind === server.recoverKind &&
+        item.resolveAllowed &&
+        server.resolveAllowed,
+    );
+    if (!duplicate) next.push(server);
+  }
+  next.push(...extras);
+  return next;
+}
 
 export type AttentionRecoveryPorts = {
   readonly payments: Pick<PaymentPort, "resolve">;
@@ -45,6 +126,9 @@ export async function recoverAttentionItem(
       transactionId: item.transactionId,
       paymentId: item.paymentId,
     });
+    if (item.id.startsWith("local-journal:")) {
+      await ports.sales.resolve(item.transactionId);
+    }
     return "attempted";
   }
   if (item.recoverKind === "sale") {

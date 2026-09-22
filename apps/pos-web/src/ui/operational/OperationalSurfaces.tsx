@@ -103,7 +103,7 @@ export function StoreHealthScreen({
     <section className="operational-surface" aria-labelledby="store-health-title">
       <div className="page-head">
         <div>
-          <h1 id="store-health-title">Store Health</h1>
+          <h1 id="store-health-title">System status</h1>
           <p>Operational status stays visible instead of hiding sync and recovery problems in Settings.</p>
         </div>
         {onRebuildCatalog ? (
@@ -117,7 +117,7 @@ export function StoreHealthScreen({
       {state === "degraded" ? <ConnectivityNotice state="degraded" /> : null}
       {state === "error" ? (
         <div className="banner danger operational-banner" role="alert">
-          <strong>{"Store Health couldn't be refreshed."}</strong>
+          <strong>{"System status couldn't be refreshed."}</strong>
           <span>
             {errorMessage
               ? toCashierError({ message: errorMessage, domain: "health" }).message
@@ -131,7 +131,7 @@ export function StoreHealthScreen({
         </div>
       ) : null}
 
-      <div className="operational-metrics" aria-label="Store Health summary">
+      <div className="operational-metrics" aria-label="System status summary">
         <div className="card operational-metric">
           <span className="eyebrow">Pending operations</span>
           <strong>{pendingOperationCount}</strong>
@@ -149,7 +149,7 @@ export function StoreHealthScreen({
       {state === "loading" ? (
         <div className="card card-pad operational-state" role="status" aria-live="polite">
           <div className="operational-spinner" aria-hidden="true" />
-          <strong>Checking Store Health…</strong>
+          <strong>Checking System status…</strong>
         </div>
       ) : null}
 

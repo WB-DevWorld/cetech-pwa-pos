@@ -1,4 +1,154 @@
-# WS3 current handoff — R10 Prep reconcile onto accepted REC-01 main
+# WS3 current handoff — R9 / PR #63 Ben review-fix: SHA minimum-version deadlock
+
+Kind: PROGRESS_CHECKPOINT. Date: 2026-09-20.
+
+Task / batch / workstream: R9 review-fix / WS3.
+Owner / integration editor: `@wbdevworld` / WS3.
+Requested human reviewer: `@Ben-001-sys` re-review of the replacement exact head. Emmanuel / `@Emmanuel-coder-prog`: UNAVAILABLE / NOT REQUESTED.
+Mode: IMPLEMENT (review-fix).
+Branch: `batch/r9-pwa-recovery-operational-close` / PR #63 (DRAFT).
+Previous reviewed head: `51c2c9bf0148d04113090565585fad3a4c7c2371` (CHANGES_REQUESTED).
+Final task head SHA: record from `git rev-parse HEAD` after this evidence commit; do not embed it here.
+
+Allowed: existing R9 PWA/update safety comparison semantics and tests; CURRENT-WORK/STATUS/HANDOFF; PR #63 description.
+Forbidden: #82–#88; R9 redesign; installed-device evidence; frozen-contract churn; production; Emmanuel request; self-merge.
+
+Contracts changed: none. Database migrations: none. Architecture decisions: none.
+
+## Blocker and remediation
+
+Ben HIGH: default SHA `BUILD_ID` deployments set `latestBuild = recommendedBuild = minimumSupportedBuild = B_SHA`. `compareBuildIds()` treated opaque inequality as older, so `UNSUPPORTED_APP_VERSION` deadlocked `activateWaitingUpdate()`.
+
+Remediation: keep advertised-build discovery (`shouldDiscoverAdvertisedWorker` / `compareBuildIds`) so A SHA can discover B SHA. Minimum enforcement uses `isBelowMinimumSupportedBuild`, which requires genuinely orderable numeric/dotted versions. 40-character Git SHAs are opaque identities, not version numbers. Frozen `ReleasePolicy` shape unchanged.
+
+## Local qualification (before this evidence commit)
+
+- focused release-policy / PWA lifecycle / mounted / R9 suites: PASS
+- `python scripts/verify_control_plane.py`: PASS
+- tooling: 72 PASS
+- lint / typecheck: PASS
+- Vitest: 130 files / 985 tests PASS
+- production build: PASS
+- Playwright E2E: 15 passed
+- `git diff --check`: PASS
+- `supabase.exe` reset + pgTAP: 10 files / 224 PASS
+
+Installed-device A→B evidence: NOT STARTED.
+#82–#88: NOT STARTED.
+Production authorized: NO.
+Next exact action: push, require fresh Linux/Windows CI, keep DRAFT, request Ben re-review. Do not start device evidence until Ben confirms the source fix.
+
+Pass 3: NOT PERMITTED for this assignment.
+
+---
+
+# WS3 previous handoff — R9 / PR #63 reconcile onto accepted main + R10 closeout
+
+Kind: PROGRESS_CHECKPOINT. Date: 2026-09-20.
+
+Task / batch / workstream: R9 PWA recovery, operational close, update safety / WS3.
+Owner / integration editor: `@wbdevworld` / WS3.
+Requested human reviewer: `@Ben-001-sys` for later exact-head source review after freeze. Emmanuel / `@Emmanuel-coder-prog`: UNAVAILABLE / NOT REQUESTED.
+Mode: RECONCILE / RUNTIME QUALIFICATION.
+Branch: `batch/r9-pwa-recovery-operational-close` / PR #63 (DRAFT).
+Previous R9 head: `5592c29ca5a74ca59d7684ccf1a376ae10b37a13`
+Protected main: `c49045dd02c46574af5d341cc65c177116fa7306`
+R10 closeout consumed: `cf78330f2c5f1b9b8d231aad5b7bdc9a24e2d731`
+Reconciliation merge: `f2a3930fa2e219d34612a84031c3bb4fbfa9b3a7` (parents `5592c29...` + `cf78330...`; non-force two-parent merge)
+New merge-base: `c49045dd02c46574af5d341cc65c177116fa7306`
+Ahead / behind vs origin/main after merge: 60 / 0, then one authority commit.
+Final task head SHA: record from `git rev-parse HEAD` after this evidence commit; do not embed it here.
+
+Allowed: existing R9 runtime; semantic reconciliation with accepted main; R9 migrations/tests; PWA/update/recovery/device evidence; operational-close/Z; WS3 CURRENT-WORK/STATUS/HANDOFF/evidence; PR #63 description.
+Forbidden: #82–#88 implementation; REC-01 redesign; R10 implementation expansion; Woo pricing authority; live electronic payment; real refund/restock; production promotion; VitePOS cutover; self-merge; requesting Emmanuel.
+
+Contracts changed: none in this pass (combined CheckoutStore keeps REC-01 prepare-intent plus R9 close/Z). Database migrations: inherited R9 search-path hardening `20260919173000_pos_operational_close_search_path.sql` plus accepted REC-01 receipt/prepare-intent migrations. Architecture decisions: none.
+
+## Reconciliation
+
+- Did not merge `ws3/r10-prep-close` to protected main.
+- Consumed closeout `cf78330...` as the current-truth parent so ancestry contains current main, closeout, and existing R9 history.
+- Four REC-01 overlap files keep both durable `PrepareIntentSnapshot` / first-write-wins intent immutability AND R9 `saveShiftReport` / `getShiftReport` / `pos_shift_reports` / Z.
+- Zero original runtime overlap with R10 Prep #79 and exact-SHA Preview #81 (those trees are inherited).
+- Accepted System status cashier wording is preserved; obsolete `features/health/**` was not resurrected. Health fallback copy now says System status.
+
+## Local qualification (this checkout, before the evidence commit)
+
+- `python scripts/verify_control_plane.py`: PASS
+- `python -m unittest discover -s tests/tooling -v`: 72 PASS
+- focused R9 PWA/tender/recovery/close + overlap: 13 files / 65 tests PASS
+- `pnpm --dir apps/pos-web lint`: PASS
+- `pnpm --dir apps/pos-web typecheck`: PASS
+- `pnpm --dir apps/pos-web test`: 130 files / 980 tests PASS (untracked #82 file remains in `doc/` and was not committed)
+- `pnpm --dir apps/pos-web build`: PASS
+- `pnpm --dir apps/pos-web test:e2e`: 15 passed
+- `git diff --check`: PASS after restoring Vitest/E2E fixture mutations
+- Windows `npx supabase@2.117.0 db reset --yes --local`: BLOCKED (cmd.exe heredoc)
+- Direct `supabase.exe db reset --yes --local` then `supabase.exe test db`: PASS — 10 files / 224 tests, including `operational_close.sql` and `prepare_intent_snapshot.sql`. Migrations applied through `20260919173000_pos_operational_close_search_path.sql`. Linux CI remains the canonical npx reset+pgTAP authority.
+
+## Remaining genuine R9 evidence (not claimed PASS)
+
+- Installed-client A→B: PENDING
+- Reconnect with durable work: PENDING
+- Real multi-tab tender safety: PENDING
+- Operational-close/Z runtime on authorized staging register: PENDING / BLOCKED until separately authorized
+- Device evidence was not started; candidate is not frozen until exact-head Linux/Windows CI is green on the pushed SHA.
+
+Production authorized: NO
+#82–#88 implementation: NOT STARTED
+PR #63: remains DRAFT
+Next exact action: push this head, require fresh Linux `control-plane` and Windows `control-plane-windows` SUCCESS, replace the stale PR #63 body, keep DRAFT, do not request Emmanuel, do not start device evidence until frozen.
+
+Freshness protocol:
+START_FRESHNESS_SNAPSHOT UTC: 2026-09-20T13:22:00Z
+Start main SHA: `c49045dd02c46574af5d341cc65c177116fa7306`
+Start batch ref/SHA: `origin/batch/r9-pwa-recovery-operational-close` = `5592c29ca5a74ca59d7684ccf1a376ae10b37a13`
+Applicable contracts / ADRs / ownership / queue revision: CURRENT-WORK R9 lease; ADR-012/014; OWNERSHIP unchanged.
+
+Pass 1 fetch UTC / success evidence: recorded at assignment start against the verified SHAs above
+Pass 1 main SHA: `c49045dd02c46574af5d341cc65c177116fa7306`
+Pass 1 batch SHA: `5592c29ca5a74ca59d7684ccf1a376ae10b37a13`
+Relevant upstream: unmerged R10 closeout `cf78330...` consumed as parent; accepted REC-01/R10/CD-01 inherited
+Classification: COMPATIBLE inherit via two-parent merge; STALE_REQUIRES_FIX for CURRENT-WORK authority and four overlap files
+Actions taken: merge `f2a3930...`; combined store contract; surgical CURRENT-WORK/STATUS; System status fallback copy
+Tests rerun: listed above
+
+Pass 2 fetch UTC / success evidence: recorded in the PR body after the independent post-commit fetch
+Pass 2 main SHA: record after post-commit fetch
+Final freshness status: pending Pass 2 observation
+Delivery status: READY_FOR_INTEGRATION only after Pass 2 confirms main unchanged and exact-head CI is green; R9 milestone remains blocked on genuine device evidence
+Pass 3: NOT PERMITTED for this assignment.
+Review/merge/release status: keep DRAFT; no self-merge; production NO; Ben source review only after freeze; no Emmanuel request.
+
+---
+
+# WS3 previous handoff — R10 Prep PR #79 merged / preparation complete
+
+Kind: TASK_COMPLETION. Date: 2026-09-20.
+
+Task / batch / workstream: R10 Prep finish / WS3.
+Owner / integration editor: `@wbdevworld` / WS3.
+Requested human reviewer: `@Ben-001-sys` approved exact head `bb35b879...`. Emmanuel / `@Emmanuel-coder-prog`: UNAVAILABLE / NOT REQUESTED.
+Mode: CLOSEOUT.
+PR #79 merged: YES (squash)
+Source SHA: `bb35b8790e1370bc1b0aed6f39fc73c92549019a`
+New canonical main: `c49045dd02c46574af5d341cc65c177116fa7306`
+Merge timestamp: 2026-09-20T13:11:06Z
+Main CI: `35512758174` SUCCESS — Linux `control-plane` and Windows `control-plane-windows`
+Staging CD: `35512916881` SUCCESS — `https://cetech-pos-staging-fgzk1bb00-wbdevworlds-projects.vercel.app`
+R10 Prep result: MERGED / PREPARATION COMPLETE
+QA-01 #29: OPEN
+REL-01 #30: OPEN
+Production authorized: NO
+Next active task: PR #63 R9 reconciliation
+This closeout does not edit PR #63.
+
+Contracts changed: none. Database migrations: none. Architecture decisions: none.
+Pass 3: NOT PERMITTED for this assignment.
+
+---
+
+# WS3 previous handoff — R10 Prep reconcile onto accepted REC-01 main
 
 Kind: TASK_COMPLETION / SESSION_HANDOFF. Date: 2026-09-20.
 

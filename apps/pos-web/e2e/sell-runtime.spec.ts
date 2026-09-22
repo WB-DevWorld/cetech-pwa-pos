@@ -33,6 +33,69 @@ test("Sell runtime restores workspace once and cart edits do not restore again",
   await expect(page.locator("[data-sell-restore-count]")).toHaveAttribute("data-sell-restore-count", "1");
 });
 
+
+test("Sell picker debounces remote-only customer search and binds wholesale context", async ({ page }) => {
+  const remoteQueries: string[] = [];
+  await page.route("**/api/pos/v1/customers**", async (route) => {
+    const url = new URL(route.request().url());
+    const query = url.searchParams.get("q") ?? "";
+    if (query) remoteQueries.push(query);
+    const items = query.toLowerCase() === "arden"
+      ? [{
+          id: "remote-arden",
+          kind: "b2b",
+          displayName: "Arden Studio",
+          company: "Arden Studio Ltd",
+          phoneMasked: "024 *** 7788",
+          commercialContext: "Trade account",
+        }]
+      : [];
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        correlationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        data: { items },
+      }),
+    });
+  });
+
+  await installAuthoritativeStaffSession(page);
+  await page.goto("/sell");
+  await expect(page.locator("#product-search")).toBeVisible({ timeout: 30_000 });
+
+  const localHasArden = await page.evaluate(async () => {
+    return new Promise<boolean>((resolve, reject) => {
+      const open = indexedDB.open("cetech-pos-local");
+      open.onerror = () => reject(open.error);
+      open.onsuccess = () => {
+        const db = open.result;
+        const tx = db.transaction("customers", "readonly");
+        const request = tx.objectStore("customers").get("remote-arden");
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          resolve(Boolean(request.result));
+          db.close();
+        };
+      };
+    });
+  });
+  expect(localHasArden).toBe(false);
+
+  await page.locator(".customer-chip").click();
+  const customerSearch = page.locator("#customer-search");
+  await customerSearch.pressSequentially("arden", { delay: 30 });
+
+  await expect(page.getByText("Arden Studio", { exact: true })).toBeVisible({ timeout: 5_000 });
+  expect(remoteQueries).toEqual(["arden"]);
+  await expect(page.getByText("Wholesale", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: /Arden Studio/ }).click();
+  await expect(page.locator(".customer-chip")).toContainText("Arden Studio");
+  await expect(page.locator(".customer-chip")).toContainText("Wholesale");
+});
+
 test("same-revision quote revalidation reaches changed and blocks checkout", async ({ page }) => {
   const quoteControl = { fingerprint: "fp-a", delayMs: 0 };
   await page.route("**/api/pos/v1/quotes", async (route) => {
@@ -107,21 +170,21 @@ test("New Sale Cart B quote is accepted even when Cart A had a higher revision",
     await page.getByRole("button", { name: "Increase quantity" }).click();
   }
   await expect(cart.locator(".qty-input")).toHaveValue("4");
-  await expect(cart).toContainText("Cart · Rev 4");
+  await expect(cart).toHaveAttribute("data-cart-revision", "4");
   await expect(page.locator("[data-quote-status='confirmed']")).toBeVisible({ timeout: 15_000 });
   await expect(page.locator(".cart-totals")).toContainText("GHS 40.00");
 
   await page.getByRole("button", { name: "Clear", exact: true }).click();
   await page.getByRole("button", { name: "Clear sale" }).click();
   await expect(cart.getByText("Your cart is empty")).toBeVisible();
-  await expect(cart).toContainText("Cart · Rev 0");
+  await expect(cart).toHaveAttribute("data-cart-revision", "0");
   await expect(page.locator("[data-quote-status='confirmed']")).toHaveCount(0);
   await expect(page.locator("[data-quote-status='changed']")).toHaveCount(0);
   await expect(page.getByText("GHS 40.00")).toHaveCount(0);
 
   await scanHardener(page);
   await expect(cart.getByText("Epoxy Hardener 1L")).toBeVisible();
-  await expect(cart).toContainText("Cart · Rev 1");
+  await expect(cart).toHaveAttribute("data-cart-revision", "1");
   await expect(page.locator("[data-quote-status='quoting']")).toBeVisible();
   await expect(page.getByText("GHS 40.00")).toHaveCount(0);
   await expect(page.locator("[data-eligibility-allowed='false']")).toBeVisible();
@@ -142,7 +205,7 @@ test("equal revision across New Sale cannot reuse Cart A quote while Cart B is q
   await scanHardener(page);
   const cart = page.getByRole("complementary", { name: "Current sale" });
   await expect(cart.getByText("Epoxy Hardener 1L")).toBeVisible();
-  await expect(cart).toContainText("Cart · Rev 1");
+  await expect(cart).toHaveAttribute("data-cart-revision", "1");
   await expect(page.locator("[data-quote-status='confirmed']")).toBeVisible({ timeout: 15_000 });
   await expect(page.locator(".cart-totals")).toContainText("GHS 40.00");
 
@@ -153,7 +216,7 @@ test("equal revision across New Sale cannot reuse Cart A quote while Cart B is q
 
   await scanHardener(page);
   await expect(cart.getByText("Epoxy Hardener 1L")).toBeVisible();
-  await expect(cart).toContainText("Cart · Rev 1");
+  await expect(cart).toHaveAttribute("data-cart-revision", "1");
   await expect(page.locator("[data-quote-status='quoting']")).toBeVisible();
   await expect(page.getByText("GHS 40.00")).toHaveCount(0);
   await expect(page.locator("[data-eligibility-allowed='false']")).toBeVisible();

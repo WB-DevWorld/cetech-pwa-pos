@@ -16,8 +16,24 @@ test("combined Sell UI completes a retail cash sale through mocked BFF routes ex
   await scanHardener(page);
   await expect(page.locator("[data-quote-status='confirmed']")).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole("button", { name: "Pay" })).toBeEnabled();
+
+  await expect.poll(async () => {
+    const local = await readLocalCartState(page);
+    const active = local.drafts.find((draft) => draft.cartId === local.activeCartId);
+    return active?.lineCount ?? 0;
+  }).toBe(1);
+  const beforePayment = await readLocalCartState(page);
+  const soldCartId = beforePayment.activeCartId;
+  expect(soldCartId).toBeTruthy();
+
   await page.getByRole("button", { name: "Pay" }).click();
   await expect(page.locator("[data-checkout-stage='choose_payment']")).toBeVisible();
+  await expect(page.locator(".cart-clear")).toBeDisabled();
+
+  const preparedState = await readLocalCartState(page);
+  expect(preparedState.activeCartId).toBe(soldCartId);
+  expect(preparedState.drafts.find((draft) => draft.cartId === soldCartId)?.lineCount).toBe(1);
+
   await page.locator('[data-tender="cash"]').click();
   await expect(page.locator("[data-checkout-stage='cash']")).toBeVisible();
   await page.getByRole("button", { name: "Exact" }).click();
@@ -25,10 +41,84 @@ test("combined Sell UI completes a retail cash sale through mocked BFF routes ex
   await expect(page.locator("[data-checkout-stage='receipt_ready']")).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText("POS-woo-1")).toBeVisible();
   await expect(page.locator("[data-sale-completed='true']")).toBeVisible();
+
+  await expect.poll(async () => {
+    const local = await readLocalCartState(page);
+    const active = local.drafts.find((draft) => draft.cartId === local.activeCartId);
+    return Boolean(
+      local.activeCartId &&
+      local.activeCartId !== soldCartId &&
+      local.drafts.length === 1 &&
+      active?.lineCount === 0 &&
+      !local.drafts.some((draft) => draft.cartId === soldCartId),
+    );
+  }).toBe(true);
+
+  const afterCompletion = await readLocalCartState(page);
+  const replacementCartId = afterCompletion.activeCartId;
+  expect(replacementCartId).toBeTruthy();
+
+  await page.getByRole("button", { name: "New sale" }).click();
+  await expect(page.locator("[data-checkout-stage]")).toHaveCount(0);
+
+  const afterNewSale = await readLocalCartState(page);
+  expect(afterNewSale.activeCartId).toBe(replacementCartId);
+  expect(afterNewSale.drafts).toHaveLength(1);
+
+  await page.reload();
+  await expect(page.locator("#product-search")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("Your cart is empty")).toBeVisible();
+  const afterReload = await readLocalCartState(page);
+  expect(afterReload.activeCartId).toBe(replacementCartId);
+  expect(afterReload.drafts).toEqual([
+    expect.objectContaining({ cartId: replacementCartId, lineCount: 0 }),
+  ]);
+
   expect(counts.prepare).toBe(1);
   expect(counts.cash).toBe(1);
   expect(counts.finalize).toBe(1);
   expect(counts.receipt).toBeGreaterThanOrEqual(1);
+});
+
+test("manual Clear sale retires only the active draft and preserves unrelated local drafts", async ({ page }) => {
+  const counts = { prepare: 0, cash: 0, finalize: 0, receipt: 0 };
+  await installCheckoutRoutes(page, counts, "walkin");
+  await installAuthoritativeStaffSession(page);
+  await page.goto("/sell");
+  await expect(page.locator("#product-search")).toBeVisible({ timeout: 30_000 });
+  await scanHardener(page);
+  await expect(page.locator("[data-quote-status='confirmed']")).toBeVisible({ timeout: 15_000 });
+
+  await expect.poll(async () => {
+    const local = await readLocalCartState(page);
+    return local.drafts.find((draft) => draft.cartId === local.activeCartId)?.lineCount ?? 0;
+  }).toBe(1);
+
+  const before = await readLocalCartState(page);
+  const activeBefore = before.activeCartId;
+  expect(activeBefore).toBeTruthy();
+  const orphanCartId = "99999999-9999-4999-8999-999999999999";
+  await insertOrphanDraft(page, orphanCartId);
+
+  await page.locator(".cart-clear").click();
+  await expect(page.getByRole("heading", { name: "Clear this sale?" })).toBeVisible();
+  await page.getByRole("button", { name: "Clear sale" }).click();
+
+  await expect.poll(async () => {
+    const local = await readLocalCartState(page);
+    const active = local.drafts.find((draft) => draft.cartId === local.activeCartId);
+    return Boolean(
+      local.activeCartId &&
+      local.activeCartId !== activeBefore &&
+      active?.lineCount === 0 &&
+      !local.drafts.some((draft) => draft.cartId === activeBefore) &&
+      local.drafts.some((draft) => draft.cartId === orphanCartId),
+    );
+  }).toBe(true);
+
+  const after = await readLocalCartState(page);
+  expect(after.drafts).toHaveLength(2);
+  expect(after.drafts.some((draft) => draft.cartId === orphanCartId)).toBe(true);
 });
 
 test("combined Sell UI completes a B2B cash sale using the authoritative quoted total", async ({ page }) => {
@@ -42,7 +132,7 @@ test("combined Sell UI completes a B2B cash sale using the authoritative quoted 
   await page.getByRole("button", { name: /Buildworks Ltd/ }).click();
   await scanHardener(page);
   await expect(page.locator("[data-quote-status='confirmed']")).toBeVisible({ timeout: 15_000 });
-  await expect(page.locator("[data-quote-status='confirmed']")).toContainText("Price confirmed");
+  await expect(page.locator("[data-quote-status='confirmed']")).toContainText("Price ready");
   await expect(page.locator(".cart-totals")).toContainText("GHS 12.00");
   await page.getByRole("button", { name: "Pay" }).click();
   await expect(page.locator("[data-checkout-stage='choose_payment']")).toBeVisible();
@@ -59,6 +149,62 @@ test("combined Sell UI completes a B2B cash sale using the authoritative quoted 
 async function scanHardener(page: Page): Promise<void> {
   await page.locator("#product-search").fill("0012345678901");
   await page.locator("#product-search").press("Enter");
+}
+
+type LocalCartState = {
+  readonly activeCartId: string | null;
+  readonly drafts: ReadonlyArray<{ readonly cartId: string; readonly lineCount: number }>;
+};
+
+async function readLocalCartState(page: Page): Promise<LocalCartState> {
+  return page.evaluate(async () => {
+    return await new Promise<LocalCartState>((resolve, reject) => {
+      const request = indexedDB.open("cetech-pos-local");
+      request.onerror = () => reject(request.error ?? new Error("local database open failed"));
+      request.onsuccess = () => {
+        const db = request.result;
+        const tx = db.transaction(["cartDrafts", "kv"], "readonly");
+        const draftsRequest = tx.objectStore("cartDrafts").getAll();
+        const activeRequest = tx.objectStore("kv").get("active-cart");
+        tx.onerror = () => reject(tx.error ?? new Error("local cart read failed"));
+        tx.oncomplete = () => {
+          const drafts = (draftsRequest.result as Array<{ cartId: string; lines?: unknown[] }>).map((draft) => ({
+            cartId: draft.cartId,
+            lineCount: Array.isArray(draft.lines) ? draft.lines.length : 0,
+          }));
+          const active = activeRequest.result as { value?: string } | undefined;
+          db.close();
+          resolve({ activeCartId: active?.value ?? null, drafts });
+        };
+      };
+    });
+  });
+}
+
+async function insertOrphanDraft(page: Page, cartId: string): Promise<void> {
+  await page.evaluate(async (orphanCartId) => {
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.open("cetech-pos-local");
+      request.onerror = () => reject(request.error ?? new Error("local database open failed"));
+      request.onsuccess = () => {
+        const db = request.result;
+        const tx = db.transaction("cartDrafts", "readwrite");
+        tx.objectStore("cartDrafts").put({
+          cartId: orphanCartId,
+          revision: 1,
+          customer: { kind: "walkin" },
+          locationId: "loc-front-1",
+          lines: [],
+          updatedAt: "2026-09-21T19:00:00.000Z",
+        });
+        tx.onerror = () => reject(tx.error ?? new Error("orphan draft write failed"));
+        tx.oncomplete = () => {
+          db.close();
+          resolve();
+        };
+      };
+    });
+  }, cartId);
 }
 
 async function installCheckoutRoutes(

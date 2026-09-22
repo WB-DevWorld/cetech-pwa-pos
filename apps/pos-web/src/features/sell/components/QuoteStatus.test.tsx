@@ -62,15 +62,15 @@ describe("QuoteStatus markup", () => {
     expect(html).not.toContain("GHS");
   });
 
-  test("confirmed shows Price confirmed without mixing totals into the status strip", () => {
+  test("confirmed shows Price ready without mixing totals into the status strip", () => {
     const html = renderQuote({
       status: "confirmed",
       revision: 2,
       quote: { total: { minor: 2599, currency: "GHS" }, tax: { minor: 99, currency: "GHS" } },
     });
     expect(html).toContain('data-quote-status="confirmed"');
-    expect(html).toContain("Price confirmed");
-    expect(html).not.toContain("Price ready");
+    expect(html).toContain("Price ready");
+    expect(html).not.toContain("Price confirmed");
     expect(html).not.toContain("GHS 25.99");
     expect(html).not.toContain("Subtotal");
   });
@@ -192,7 +192,7 @@ describe("CartPanel eligibility presentation", () => {
     expect(html).not.toMatch(/pay-btn[^>]*disabled/);
     expect(html).not.toContain("Review the price, then continue when payment is available.");
     expect(html).toContain("Cart");
-    expect(html).toContain("Rev 2");
+    expect(html).not.toContain("Rev 2");
     expect(html).toContain("Clear");
     expect(html).toContain("Pay GHS 5.00");
   });
@@ -218,7 +218,7 @@ describe("CartPanel eligibility presentation", () => {
     expect(html).toMatch(/cart-clear[^>]*disabled/);
   });
 
-  test("confirmed cart keeps totals below lines including a zero discount", () => {
+  test("confirmed cart keeps totals below lines while hiding zero discount", () => {
     const html = renderToStaticMarkup(
       createElement(CartPanel, {
         revision: 14,
@@ -256,11 +256,11 @@ describe("CartPanel eligibility presentation", () => {
       }),
     );
     expect(html).toContain("Cart");
-    expect(html).toContain("Rev 14");
-    expect(html).toContain("Price confirmed");
+    expect(html).not.toContain("Rev 14");
+    expect(html).toContain("Price ready");
     expect(html).toContain("GHS 485.00 each");
     expect(html).toContain("Subtotal");
-    expect(html).toContain("Discount");
+    expect(html).not.toMatch(/>Discount</);
     expect(html).toContain("GHS 0.00");
     expect(html).toContain("Tax");
     expect(html).toContain("class=\"summary-row total\"");

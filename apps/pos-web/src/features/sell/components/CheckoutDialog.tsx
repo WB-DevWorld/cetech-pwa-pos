@@ -261,7 +261,7 @@ export function CheckoutDialog({
             <button type="button" className="btn primary" disabled={inFlight} onClick={onRetryReceipt}>
               Retry receipt
             </button>
-            <button type="button" className="btn" onClick={onNewSale}>
+            <button type="button" className="btn" disabled={inFlight} onClick={onNewSale}>
               New sale
             </button>
           </div>
@@ -287,7 +287,7 @@ export function CheckoutDialog({
               <button type="button" className="btn" disabled={inFlight} onClick={onPrint}>
                 {session.printStatus === "idle" ? "Print receipt" : "Retry print"}
               </button>
-              <button type="button" className="btn primary" disabled={inFlight && session.stage === "printing"} onClick={onNewSale}>
+              <button type="button" className="btn primary" disabled={inFlight} onClick={onNewSale}>
                 New sale
               </button>
             </div>

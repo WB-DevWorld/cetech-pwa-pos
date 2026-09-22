@@ -24,7 +24,7 @@ test.describe("UX-02 local integrated Sell runtime screenshots", () => {
     await page.locator("#product-search").fill("0012345678901");
     await page.locator("#product-search").press("Enter");
     await expect(page.locator("[data-quote-status='confirmed']")).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText("Price confirmed")).toBeVisible();
+    await expect(page.getByText("Price ready")).toBeVisible();
     await expect(page.locator(".cart-totals")).toContainText("GHS 15.00");
     await expect(page.getByRole("button", { name: /^Pay/ })).toBeVisible();
     await page.screenshot({ path: resolve(evidenceDir, "ux-02-runtime-open-1917x870.png") });

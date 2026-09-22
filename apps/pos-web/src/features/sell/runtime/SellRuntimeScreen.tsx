@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import type { CartDraftStore, CatalogPort, CheckoutUseCases, CustomerPort, PaymentPort, PricingPort, PrintPort, ReceiptPort, SalesPort } from "../../../../../../docs/contracts/ports";
 import { SellScreen } from "../SellScreen";
+import { ReceiptPaper } from "../components/ReceiptPaper";
 import { useElectronicPayment } from "../../payments/useElectronicPayment";
 import { type TenderAvailabilityView, electronicTenderAvailable } from "../components/TenderChoice";
 import type { CatalogAvailability, CustomerSearchResultView, SellProductView, SellWorkspaceState } from "../state/sellView";
@@ -10,11 +12,13 @@ import type { ProductDisplayPriceView } from "../state/variableDisplayPrice";
 import { lookupBarcodeViews, lookupVariations, searchCatalogViews, enrichSellProductPrices } from "./catalogLookup";
 import { bindPriceCacheToGeneration } from "./productDisplayPriceCache";
 import { electronicSessionLocksCheckout } from "../components/PaymentWaiting";
-import { customerViewFromSummary, workspaceToCartDraft } from "./mapCartDraft";
+import { customerSummaryFromSelection, customerViewFromSummary, workspaceToCartDraft } from "./mapCartDraft";
 import { restoreSellWorkspace } from "./restoreWorkspace";
 import { useCartQuote } from "./useCartQuote";
 import { useCashCheckout, type CashCheckoutPorts } from "./useCashCheckout";
+import type { ReceiptViewModel } from "../state/checkoutSession";
 import type { CashCheckoutScope } from "./cashCheckoutController";
+import type { CartDraft } from "../../../../../../docs/contracts/domain.generated";
 
 export type SellSessionPorts = {
   readonly catalog: CatalogPort;
@@ -22,6 +26,7 @@ export type SellSessionPorts = {
   readonly drafts: CartDraftStore;
   readonly rememberCartId: (cartId: string) => Promise<void>;
   readonly recallCartId: () => Promise<string | null>;
+  readonly replaceActiveCart: (previousCartId: string, next: CartDraft) => Promise<void>;
   readonly locationId: string;
   readonly now?: () => Date;
   readonly online?: () => boolean;
@@ -41,6 +46,7 @@ export type SellSessionPorts = {
   readonly electronicPaymentsAvailable?: boolean;
   readonly nextSaleCustomer?: CustomerSearchResultView | null;
   readonly onNextSaleCustomerApplied?: (customer: CustomerSearchResultView) => void;
+  readonly customerSearch?: (query: string) => Promise<readonly CustomerSearchResultView[]>;
 };
 
 function defaultNow(): Date {
@@ -93,6 +99,7 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
   const locationId = ports.locationId;
   const nowRef = useRef(now);
   const onlineRef = useRef(online);
+  const persistenceQueueRef = useRef<Promise<void>>(Promise.resolve());
   const [ready, setReady] = useState(false);
   const [initialState, setInitialState] = useState<SellWorkspaceState | undefined>(undefined);
   const [browseCatalog, setBrowseCatalog] = useState<readonly SellProductView[]>([]);
@@ -102,6 +109,7 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
   const [workspace, setWorkspace] = useState<SellWorkspaceState | undefined>(undefined);
   const [restoreCount, setRestoreCount] = useState(0);
   const priceCacheRef = useRef(new Map<string, ProductDisplayPriceView>());
+  const customerSearchSeqRef = useRef(0);
   const observedProjectionGenerationRef = useRef<number | undefined>(undefined);
   const browseProjectionGenerationRef = useRef<number | undefined>(undefined);
   const projectionGeneration = ports.catalogProjectionGeneration ?? 0;
@@ -137,6 +145,7 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
     ports.sales,
   ]);
   const cashCheckout = useCashCheckout(checkoutPorts);
+  const [printReceipt, setPrintReceipt] = useState<ReceiptViewModel | null>(null);
   const electronicPorts = useMemo(() => {
     if (!ports.payments?.initialize || !ports.payments.resolve) {
       return undefined;
@@ -245,13 +254,35 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
     };
   }, [catalog, createCartId, createLineId, customersPort, drafts, locationId, ports.catalogAvailability, recallCartId, rememberCartId]);
 
+  const enqueuePersistence = useCallback((task: () => Promise<void>): Promise<void> => {
+    const next = persistenceQueueRef.current.catch(() => undefined).then(task);
+    persistenceQueueRef.current = next;
+    return next;
+  }, []);
+
   const persist = useCallback(
     (state: SellWorkspaceState) => {
       setWorkspace(state);
-      void drafts.save(workspaceToCartDraft(state, locationId, now().toISOString()));
-      void rememberCartId(state.cartId);
+      const draft = workspaceToCartDraft(state, locationId, now().toISOString());
+      void enqueuePersistence(async () => {
+        await drafts.save(draft);
+        await rememberCartId(state.cartId);
+      }).catch(() => undefined);
     },
-    [drafts, locationId, now, rememberCartId],
+    [drafts, enqueuePersistence, locationId, now, rememberCartId],
+  );
+
+  const transitionActiveCart = useCallback(
+    async (
+      previous: SellWorkspaceState,
+      next: SellWorkspaceState,
+      _reason: "completed" | "discarded",
+    ): Promise<void> => {
+      const nextDraft = workspaceToCartDraft(next, locationId, now().toISOString());
+      await enqueuePersistence(() => ports.replaceActiveCart(previous.cartId, nextDraft));
+      setWorkspace(next);
+    },
+    [enqueuePersistence, locationId, now, ports],
   );
 
   const resolveBarcodeCatalog = useCallback(
@@ -309,13 +340,20 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
 
   const searchCustomers = useCallback(
     async (query: string) => {
+      const seq = ++customerSearchSeqRef.current;
+      if (ports.customerSearch) {
+        const results = await ports.customerSearch(query);
+        if (seq !== customerSearchSeqRef.current) return;
+        setCustomers(results);
+        return;
+      }
       const result = await customersPort.search(query);
-      if (!result.ok) {
+      if (!result.ok || seq !== customerSearchSeqRef.current) {
         return;
       }
       setCustomers(result.data.map(customerViewFromSummary));
     },
-    [customersPort],
+    [customersPort, ports.customerSearch],
   );
 
   if (!ready || !initialState) {
@@ -344,13 +382,17 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
         onNextSaleCustomerApplied={ports.onNextSaleCustomerApplied}
         onCustomerQueryChange={searchCustomers}
         onWorkspaceChange={persist}
+        onTransitionCart={transitionActiveCart}
         quote={presentedQuote.quote}
         eligibility={presentedQuote.eligibility}
         checkoutReady={cashCheckout.ready}
         checkoutInFlight={cashCheckout.inFlight}
         checkoutSession={cashCheckout.session}
         onPay={() => {
-          void cashCheckout.startPrepare(presentedQuote.confirmedQuote);
+          void cashCheckout.startPrepare(
+            presentedQuote.confirmedQuote,
+            customerSummaryFromSelection(workspace?.selectedCustomer),
+          );
         }}
         onConfirmCash={(value) => {
           void cashCheckout.confirmCash(value);
@@ -368,7 +410,16 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
           void cashCheckout.loadReceipt();
         }}
         onPrintReceipt={() => {
-          void cashCheckout.printReceipt();
+          const receipt = cashCheckout.session.receipt;
+          if (!receipt) {
+            return;
+          }
+          flushSync(() => {
+            setPrintReceipt(receipt);
+          });
+          void cashCheckout.printReceipt().finally(() => {
+            setPrintReceipt(null);
+          });
         }}
         onCheckoutNewSale={() => {
           cashCheckout.resetForNewSale();
@@ -429,6 +480,11 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
           void electronic.resolve();
         }}
       />
+      {printReceipt ? (
+        <div className="receipt-print-host" aria-hidden="true">
+          <ReceiptPaper receipt={printReceipt} />
+        </div>
+      ) : null}
     </div>
   );
 }

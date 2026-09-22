@@ -10,6 +10,7 @@ import { authorizeCheckoutMutation, mutationProtectionFrom } from "./authorize-c
 import { closeShift } from "./close-shift";
 import { guardStaffCommand, type CommandHttpHeaders } from "./guard-staff-command";
 import { isCloseShiftRequest } from "./schema";
+import type { OperationalCloseStore } from "../register/operational-close-store";
 
 export async function handleCloseShift(input: {
   readonly correlationIdHeader?: string;
@@ -23,6 +24,7 @@ export async function handleCloseShift(input: {
   readonly sessionStore: StaffSessionStore;
   readonly allowedOrigins: readonly string[];
   readonly checkoutStore: CheckoutStore;
+  readonly closeStore?: OperationalCloseStore;
   readonly assignments: StaffAssignmentDirectory;
 }): Promise<{ readonly status: number; readonly body: ApiResult<Shift>; readonly headers: CommandHttpHeaders }> {
   const guard = await guardStaffCommand({
@@ -69,6 +71,7 @@ export async function handleCloseShift(input: {
   }
   const result = await closeShift({
     store: input.checkoutStore,
+    closeStore: input.closeStore,
     actor: guard.session,
     request: input.body,
     context: { idempotencyKey: guard.idempotencyKey, correlationId: guard.correlationId },

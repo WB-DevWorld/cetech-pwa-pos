@@ -223,7 +223,24 @@ export async function handleReadStaffSession(
       );
     }
     assignedLocationIds = intersectIds(stored.session.locationIds, assignments.locationIds);
-    assignedRegisterIds = assignments.registerIds;
+    if (assignments.registerAssignments) {
+      const permittedLocations = new Set(assignedLocationIds);
+      assignedRegisterIds = [
+        ...new Set(
+          assignments.registerAssignments
+            .filter((assignment) => permittedLocations.has(assignment.locationId))
+            .map((assignment) => assignment.registerId),
+        ),
+      ];
+    } else if (sameIdSet(assignedLocationIds, assignments.locationIds)) {
+      // Legacy/in-memory directories without register->location mapping are only
+      // safe when the verified session scope is identical to the durable
+      // assignment scope. If the session is narrower, register membership
+      // cannot be proven and must fail closed.
+      assignedRegisterIds = assignments.registerIds;
+    } else {
+      assignedRegisterIds = [];
+    }
   } catch {
     return fail(
       headers,
@@ -251,6 +268,15 @@ function intersectIds(sessionIds: readonly string[], assignedIds: readonly strin
   const allowed = new Set(assignedIds);
   return sessionIds.filter((id) => allowed.has(id));
 }
+
+function sameIdSet(left: readonly string[], right: readonly string[]): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+  const rightSet = new Set(right);
+  return left.every((id) => rightSet.has(id));
+}
+
 
 function originAllowedForRead(
   origin: string | null,

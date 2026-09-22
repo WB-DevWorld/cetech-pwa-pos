@@ -26,3 +26,17 @@ export async function resetCartDraft(
 ): Promise<void> {
   await store.save(next);
 }
+
+/**
+ * Retire exactly one local cart draft after a proven safe lifecycle transition.
+ * This never clears the cart store and does not touch the operation journal.
+ */
+export async function retireCartDraft(
+  cartId: Uuid,
+  db: PosLocalDatabase = openPosLocalDatabase(),
+): Promise<void> {
+  await db.transaction("rw", db.cartDrafts, async () => {
+    await db.cartDrafts.delete(cartId);
+  });
+}
+

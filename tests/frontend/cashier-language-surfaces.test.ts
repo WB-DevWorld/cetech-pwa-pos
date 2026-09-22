@@ -67,7 +67,7 @@ const emptyHandlers = {
 };
 
 describe("UX-01 cashier surfaces hide engineering vocabulary", () => {
-  test("confirmed quote uses ordinary labels, shows zero discount, and Pay uses the quote total", () => {
+  test("confirmed quote uses ordinary labels, hides zero discount, and Pay uses the quote total", () => {
     const html = renderToStaticMarkup(
       createElement(CartPanel, {
         revision: 1,
@@ -92,18 +92,17 @@ describe("UX-01 cashier surfaces hide engineering vocabulary", () => {
     );
     const primary = visiblePrimaryText(html);
     expect(html).toContain("Cart");
-    expect(html).toContain("Rev 1");
-    expect(html).toContain("Price confirmed");
-    expect(html).not.toContain("Price ready");
+    expect(html).not.toContain("Rev 1");
+    expect(html).toContain("Price ready");
+    expect(html).not.toContain("Price confirmed");
     expect(html).toContain("Subtotal");
-    expect(html).toContain("Discount");
+    expect(html).not.toMatch(/>Discount</);
     expect(html).toContain("Tax");
     expect(html).toContain("Total");
     expect(html).toContain("Pay GHS 30.00");
     expect(html).toContain("SKU 14985");
     expect(primary).not.toContain("Quoted total");
     expect(primary).not.toContain("Quoted discount");
-    expect(html).toMatch(/>Discount</);
     expect(html).toContain('class="summary-row total"');
     expect(html).toContain('aria-live="polite"');
   });
@@ -179,7 +178,7 @@ describe("UX-01 cashier surfaces hide engineering vocabulary", () => {
       }),
     );
     const healthPrimary = visiblePrimaryText(health);
-    expect(health).toContain("Store Health");
+    expect(health).toContain("System status");
     expect(healthPrimary).toContain("Authoritative pricing");
     expect(healthPrimary).toContain("Pending verification");
     expect(healthPrimary).not.toContain("wooDetected=true");

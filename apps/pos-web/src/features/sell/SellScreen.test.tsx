@@ -40,7 +40,7 @@ describe("SellScreen presentation", () => {
     expect(html).not.toContain("page-head");
     expect(html).toContain("Clear");
     expect(html).toContain("Cart");
-    expect(html).toContain("Rev 0");
+    expect(html).not.toContain("Rev 0");
     expect(html).not.toContain(">Scan<");
     expect(html).not.toContain("New sale");
     expect(html).not.toContain("demo-barcodes");

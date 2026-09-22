@@ -1,4 +1,4 @@
-import { createElement, useMemo, type ReactNode } from "react";
+import { createElement, useMemo, type ComponentProps, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { act } from "react";
 import { readFileSync } from "node:fs";
@@ -41,7 +41,10 @@ type FakeNode = {
   innerHTML: string;
   setAttribute: (name: string, value: string) => void;
   getAttribute: (name: string) => string | null;
+  hasAttribute: (name: string) => boolean;
   removeAttribute: (name: string) => void;
+  querySelector: (selector: string) => FakeNode | null;
+  querySelectorAll: (selector: string) => FakeNode[];
   appendChild: (child: FakeNode) => FakeNode;
   removeChild: (child: FakeNode) => FakeNode;
   insertBefore: (child: FakeNode, ref: FakeNode | null) => FakeNode;
@@ -109,8 +112,30 @@ function createFakeNode(document: FakeDocument, nodeType: number, tagName: strin
       if (name === "class" && this.className) return this.className;
       return this.attributes.get(name) ?? null;
     },
+    hasAttribute(name) {
+      return this.attributes.has(name);
+    },
     removeAttribute(name) {
       this.attributes.delete(name);
+    },
+    querySelector(selector) {
+      return this.querySelectorAll(selector)[0] ?? null;
+    },
+    querySelectorAll(selector) {
+      const matches: FakeNode[] = [];
+      const visit = (candidate: FakeNode) => {
+        const idMatch = selector.startsWith("#") && candidate.getAttribute("id") === selector.slice(1);
+        const attrMatch =
+          selector.startsWith("[") &&
+          selector.endsWith("]") &&
+          candidate.hasAttribute(selector.slice(1, -1));
+        if (idMatch || attrMatch) {
+          matches.push(candidate);
+        }
+        candidate.childNodes.forEach(visit);
+      };
+      this.childNodes.forEach(visit);
+      return matches;
     },
     appendChild(child) {
       if (child.parentNode) child.parentNode.removeChild(child);
@@ -303,12 +328,18 @@ function Harness({
   cache,
   initialState,
   onWorkspaceChange,
+  checkoutSession,
+  createCartId,
+  onTransitionCart,
 }: {
   readonly generation: number;
   readonly catalog: CatalogPort;
   readonly cache: Map<string, ProductDisplayPriceView>;
   readonly initialState: SellWorkspaceState;
   readonly onWorkspaceChange: (state: SellWorkspaceState) => void;
+  readonly checkoutSession?: ComponentProps<typeof SellScreen>["checkoutSession"];
+  readonly createCartId?: () => string;
+  readonly onTransitionCart?: ComponentProps<typeof SellScreen>["onTransitionCart"];
 }): ReactNode {
   const observed = useMemo(() => ({ current: undefined as number | undefined }), []);
   bindPriceCacheToGeneration(cache, observed, generation);
@@ -328,8 +359,10 @@ function Harness({
     initialState,
     catalogProjectionGeneration: generation,
     searchCatalog,
-    createCartId: () => "cart-should-not-recreate",
+    createCartId: createCartId ?? (() => "cart-should-not-recreate"),
     createLineId: () => "line-should-not-recreate",
+    checkoutSession,
+    onTransitionCart,
     onWorkspaceChange,
   });
 }
@@ -342,6 +375,9 @@ async function renderHarness(
     readonly cache: Map<string, ProductDisplayPriceView>;
     readonly initialState: SellWorkspaceState;
     readonly onWorkspaceChange: (state: SellWorkspaceState) => void;
+    readonly checkoutSession?: ComponentProps<typeof SellScreen>["checkoutSession"];
+    readonly createCartId?: () => string;
+    readonly onTransitionCart?: ComponentProps<typeof SellScreen>["onTransitionCart"];
   },
 ): Promise<void> {
   await act(async () => {
@@ -475,6 +511,87 @@ describe("UX-03 visible ProductCard refresh after projection generation", () => 
       expect(latest.cartId).toBe("cart-unavailable");
       expect(latest.cartRevision).toBe(0);
       expect(latest.lines).toEqual([]);
+    } finally {
+      await act(async () => {
+        root.unmount();
+      });
+      fake.cleanup();
+    }
+  });
+
+  test("completed sale retires the sold cart and rotates to one fresh cart exactly once", async () => {
+    const fake = installFakeDom();
+    const catalog = mutableCatalog([6_500, 56_700]);
+    const cache = new Map<string, ProductDisplayPriceView>();
+    const search = await searchCatalogViews(catalog, "");
+    expect(search.ok).toBe(true);
+    if (!search.ok) {
+      throw new Error("search");
+    }
+    const views = await enrichSellProductPrices(catalog, search.items, cache);
+    const simple = views.find((item) => item.id === "simple") as SellProductView;
+    const deps = {
+      createCartId: () => "cart-completed",
+      createLineId: () => "line-completed",
+    };
+    let state = createSellWorkspace(deps, views);
+    state = applyProductSelect(state, simple, views, deps);
+
+    const retired: Array<{ cartId: string; reason: "completed" | "discarded" }> = [];
+    let latest = state;
+    let nextCartCalls = 0;
+    const completedSession = {
+      stage: "complete" as const,
+      message: "The sale is complete.",
+      printStatus: "idle" as const,
+      saleCompleted: true,
+      transactionId: "11111111-1111-4111-8111-111111111099",
+    };
+    const root = createRoot(fake.container as unknown as Element);
+
+    try {
+      const props = {
+        generation: 1,
+        catalog,
+        cache,
+        initialState: state,
+        checkoutSession: completedSession,
+        createCartId: () => {
+          nextCartCalls += 1;
+          return "cart-next";
+        },
+        onTransitionCart: async (
+          previous: SellWorkspaceState,
+          next: SellWorkspaceState,
+          reason: "completed" | "discarded",
+        ) => {
+          retired.push({ cartId: previous.cartId, reason });
+          expect(next.lines).toEqual([]);
+        },
+        onWorkspaceChange: (next: SellWorkspaceState) => {
+          latest = next;
+        },
+      };
+
+      await renderHarness(root, props);
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(retired).toEqual([{ cartId: "cart-completed", reason: "completed" }]);
+      expect(latest.cartId).toBe("cart-next");
+      expect(latest.cartRevision).toBe(0);
+      expect(latest.lines).toEqual([]);
+      expect(nextCartCalls).toBe(1);
+
+      await renderHarness(root, props);
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(retired).toHaveLength(1);
+      expect(latest.cartId).toBe("cart-next");
+      expect(nextCartCalls).toBe(1);
     } finally {
       await act(async () => {
         root.unmount();

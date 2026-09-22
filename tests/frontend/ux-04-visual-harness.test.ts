@@ -62,10 +62,10 @@ describe("UX-04 visual harness markup", () => {
     write("ux-04-customers.html", customers);
     write("ux-04-returns.html", returns);
     expect(settings).toContain("Device &amp; register");
-    expect(settings).toContain("Open Store Health");
+    expect(settings).toContain("Open System status");
     expect(attention).toContain("Check / Recover");
     expect(attention).toContain("MEDIUM");
-    expect(health).toContain("Store Health");
+    expect(health).toContain("System status");
     expect(health).not.toContain("Simulate update ready");
     expect(healthToast).toContain("Rebuildable catalog projection refreshed.");
     expect(register).toContain("Open register");

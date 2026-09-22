@@ -105,6 +105,36 @@ describe("STG-04 catalog projection sync", () => {
     expect(found.ok && found.data.items[0]?.name).toBe("Two");
   });
 
+  test("min-interval skip preserves fresh state without contacting the producer", async () => {
+    const db = uniqueDb();
+    const now = new Date("2026-09-21T12:00:00.000Z");
+    await ensureCatalogProjection({
+      db,
+      policy: "provider_required",
+      force: true,
+      now: () => now,
+      fetchPage: async () => successPage([dto({ sourceItemId: "1", name: "One" })]),
+    });
+
+    let fetches = 0;
+    const skipped = await ensureCatalogProjection({
+      db,
+      policy: "provider_required",
+      force: false,
+      now: () => new Date("2026-09-21T12:02:00.000Z"),
+      minRefreshIntervalMs: 5 * 60 * 1000,
+      fetchPage: async () => {
+        fetches += 1;
+        return unavailable();
+      },
+    });
+
+    expect(fetches).toBe(0);
+    expect(skipped.availability).toBe("fresh");
+    expect(skipped.producerUnavailable).toBe(false);
+    expect(skipped.fetchedPages).toBe(0);
+  });
+
   test("incremental update sends modifiedAfter instead of re-downloading the full catalog", async () => {
     const db = uniqueDb();
     const first = await ensureCatalogProjection({

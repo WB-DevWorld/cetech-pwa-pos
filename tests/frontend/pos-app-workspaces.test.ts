@@ -5,6 +5,7 @@ import type { CustomerPort } from "../../docs/contracts/ports";
 import type { CustomerSummary } from "../../docs/contracts/domain.generated";
 import { ApprovedWorkspaceScreens } from "../../apps/pos-web/src/app/workspace-runtime";
 import type { StaffRuntimeAuthority } from "../../apps/pos-web/src/core/identity";
+import type { AttentionItemView } from "../../apps/pos-web/src/ui/operational";
 
 const PLACEHOLDER = "This workspace is not part of the R4 Sell runtime.";
 
@@ -98,9 +99,9 @@ describe("STG-01 mounted approved workspaces", () => {
     expect(html).not.toContain(PLACEHOLDER);
   });
 
-  test("Health mounts Store Health instead of the R4 placeholder", () => {
+  test("Health mounts System status instead of the R4 placeholder", () => {
     const html = render("health");
-    expect(html).toContain("Store Health");
+    expect(html).toContain("System status");
     expect(html).not.toContain(PLACEHOLDER);
   });
 
@@ -109,4 +110,46 @@ describe("STG-01 mounted approved workspaces", () => {
     expect(html).toContain("Needs attention");
     expect(html).not.toContain(PLACEHOLDER);
   });
+
+  test("attention recovery controls are absent without fresh authoritative action handler", () => {
+    const item: AttentionItemView = {
+      id: "sale:tx-1",
+      title: "Sale needs review",
+      summary: "Check the existing transaction.",
+      typeLabel: "Sale",
+      severity: "critical",
+      transactionId: "11111111-1111-4111-8111-111111111111",
+      resolveAllowed: true,
+      recoverKind: "sale",
+    };
+    const baseProps = {
+      route: "attention" as const,
+      authority: { ...authority, presentationOnly: true },
+      customers,
+      online: true,
+      catalogAvailability: "stale" as const,
+      appearance: "system" as const,
+      attentionItems: [item],
+      attentionCount: 1,
+      attentionState: "ready" as const,
+      onNavigate: () => undefined,
+      onUseCustomer: () => undefined,
+      onAppearanceChange: () => undefined,
+      onRebuildSuccess: () => undefined,
+      onRetryAttention: () => undefined,
+    };
+    const blocked = renderToStaticMarkup(createElement(ApprovedWorkspaceScreens, baseProps));
+    expect(blocked).toContain("Sale needs review");
+    expect(blocked).not.toContain("Check / Recover");
+
+    const restored = renderToStaticMarkup(
+      createElement(ApprovedWorkspaceScreens, {
+        ...baseProps,
+        authority,
+        onResolveAttention: () => undefined,
+      }),
+    );
+    expect(restored).toContain("Check / Recover");
+  });
+
 });

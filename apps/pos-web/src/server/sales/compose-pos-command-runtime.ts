@@ -8,11 +8,14 @@ import { composeElectronicPaymentProvider } from "../payments/compose-payment-pr
 import { composeReturnRuntime } from "../returns/compose-return-runtime";
 import { composeCheckoutRuntime } from "./compose-checkout-runtime";
 import { composeStaffAssignmentDirectory } from "./compose-assignment-directory";
+import { readSupabaseInfrastructureEnv } from "../../config/env";
+import { createSupabaseOperationalCloseStore } from "../register/operational-close-store";
 
 export function composePosCommandHandlers(request: NextRequest) {
   try {
     const fetchImpl = createServerRestFetch();
     const payments = composeElectronicPaymentProvider(process.env);
+    const infrastructure = readSupabaseInfrastructureEnv(process.env);
     return {
       ok: true as const,
       sessionStore: composeStaffSessionStore(process.env, fetchImpl),
@@ -20,6 +23,13 @@ export function composePosCommandHandlers(request: NextRequest) {
       assignments: composeStaffAssignmentDirectory(process.env, fetchImpl),
       payments,
       returns: composeReturnRuntime(process.env, fetchImpl),
+      closeStore: infrastructure
+        ? createSupabaseOperationalCloseStore({
+            url: infrastructure.url,
+            serviceRoleKey: infrastructure.serviceRoleKey,
+            fetchImpl,
+          })
+        : undefined,
     };
   } catch {
     const correlation = resolveCorrelationId(request.headers.get("x-correlation-id") ?? undefined);

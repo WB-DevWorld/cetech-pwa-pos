@@ -25,6 +25,8 @@ export type OrderHistoryListItem = {
   readonly orderReference: string;
   readonly receiptNumber?: string;
   readonly customerLabel: string;
+  readonly customerId?: string;
+  readonly customerCompany?: string;
   readonly customerKind?: "walkin" | "retail" | "b2b";
   readonly createdAt: string;
   readonly paymentLabel: string;
@@ -91,11 +93,38 @@ export function itemSummaryFromLines(lines: readonly ReceiptLine[]): string | un
   return `${qty} × ${name} · ${lines.length - 1} more`;
 }
 
+function customerPresentation(sale: PosSaleRecord): {
+  readonly label: string;
+  readonly customerId?: string;
+  readonly company?: string;
+} {
+  if (sale.customer.kind === "walkin") {
+    return { label: "Walk-in" };
+  }
+
+  const customerId = sale.customer.customerId;
+  const snapshotLabel = sale.customerSnapshot?.displayName.trim();
+  if (snapshotLabel) {
+    return {
+      label: snapshotLabel,
+      customerId,
+      ...(sale.customerSnapshot?.company ? { company: sale.customerSnapshot.company } : {}),
+    };
+  }
+
+  const storedLabel = sale.customerLabel.trim();
+  return {
+    label: storedLabel && storedLabel !== customerId ? storedLabel : "Saved customer account",
+    customerId,
+  };
+}
+
 export function presentOrderHistoryItem(
   sale: PosSaleRecord,
   payment: StoredPayment | undefined,
 ): OrderHistoryListItem {
   const receipt = sale.receipt;
+  const customer = customerPresentation(sale);
   const lines: readonly OrderHistoryLine[] = (sale.lines.length > 0 ? sale.lines : []).map((line, index) => ({
     id: sale.orderLines?.[index]?.orderLineId ?? `line-${index}`,
     name: line.name,
@@ -108,7 +137,9 @@ export function presentOrderHistoryItem(
     saleId: sale.prepared.saleId,
     orderReference: sale.prepared.orderReference || sale.prepared.saleId,
     receiptNumber: receipt?.receiptNumber,
-    customerLabel: sale.customerLabel,
+    customerLabel: customer.label,
+    customerId: customer.customerId,
+    customerCompany: customer.company,
     customerKind: sale.customer.kind,
     createdAt: receipt?.issuedAt ?? sale.prepared.preparedAt,
     paymentLabel: tenderLabel(payment?.tender ?? receipt?.tender),
@@ -130,6 +161,8 @@ export function matchesOrderQuery(item: OrderHistoryListItem, query: string): bo
     item.orderReference,
     item.receiptNumber,
     item.customerLabel,
+    item.customerId,
+    item.customerCompany,
     item.transactionReference,
     item.saleId,
     item.itemSummary,

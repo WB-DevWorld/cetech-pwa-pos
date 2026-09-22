@@ -1,6 +1,7 @@
 import type { ApiResult, SalesPort } from "../../../../../docs/contracts/ports";
 import type {
   CommandContext,
+  CustomerSummary,
   PreparedSale,
   PrepareSaleRequest,
   Quote,
@@ -351,6 +352,14 @@ async function assertPrepareScope(input: {
   if (!input.actor.locationIds.includes(quote.locationId)) {
     return apiFailure("FORBIDDEN", "quote location is out of staff scope", input.context.correlationId);
   }
+  const customerPresentation = validateCustomerSnapshot(
+    quote,
+    input.request.customerSnapshot,
+    input.context.correlationId,
+  );
+  if (!customerPresentation.ok) {
+    return customerPresentation;
+  }
   const register = await input.store.getRegister(input.request.registerId);
   if (!register || register.status !== "active") {
     return apiFailure("NOT_FOUND", "register is not available", input.context.correlationId);
@@ -466,7 +475,8 @@ async function persistPrepared(input: {
     cashierId: input.actor.actorId,
     cashierName: input.actor.displayName,
     customer: input.quote.customer,
-    customerLabel: customerLabel(input.quote),
+    customerLabel: customerLabel(input.quote, input.request.customerSnapshot),
+    ...(input.request.customerSnapshot ? { customerSnapshot: input.request.customerSnapshot } : {}),
     prepared: input.prepared,
     lines: input.lines,
     orderLines: input.quote.lines.map((line) => ({
@@ -485,8 +495,39 @@ async function persistPrepared(input: {
   return { ok: true, data: input.prepared, correlationId: input.context.correlationId };
 }
 
-export function customerLabel(quote: Quote): string {
-  return quote.customer.kind === "walkin" ? "Walk-in" : quote.customer.customerId;
+export function customerLabel(quote: Quote, snapshot?: CustomerSummary): string {
+  if (quote.customer.kind === "walkin") {
+    return "Walk-in";
+  }
+  return snapshot?.displayName.trim() || quote.customer.customerId;
+}
+
+export function validateCustomerSnapshot(
+  quote: Quote,
+  snapshot: CustomerSummary | undefined,
+  correlationId: CommandContext["correlationId"],
+): ApiResult<{ readonly customerSnapshot?: CustomerSummary }> {
+  if (quote.customer.kind === "walkin") {
+    if (snapshot) {
+      return apiFailure(
+        "VALIDATION_ERROR",
+        "Walk-in quote cannot carry a customer presentation snapshot",
+        correlationId,
+      );
+    }
+    return { ok: true, data: {}, correlationId };
+  }
+  if (!snapshot) {
+    return { ok: true, data: {}, correlationId };
+  }
+  if (snapshot.id !== quote.customer.customerId || snapshot.kind !== quote.customer.kind) {
+    return apiFailure(
+      "VALIDATION_ERROR",
+      "customerSnapshot does not match the authoritative quoted customer",
+      correlationId,
+    );
+  }
+  return { ok: true, data: { customerSnapshot: snapshot }, correlationId };
 }
 
 function replayPrepared(outcome: unknown, correlationId: CommandContext["correlationId"]): ApiResult<PreparedSale> {

@@ -22,7 +22,7 @@ describe("SettingsScreen", () => {
     expect(html).toContain("Keyboard-wedge scanner");
     expect(html).toContain("Browser print (80mm/A4)");
     expect(html).toContain("Technical details");
-    expect(html).toContain("Open Store Health");
+    expect(html).toContain("Open System status");
     expect(html).toContain("build-r8");
   });
 

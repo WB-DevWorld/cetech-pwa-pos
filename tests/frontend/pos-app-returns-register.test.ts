@@ -17,7 +17,8 @@ vi.mock("next/navigation", () => ({
 import { ReturnsRuntimeScreen } from "../../apps/pos-web/src/app/returns-runtime";
 import { RegisterRuntimeScreen } from "../../apps/pos-web/src/app/register-runtime";
 import { createBrowserReturnPort, createBrowserRegisterPort } from "../../apps/pos-web/src/app/checkout-client";
-import { PosRuntime } from "../../apps/pos-web/src/app/pos-app";
+import { PosRuntime, hasFreshStaffActionAuthority } from "../../apps/pos-web/src/app/pos-app";
+import type { StaffRuntimeAuthority } from "../../apps/pos-web/src/core/identity";
 
 const CORRELATION = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 
@@ -67,6 +68,33 @@ function resolution(status: ReturnResolution["status"] = "completed"): ReturnRes
     stockDisposition: { status: "not_required" },
   };
 }
+
+describe("presentation-only authority boundary", () => {
+  test("blocks server-authoritative actions until fresh staff context is restored", () => {
+    const degraded: StaffRuntimeAuthority = {
+      status: "ready",
+      session: {
+        actorId: "cashier-a",
+        displayName: "Cashier A",
+        organizationId: "org-a",
+        locationIds: ["loc-a"],
+        capabilities: [],
+        expiresAt: "2099-01-01T00:00:00.000Z",
+      },
+      assignedLocationIds: ["loc-a"],
+      assignedRegisterIds: ["reg-a"],
+      assignedRegisters: [],
+      selectedRegisterId: "reg-a",
+      register: null,
+      shift: null,
+      shiftOpen: false,
+      presentationOnly: true,
+    };
+
+    expect(hasFreshStaffActionAuthority(degraded)).toBe(false);
+    expect(hasFreshStaffActionAuthority({ ...degraded, presentationOnly: false })).toBe(true);
+  });
+});
 
 describe("R8-01 returns and register app composition", () => {
   test("/returns mounts the accepted Returns UI instead of the R4 placeholder", () => {

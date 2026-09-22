@@ -52,7 +52,7 @@ export function SettingsScreen({
         <div className="banner warning workspace-banner" role="status"><strong>Offline.</strong><span>Device settings remain readable. Changes that need confirmation should wait for connection.</span></div>
       ) : null}
       {state === "degraded" ? (
-        <div className="banner warning workspace-banner" role="status"><strong>Some system information is temporarily unavailable.</strong><span>Open Store Health for current connection detail.</span></div>
+        <div className="banner warning workspace-banner" role="status"><strong>Some system information is temporarily unavailable.</strong><span>Open System status for current connection detail.</span></div>
       ) : null}
       {state === "error" ? (
         <div className="banner danger workspace-banner" role="alert">
@@ -117,7 +117,7 @@ export function SettingsScreen({
             </div>
             {onOpenStoreHealth ? (
               <button className="btn block" type="button" onClick={onOpenStoreHealth}>
-                Open Store Health
+                Open System status
               </button>
             ) : null}
             <TechnicalDetails

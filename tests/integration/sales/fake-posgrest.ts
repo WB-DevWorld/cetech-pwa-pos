@@ -20,6 +20,7 @@ export function createFakePosgrest(options?: {
     pos_registers: [],
     pos_devices: [],
     pos_shifts: [],
+    pos_shift_reports: [],
     pos_cash_movements: [],
     pos_pending_operations: [],
     pos_outbox_events: [],

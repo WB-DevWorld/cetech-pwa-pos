@@ -18,6 +18,7 @@ import { handleQuote } from "../quotes/handle-quote";
 import { handleResolvePayment } from "./handle-resolve-payment";
 import { handleResolveSale } from "./handle-resolve-sale";
 import { createInstrumentedBridgeSalesPort } from "./instrumented-bridge-sales-port";
+import { matchesOrderQuery, presentOrderHistoryItem } from "../orders/order-history-view";
 
 const CORRELATION = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
 const ORIGIN = "https://pos.example.test";
@@ -326,6 +327,12 @@ describe("CORE-06 combined cash-sale harness", () => {
         deviceId: DEVICE_ID,
         quoteId: quote.id,
         quoteFingerprint: quote.fingerprint,
+        customerSnapshot: {
+          id: "cust-buildworks",
+          kind: "b2b",
+          displayName: "BuildWorks Procurement",
+          company: "BuildWorks Ghana Ltd",
+        },
       },
     });
     expect(prepared.body.ok).toBe(true);
@@ -358,10 +365,82 @@ describe("CORE-06 combined cash-sale harness", () => {
     expect(receipt.body.ok).toBe(true);
     if (receipt.body.ok) {
       expect(receipt.body.data.total).toEqual(ghs(1200));
-      expect(receipt.body.data.customerLabel).toBe("cust-buildworks");
+      expect(receipt.body.data.customerLabel).toBe("BuildWorks Procurement");
     }
+    const storedSale = await checkoutStore.getSale(TX_A);
+    const storedPayment = await checkoutStore.getPayment(cash.body.data.paymentId);
+    expect(storedSale?.customer).toEqual({ kind: "b2b", customerId: "cust-buildworks" });
+    expect(storedSale?.customerSnapshot).toEqual({
+      id: "cust-buildworks",
+      kind: "b2b",
+      displayName: "BuildWorks Procurement",
+      company: "BuildWorks Ghana Ltd",
+    });
+    if (!storedSale) throw new Error("expected stored sale");
+    const history = presentOrderHistoryItem(storedSale, storedPayment);
+    expect(history.customerLabel).toBe("BuildWorks Procurement");
+    expect(history.customerCompany).toBe("BuildWorks Ghana Ltd");
+    expect(matchesOrderQuery(history, "buildworks ghana")).toBe(true);
     expect(salesPort.wooOrderCount).toBe(1);
     expect(salesPort.stockEffectCount).toBe(1);
+  });
+
+  test("mismatched customer snapshot is rejected before Woo order creation", async () => {
+    const { checkoutStore, opened, salesPort, quote } = await setupSale({
+      kind: "b2b",
+      customerId: "cust-buildworks",
+    });
+    const result = await handlePrepareSale({
+      ...headers(opened),
+      checkoutStore,
+      salesPort,
+      idempotencyKeyHeader: PREPARE_KEY,
+      body: {
+        transactionId: TX_A,
+        registerId: "reg_a1",
+        shiftId: opened.shift.id,
+        deviceId: DEVICE_ID,
+        quoteId: quote.id,
+        quoteFingerprint: quote.fingerprint,
+        customerSnapshot: {
+          id: "cust-other",
+          kind: "b2b",
+          displayName: "Wrong Customer",
+        },
+      },
+    });
+    expect(result.body.ok).toBe(false);
+    if (!result.body.ok) {
+      expect(result.body.error.code).toBe("VALIDATION_ERROR");
+    }
+    expect(salesPort.wooOrderCount).toBe(0);
+    expect(await checkoutStore.getSale(TX_A)).toBeUndefined();
+  });
+
+  test("legacy B2B prepare without presentation snapshot keeps explicit customer-id fallback", async () => {
+    const { checkoutStore, opened, salesPort, quote } = await setupSale({
+      kind: "b2b",
+      customerId: "cust-legacy",
+    });
+    const result = await handlePrepareSale({
+      ...headers(opened),
+      checkoutStore,
+      salesPort,
+      idempotencyKeyHeader: PREPARE_KEY,
+      body: {
+        transactionId: TX_A,
+        registerId: "reg_a1",
+        shiftId: opened.shift.id,
+        deviceId: DEVICE_ID,
+        quoteId: quote.id,
+        quoteFingerprint: quote.fingerprint,
+      },
+    });
+    expect(result.body.ok).toBe(true);
+    const sale = await checkoutStore.getSale(TX_A);
+    expect(sale?.customerLabel).toBe("cust-legacy");
+    expect(sale?.customerSnapshot).toBeUndefined();
+    expect(salesPort.wooOrderCount).toBe(1);
   });
 
   test("duplicate prepare with the same key reuses one Woo order", async () => {

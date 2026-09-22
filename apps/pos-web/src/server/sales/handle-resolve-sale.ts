@@ -2,7 +2,6 @@ import type { ApiResult, SalesPort } from "../../../../../docs/contracts/ports";
 import type { SaleResolution } from "../../../../../docs/contracts/domain.generated";
 import type { StaffAssignmentDirectory } from "../auth/assignments";
 import { authFailure } from "../auth/errors";
-import { apiFailure } from "../http/api-failure";
 import { isUuid } from "../auth/ids";
 import type { StaffSessionStore } from "../auth/session-store";
 import { httpStatusFor } from "../http/status";
@@ -91,9 +90,5 @@ export async function handleResolveSale(input: HandleResolveSaleInput): Promise<
     transactionId: input.transactionId,
     correlationId: guard.correlationId,
   });
-  if (!sale && result.ok && result.data.status === "not_found") {
-    const body = apiFailure("NOT_FOUND", "sale was not found", guard.correlationId);
-    return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
-  }
   return { status: result.ok ? 200 : httpStatusFor(result.error.code), body: result, headers: guard.headers };
 }

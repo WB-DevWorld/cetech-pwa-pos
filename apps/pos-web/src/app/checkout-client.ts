@@ -1,6 +1,7 @@
 import type {
   ApiResult,
   CheckoutUseCases,
+  OperationJournal,
   PaymentPort,
   PrintPort,
   ReceiptPort,
@@ -18,6 +19,7 @@ import type {
   OpenShiftRequest,
   PaymentLookup,
   PaymentState,
+  PendingOperation,
   PreparedSale,
   PrepareSaleRequest,
   PrintResult,
@@ -33,6 +35,8 @@ import type {
   Uuid,
 } from "../../../../docs/contracts/domain.generated";
 import type { CashCheckoutPorts, CashCheckoutScope } from "../features/sell";
+import { canonicalJson, sha256Hex } from "../local/canonical";
+import type { TenderActivityPort } from "../local";
 
 function readCookie(name: string): string | null {
   if (typeof document === "undefined") {
@@ -59,7 +63,175 @@ type BrowserCheckoutOptions = {
   readonly csrfCookie?: string;
   readonly csrfHeader?: string;
   readonly origin?: string;
+  readonly tenderActivity?: TenderActivityPort;
+  readonly journal?: OperationJournal;
+  readonly now?: () => Date;
 };
+
+type JournalEffect = {
+  readonly operation: PendingOperation["operation"];
+  readonly transactionId?: Uuid;
+};
+
+async function beginJournalEffect(
+  options: BrowserCheckoutOptions,
+  context: CommandContext | { correlationId: Uuid },
+  body: unknown,
+  effect: JournalEffect | undefined,
+): Promise<Uuid | undefined> {
+  if (!options.journal || !effect || !("idempotencyKey" in context)) {
+    return undefined;
+  }
+
+  const payload = {
+    payloadVersion: "1.0.0" as const,
+    operation: effect.operation,
+    transactionId: effect.transactionId,
+    request: body ?? null,
+  };
+  const serialized = JSON.stringify(payload);
+  const requestHash = await sha256Hex(canonicalJson(payload));
+  const operationId = context.idempotencyKey;
+  const pending: PendingOperation = {
+    id: operationId,
+    transactionId: effect.transactionId,
+    operation: effect.operation,
+    idempotencyKey: context.idempotencyKey,
+    requestHash,
+    payloadVersion: "1.0.0",
+    status: "pending",
+    attempts: 0,
+    createdAt: (options.now?.() ?? new Date()).toISOString(),
+  };
+
+  await options.journal.appendBeforeSend(pending, serialized);
+  return operationId;
+}
+
+async function finishJournalEffect<T>(
+  options: BrowserCheckoutOptions,
+  operationId: Uuid | undefined,
+  result: ApiResult<T>,
+): Promise<void> {
+  if (!options.journal || !operationId) {
+    return;
+  }
+  try {
+    if (!result.ok && result.error.nextAction === "resolve") {
+      await options.journal.markResponseUnknown(operationId);
+      return;
+    }
+    await options.journal.markAcknowledged(operationId);
+  } catch {
+    // The append-before-send row already exists. If local acknowledgement fails,
+    // keep the durable row for recovery rather than hiding the server outcome.
+  }
+}
+
+async function markJournalResponseUnknown(
+  options: BrowserCheckoutOptions,
+  operationId: Uuid | undefined,
+): Promise<void> {
+  if (!options.journal || !operationId) {
+    return;
+  }
+  try {
+    await options.journal.markResponseUnknown(operationId);
+  } catch {
+    // A sent/pending row is still safer than erasing an ambiguous operation.
+  }
+}
+
+async function reconcileSaleJournal(
+  options: BrowserCheckoutOptions,
+  transactionId: Uuid,
+  result: ApiResult<SaleResolution>,
+): Promise<void> {
+  if (!options.journal || !result.ok) {
+    return;
+  }
+  let rows: ReadonlyArray<PendingOperation>;
+  try {
+    rows = (await options.journal.pending()).filter(
+      (row) =>
+        row.transactionId === transactionId &&
+        (row.operation === "sale.prepare" ||
+          row.operation === "sale.finalize" ||
+          row.operation === "sale.cancel" ||
+          row.operation === "payment.initialize" ||
+          row.operation === "payment.cash" ||
+          row.operation === "payment.resolve"),
+    );
+  } catch {
+    return;
+  }
+
+  const saleIsTerminal = result.data.status === "completed" || result.data.status === "cancelled";
+  for (const row of rows) {
+    try {
+      const isPaymentRow = row.operation.startsWith("payment.");
+      if (result.data.status === "completed") {
+        await options.journal.markAcknowledged(row.id);
+        continue;
+      }
+      if (result.data.status === "not_found") {
+        if (isPaymentRow) {
+          await options.journal.markRequiresAttention(
+            row.id,
+            "Payment work exists but the sale was not found; manager review is required",
+          );
+        } else {
+          await options.journal.markAcknowledged(row.id);
+        }
+        continue;
+      }
+      if (saleIsTerminal && !isPaymentRow) {
+        await options.journal.markAcknowledged(row.id);
+        continue;
+      }
+      await options.journal.markRequiresAttention(
+        row.id,
+        result.data.message ?? "Existing transaction is not terminal; resolve it before starting another attempt",
+      );
+    } catch {
+      // Keep unresolved local evidence visible if reconciliation persistence fails.
+    }
+  }
+}
+
+async function reconcilePaymentJournal(
+  options: BrowserCheckoutOptions,
+  transactionId: Uuid,
+  result: ApiResult<PaymentState>,
+): Promise<void> {
+  if (!options.journal || !result.ok) {
+    return;
+  }
+  let rows: ReadonlyArray<PendingOperation>;
+  try {
+    rows = (await options.journal.pending()).filter(
+      (row) =>
+        row.transactionId === transactionId &&
+        (row.operation === "payment.initialize" ||
+          row.operation === "payment.cash" ||
+          row.operation === "payment.resolve"),
+    );
+  } catch {
+    return;
+  }
+  for (const row of rows) {
+    try {
+      await options.journal.markRequiresAttention(
+        row.id,
+        result.data.status === "verified"
+          ? "Payment is verified; confirm the sale outcome before starting another attempt"
+          : "Payment state is known but the sale still needs recovery before another attempt",
+      );
+    } catch {
+      // Keep unresolved local evidence visible if reconciliation persistence fails.
+    }
+  }
+}
 
 function unavailable<T>(correlation: Uuid, message: string): ApiResult<T> {
   return {
@@ -80,11 +252,33 @@ async function command<T>(
   context: CommandContext | { correlationId: Uuid },
   options: BrowserCheckoutOptions,
   body?: unknown,
+  journalEffect?: JournalEffect,
+  beforeSend?: () => Promise<void>,
 ): Promise<ApiResult<T>> {
   const fetchImpl = options.fetchImpl ?? fetch;
   const csrfCookie = options.csrfCookie ?? "cetech_pos_csrf";
   const csrfHeader = options.csrfHeader ?? "x-csrf-token";
   const idempotencyKey = "idempotencyKey" in context ? context.idempotencyKey : undefined;
+  let journalOperationId: Uuid | undefined;
+  try {
+    journalOperationId = await beginJournalEffect(options, context, body, journalEffect);
+  } catch {
+    return unavailable(
+      context.correlationId,
+      "Local recovery journal is unavailable. Resolve existing work before retrying.",
+    );
+  }
+  try {
+    await beforeSend?.();
+    if (options.journal && journalOperationId) {
+      await options.journal.markSent(journalOperationId);
+    }
+  } catch {
+    return unavailable(
+      context.correlationId,
+      "Local recovery state could not be secured. Resolve existing work before retrying.",
+    );
+  }
   try {
     const headers: Record<string, string> = {
       "x-correlation-id": context.correlationId,
@@ -102,19 +296,52 @@ async function command<T>(
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
     });
-    return (await response.json()) as ApiResult<T>;
+    const result = (await response.json()) as ApiResult<T>;
+    await finishJournalEffect(options, journalOperationId, result);
+    return result;
   } catch {
+    await markJournalResponseUnknown(options, journalOperationId);
     return unavailable(context.correlationId, "Checkout transport failed. Resolve the existing operation.");
   }
 }
 
+function saleTerminal(result: ApiResult<SaleResolution>): boolean {
+  return result.ok && (result.data.status === "completed" || result.data.status === "cancelled");
+}
+
 export function createBrowserCheckoutUseCases(options: BrowserCheckoutOptions = {}): CheckoutUseCases {
   return {
-    prepare(input: PrepareSaleRequest, context: CommandContext): Promise<ApiResult<PreparedSale>> {
-      return command("/api/pos/v1/sales/prepare", "POST", context, options, input);
+    async prepare(input: PrepareSaleRequest, context: CommandContext): Promise<ApiResult<PreparedSale>> {
+      const result = await command<PreparedSale>(
+        "/api/pos/v1/sales/prepare",
+        "POST",
+        context,
+        options,
+        input,
+        { operation: "sale.prepare", transactionId: input.transactionId },
+        async () => {
+          await options.tenderActivity?.markActive(input.transactionId);
+        },
+      );
+      if (!result.ok && result.error.nextAction !== "resolve") {
+        await options.tenderActivity?.clear(input.transactionId);
+      }
+      return result;
     },
-    finalize(input: FinalizeSaleRequest, context: CommandContext): Promise<ApiResult<SaleResolution>> {
-      return command("/api/pos/v1/sales/finalize", "POST", context, options, input);
+    async finalize(input: FinalizeSaleRequest, context: CommandContext): Promise<ApiResult<SaleResolution>> {
+      await options.tenderActivity?.markActive(input.transactionId);
+      const result = await command<SaleResolution>(
+        "/api/pos/v1/sales/finalize",
+        "POST",
+        context,
+        options,
+        input,
+        { operation: "sale.finalize", transactionId: input.transactionId },
+      );
+      if (saleTerminal(result)) {
+        await options.tenderActivity?.clear(input.transactionId);
+      }
+      return result;
     },
   };
 }
@@ -123,25 +350,74 @@ export function createBrowserPaymentPort(
   options: BrowserCheckoutOptions = {},
 ): Pick<PaymentPort, "initialize" | "confirmCash" | "resolve"> {
   return {
-    initialize(input: InitializePaymentRequest, context: CommandContext): Promise<ApiResult<PaymentState>> {
-      return command("/api/pos/v1/payments/initialize", "POST", context, options, input);
+    async initialize(input: InitializePaymentRequest, context: CommandContext): Promise<ApiResult<PaymentState>> {
+      await options.tenderActivity?.markActive(input.transactionId);
+      return command(
+        "/api/pos/v1/payments/initialize",
+        "POST",
+        context,
+        options,
+        input,
+        { operation: "payment.initialize", transactionId: input.transactionId },
+      );
     },
-    confirmCash(input: CashPaymentRequest, context: CommandContext): Promise<ApiResult<PaymentState>> {
-      return command("/api/pos/v1/payments/cash", "POST", context, options, input);
+    async confirmCash(input: CashPaymentRequest, context: CommandContext): Promise<ApiResult<PaymentState>> {
+      await options.tenderActivity?.markActive(input.transactionId);
+      return command(
+        "/api/pos/v1/payments/cash",
+        "POST",
+        context,
+        options,
+        input,
+        { operation: "payment.cash", transactionId: input.transactionId },
+      );
     },
-    resolve(input: PaymentLookup): Promise<ApiResult<PaymentState>> {
-      return command("/api/pos/v1/payments/resolve", "POST", { correlationId: crypto.randomUUID() }, options, input);
+    async resolve(input: PaymentLookup): Promise<ApiResult<PaymentState>> {
+      await options.tenderActivity?.markActive(input.transactionId);
+      const result = await command<PaymentState>(
+        "/api/pos/v1/payments/resolve",
+        "POST",
+        { correlationId: crypto.randomUUID() },
+        options,
+        input,
+      );
+      await reconcilePaymentJournal(options, input.transactionId, result);
+      return result;
     },
   };
 }
 
 export function createBrowserSalesResolvePort(options: BrowserCheckoutOptions = {}): Pick<SalesPort, "resolve" | "cancel"> {
   return {
-    resolve(transactionId: Uuid): Promise<ApiResult<SaleResolution>> {
-      return command(`/api/pos/v1/sales/${transactionId}`, "GET", { correlationId: crypto.randomUUID() }, options);
+    async resolve(transactionId: Uuid): Promise<ApiResult<SaleResolution>> {
+      const result = await command<SaleResolution>(
+        `/api/pos/v1/sales/${transactionId}`,
+        "GET",
+        { correlationId: crypto.randomUUID() },
+        options,
+      );
+      await reconcileSaleJournal(options, transactionId, result);
+      if (saleTerminal(result) || (result.ok && result.data.status === "not_found")) {
+        await options.tenderActivity?.clear(transactionId);
+      } else if (result.ok) {
+        await options.tenderActivity?.markActive(transactionId);
+      }
+      return result;
     },
-    cancel(input: CancelSaleRequest, context: CommandContext): Promise<ApiResult<SaleResolution>> {
-      return command("/api/pos/v1/sales/cancel", "POST", context, options, input);
+    async cancel(input: CancelSaleRequest, context: CommandContext): Promise<ApiResult<SaleResolution>> {
+      await options.tenderActivity?.markActive(input.transactionId);
+      const result = await command<SaleResolution>(
+        "/api/pos/v1/sales/cancel",
+        "POST",
+        context,
+        options,
+        input,
+        { operation: "sale.cancel", transactionId: input.transactionId },
+      );
+      if (saleTerminal(result)) {
+        await options.tenderActivity?.clear(input.transactionId);
+      }
+      return result;
     },
   };
 }

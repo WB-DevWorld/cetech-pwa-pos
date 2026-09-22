@@ -30,7 +30,11 @@ export async function resolveSale(input: {
     operation: "sale.prepare",
   });
   if (!binding) {
-    return apiFailure("NOT_FOUND", "sale was not found", input.correlationId);
+    return {
+      ok: true,
+      data: { transactionId: input.transactionId, status: "not_found" },
+      correlationId: input.correlationId,
+    };
   }
   const allowed = assertBindingMatchesActor({
     binding,

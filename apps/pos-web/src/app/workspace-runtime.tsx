@@ -4,6 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { CustomerPort, PrintPort, ReceiptPort } from "../../../../docs/contracts/ports";
 import type { CustomerSummary, StoreHealth } from "../../../../docs/contracts/domain.generated";
 import { OrdersScreen, OrderDetailDialog, type OrderDetailView, type OrderListItemView } from "../features/orders";
+import { ReceiptPaper } from "../features/sell/components/ReceiptPaper";
+import type { ReceiptViewModel } from "../features/sell/state/checkoutSession";
+import { mapReceiptSnapshot } from "../features/sell/runtime/cashCheckoutController";
 import { CustomersScreen } from "../features/customers";
 import { loadCustomerSearchPresentation } from "../features/customers/loadCustomerSearch";
 import { SettingsScreen, type AppearancePreference } from "../features/settings";
@@ -20,13 +23,14 @@ import {
   type AttentionItemView,
   type OperationalLoadState,
 } from "../ui/operational";
-import { POS_LOCAL_SCHEMA_CURRENT } from "../local";
+import { inspectLocalRecoveryState, POS_LOCAL_SCHEMA_CURRENT, type LocalRecoveryDiagnostics } from "../local";
 import type { CatalogProjectionAvailability, CatalogProjectionSyncResult } from "../local/catalog-sync";
 import { ensureCatalogProjection } from "../local/catalog-sync";
 import { resolveBrowserCatalogSourcePolicy } from "../core/catalog/source-policy";
 import { readOrCreateLocalDeviceId, type StaffRuntimeAuthority } from "../core/identity";
 import type { PosRoute } from "../ui/shell";
 import { catalogRebuildStatusText, type CatalogRebuildView } from "./catalog-rebuild-status";
+import { usePwaLifecycle } from "./pwa-lifecycle-runtime";
 import {
   fetchCustomerDirectory,
   fetchOrderDetail,
@@ -174,6 +178,7 @@ function OrdersWorkspace({
   const [state, setState] = useState<"ready" | "loading" | "error" | "offline">("loading");
   const [detail, setDetail] = useState<OrderDetailView | undefined>();
   const [detailOpen, setDetailOpen] = useState(false);
+  const [printReceipt, setPrintReceipt] = useState<ReceiptViewModel | null>(null);
 
   const load = useCallback(async () => {
     setState("loading");
@@ -225,7 +230,12 @@ function OrdersWorkspace({
                   if (!receipt.ok) {
                     return;
                   }
-                  await printer.print({ receiptId: receipt.data.id, reason: "reprint" });
+                  setPrintReceipt(mapReceiptSnapshot(receipt.data));
+                  window.setTimeout(() => {
+                    void printer
+                      .print({ receiptId: receipt.data.id, reason: "reprint" })
+                      .finally(() => setPrintReceipt(null));
+                  }, 0);
                 })();
               }
             : undefined
@@ -239,6 +249,11 @@ function OrdersWorkspace({
             : undefined
         }
       />
+      {printReceipt ? (
+        <div className="receipt-print-host" aria-hidden="true">
+          <ReceiptPaper receipt={printReceipt} />
+        </div>
+      ) : null}
     </>
   );
 }
@@ -322,14 +337,21 @@ function HealthWorkspace({
   readonly onCatalogProjectionChange?: (result: CatalogProjectionSyncResult) => void;
   readonly onRebuildSuccess: () => void;
 }) {
+  const lifecycle = usePwaLifecycle();
   const [health, setHealth] = useState<StoreHealth | undefined>();
   const [state, setState] = useState<OperationalLoadState>("loading");
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
   const [showFix, setShowFix] = useState(false);
   const [rebuild, setRebuild] = useState<CatalogRebuildView>({ phase: "idle" });
+  const [recovery, setRecovery] = useState<LocalRecoveryDiagnostics | undefined>();
+  const [updateCheckBusy, setUpdateCheckBusy] = useState(false);
 
   const load = useCallback(async () => {
-    const result = await fetchStoreHealth(fetchImpl);
+    const [result, diagnostics] = await Promise.all([
+      fetchStoreHealth(fetchImpl),
+      inspectLocalRecoveryState().catch(() => undefined),
+    ]);
+    setRecovery(diagnostics);
     if (!result.ok) {
       setHealth(undefined);
       setState("error");
@@ -383,10 +405,69 @@ function HealthWorkspace({
         <p className="banner danger" role="alert" data-catalog-rebuild-phase={rebuild.phase}>
           {rebuildText}
         </p>
+      ) : rebuild.phase === "stale" && rebuildText ? (
+        <p className="banner warning" role="status" data-catalog-rebuild-phase={rebuild.phase}>
+          {rebuildText}
+        </p>
+      ) : null}
+      {recovery ? (
+        <section className="card card-pad operational-panel" aria-labelledby="recovery-summary-title">
+          <h2 id="recovery-summary-title">Saved work & recovery</h2>
+          <p className="muted">
+            Your current sale and pending work are kept separately from replaceable app files and the product list.
+          </p>
+          <div className="operational-metrics" aria-label="Recovery summary">
+            <div className="card operational-metric">
+              <span className="eyebrow">Current sale saved</span>
+              <strong>{recovery.recoverableCartCount > 0 ? "Yes" : "No"}</strong>
+            </div>
+            <div className="card operational-metric">
+              <span className="eyebrow">Pending work</span>
+              <strong>{recovery.pendingOperationCount}</strong>
+            </div>
+            <div className="card operational-metric">
+              <span className="eyebrow">Needs attention</span>
+              <strong>{recovery.attentionOperationCount}</strong>
+            </div>
+          </div>
+          {!recovery.schemaCompatible ? (
+            <div className="banner danger" role="alert">
+              <strong>Saved offline data needs a safe update.</strong>
+              <span>Do not clear the current sale or pending work as a normal repair step.</span>
+            </div>
+          ) : null}
+          {recovery.pendingOperationCount > 0 ? (
+            <div className="banner warning" role="status">
+              <strong>Pending work must be resolved before an app update.</strong>
+              <span>Do not repeat a sale just because its result is not yet confirmed.</span>
+            </div>
+          ) : null}
+          {lifecycle?.updateReady ? (
+            <div className="banner info" role="status">
+              <strong>Update ready.</strong>
+              <span>The app will wait for a safe point before applying it.</span>
+            </div>
+          ) : null}
+          {lifecycle ? (
+            <div className="operational-actions">
+              <button
+                className="btn"
+                type="button"
+                disabled={updateCheckBusy}
+                onClick={() => {
+                  setUpdateCheckBusy(true);
+                  void lifecycle.checkForUpdate().finally(() => setUpdateCheckBusy(false));
+                }}
+              >
+                {updateCheckBusy ? "Checking for update…" : "Check for update"}
+              </button>
+            </div>
+          ) : null}
+        </section>
       ) : null}
       {showFix ? (
         <FixAppPanel
-          criticalOperationActive={false}
+          criticalOperationActive={(recovery?.pendingOperationCount ?? 0) > 0}
           onCheckHealth={() => {
             void load();
           }}
@@ -433,12 +514,16 @@ function AttentionWorkspace({
           onSuccess: onRebuildSuccess,
         });
       }}
-      onResolveItem={(id) => {
-        const item = items.find((row) => row.id === id);
-        if (item) {
-          onResolveAttention?.(item);
-        }
-      }}
+      onResolveItem={
+        onResolveAttention
+          ? (id) => {
+              const item = items.find((row) => row.id === id);
+              if (item) {
+                onResolveAttention(item);
+              }
+            }
+          : undefined
+      }
     />
   );
 }
@@ -502,10 +587,20 @@ async function runCatalogRebuild(input: {
       fetchImpl: input.fetchImpl,
       force: true,
     });
-    if (result.producerUnavailable && result.availability === "unavailable") {
+    if (result.availability === "unavailable") {
       input.setRebuild({
         phase: "failure",
-        message: "catalog producer is unavailable",
+        message: "Products couldn't be refreshed. Check the connection and try again.",
+      });
+      input.onCatalogProjectionChange?.(result);
+      return;
+    }
+    if (result.availability === "stale") {
+      input.setRebuild({
+        phase: "stale",
+        itemCount: result.itemCount,
+        availability: "stale",
+        message: "Saved products are still available, but the latest product update failed. Try again when the connection is stable.",
       });
       input.onCatalogProjectionChange?.(result);
       return;
@@ -513,7 +608,7 @@ async function runCatalogRebuild(input: {
     input.setRebuild({
       phase: "success",
       itemCount: result.itemCount,
-      availability: result.availability,
+      availability: "fresh",
     });
     input.onCatalogProjectionChange?.(result);
     input.onSuccess?.();
