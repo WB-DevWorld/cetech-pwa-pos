@@ -264,3 +264,20 @@
     flex-direction: column;
   }
 }
+
+
+.management-invite-card {
+  border-style: dashed;
+}
+
+.management-invite-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 700px) {
+  .management-invite-grid {
+    grid-template-columns: 1fr;
+  }
+}
