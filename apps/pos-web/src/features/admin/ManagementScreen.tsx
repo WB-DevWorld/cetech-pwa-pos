@@ -2,6 +2,11 @@
 
 import type { ReactNode } from "react";
 import type { ManagementContext, ManagementSection } from "../../server/admin/management-context";
+import type { StaffAccessRecord } from "../../server/admin/staff-access-directory";
+import type { OperationalPolicyView } from "../../server/admin/handle-operational-policy";
+import type { ShiftClosePolicyOverride } from "../../server/auth/policy";
+import { StaffAccessPanel } from "./StaffAccessPanel";
+import { PolicyPanel } from "./PolicyPanel";
 
 const LABELS: Record<ManagementSection, { label: string; description: string }> = {
   overview: { label: "Overview", description: "Live operational management summary." },
@@ -21,11 +26,27 @@ export function ManagementScreen({
   activeSection = "overview",
   onSelectSection,
   onBackToPos,
+  staffRows = [],
+  staffLoading = false,
+  staffError,
+  policyView = null,
+  policyLoading = false,
+  policySaving = false,
+  policyError,
+  onSavePolicy,
 }: {
   readonly context: ManagementContext;
   readonly activeSection?: ManagementSection;
   readonly onSelectSection?: (section: ManagementSection) => void;
   readonly onBackToPos?: () => void;
+  readonly staffRows?: readonly StaffAccessRecord[];
+  readonly staffLoading?: boolean;
+  readonly staffError?: string;
+  readonly policyView?: OperationalPolicyView | null;
+  readonly policyLoading?: boolean;
+  readonly policySaving?: boolean;
+  readonly policyError?: string;
+  readonly onSavePolicy?: (override: ShiftClosePolicyOverride) => void;
 }) {
   const active = LABELS[activeSection];
   const roleLabel = context.controlRole
@@ -90,18 +111,32 @@ export function ManagementScreen({
                     : "None"}
                 </p>
               </ManagementCard>
-              <ManagementCard title="Current implementation">
-                <p>Read-only management foundation is active.</p>
-                <p>Staff/configuration mutations remain unavailable until audited server endpoints are mounted.</p>
+              <ManagementCard title="Staff & access">
+                <p>Staff access is server-scoped to the current organization and managed locations.</p>
+                <p>Organization owner/admin may change operational assignments; managers currently have read-only oversight.</p>
               </ManagementCard>
               <ManagementCard title="Shift-close policy">
                 <p>Policy is server-owned and inherits organization → location → register.</p>
-                <p>Cashier/manager close authority will be configurable here rather than hard-coded.</p>
+                <p>Cashier, manager, or both can be permitted according to the effective policy.</p>
               </ManagementCard>
               <ManagementCard title="Security boundary">
                 <p>Cashier POS stays separate. Technical diagnostics and privileged controls belong here.</p>
               </ManagementCard>
             </div>
+          ) : activeSection === "staff_access" ? (
+            <StaffAccessPanel
+              rows={staffRows}
+              loading={staffLoading}
+              errorMessage={staffError}
+            />
+          ) : activeSection === "policies" ? (
+            <PolicyPanel
+              view={policyView}
+              loading={policyLoading}
+              saving={policySaving}
+              errorMessage={policyError}
+              onSave={onSavePolicy}
+            />
           ) : (
             <section className="card card-pad stack">
               <h2>{active.label}</h2>
