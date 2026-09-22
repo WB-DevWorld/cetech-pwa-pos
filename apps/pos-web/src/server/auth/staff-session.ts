@@ -11,12 +11,14 @@ import {
 } from "./cookies";
 import { authFailure } from "./errors";
 import type { StaffIdentityVerifier } from "./identity-verifier";
+import type { StaffAccessControl } from "./staff-access-control";
 import type { StaffSessionStore } from "./session-store";
 
 export type EstablishStaffSessionInput = {
   readonly accessToken?: string;
   readonly now: Date;
   readonly verifier: StaffIdentityVerifier;
+  readonly accessControl?: StaffAccessControl;
   readonly store: StaffSessionStore;
   readonly correlationId: Uuid;
   readonly secureCookies?: boolean;
@@ -52,6 +54,27 @@ export async function establishStaffSession(
     }
     return authFailure("AUTH_REQUIRED", "staff session could not be established", input.correlationId);
   }
+  if (input.accessControl) {
+    const access = await input.accessControl.status({
+      organizationId: verifyResult.identity.organizationId,
+      actorId: verifyResult.identity.actorId,
+    });
+    if (access === "unavailable") {
+      return authFailure(
+        "INTEGRATION_UNAVAILABLE",
+        "staff access control is unavailable",
+        input.correlationId,
+      );
+    }
+    if (access === "disabled") {
+      return authFailure(
+        "FORBIDDEN",
+        "staff access is disabled",
+        input.correlationId,
+      );
+    }
+  }
+
   const session = toSession(verifyResult.identity);
   const csrfToken = crypto.randomUUID();
   const expiresAt = new Date(Date.parse(session.expiresAt));
