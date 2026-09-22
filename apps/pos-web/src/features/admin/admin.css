@@ -211,3 +211,26 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+.management-control-role {
+  display: grid;
+  gap: 5px;
+}
+
+.management-control-role-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.management-control-role-edit .select {
+  min-width: 170px;
+}
+
+@media (max-width: 640px) {
+  .management-control-role-edit {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
