@@ -65,6 +65,7 @@ import { applyAppearance, readStoredAppearance, type AppearancePreference } from
 import { loadCustomerSearchPresentation } from "../features/customers/loadCustomerSearch";
 import { customerViewFromSummary } from "../features/sell/runtime/mapCartDraft";
 import { fetchAttentionInbox, fetchCustomerDirectory, fetchStoreHealth } from "./operational-client";
+import { fetchManagementContext } from "./management-client";
 
 function bumpCatalogProjectionGeneration(
   generationRef: { current: number },
@@ -96,6 +97,7 @@ export function PosApp({
       fetchImpl={fetchImpl}
       initialReturnSaleId={initialReturnSaleId}
       onNavigate={(next) => router.push(POS_ROUTE_HREFS[next])}
+      onOpenManagement={() => router.push("/management")}
       onReturnSaleSelected={(saleId) => router.push(returnSelectionHref(saleId))}
     />
   );
@@ -105,12 +107,14 @@ export function PosRuntime({
   route,
   fetchImpl,
   onNavigate,
+  onOpenManagement,
   initialReturnSaleId,
   onReturnSaleSelected,
 }: {
   readonly route: PosRoute;
   readonly fetchImpl?: typeof fetch;
   readonly onNavigate: (route: PosRoute) => void;
+  readonly onOpenManagement?: () => void;
   readonly initialReturnSaleId?: string | null;
   readonly onReturnSaleSelected?: (saleId: string) => void;
 }) {
@@ -145,6 +149,7 @@ export function PosRuntime({
   const [pendingReturnSaleId, setPendingReturnSaleId] = useState<string | null>(
     initialReturnSaleId ?? null,
   );
+  const [managementAvailable, setManagementAvailable] = useState(false);
   const readOnline = useCallback(() => online, [online]);
 
   const policy = useMemo(
@@ -280,6 +285,22 @@ export function PosRuntime({
     }, 0);
     return () => window.clearTimeout(timer);
   }, [authority.session, authority.status, fetchImpl, loadAttention]);
+
+  useEffect(() => {
+    if (authority.status !== "ready" || !authority.session || authority.presentationOnly) {
+      setManagementAvailable(false);
+      return;
+    }
+    let cancelled = false;
+    void fetchManagementContext(fetchImpl ?? fetch).then((result) => {
+      if (!cancelled) {
+        setManagementAvailable(result.ok);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [authority.presentationOnly, authority.session, authority.status, fetchImpl]);
 
   useEffect(() => {
     function sync() {
@@ -561,6 +582,7 @@ export function PosRuntime({
       attentionCount={attentionCount}
       toast={toast}
       onNavigate={onNavigate}
+      onOpenManagement={managementAvailable ? onOpenManagement : undefined}
       onLock={() => {
         void (async () => {
           await identity.signOut();
