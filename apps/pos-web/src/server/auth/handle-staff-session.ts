@@ -10,6 +10,7 @@ import { parseCookieHeader } from "./cookies";
 import { originFromReferer } from "./csrf";
 import { authFailure } from "./errors";
 import type { StaffIdentityVerifier } from "./identity-verifier";
+import type { StaffAccessControl } from "./staff-access-control";
 import type { StaffSessionStore } from "./session-store";
 import { establishStaffSession, revokeStaffSession } from "./staff-session";
 
@@ -37,6 +38,7 @@ export type EstablishStaffSessionRequest = {
   readonly authorizationHeader?: string;
   readonly now: Date;
   readonly verifier: StaffIdentityVerifier;
+  readonly accessControl?: StaffAccessControl;
   readonly store: StaffSessionStore;
   readonly allowedOrigins: readonly string[];
   readonly secureCookies: boolean;
@@ -84,6 +86,7 @@ export async function handleEstablishStaffSession(
       accessToken: readBearer(input.authorizationHeader),
       now: input.now,
       verifier: input.verifier,
+      accessControl: input.accessControl,
       store: input.store,
       correlationId: correlation.correlationId,
       secureCookies: input.secureCookies,
