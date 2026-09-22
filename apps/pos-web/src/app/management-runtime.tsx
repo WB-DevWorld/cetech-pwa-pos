@@ -14,6 +14,7 @@ import {
   fetchManagementTopology,
   fetchOperationalPolicy,
   fetchStaffAccess,
+  inviteStaff,
   updateControlMembership,
   updateOperationalPolicy,
   updateStaffAccessStatus,
@@ -30,6 +31,7 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
   const [topologyResult, setTopologyResult] = useState<ApiResult<readonly ManagementLocation[]> | null>(null);
   const [staffSavingActorId, setStaffSavingActorId] = useState<string | null>(null);
   const [staffMutationError, setStaffMutationError] = useState<string | null>(null);
+  const [invitingStaff, setInvitingStaff] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -117,6 +119,25 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
       setTopologyResult(topology);
     } finally {
       setStaffSavingActorId(null);
+    }
+  }
+
+  async function sendStaffInvite(input: {
+    readonly email: string;
+    readonly displayName: string;
+  }) {
+    setInvitingStaff(true);
+    setStaffMutationError(null);
+    try {
+      const invited = await inviteStaff(input, fetchImpl);
+      if (!invited.ok) {
+        setStaffMutationError(invited.error.message);
+        return;
+      }
+      const staff = await fetchStaffAccess(fetchImpl);
+      setStaffResult(staff);
+    } finally {
+      setInvitingStaff(false);
     }
   }
 
@@ -257,6 +278,14 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
         context.controlRole === "owner" || context.controlRole === "admin"
           ? (input) => {
               void saveStaffAccessStatus(input);
+            }
+          : undefined
+      }
+      invitingStaff={invitingStaff}
+      onInviteStaff={
+        context.controlRole === "owner" || context.controlRole === "admin"
+          ? (input) => {
+              void sendStaffInvite(input);
             }
           : undefined
       }
