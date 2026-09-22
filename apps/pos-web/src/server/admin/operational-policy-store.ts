@@ -29,6 +29,7 @@ export interface OperationalPolicyStore {
     readonly scope: PolicyScope;
     readonly override: ShiftClosePolicyOverride;
     readonly actorId: string;
+    readonly correlationId?: string;
   }): Promise<StoredPolicyOverride | "unavailable">;
 }
 
@@ -172,66 +173,33 @@ export function createSupabaseOperationalPolicyStore(input: {
       const resolved = await layers(scope);
       return resolved === "unavailable" ? "unavailable" : resolveShiftClosePolicy(resolved);
     },
-    async writeOverride({ scope, override, actorId }) {
-      const query = scopeQuery(scope);
-      const existing = await request(
-        `pos_operational_policies?${query}&select=id&limit=1`,
-        { method: "GET" },
-      );
-      if (existing.status >= 400 || !Array.isArray(existing.body)) return "unavailable";
-
-      const payload = toRowPayload(scope, override, actorId);
-      if (existing.body.length > 0) {
-        const id = (existing.body[0] as Record<string, unknown>).id;
-        if (typeof id !== "string") return "unavailable";
-        const patched = await request(
-          `pos_operational_policies?id=eq.${encodeURIComponent(id)}`,
-          { method: "PATCH", body: payload, prefer: "return=representation" },
-        );
-        if (patched.status >= 400 || !Array.isArray(patched.body) || patched.body.length !== 1) {
-          return "unavailable";
-        }
-        return parseRow(patched.body[0]) ?? "unavailable";
-      }
-
-      const inserted = await request("pos_operational_policies", {
+    async writeOverride({ scope, override, actorId, correlationId }) {
+      const result = await request("rpc/pos_admin_set_operational_policy", {
         method: "POST",
-        body: payload,
-        prefer: "return=representation",
+        body: {
+          p_organization_id: scope.organizationId,
+          p_location_id: scope.locationId ?? null,
+          p_register_id: scope.registerId ?? null,
+          p_actor_id: actorId,
+          p_correlation_id: correlationId ?? null,
+          p_cashier_can_close_shift: override.cashierCanCloseShift ?? null,
+          p_manager_can_close_shift: override.managerCanCloseShift ?? null,
+          p_cashier_own_shift_only: override.cashierOwnShiftOnly ?? null,
+          p_manager_can_close_others_shift: override.managerCanCloseOthersShift ?? null,
+          p_non_zero_variance_requires_manager: override.nonZeroVarianceRequiresManager ?? null,
+          p_variance_tolerance_minor: override.varianceToleranceMinor ?? null,
+          p_variance_currency: override.varianceCurrency ?? null,
+        },
       });
-      if (inserted.status >= 400 || !Array.isArray(inserted.body) || inserted.body.length !== 1) {
-        return "unavailable";
-      }
-      return parseRow(inserted.body[0]) ?? "unavailable";
+      if (result.status >= 400) return "unavailable";
+      const row =
+        Array.isArray(result.body) && result.body.length === 1
+          ? result.body[0]
+          : result.body;
+      return parseRow(row) ?? "unavailable";
     },
   };
 }
-
-function scopeQuery(scope: PolicyScope): string {
-  const parts = [`organization_id=eq.${encodeURIComponent(scope.organizationId)}`];
-  parts.push(scope.locationId ? `location_id=eq.${encodeURIComponent(scope.locationId)}` : "location_id=is.null");
-  parts.push(scope.registerId ? `register_id=eq.${encodeURIComponent(scope.registerId)}` : "register_id=is.null");
-  return parts.join("&");
-}
-
-function toRowPayload(
-  scope: PolicyScope,
-  override: ShiftClosePolicyOverride,
-  actorId: string,
-): Record<string, unknown> {
-  return {
-    organization_id: scope.organizationId,
-    location_id: scope.locationId ?? null,
-    register_id: scope.registerId ?? null,
-    cashier_can_close_shift: override.cashierCanCloseShift ?? null,
-    manager_can_close_shift: override.managerCanCloseShift ?? null,
-    cashier_own_shift_only: override.cashierOwnShiftOnly ?? null,
-    manager_can_close_others_shift: override.managerCanCloseOthersShift ?? null,
-    non_zero_variance_requires_manager: override.nonZeroVarianceRequiresManager ?? null,
-    variance_tolerance_minor: override.varianceToleranceMinor ?? null,
-    variance_currency: override.varianceCurrency ?? null,
-    updated_by_actor_id: actorId,
-    updated_at: new Date().toISOString(),
   };
 }
 
