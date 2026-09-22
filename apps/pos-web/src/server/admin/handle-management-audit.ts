@@ -40,7 +40,7 @@ export async function handleGetManagementAudit(input: {
   const locationIds = organizationWide ? undefined : authority.data.managerLocationIds;
   const scope: ManagementAuditScope = organizationWide
     ? { kind: "organization" }
-    : { kind: "locations", locationIds };
+    : { kind: "locations", locationIds: locationIds ?? [] };
 
   if (locationIds && locationIds.length === 0) {
     return {
