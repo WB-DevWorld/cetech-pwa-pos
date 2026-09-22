@@ -8,6 +8,7 @@ import type { ManagementLocation } from "../server/admin/management-topology-dir
 import type { StaffAssignmentMutationResult } from "../server/admin/staff-assignment-admin-store";
 import type { ControlMembershipMutationResult } from "../server/admin/control-membership-admin-store";
 import type { StaffAccessStatusMutationResult } from "../server/admin/staff-access-status-admin-store";
+import type { StaffInviteResult } from "../server/admin/handle-invite-staff";
 import type { ShiftClosePolicyOverride } from "../server/auth/policy";
 import { STAFF_CSRF_COOKIE, STAFF_CSRF_HEADER } from "../config/auth";
 
@@ -176,6 +177,28 @@ export function updateStaffAccessStatus(
         status: input.status,
         ...(input.reason ? { reason: input.reason } : {}),
       }),
+    },
+  );
+}
+
+
+export function inviteStaff(
+  input: {
+    readonly email: string;
+    readonly displayName: string;
+  },
+  fetchImpl: typeof fetch = fetch,
+) {
+  return jsonResult<StaffInviteResult>(
+    fetchImpl,
+    "/api/pos/v1/admin/staff/invite",
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        [STAFF_CSRF_HEADER]: readCookie(STAFF_CSRF_COOKIE),
+      },
+      body: JSON.stringify(input),
     },
   );
 }
