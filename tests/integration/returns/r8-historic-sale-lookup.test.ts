@@ -4,6 +4,7 @@ import { createBrowserHistoricReturnSaleLookup } from "../../../apps/pos-web/src
 import { createBrowserReturnPort } from "../../../apps/pos-web/src/app/checkout-client";
 import { handleGetHistoricReturnSale } from "../../../apps/pos-web/src/server/returns/handle-get-historic-return-sale";
 import { handlePreviewReturn } from "../../../apps/pos-web/src/server/returns/handle-preview-return";
+import { createMemoryOperationalPolicyStore } from "../../../apps/pos-web/src/server/admin/operational-policy-store";
 import { projectHistoricReturnSale } from "../../../apps/pos-web/src/server/returns/historic-sale-projection";
 import {
   CORRELATION,
@@ -91,6 +92,7 @@ describe("R8-02 historic return-sale lookup", () => {
           ...common,
           body: init?.body ? JSON.parse(String(init.body)) : null,
           returnStore: runtime.returnStore,
+          policies: createMemoryOperationalPolicyStore(),
         });
         return new Response(JSON.stringify(result.body), {
           status: result.status,
@@ -285,6 +287,7 @@ describe("R8-02 historic return-sale lookup", () => {
       checkoutStore: runtime.checkoutStore,
       returnStore: runtime.returnStore,
       assignments: cashierAssignments(),
+      policies: createMemoryOperationalPolicyStore(),
     });
     expect(result.body.ok).toBe(false);
     if (result.body.ok) {
