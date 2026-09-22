@@ -14,7 +14,7 @@ export type StaffAccessRecord = {
   readonly displayName: string;
   readonly email?: string;
   readonly authStatus: "active" | "disabled";
-  readonly posAccessStatus: "active" | "disabled";
+  readonly posAccessStatus?: "active" | "disabled";
   readonly controlRole: OrganizationControlRole | null;
   readonly locations: readonly StaffAccessLocation[];
   readonly createdAt?: string;
