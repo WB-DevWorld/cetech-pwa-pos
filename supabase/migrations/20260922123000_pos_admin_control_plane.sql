@@ -148,7 +148,7 @@ CREATE OR REPLACE FUNCTION pos_admin_set_operational_policy(
   p_manager_can_close_others_shift boolean,
   p_non_zero_variance_requires_manager boolean,
   p_variance_tolerance_minor bigint,
-  p_variance_currency character
+  p_variance_currency text
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -262,14 +262,14 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION pos_admin_set_operational_policy(
-  text, text, text, text, uuid, boolean, boolean, boolean, boolean, boolean, bigint, character
+  text, text, text, text, uuid, boolean, boolean, boolean, boolean, boolean, bigint, text
 ) FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION pos_admin_set_operational_policy(
-  text, text, text, text, uuid, boolean, boolean, boolean, boolean, boolean, bigint, character
+  text, text, text, text, uuid, boolean, boolean, boolean, boolean, boolean, bigint, text
 ) TO service_role;
 
 COMMENT ON FUNCTION pos_admin_set_operational_policy(
-  text, text, text, text, uuid, boolean, boolean, boolean, boolean, boolean, bigint, character
+  text, text, text, text, uuid, boolean, boolean, boolean, boolean, boolean, bigint, text
 ) IS
   'Atomic trusted-server operational-policy upsert plus append-only admin audit. Business authorization is required in the BFF before service_role invocation.';
