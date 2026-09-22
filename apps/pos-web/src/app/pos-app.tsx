@@ -149,7 +149,7 @@ export function PosRuntime({
   const [pendingReturnSaleId, setPendingReturnSaleId] = useState<string | null>(
     initialReturnSaleId ?? null,
   );
-  const [managementAvailable, setManagementAvailable] = useState(false);
+  const [managementActorId, setManagementActorId] = useState<string | null>(null);
   const readOnline = useCallback(() => online, [online]);
 
   const policy = useMemo(
@@ -288,13 +288,13 @@ export function PosRuntime({
 
   useEffect(() => {
     if (authority.status !== "ready" || !authority.session || authority.presentationOnly) {
-      setManagementAvailable(false);
       return;
     }
+    const actorId = authority.session.actorId;
     let cancelled = false;
     void fetchManagementContext(fetchImpl ?? fetch).then((result) => {
       if (!cancelled) {
-        setManagementAvailable(result.ok);
+        setManagementActorId(result.ok ? actorId : null);
       }
     });
     return () => {
@@ -552,6 +552,9 @@ export function PosRuntime({
   }
 
   const authoritativeActionsAllowed = hasFreshStaffActionAuthority(authority);
+  const managementAvailable =
+    authoritativeActionsAllowed &&
+    managementActorId === authority.session.actorId;
   const deviceId = authority.shift?.deviceId ?? readOrCreateLocalDeviceId();
   const extras = clientAttentionExtras({ catalogAvailability: projectionAvailability, authority });
   const localRecoveryChecked = localRecoveryActorId === authority.session.actorId;
