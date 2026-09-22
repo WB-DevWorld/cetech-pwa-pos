@@ -57,7 +57,56 @@ Receipt settings administration is complete on `ws3/admin-105-control-plane` / P
 
 System health is complete on `ws3/admin-105-control-plane` / PR #109. It is a read-only Management view over the existing store, commerce-connection, and commerce-contract checks. Owner, Admin, Manager, and Support may read it. Cashiers stay on the existing staff health route.
 
-Audit browser is the active #105 slice. It is a bounded read-only view over append-only `pos_admin_audit_events`. Owner, Admin, and Support may read organization-wide events; operational managers may read only events tied to verified managed locations. Raw before/after JSON is not exposed to the browser. It does not complete #105.
+Audit browser is complete on `ws3/admin-105-control-plane` / PR #109. It is a bounded read-only view over append-only `pos_admin_audit_events`. Owner, Admin, and Support may read organization-wide events; operational managers may read only events tied to verified managed locations. Raw before/after JSON is not exposed to the browser.
+
+## Temporary senior #105 cashier-boundary cleanup — ACTIVE
+
+Owner/user's 2026-09-22 instruction to continue #105 authorizes this bounded task-specific reassignment so step 9 can remove technical/admin/support diagnostics from ordinary cashier surfaces. This does **not** permanently alter `OWNERSHIP.md`. Ben / `@Ben-001-sys` remains the independent reviewer of the frozen #105 head.
+
+```text
+human / implementing editor: @wbdevworld
+workstream: WS1 surface boundary + bounded WS3 composition
+task: #105 step 9 — remove technical/admin controls from ordinary cashier surfaces
+branch: ws3/admin-105-control-plane
+starting SHA: 32cae139f60534b631a8dee725f04fb82788db6d
+allowed WS1:
+  apps/pos-web/src/features/settings/SettingsScreen.tsx
+  apps/pos-web/src/features/settings/SettingsScreen.test.tsx
+  apps/pos-web/src/features/sell/components/QuoteStatus.tsx
+  apps/pos-web/src/features/sell/components/QuoteStatus.test.tsx
+  apps/pos-web/src/ui/operational/OperationalSurfaces.tsx
+  apps/pos-web/src/ui/operational/OperationalSurfaces.test.tsx
+  apps/pos-web/src/ui/operational/healthPresentation.ts
+  apps/pos-web/src/ui/operational/healthPresentation.test.ts
+  apps/pos-web/src/ui/shell/routes.ts
+  apps/pos-web/src/ui/shell/AppShell.test.tsx
+  tests/frontend/cashier-language-surfaces.test.ts
+allowed WS3 composition:
+  apps/pos-web/src/app/workspace-runtime.tsx
+  apps/pos-web/src/app/pos-app.tsx
+  CURRENT-WORK.md
+scope:
+  keep cashier operational Status and Needs attention behavior
+  remove build/API/schema/raw technical details from cashier UI
+  remove cashier support/repair controls such as Fix App/manual update diagnostics
+  remove Health from primary cashier navigation while retaining the safe /health route via Settings/recovery
+  remove raw quote error technical details from cashier markup
+  preserve safe retry/recovery, offline, pending-work and attention semantics
+forbidden:
+  Management redesign
+  payment/quote authority changes
+  pricing logic changes
+  PWA cache/data deletion changes
+  refund/restock changes
+  Woo/WS2 changes
+  production promotion
+  self-merge
+review:
+  exact-head CI green
+  @Ben-001-sys independent exact-head review at final #105 freeze
+```
+
+Cashier diagnostics cleanup is the active #105 slice. It does not complete #105.
 
 ## 5PM bounded UX-01 cashier-copy slice — ACTIVE until 2026-09-21 17:00 Africa/Accra
 
