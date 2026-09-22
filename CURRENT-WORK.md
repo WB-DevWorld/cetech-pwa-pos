@@ -1,3 +1,50 @@
+## #105 Admin/Manager control-plane foundation — ACTIVE
+
+Owner/user explicitly prioritizes #105 before final R9 closure. This is a bounded WS3 foundation slice from frozen R9 head `cd37c19f79594ae5c5d3ebdb40520fa51668f9ab`. It does **not** permanently alter `OWNERSHIP.md`.
+
+```text
+human / implementing editor: @wbdevworld
+independent reviewer: @Ben-001-sys
+issue: #105
+branch: ws3/admin-105-authority-policy-foundation
+mode: IMPLEMENT / CONTRACT + AUTHORITY FOUNDATION
+allowed:
+  docs/decisions/**
+  docs/architecture/**
+  CURRENT-WORK.md
+  apps/pos-web/src/server/auth/**
+  apps/pos-web/src/server/admin/**
+  apps/pos-web/src/server/sales/** only where effective authorization is consumed
+  apps/pos-web/src/core/admin/**
+  apps/pos-web/src/app/api/pos/v1/admin/**
+  supabase/** for control-plane authority/policy persistence only
+  tests/integration/auth/**
+  tests/integration/admin/**
+scope:
+  organization-level owner/admin/support authority separate from operational cashier/manager assignment
+  server-owned effective-permission policy
+  organization -> location -> register override inheritance
+  configurable cashier/manager shift-close authority
+  separate permission for closing another staff member's shift
+  fail-closed tenant/location/register authorization
+  audit-ready policy model
+forbidden:
+  WS1 management-screen implementation in this slice
+  pricing authority changes
+  payment-provider expansion
+  refund/restock mutation expansion
+  Woo bridge behavior
+  PWA/service-worker changes
+  cart/journal behavior
+  production promotion
+  VitePOS cutover
+  final R9 merge
+review rule:
+  exact candidate must be CI-green and independently reviewed by @Ben-001-sys before R9 integration
+```
+
+The later #105 UI slice will receive a separate explicit WS1 lease rather than silently expanding this foundation branch into feature ownership.
+
 ## 5PM bounded UX-01 cashier-copy slice — ACTIVE until 2026-09-21 17:00 Africa/Accra
 
 Owner/user explicitly authorizes only this narrow #78 slice for today's release candidate.
