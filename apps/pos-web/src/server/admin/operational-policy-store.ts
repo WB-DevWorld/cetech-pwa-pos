@@ -138,7 +138,7 @@ export function createSupabaseOperationalPolicyStore(input: {
     const result = await request(
       `pos_operational_policies?organization_id=eq.${encodeURIComponent(
         organizationId,
-      )}&select=id,organization_id,location_id,register_id,cashier_can_close_shift,manager_can_close_shift,cashier_own_shift_only,manager_can_close_others_shift,non_zero_variance_requires_manager,variance_tolerance_minor,variance_currency,updated_by_actor_id,updated_at`,
+      )}&select=id,organization_id,location_id,register_id,cashier_can_close_shift,manager_can_close_shift,cashier_own_shift_only,manager_can_close_others_shift,non_zero_variance_requires_manager,variance_tolerance_minor,variance_currency,return_approval_required,updated_by_actor_id,updated_at`,
       { method: "GET" },
     );
     if (result.status >= 400 || !Array.isArray(result.body)) return "unavailable";
@@ -189,6 +189,7 @@ export function createSupabaseOperationalPolicyStore(input: {
           p_non_zero_variance_requires_manager: override.nonZeroVarianceRequiresManager ?? null,
           p_variance_tolerance_minor: override.varianceToleranceMinor ?? null,
           p_variance_currency: override.varianceCurrency ?? null,
+          p_return_approval_required: override.returnApprovalRequired ?? null,
         },
       });
       if (result.status >= 400) return "unavailable";
@@ -222,6 +223,7 @@ function parseRow(value: unknown): StoredPolicyOverride | null {
     ...booleanField(row, "cashier_own_shift_only", "cashierOwnShiftOnly"),
     ...booleanField(row, "manager_can_close_others_shift", "managerCanCloseOthersShift"),
     ...booleanField(row, "non_zero_variance_requires_manager", "nonZeroVarianceRequiresManager"),
+    ...booleanField(row, "return_approval_required", "returnApprovalRequired"),
     ...(typeof row.variance_tolerance_minor === "number"
       ? { varianceToleranceMinor: row.variance_tolerance_minor }
       : {}),
@@ -251,6 +253,7 @@ function asOverride(row: StoredPolicyOverride | undefined): ShiftClosePolicyOver
     nonZeroVarianceRequiresManager,
     varianceToleranceMinor,
     varianceCurrency,
+    returnApprovalRequired,
   } = row;
   return {
     ...(cashierCanCloseShift !== undefined ? { cashierCanCloseShift } : {}),
@@ -260,6 +263,7 @@ function asOverride(row: StoredPolicyOverride | undefined): ShiftClosePolicyOver
     ...(nonZeroVarianceRequiresManager !== undefined ? { nonZeroVarianceRequiresManager } : {}),
     ...(varianceToleranceMinor !== undefined ? { varianceToleranceMinor } : {}),
     ...(varianceCurrency !== undefined ? { varianceCurrency } : {}),
+    ...(returnApprovalRequired !== undefined ? { returnApprovalRequired } : {}),
   };
 }
 

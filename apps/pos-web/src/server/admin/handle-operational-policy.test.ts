@@ -57,6 +57,7 @@ describe("ADMIN-105 operational policy API", () => {
     if (!result.ok) throw new Error("expected policy");
     expect(result.data.effective.cashierCanCloseShift).toBe(false);
     expect(result.data.effective.managerCanCloseShift).toBe(true);
+    expect(result.data.effective.returnApprovalRequired).toBe(false);
     expect(result.data.canManage).toBe(false);
   });
 
@@ -115,6 +116,7 @@ describe("ADMIN-105 operational policy API", () => {
         cashierOwnShiftOnly: true,
         managerCanCloseOthersShift: true,
         nonZeroVarianceRequiresManager: true,
+        returnApprovalRequired: true,
       },
       protection: {
         origin: ORIGIN,
@@ -128,6 +130,7 @@ describe("ADMIN-105 operational policy API", () => {
     if (!result.ok) throw new Error("expected policy update");
     expect(result.data.effective.cashierCanCloseShift).toBe(true);
     expect(result.data.effective.managerCanCloseShift).toBe(true);
+    expect(result.data.effective.returnApprovalRequired).toBe(true);
     expect(result.data.canManage).toBe(true);
   });
 

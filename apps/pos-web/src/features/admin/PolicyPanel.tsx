@@ -39,6 +39,7 @@ export function PolicyPanel({
     view.effective.nonZeroVarianceRequiresManager,
     view.effective.varianceToleranceMinor ?? "",
     view.effective.varianceCurrency ?? "",
+    view.effective.returnApprovalRequired,
   ].join(":");
 
   return (
@@ -66,6 +67,7 @@ function PolicyEditor({
     cashierOwnShiftOnly: view.effective.cashierOwnShiftOnly,
     managerCanCloseOthersShift: view.effective.managerCanCloseOthersShift,
     nonZeroVarianceRequiresManager: view.effective.nonZeroVarianceRequiresManager,
+    returnApprovalRequired: view.effective.returnApprovalRequired,
     ...(view.effective.varianceToleranceMinor !== undefined
       ? { varianceToleranceMinor: view.effective.varianceToleranceMinor }
       : {}),
@@ -103,6 +105,8 @@ function PolicyEditor({
         view.effective.nonZeroVarianceRequiresManager,
       varianceToleranceMinor: parsed.minor,
       varianceCurrency: currency,
+      returnApprovalRequired:
+        draft.returnApprovalRequired ?? view.effective.returnApprovalRequired,
     });
   }
 
@@ -211,9 +215,29 @@ function PolicyEditor({
 
       {localError ? <div className="banner danger">{localError}</div> : null}
 
+      <div className="settings-divider" />
+
+      <div className="stack">
+        <h3>Return approval</h3>
+        <label className="management-policy-row">
+          <span>
+            <strong>Require manager approval before completing a return</strong>
+            <small>
+              New return previews in this policy scope wait for an operational manager approval before any refund or stock effect can execute.
+            </small>
+          </span>
+          <input
+            type="checkbox"
+            checked={draft.returnApprovalRequired ?? view.effective.returnApprovalRequired}
+            disabled={!view.canManage || saving}
+            onChange={(event) => setBoolean("returnApprovalRequired", event.target.checked)}
+          />
+        </label>
+      </div>
+
       {view.canManage && onSave ? (
         <button className="btn primary" type="button" disabled={saving} onClick={submit}>
-          {saving ? "Saving…" : "Save shift policy"}
+          {saving ? "Saving…" : "Save operational policy"}
         </button>
       ) : (
         <div className="banner warning" role="status">

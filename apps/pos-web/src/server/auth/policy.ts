@@ -11,6 +11,8 @@ export type ShiftClosePolicy = {
   readonly nonZeroVarianceRequiresManager: boolean;
   readonly varianceToleranceMinor?: number;
   readonly varianceCurrency?: string;
+  /** When true, a return preview must receive a valid operational-manager approval before execution. */
+  readonly returnApprovalRequired: boolean;
 };
 
 export type ShiftClosePolicyOverride = Partial<ShiftClosePolicy>;
@@ -28,6 +30,7 @@ export const DEFAULT_SHIFT_CLOSE_POLICY: ShiftClosePolicy = {
   cashierOwnShiftOnly: true,
   managerCanCloseOthersShift: true,
   nonZeroVarianceRequiresManager: true,
+  returnApprovalRequired: false,
 };
 
 export function resolveShiftClosePolicy(layers: OperationalPolicyLayers): ShiftClosePolicy {

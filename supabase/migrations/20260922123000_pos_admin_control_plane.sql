@@ -28,6 +28,7 @@ CREATE TABLE pos_operational_policies (
   non_zero_variance_requires_manager boolean,
   variance_tolerance_minor pos_money_minor,
   variance_currency pos_currency,
+  return_approval_required boolean,
 
   updated_by_actor_id pos_id NOT NULL,
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -148,7 +149,8 @@ CREATE OR REPLACE FUNCTION pos_admin_set_operational_policy(
   p_manager_can_close_others_shift boolean,
   p_non_zero_variance_requires_manager boolean,
   p_variance_tolerance_minor bigint,
-  p_variance_currency text
+  p_variance_currency text,
+  p_return_approval_required boolean DEFAULT NULL
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -197,6 +199,7 @@ BEGIN
         non_zero_variance_requires_manager = p_non_zero_variance_requires_manager,
         variance_tolerance_minor = p_variance_tolerance_minor,
         variance_currency = p_variance_currency,
+        return_approval_required = p_return_approval_required,
         updated_by_actor_id = p_actor_id,
         updated_at = now()
     WHERE id = existing.id
@@ -213,6 +216,7 @@ BEGIN
       non_zero_variance_requires_manager,
       variance_tolerance_minor,
       variance_currency,
+      return_approval_required,
       updated_by_actor_id
     ) VALUES (
       p_organization_id,
@@ -225,6 +229,7 @@ BEGIN
       p_non_zero_variance_requires_manager,
       p_variance_tolerance_minor,
       p_variance_currency,
+      p_return_approval_required,
       p_actor_id
     )
     RETURNING * INTO saved;
@@ -262,15 +267,15 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION pos_admin_set_operational_policy(
-  text, text, text, text, uuid, boolean, boolean, boolean, boolean, boolean, bigint, text
+  text, text, text, text, uuid, boolean, boolean, boolean, boolean, boolean, bigint, text, boolean
 ) FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION pos_admin_set_operational_policy(
-  text, text, text, text, uuid, boolean, boolean, boolean, boolean, boolean, bigint, text
+  text, text, text, text, uuid, boolean, boolean, boolean, boolean, boolean, bigint, text, boolean
 ) TO service_role;
 
 COMMENT ON FUNCTION pos_admin_set_operational_policy(
-  text, text, text, text, uuid, boolean, boolean, boolean, boolean, boolean, bigint, text
+  text, text, text, text, uuid, boolean, boolean, boolean, boolean, boolean, bigint, text, boolean
 ) IS
   'Atomic trusted-server operational-policy upsert plus append-only admin audit. Business authorization is required in the BFF before service_role invocation.';
 
