@@ -200,8 +200,6 @@ export function createSupabaseOperationalPolicyStore(input: {
     },
   };
 }
-  };
-}
 
 function parseRow(value: unknown): StoredPolicyOverride | null {
   if (!value || typeof value !== "object") return null;
