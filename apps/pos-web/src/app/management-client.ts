@@ -6,6 +6,7 @@ import type { StaffAccessRecord } from "../server/admin/staff-access-directory";
 import type { OperationalPolicyView } from "../server/admin/handle-operational-policy";
 import type { ManagementLocation } from "../server/admin/management-topology-directory";
 import type { StaffAssignmentMutationResult } from "../server/admin/staff-assignment-admin-store";
+import type { ControlMembershipMutationResult } from "../server/admin/control-membership-admin-store";
 import type { ShiftClosePolicyOverride } from "../server/auth/policy";
 import { STAFF_CSRF_COOKIE, STAFF_CSRF_HEADER } from "../config/auth";
 
@@ -121,6 +122,32 @@ export function updateStaffAssignment(
         locationId: input.locationId,
         role: input.role,
         registerIds: input.registerIds,
+      }),
+    },
+  );
+}
+
+
+export function updateControlMembership(
+  input: {
+    readonly actorId: string;
+    readonly controlRole: "owner" | "admin" | "support";
+    readonly status: "active" | "disabled";
+  },
+  fetchImpl: typeof fetch = fetch,
+) {
+  return jsonResult<ControlMembershipMutationResult>(
+    fetchImpl,
+    `/api/pos/v1/admin/staff/${encodeURIComponent(input.actorId)}/control-membership`,
+    {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json",
+        [STAFF_CSRF_HEADER]: readCookie(STAFF_CSRF_COOKIE),
+      },
+      body: JSON.stringify({
+        controlRole: input.controlRole,
+        status: input.status,
       }),
     },
   );
