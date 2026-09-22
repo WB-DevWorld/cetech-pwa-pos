@@ -26,13 +26,13 @@ SELECT lives_ok(
   $$ INSERT INTO pos_shifts (
        register_id, device_id, opening_float_minor, opening_float_currency, cashier_id
      ) VALUES (
-       'reg_a', '00000000-0000-4000-8000-000000000951', 5000, 'GHS', 'cashier_a'
+       'reg_a', '00000000-0000-4000-8000-0000000000a1', 5000, 'GHS', 'cashier_a'
      ) $$,
   'service role can create approval test shift'
 );
 SELECT set_config(
   'pos_test.admin_approval_shift',
-  (SELECT id::text FROM pos_shifts WHERE device_id = '00000000-0000-4000-8000-000000000951' LIMIT 1),
+  (SELECT id::text FROM pos_shifts WHERE register_id = 'reg_a' AND status = 'open' LIMIT 1),
   true
 );
 
