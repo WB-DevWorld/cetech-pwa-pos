@@ -5,11 +5,13 @@ import type { ManagementContext, ManagementSection } from "../../server/admin/ma
 import type { StaffAccessRecord } from "../../server/admin/staff-access-directory";
 import type { OperationalPolicyView } from "../../server/admin/handle-operational-policy";
 import type { ManagementLocation } from "../../server/admin/management-topology-directory";
+import type { ManagementShiftCashView } from "../../server/admin/management-shift-cash-directory";
 import type { StaffAssignmentRole } from "../../server/auth/roles";
 import type { ShiftClosePolicyOverride } from "../../server/auth/policy";
 import { StaffAccessPanel } from "./StaffAccessPanel";
 import { PolicyPanel } from "./PolicyPanel";
 import { TopologyPanel } from "./TopologyPanel";
+import { ShiftCashPanel } from "./ShiftCashPanel";
 
 const LABELS: Record<ManagementSection, { label: string; description: string }> = {
   overview: { label: "Overview", description: "Live operational management summary." },
@@ -40,6 +42,11 @@ export function ManagementScreen({
   topologyRows = [],
   topologyLoading = false,
   topologyError,
+  shiftCashView = null,
+  shiftCashLoading = false,
+  shiftCashError,
+  shiftCashCorrelationId,
+  shiftCashPolicyLoading = false,
   staffSavingActorId,
   onSaveStaffAssignment,
   onSaveControlMembership,
@@ -62,6 +69,11 @@ export function ManagementScreen({
   readonly topologyRows?: readonly ManagementLocation[];
   readonly topologyLoading?: boolean;
   readonly topologyError?: string;
+  readonly shiftCashView?: ManagementShiftCashView | null;
+  readonly shiftCashLoading?: boolean;
+  readonly shiftCashError?: string;
+  readonly shiftCashCorrelationId?: string;
+  readonly shiftCashPolicyLoading?: boolean;
   readonly staffSavingActorId?: string | null;
   readonly onSaveStaffAssignment?: (input: {
     readonly actorId: string;
@@ -182,6 +194,20 @@ export function ManagementScreen({
             <TopologyPanel rows={topologyRows} mode="registers" loading={topologyLoading} errorMessage={topologyError} />
           ) : activeSection === "devices" ? (
             <TopologyPanel rows={topologyRows} mode="devices" loading={topologyLoading} errorMessage={topologyError} />
+          ) : activeSection === "shifts_cash" ? (
+            <ShiftCashPanel
+              view={shiftCashView}
+              loading={shiftCashLoading}
+              errorMessage={shiftCashError}
+              correlationId={shiftCashCorrelationId}
+              policy={policyView}
+              policyLoading={shiftCashPolicyLoading}
+              onOpenPolicies={
+                context.sections.includes("policies")
+                  ? () => onSelectSection?.("policies")
+                  : undefined
+              }
+            />
           ) : activeSection === "policies" ? (
             <PolicyPanel
               view={policyView}

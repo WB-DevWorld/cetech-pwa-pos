@@ -281,3 +281,137 @@
     grid-template-columns: 1fr;
   }
 }
+
+.shift-cash-panel {
+  min-width: 0;
+}
+
+.shift-cash-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shift-cash-stat {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.shift-cash-stat span {
+  font-size: 13px;
+}
+
+.shift-cash-stat strong {
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+.shift-cash-stat.attention {
+  border-color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.shift-cash-stat.closing {
+  border-color: var(--color-warning);
+  background: var(--color-warning-soft);
+}
+
+.shift-cash-list {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.shift-cash-card .management-staff-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.shift-cash-card .management-staff-head > div {
+  min-width: 0;
+  flex: 1 1 12rem;
+}
+
+.shift-cash-card[data-shift-status="requires_attention"] {
+  border-color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.shift-cash-card[data-shift-status="closing"] {
+  border-color: var(--color-warning);
+}
+
+.shift-cash-card-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(180px, 240px);
+  gap: 16px 20px;
+  align-items: start;
+}
+
+.shift-cash-money {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.shift-cash-money div {
+  display: grid;
+  gap: 2px;
+}
+
+.shift-cash-money dt {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.shift-cash-money dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.shift-cash-report,
+.shift-cash-policy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.shift-cash-policy {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.status-pill.danger {
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+  border-color: transparent;
+}
+
+.status-pill.neutral {
+  color: inherit;
+}
+
+@media (max-width: 900px) {
+  .shift-cash-summary,
+  .shift-cash-card-main {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .shift-cash-summary,
+  .shift-cash-card-main {
+    grid-template-columns: 1fr;
+  }
+}

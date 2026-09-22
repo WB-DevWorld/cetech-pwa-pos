@@ -5,6 +5,7 @@ import type { ManagementContext } from "../server/admin/management-context";
 import type { StaffAccessRecord } from "../server/admin/staff-access-directory";
 import type { OperationalPolicyView } from "../server/admin/handle-operational-policy";
 import type { ManagementLocation } from "../server/admin/management-topology-directory";
+import type { ManagementShiftCashView } from "../server/admin/management-shift-cash-directory";
 import type { StaffAssignmentMutationResult } from "../server/admin/staff-assignment-admin-store";
 import type { ControlMembershipMutationResult } from "../server/admin/control-membership-admin-store";
 import type { StaffAccessStatusMutationResult } from "../server/admin/staff-access-status-admin-store";
@@ -100,6 +101,10 @@ export function updateOperationalPolicy(
 
 export function fetchManagementTopology(fetchImpl: typeof fetch = fetch) {
   return jsonResult<readonly ManagementLocation[]>(fetchImpl, "/api/pos/v1/admin/topology");
+}
+
+export function fetchManagementShiftsCash(fetchImpl: typeof fetch = fetch) {
+  return jsonResult<ManagementShiftCashView>(fetchImpl, "/api/pos/v1/admin/shifts-cash");
 }
 
 export function updateStaffAssignment(

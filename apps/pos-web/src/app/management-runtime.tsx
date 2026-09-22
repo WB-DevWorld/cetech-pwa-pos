@@ -7,10 +7,12 @@ import type { ManagementContext, ManagementSection } from "../server/admin/manag
 import type { StaffAccessRecord } from "../server/admin/staff-access-directory";
 import type { OperationalPolicyView } from "../server/admin/handle-operational-policy";
 import type { ManagementLocation } from "../server/admin/management-topology-directory";
+import type { ManagementShiftCashView } from "../server/admin/management-shift-cash-directory";
 import type { ShiftClosePolicyOverride } from "../server/auth/policy";
 import { ManagementScreen } from "../features/admin/ManagementScreen";
 import {
   fetchManagementContext,
+  fetchManagementShiftsCash,
   fetchManagementTopology,
   fetchOperationalPolicy,
   fetchStaffAccess,
@@ -29,6 +31,7 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
   const [policyResult, setPolicyResult] = useState<ApiResult<OperationalPolicyView> | null>(null);
   const [policySaving, setPolicySaving] = useState(false);
   const [topologyResult, setTopologyResult] = useState<ApiResult<readonly ManagementLocation[]> | null>(null);
+  const [shiftCashResult, setShiftCashResult] = useState<ApiResult<ManagementShiftCashView> | null>(null);
   const [staffSavingActorId, setStaffSavingActorId] = useState<string | null>(null);
   const [staffMutationError, setStaffMutationError] = useState<string | null>(null);
   const [invitingStaff, setInvitingStaff] = useState(false);
@@ -87,7 +90,18 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
   }, [allowedSection, context, fetchImpl]);
 
   useEffect(() => {
-    if (!context || allowedSection !== "policies") return;
+    if (!context || allowedSection !== "shifts_cash") return;
+    let cancelled = false;
+    void fetchManagementShiftsCash(fetchImpl).then((next) => {
+      if (!cancelled) setShiftCashResult(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [allowedSection, context, fetchImpl]);
+
+  useEffect(() => {
+    if (!context || (allowedSection !== "policies" && allowedSection !== "shifts_cash")) return;
     let cancelled = false;
     void fetchOperationalPolicy(policyScope, fetchImpl).then((next) => {
       if (!cancelled) setPolicyResult(next);
@@ -235,7 +249,8 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
         if (["staff_access", "locations", "registers", "devices"].includes(next)) {
           setTopologyResult(null);
         }
-        if (next === "policies") setPolicyResult(null);
+        if (next === "policies" || next === "shifts_cash") setPolicyResult(null);
+        if (next === "shifts_cash") setShiftCashResult(null);
         setSection(next);
       }}
       onBackToPos={() => router.push("/sell")}
@@ -297,6 +312,19 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
           ? policyResult.error.message
           : undefined
       }
+      shiftCashView={shiftCashResult?.ok ? shiftCashResult.data : null}
+      shiftCashLoading={allowedSection === "shifts_cash" && shiftCashResult === null}
+      shiftCashError={
+        allowedSection === "shifts_cash" && shiftCashResult && !shiftCashResult.ok
+          ? shiftCashResult.error.message
+          : undefined
+      }
+      shiftCashCorrelationId={
+        allowedSection === "shifts_cash" && shiftCashResult && !shiftCashResult.ok
+          ? shiftCashResult.correlationId
+          : undefined
+      }
+      shiftCashPolicyLoading={allowedSection === "shifts_cash" && policyResult === null}
       onSavePolicy={
         policyResult?.ok && policyResult.data.canManage
           ? (override) => {
