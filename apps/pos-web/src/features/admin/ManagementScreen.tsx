@@ -42,6 +42,7 @@ export function ManagementScreen({
   topologyError,
   staffSavingActorId,
   onSaveStaffAssignment,
+  onSaveControlMembership,
 }: {
   readonly context: ManagementContext;
   readonly activeSection?: ManagementSection;
@@ -64,6 +65,11 @@ export function ManagementScreen({
     readonly locationId: string;
     readonly role: StaffAssignmentRole;
     readonly registerIds: readonly string[];
+  }) => void;
+  readonly onSaveControlMembership?: (input: {
+    readonly actorId: string;
+    readonly controlRole: "owner" | "admin" | "support";
+    readonly status: "active" | "disabled";
   }) => void;
 }) {
   const active = LABELS[activeSection];
@@ -146,10 +152,13 @@ export function ManagementScreen({
               rows={staffRows}
               topology={topologyRows}
               canManage={context.controlRole === "owner" || context.controlRole === "admin"}
+              callerControlRole={context.controlRole}
+              currentActorId={context.actorId}
               loading={staffLoading}
               savingActorId={staffSavingActorId}
               errorMessage={staffError}
               onSaveAssignment={onSaveStaffAssignment}
+              onSaveControlMembership={onSaveControlMembership}
             />
           ) : activeSection === "locations" ? (
             <TopologyPanel rows={topologyRows} mode="locations" loading={topologyLoading} errorMessage={topologyError} />
