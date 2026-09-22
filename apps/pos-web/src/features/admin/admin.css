@@ -234,3 +234,33 @@
     flex-direction: column;
   }
 }
+
+
+.management-staff-statuses {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.management-access-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.management-access-control > div {
+  display: grid;
+  gap: 3px;
+}
+
+@media (max-width: 640px) {
+  .management-access-control {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
