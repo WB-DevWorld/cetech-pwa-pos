@@ -166,3 +166,48 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+.management-assignment-editor {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+}
+
+.management-assignment-editor.new {
+  border-style: dashed;
+}
+
+.management-assignment-title {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 180px);
+  align-items: center;
+  gap: 12px;
+}
+
+.management-assignment-title > div {
+  display: grid;
+  gap: 2px;
+}
+
+.management-register-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.management-register-checks label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .management-assignment-title {
+    grid-template-columns: 1fr;
+  }
+}
