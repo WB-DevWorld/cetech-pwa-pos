@@ -4,6 +4,8 @@ import type { ApiResult } from "../../../../docs/contracts/ports";
 import type { ManagementContext } from "../server/admin/management-context";
 import type { StaffAccessRecord } from "../server/admin/staff-access-directory";
 import type { OperationalPolicyView } from "../server/admin/handle-operational-policy";
+import type { ManagementLocation } from "../server/admin/management-topology-directory";
+import type { StaffAssignmentMutationResult } from "../server/admin/staff-assignment-admin-store";
 import type { ShiftClosePolicyOverride } from "../server/auth/policy";
 import { STAFF_CSRF_COOKIE, STAFF_CSRF_HEADER } from "../config/auth";
 
@@ -88,6 +90,38 @@ export function updateOperationalPolicy(
         [STAFF_CSRF_HEADER]: readCookie(STAFF_CSRF_COOKIE),
       },
       body: JSON.stringify(input.override),
+    },
+  );
+}
+
+
+export function fetchManagementTopology(fetchImpl: typeof fetch = fetch) {
+  return jsonResult<readonly ManagementLocation[]>(fetchImpl, "/api/pos/v1/admin/topology");
+}
+
+export function updateStaffAssignment(
+  input: {
+    readonly actorId: string;
+    readonly locationId: string;
+    readonly role: "cashier" | "manager";
+    readonly registerIds: readonly string[];
+  },
+  fetchImpl: typeof fetch = fetch,
+) {
+  return jsonResult<StaffAssignmentMutationResult>(
+    fetchImpl,
+    `/api/pos/v1/admin/staff/${encodeURIComponent(input.actorId)}/assignment`,
+    {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json",
+        [STAFF_CSRF_HEADER]: readCookie(STAFF_CSRF_COOKIE),
+      },
+      body: JSON.stringify({
+        locationId: input.locationId,
+        role: input.role,
+        registerIds: input.registerIds,
+      }),
     },
   );
 }
