@@ -29,6 +29,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     checkoutStore: composed.runtime.store,
     closeStore: composed.closeStore,
     assignments: composed.assignments,
+    policies: composed.policies,
   });
   return NextResponse.json(result.body, { status: result.status, headers: result.headers });
 }
