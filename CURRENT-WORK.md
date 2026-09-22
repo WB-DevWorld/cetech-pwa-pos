@@ -1,3 +1,54 @@
+## #105 Admin/Manager control plane — ACTIVE P0
+
+Owner/user explicitly made #105 the next blocking implementation before final R9 closure.
+
+```text
+human / implementing editor: @wbdevworld
+independent reviewer: @Ben-001-sys
+issue: #105
+branch: ws3/admin-105-control-plane
+base: cd37c19f79594ae5c5d3ebdb40520fa51668f9ab
+mode: DESIGN / IMPLEMENT / REVIEW-HANDOFF
+authority:
+  ADR-017 organization control plane + configurable operational permissions
+allowed:
+  docs/decisions/ADR/017.md
+  docs/decisions/DECISION-REGISTER.md
+  CURRENT-WORK.md
+  apps/pos-web/src/server/auth/**
+  apps/pos-web/src/server/admin/**
+  apps/pos-web/src/core/admin/**
+  apps/pos-web/src/features/admin/**
+  apps/pos-web/src/app/admin/**
+  apps/pos-web/src/app/api/pos/v1/admin/**
+  apps/pos-web/src/ui/shell/** only where needed for role-gated management navigation
+  supabase/migrations/** for #105 persistence only
+  supabase/tests/** for #105 persistence only
+  focused frontend/integration/e2e tests
+initial scope:
+  authority/control-plane model
+  configurable shift-close policy
+  management shell
+  staff/access read-management foundation
+  locations/registers/devices management foundation
+  shift/cash oversight foundation
+  diagnostics/audit boundary
+forbidden:
+  Woo pricing/quote authority changes
+  electronic-payment expansion
+  new refund/restock effects
+  VitePOS cutover
+  production promotion
+  protected-main edits
+  self-merge
+  requesting Emmanuel
+review:
+  exact candidate CI must be green
+  Ben independent exact-head review required before R9 integration
+```
+
+Current R9 PR #63 remains DRAFT. Existing R9 evidence is preserved. Final ADR-012/FRESH_2 and final R9 milestone review are paused until #105 is independently reviewed, integrated and runtime-accepted.
+
 ## 5PM bounded UX-01 cashier-copy slice — ACTIVE until 2026-09-21 17:00 Africa/Accra
 
 Owner/user explicitly authorizes only this narrow #78 slice for today's release candidate.
