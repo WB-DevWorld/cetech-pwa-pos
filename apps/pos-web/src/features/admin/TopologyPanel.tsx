@@ -53,7 +53,7 @@ export function TopologyPanel({
                 </span>
               </div>
               <p>Currency: {register.currency}</p>
-              <p>{register.devices.length} location device{register.devices.length === 1 ? "" : "s"}</p>
+              <p>{location.devices.length} location device{location.devices.length === 1 ? "" : "s"}</p>
             </section>
           )),
         )}
@@ -61,28 +61,23 @@ export function TopologyPanel({
     );
   }
 
-  const deviceMap = new Map<string, { location: ManagementLocation; label: string; status: string }>();
-  for (const location of rows) {
-    for (const register of location.registers) {
-      for (const device of register.devices) {
-        deviceMap.set(device.id, { location, label: device.label, status: device.status });
-      }
-    }
-  }
+  const devices = rows.flatMap((location) =>
+    location.devices.map((device) => ({ location, device })),
+  );
   return (
     <div className="management-grid">
-      {[...deviceMap.entries()].map(([id, item]) => (
-        <section className="card card-pad stack" key={id}>
+      {devices.map(({ location, device }) => (
+        <section className="card card-pad stack" key={device.id}>
           <div className="management-staff-head">
             <div>
-              <h2>{item.label}</h2>
-              <p className="muted">{item.location.name} · {id}</p>
+              <h2>{device.label}</h2>
+              <p className="muted">{location.name} · {device.id}</p>
             </div>
-            <span className={item.status === "active" ? "status-pill success" : "status-pill warning"}>
-              {item.status}
+            <span className={device.status === "active" ? "status-pill success" : "status-pill warning"}>
+              {device.status}
             </span>
           </div>
-          <p className="muted">Current schema binds devices to locations; no false register binding is shown.</p>
+          <p className="muted">Device is assigned to the location. No register binding is invented.</p>
         </section>
       ))}
     </div>
