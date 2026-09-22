@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { ManagementContext, ManagementSection } from "../../server/admin/management-context";
 
 const LABELS: Record<ManagementSection, { label: string; description: string }> = {
@@ -121,7 +122,7 @@ function ManagementCard({
   children,
 }: {
   readonly title: string;
-  readonly children: React.ReactNode;
+  readonly children: ReactNode;
 }) {
   return (
     <section className="card card-pad stack management-card">
