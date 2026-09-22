@@ -6,13 +6,16 @@ import type { ApiResult } from "../../../../docs/contracts/ports";
 import type { ManagementContext, ManagementSection } from "../server/admin/management-context";
 import type { StaffAccessRecord } from "../server/admin/staff-access-directory";
 import type { OperationalPolicyView } from "../server/admin/handle-operational-policy";
+import type { ManagementLocation } from "../server/admin/management-topology-directory";
 import type { ShiftClosePolicyOverride } from "../server/auth/policy";
 import { ManagementScreen } from "../features/admin/ManagementScreen";
 import {
   fetchManagementContext,
+  fetchManagementTopology,
   fetchOperationalPolicy,
   fetchStaffAccess,
   updateOperationalPolicy,
+  updateStaffAssignment,
 } from "./management-client";
 
 export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: typeof fetch }) {
@@ -22,6 +25,8 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
   const [staffResult, setStaffResult] = useState<ApiResult<readonly StaffAccessRecord[]> | null>(null);
   const [policyResult, setPolicyResult] = useState<ApiResult<OperationalPolicyView> | null>(null);
   const [policySaving, setPolicySaving] = useState(false);
+  const [topologyResult, setTopologyResult] = useState<ApiResult<readonly ManagementLocation[]> | null>(null);
+  const [staffSavingActorId, setStaffSavingActorId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,6 +66,22 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
   }, [allowedSection, context, fetchImpl]);
 
   useEffect(() => {
+    if (
+      !context ||
+      !["staff_access", "locations", "registers", "devices"].includes(allowedSection)
+    ) {
+      return;
+    }
+    let cancelled = false;
+    void fetchManagementTopology(fetchImpl).then((next) => {
+      if (!cancelled) setTopologyResult(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [allowedSection, context, fetchImpl]);
+
+  useEffect(() => {
     if (!context || allowedSection !== "policies") return;
     let cancelled = false;
     void fetchOperationalPolicy(policyScope, fetchImpl).then((next) => {
@@ -70,6 +91,30 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
       cancelled = true;
     };
   }, [allowedSection, context, fetchImpl, policyScope]);
+
+  async function saveStaffAssignment(input: {
+    readonly actorId: string;
+    readonly locationId: string;
+    readonly role: "cashier" | "manager";
+    readonly registerIds: readonly string[];
+  }) {
+    setStaffSavingActorId(input.actorId);
+    try {
+      const saved = await updateStaffAssignment(input, fetchImpl);
+      if (!saved.ok) {
+        setStaffResult(saved as ApiResult<readonly StaffAccessRecord[]>);
+        return;
+      }
+      const [staff, topology] = await Promise.all([
+        fetchStaffAccess(fetchImpl),
+        fetchManagementTopology(fetchImpl),
+      ]);
+      setStaffResult(staff);
+      setTopologyResult(topology);
+    } finally {
+      setStaffSavingActorId(null);
+    }
+  }
 
   async function savePolicy(override: ShiftClosePolicyOverride) {
     if (!context) return;
@@ -118,6 +163,9 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
       activeSection={allowedSection}
       onSelectSection={(next) => {
         if (next === "staff_access") setStaffResult(null);
+        if (["staff_access", "locations", "registers", "devices"].includes(next)) {
+          setTopologyResult(null);
+        }
         if (next === "policies") setPolicyResult(null);
         setSection(next);
       }}
@@ -127,6 +175,26 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
       staffError={
         allowedSection === "staff_access" && staffResult && !staffResult.ok
           ? staffResult.error.message
+          : undefined
+      }
+      topologyRows={topologyResult?.ok ? topologyResult.data : []}
+      topologyLoading={
+        ["staff_access", "locations", "registers", "devices"].includes(allowedSection) &&
+        topologyResult === null
+      }
+      topologyError={
+        ["staff_access", "locations", "registers", "devices"].includes(allowedSection) &&
+        topologyResult &&
+        !topologyResult.ok
+          ? topologyResult.error.message
+          : undefined
+      }
+      staffSavingActorId={staffSavingActorId}
+      onSaveStaffAssignment={
+        context.controlRole === "owner" || context.controlRole === "admin"
+          ? (input) => {
+              void saveStaffAssignment(input);
+            }
           : undefined
       }
       policyView={policyResult?.ok ? policyResult.data : null}
