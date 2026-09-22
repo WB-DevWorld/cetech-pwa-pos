@@ -14,6 +14,7 @@ import {
   fetchManagementTopology,
   fetchOperationalPolicy,
   fetchStaffAccess,
+  updateControlMembership,
   updateOperationalPolicy,
   updateStaffAssignment,
 } from "./management-client";
@@ -118,6 +119,30 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
     }
   }
 
+  async function saveControlMembership(input: {
+    readonly actorId: string;
+    readonly controlRole: "owner" | "admin" | "support";
+    readonly status: "active" | "disabled";
+  }) {
+    setStaffSavingActorId(input.actorId);
+    setStaffMutationError(null);
+    try {
+      const saved = await updateControlMembership(input, fetchImpl);
+      if (!saved.ok) {
+        setStaffMutationError(saved.error.message);
+        return;
+      }
+      const [staff, contextNext] = await Promise.all([
+        fetchStaffAccess(fetchImpl),
+        fetchManagementContext(fetchImpl),
+      ]);
+      setStaffResult(staff);
+      setResult(contextNext);
+    } finally {
+      setStaffSavingActorId(null);
+    }
+  }
+
   async function savePolicy(override: ShiftClosePolicyOverride) {
     if (!context) return;
     setPolicySaving(true);
@@ -197,6 +222,13 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
         context.controlRole === "owner" || context.controlRole === "admin"
           ? (input) => {
               void saveStaffAssignment(input);
+            }
+          : undefined
+      }
+      onSaveControlMembership={
+        context.controlRole === "owner" || context.controlRole === "admin"
+          ? (input) => {
+              void saveControlMembership(input);
             }
           : undefined
       }
