@@ -43,6 +43,7 @@ export function ManagementScreen({
   staffSavingActorId,
   onSaveStaffAssignment,
   onSaveControlMembership,
+  onSaveAccessStatus,
 }: {
   readonly context: ManagementContext;
   readonly activeSection?: ManagementSection;
@@ -70,6 +71,11 @@ export function ManagementScreen({
     readonly actorId: string;
     readonly controlRole: "owner" | "admin" | "support";
     readonly status: "active" | "disabled";
+  }) => void;
+  readonly onSaveAccessStatus?: (input: {
+    readonly actorId: string;
+    readonly status: "active" | "disabled";
+    readonly reason?: string;
   }) => void;
 }) {
   const active = LABELS[activeSection];
@@ -159,6 +165,7 @@ export function ManagementScreen({
               errorMessage={staffError}
               onSaveAssignment={onSaveStaffAssignment}
               onSaveControlMembership={onSaveControlMembership}
+              onSaveAccessStatus={onSaveAccessStatus}
             />
           ) : activeSection === "locations" ? (
             <TopologyPanel rows={topologyRows} mode="locations" loading={topologyLoading} errorMessage={topologyError} />
