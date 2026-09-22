@@ -100,13 +100,13 @@ SELECT lives_ok(
   'a later save updates the same location'
 );
 SELECT is(
-  (SELECT before_state->>'product_name_max_characters'
-   FROM pos_admin_audit_events
-   WHERE action = 'receipt_settings.set' AND location_id = 'loc_a1'
-   ORDER BY created_at DESC
-   LIMIT 1),
-  '18',
-  'the later audit records the previous max characters'
+  (SELECT count(*)::int FROM pos_admin_audit_events
+   WHERE action = 'receipt_settings.set'
+     AND location_id = 'loc_a1'
+     AND before_state->>'product_name_max_characters' = '18'
+     AND after_state->>'product_name_max_characters' = '24'),
+  1,
+  'the later audit records the previous max characters and the saved value'
 );
 SELECT is(
   (SELECT product_name_max_characters FROM pos_receipt_settings
