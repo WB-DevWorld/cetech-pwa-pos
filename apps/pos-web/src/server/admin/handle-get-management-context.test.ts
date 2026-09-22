@@ -71,7 +71,7 @@ describe("ADMIN-105 management context", () => {
     expect(result.data.managerLocationIds).toEqual(["loc_a1"]);
     expect(result.data.sections).toContain("shifts_cash");
     expect(result.data.sections).toContain("returns_approvals");
-    expect(result.data.sections).not.toContain("policies");
+    expect(result.data.sections).toContain("policies");
     expect(result.data.sections).not.toContain("locations");
   });
 
