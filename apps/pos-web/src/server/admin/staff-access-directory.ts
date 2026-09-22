@@ -14,6 +14,7 @@ export type StaffAccessRecord = {
   readonly displayName: string;
   readonly email?: string;
   readonly authStatus: "active" | "disabled";
+  readonly posAccessStatus: "active" | "disabled";
   readonly controlRole: OrganizationControlRole | null;
   readonly locations: readonly StaffAccessLocation[];
   readonly createdAt?: string;
@@ -69,7 +70,7 @@ export function createSupabaseStaffAccessDirectory(input: {
 
   return {
     async listOrganization({ organizationId }) {
-      const [authBody, locationBody, registerBody, membershipBody] = await Promise.all([
+      const [authBody, locationBody, registerBody, membershipBody, accessBody] = await Promise.all([
         getJson(`${authRoot}/admin/users?page=1&per_page=200`),
         getJson(
           `${restRoot}/pos_staff_location_assignments?organization_id=eq.${encodeURIComponent(
@@ -86,13 +87,19 @@ export function createSupabaseStaffAccessDirectory(input: {
             organizationId,
           )}&select=actor_id,control_role,status`,
         ),
+        getJson(
+          `${restRoot}/pos_staff_access_controls?organization_id=eq.${encodeURIComponent(
+            organizationId,
+          )}&select=actor_id,status`,
+        ),
       ]);
 
       if (
         authBody === "unavailable" ||
         locationBody === "unavailable" ||
         registerBody === "unavailable" ||
-        membershipBody === "unavailable"
+        membershipBody === "unavailable" ||
+        accessBody === "unavailable"
       ) {
         return "unavailable";
       }
@@ -103,6 +110,7 @@ export function createSupabaseStaffAccessDirectory(input: {
       const locationRows = Array.isArray(locationBody) ? locationBody : [];
       const registerRows = Array.isArray(registerBody) ? registerBody : [];
       const membershipRows = Array.isArray(membershipBody) ? membershipBody : [];
+      const accessRows = Array.isArray(accessBody) ? accessBody : [];
 
       const actorIds = new Set<string>();
       authUsers.forEach((row) => actorIds.add(row.actorId));
@@ -125,6 +133,11 @@ export function createSupabaseStaffAccessDirectory(input: {
             isOrganizationControlRole(membership.control_role)
               ? membership.control_role
               : null;
+          const access = accessRows.find(
+            (row) => isRecord(row) && row.actor_id === actorId,
+          );
+          const posAccessStatus =
+            isRecord(access) && access.status === "disabled" ? "disabled" : "active";
 
           const locations: StaffAccessLocation[] = [];
           for (const row of locationRows) {
@@ -153,6 +166,7 @@ export function createSupabaseStaffAccessDirectory(input: {
             displayName: auth?.displayName ?? actorId,
             ...(auth?.email ? { email: auth.email } : {}),
             authStatus: auth?.authStatus ?? "disabled",
+            posAccessStatus,
             controlRole,
             locations,
             ...(auth?.createdAt ? { createdAt: auth.createdAt } : {}),
