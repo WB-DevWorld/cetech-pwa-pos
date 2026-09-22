@@ -447,3 +447,138 @@ COMMENT ON FUNCTION pos_admin_set_staff_assignment(
   text, text, text, text, text[], text, uuid
 ) IS
   'Atomic trusted-server staff location/register assignment update plus append-only admin audit. BFF owner/admin authorization is required before invocation.';
+
+
+-- Atomic organization control-role mutation + audit.
+CREATE OR REPLACE FUNCTION pos_admin_set_control_membership(
+  p_organization_id text,
+  p_target_actor_id text,
+  p_control_role text,
+  p_status text,
+  p_actor_id text,
+  p_correlation_id uuid
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  existing public.pos_organization_memberships%ROWTYPE;
+  saved public.pos_organization_memberships%ROWTYPE;
+  active_owner_count integer;
+  before_json jsonb;
+  after_json jsonb;
+BEGIN
+  IF p_organization_id IS NULL OR p_target_actor_id IS NULL OR p_actor_id IS NULL THEN
+    RAISE EXCEPTION 'organization, target actor and actor are required' USING ERRCODE = '23502';
+  END IF;
+  IF p_control_role NOT IN ('owner', 'admin', 'support') THEN
+    RAISE EXCEPTION 'control role is invalid' USING ERRCODE = '23514';
+  END IF;
+  IF p_status NOT IN ('active', 'disabled') THEN
+    RAISE EXCEPTION 'membership status is invalid' USING ERRCODE = '23514';
+  END IF;
+
+  -- Serialize membership changes for the organization.
+  PERFORM 1
+  FROM public.pos_organizations
+  WHERE id = p_organization_id
+  FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'organization was not found' USING ERRCODE = '23503';
+  END IF;
+
+  SELECT *
+  INTO existing
+  FROM public.pos_organization_memberships
+  WHERE organization_id = p_organization_id
+    AND actor_id = p_target_actor_id
+  FOR UPDATE;
+
+  IF FOUND THEN
+    before_json := to_jsonb(existing);
+
+    -- Never allow the last active owner to be demoted or disabled.
+    IF existing.control_role = 'owner'
+       AND existing.status = 'active'
+       AND (p_control_role <> 'owner' OR p_status <> 'active') THEN
+      SELECT COUNT(*)
+      INTO active_owner_count
+      FROM public.pos_organization_memberships
+      WHERE organization_id = p_organization_id
+        AND control_role = 'owner'
+        AND status = 'active';
+
+      IF active_owner_count <= 1 THEN
+        RAISE EXCEPTION 'organization must retain at least one active owner'
+          USING ERRCODE = '23514';
+      END IF;
+    END IF;
+
+    UPDATE public.pos_organization_memberships
+    SET control_role = p_control_role,
+        status = p_status,
+        updated_at = now()
+    WHERE organization_id = p_organization_id
+      AND actor_id = p_target_actor_id
+    RETURNING * INTO saved;
+  ELSE
+    INSERT INTO public.pos_organization_memberships (
+      organization_id,
+      actor_id,
+      control_role,
+      status
+    ) VALUES (
+      p_organization_id,
+      p_target_actor_id,
+      p_control_role,
+      p_status
+    )
+    RETURNING * INTO saved;
+    before_json := NULL;
+  END IF;
+
+  after_json := to_jsonb(saved);
+
+  INSERT INTO public.pos_admin_audit_events (
+    organization_id,
+    actor_id,
+    action,
+    target_type,
+    target_id,
+    before_state,
+    after_state,
+    correlation_id
+  ) VALUES (
+    p_organization_id,
+    p_actor_id,
+    'organization_membership.set',
+    'organization_membership',
+    p_target_actor_id,
+    before_json,
+    after_json,
+    p_correlation_id
+  );
+
+  RETURN jsonb_build_object(
+    'organizationId', saved.organization_id,
+    'actorId', saved.actor_id,
+    'controlRole', saved.control_role,
+    'status', saved.status
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION pos_admin_set_control_membership(
+  text, text, text, text, text, uuid
+) FROM PUBLIC, anon, authenticated;
+
+GRANT EXECUTE ON FUNCTION pos_admin_set_control_membership(
+  text, text, text, text, text, uuid
+) TO service_role;
+
+COMMENT ON FUNCTION pos_admin_set_control_membership(
+  text, text, text, text, text, uuid
+) IS
+  'Atomic organization control-role membership mutation plus append-only audit. Refuses removal of the last active owner. BFF owner/admin authorization is required before invocation.';
