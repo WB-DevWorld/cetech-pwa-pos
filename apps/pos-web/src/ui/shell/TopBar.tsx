@@ -8,6 +8,7 @@ export type TopBarProps = {
   updateReady?: boolean;
   onLock?: () => void;
   onOpenUpdate?: () => void;
+  onOpenManagement?: () => void;
 };
 
 export function TopBar({
@@ -18,6 +19,7 @@ export function TopBar({
   updateReady = false,
   onLock,
   onOpenUpdate,
+  onOpenManagement,
 }: TopBarProps) {
   return (
     <header className="topbar">
@@ -46,6 +48,11 @@ export function TopBar({
           <span className="dot" aria-hidden="true" />
           <span className="status-text">{online ? "Online" : "Offline"}</span>
         </span>
+        {onOpenManagement ? (
+          <button className="btn small" type="button" onClick={onOpenManagement}>
+            Manage
+          </button>
+        ) : null}
         {updateReady ? (
           <button className="btn small" type="button" onClick={onOpenUpdate}>
             Update ready
