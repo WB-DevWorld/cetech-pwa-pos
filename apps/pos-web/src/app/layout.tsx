@@ -10,6 +10,7 @@ import "@/features/auth/auth.css";
 import "@/features/orders/orders.css";
 import "@/features/customers/customers.css";
 import "@/features/settings/settings.css";
+import "@/features/admin/admin.css";
 import type { Metadata } from "next";
 import { Suspense, type ReactNode } from "react";
 import { readServerEnv } from "../config/env";
