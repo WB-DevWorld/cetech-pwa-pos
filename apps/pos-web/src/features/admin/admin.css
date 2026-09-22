@@ -415,3 +415,120 @@
     grid-template-columns: 1fr;
   }
 }
+
+.returns-attention-panel {
+  min-width: 0;
+}
+
+.returns-attention-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.returns-attention-stat {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.returns-attention-stat span {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.returns-attention-stat strong {
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+.returns-attention-stat.attention {
+  border-color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.returns-attention-stat.closing {
+  border-color: var(--color-warning);
+  background: var(--color-warning-soft);
+}
+
+.returns-attention-list {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.returns-attention-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.returns-attention-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.returns-attention-head > div {
+  min-width: 0;
+  flex: 1 1 12rem;
+}
+
+.returns-attention-card[data-attention-priority="needs_attention"] {
+  border-color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.returns-attention-card[data-attention-priority="awaiting_reconciliation"] {
+  border-color: var(--color-warning);
+}
+
+.returns-attention-card-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 0.8fr);
+  gap: 16px 20px;
+  align-items: start;
+}
+
+.returns-attention-facts {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.returns-attention-facts p {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+}
+
+.returns-attention-facts span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.returns-attention-card details {
+  margin-top: 12px;
+}
+
+@media (max-width: 900px) {
+  .returns-attention-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .returns-attention-summary,
+  .returns-attention-card-main {
+    grid-template-columns: 1fr;
+  }
+}

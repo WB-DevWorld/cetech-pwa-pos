@@ -8,10 +8,12 @@ import type { StaffAccessRecord } from "../server/admin/staff-access-directory";
 import type { OperationalPolicyView } from "../server/admin/handle-operational-policy";
 import type { ManagementLocation } from "../server/admin/management-topology-directory";
 import type { ManagementShiftCashView } from "../server/admin/management-shift-cash-directory";
+import type { ManagementReturnsAttentionView } from "../server/admin/management-returns-attention-directory";
 import type { ShiftClosePolicyOverride } from "../server/auth/policy";
 import { ManagementScreen } from "../features/admin/ManagementScreen";
 import {
   fetchManagementContext,
+  fetchManagementReturnsAttention,
   fetchManagementShiftsCash,
   fetchManagementTopology,
   fetchOperationalPolicy,
@@ -32,6 +34,7 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
   const [policySaving, setPolicySaving] = useState(false);
   const [topologyResult, setTopologyResult] = useState<ApiResult<readonly ManagementLocation[]> | null>(null);
   const [shiftCashResult, setShiftCashResult] = useState<ApiResult<ManagementShiftCashView> | null>(null);
+  const [returnsAttentionResult, setReturnsAttentionResult] = useState<ApiResult<ManagementReturnsAttentionView> | null>(null);
   const [staffSavingActorId, setStaffSavingActorId] = useState<string | null>(null);
   const [staffMutationError, setStaffMutationError] = useState<string | null>(null);
   const [invitingStaff, setInvitingStaff] = useState(false);
@@ -94,6 +97,17 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
     let cancelled = false;
     void fetchManagementShiftsCash(fetchImpl).then((next) => {
       if (!cancelled) setShiftCashResult(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [allowedSection, context, fetchImpl]);
+
+  useEffect(() => {
+    if (!context || allowedSection !== "returns_approvals") return;
+    let cancelled = false;
+    void fetchManagementReturnsAttention(fetchImpl).then((next) => {
+      if (!cancelled) setReturnsAttentionResult(next);
     });
     return () => {
       cancelled = true;
@@ -251,6 +265,7 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
         }
         if (next === "policies" || next === "shifts_cash") setPolicyResult(null);
         if (next === "shifts_cash") setShiftCashResult(null);
+        if (next === "returns_approvals") setReturnsAttentionResult(null);
         setSection(next);
       }}
       onBackToPos={() => router.push("/sell")}
@@ -325,6 +340,18 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
           : undefined
       }
       shiftCashPolicyLoading={allowedSection === "shifts_cash" && policyResult === null}
+      returnsAttentionView={returnsAttentionResult?.ok ? returnsAttentionResult.data : null}
+      returnsAttentionLoading={allowedSection === "returns_approvals" && returnsAttentionResult === null}
+      returnsAttentionError={
+        allowedSection === "returns_approvals" && returnsAttentionResult && !returnsAttentionResult.ok
+          ? returnsAttentionResult.error.message
+          : undefined
+      }
+      returnsAttentionCorrelationId={
+        allowedSection === "returns_approvals" && returnsAttentionResult && !returnsAttentionResult.ok
+          ? returnsAttentionResult.correlationId
+          : undefined
+      }
       onSavePolicy={
         policyResult?.ok && policyResult.data.canManage
           ? (override) => {

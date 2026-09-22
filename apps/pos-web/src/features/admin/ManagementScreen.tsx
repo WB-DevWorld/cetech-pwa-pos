@@ -6,12 +6,14 @@ import type { StaffAccessRecord } from "../../server/admin/staff-access-director
 import type { OperationalPolicyView } from "../../server/admin/handle-operational-policy";
 import type { ManagementLocation } from "../../server/admin/management-topology-directory";
 import type { ManagementShiftCashView } from "../../server/admin/management-shift-cash-directory";
+import type { ManagementReturnsAttentionView } from "../../server/admin/management-returns-attention-directory";
 import type { StaffAssignmentRole } from "../../server/auth/roles";
 import type { ShiftClosePolicyOverride } from "../../server/auth/policy";
 import { StaffAccessPanel } from "./StaffAccessPanel";
 import { PolicyPanel } from "./PolicyPanel";
 import { TopologyPanel } from "./TopologyPanel";
 import { ShiftCashPanel } from "./ShiftCashPanel";
+import { ReturnsApprovalsPanel } from "./ReturnsApprovalsPanel";
 
 const LABELS: Record<ManagementSection, { label: string; description: string }> = {
   overview: { label: "Overview", description: "Live operational management summary." },
@@ -47,6 +49,10 @@ export function ManagementScreen({
   shiftCashError,
   shiftCashCorrelationId,
   shiftCashPolicyLoading = false,
+  returnsAttentionView = null,
+  returnsAttentionLoading = false,
+  returnsAttentionError,
+  returnsAttentionCorrelationId,
   staffSavingActorId,
   onSaveStaffAssignment,
   onSaveControlMembership,
@@ -74,6 +80,10 @@ export function ManagementScreen({
   readonly shiftCashError?: string;
   readonly shiftCashCorrelationId?: string;
   readonly shiftCashPolicyLoading?: boolean;
+  readonly returnsAttentionView?: ManagementReturnsAttentionView | null;
+  readonly returnsAttentionLoading?: boolean;
+  readonly returnsAttentionError?: string;
+  readonly returnsAttentionCorrelationId?: string;
   readonly staffSavingActorId?: string | null;
   readonly onSaveStaffAssignment?: (input: {
     readonly actorId: string;
@@ -207,6 +217,13 @@ export function ManagementScreen({
                   ? () => onSelectSection?.("policies")
                   : undefined
               }
+            />
+          ) : activeSection === "returns_approvals" ? (
+            <ReturnsApprovalsPanel
+              view={returnsAttentionView}
+              loading={returnsAttentionLoading}
+              errorMessage={returnsAttentionError}
+              correlationId={returnsAttentionCorrelationId}
             />
           ) : activeSection === "policies" ? (
             <PolicyPanel
