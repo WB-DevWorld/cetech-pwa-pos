@@ -18,6 +18,8 @@ export function StaffAccessPanel({
   onSaveAssignment,
   onSaveControlMembership,
   onSaveAccessStatus,
+  inviting = false,
+  onInviteStaff,
 }: {
   readonly rows: readonly StaffAccessRecord[];
   readonly topology?: readonly ManagementLocation[];
@@ -43,6 +45,11 @@ export function StaffAccessPanel({
     readonly status: "active" | "disabled";
     readonly reason?: string;
   }) => void;
+  readonly inviting?: boolean;
+  readonly onInviteStaff?: (input: {
+    readonly email: string;
+    readonly displayName: string;
+  }) => void;
 }) {
   if (loading) {
     return <section className="card card-pad"><p>Loading staff access…</p></section>;
@@ -56,6 +63,9 @@ export function StaffAccessPanel({
 
   return (
     <div className="management-staff-list">
+      {canManage && onInviteStaff ? (
+        <InviteStaffCard inviting={inviting} onInvite={onInviteStaff} />
+      ) : null}
       {rows.map((row) => (
         <StaffCard
           key={row.actorId}
@@ -475,5 +485,75 @@ function StaffAccessStatusEditor({
         {saving ? "Saving…" : next === "disabled" ? "Disable POS access" : "Re-enable POS access"}
       </button>
     </div>
+  );
+}
+
+
+function InviteStaffCard({
+  inviting,
+  onInvite,
+}: {
+  readonly inviting: boolean;
+  readonly onInvite: (input: { readonly email: string; readonly displayName: string }) => void;
+}) {
+  const [email, setEmail] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  function submit() {
+    const cleanEmail = email.trim();
+    const cleanName = displayName.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setLocalError("Enter a valid staff email address.");
+      return;
+    }
+    if (!cleanName) {
+      setLocalError("Enter the staff member's name.");
+      return;
+    }
+    setLocalError(null);
+    onInvite({ email: cleanEmail, displayName: cleanName });
+  }
+
+  return (
+    <section className="card card-pad stack management-invite-card">
+      <div>
+        <h2>Invite staff</h2>
+        <p className="muted">
+          Invited staff start POS-disabled until you assign their operational scope and enable access.
+        </p>
+      </div>
+      <div className="management-invite-grid">
+        <label className="field">
+          <span>Name</span>
+          <input
+            className="input"
+            value={displayName}
+            disabled={inviting}
+            onChange={(event) => {
+              setDisplayName(event.target.value);
+              setLocalError(null);
+            }}
+          />
+        </label>
+        <label className="field">
+          <span>Email</span>
+          <input
+            className="input"
+            type="email"
+            value={email}
+            disabled={inviting}
+            onChange={(event) => {
+              setEmail(event.target.value);
+              setLocalError(null);
+            }}
+          />
+        </label>
+      </div>
+      {localError ? <div className="banner danger">{localError}</div> : null}
+      <button className="btn primary" type="button" disabled={inviting} onClick={submit}>
+        {inviting ? "Inviting…" : "Send invitation"}
+      </button>
+    </section>
   );
 }
