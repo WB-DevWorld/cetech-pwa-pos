@@ -2,6 +2,7 @@ import type { ApiResult } from "../../../../../docs/contracts/ports";
 import type { Uuid } from "../../../../../docs/contracts/domain.generated";
 import { assertMutationProtection, type MutationProtectionInput } from "../auth/csrf";
 import { authFailure } from "../auth/errors";
+import { apiFailure } from "../http/api-failure";
 import { isStaffAssignmentRole, type StaffAssignmentRole } from "../auth/roles";
 import type { StaffAssignmentDirectory } from "../auth/assignments";
 import type { StaffSessionStore } from "../auth/session-store";
@@ -109,7 +110,7 @@ export async function handleSetStaffAssignment(
     return authFailure("INTEGRATION_UNAVAILABLE", "staff access directory is unavailable", input.correlationId);
   }
   if (!rows.some((row) => row.actorId === input.targetActorId)) {
-    return authFailure("NOT_FOUND", "staff identity was not found in this organization", input.correlationId);
+    return apiFailure("NOT_FOUND", "staff identity was not found in this organization", input.correlationId);
   }
 
   const saved = await input.mutation.setAssignment({
