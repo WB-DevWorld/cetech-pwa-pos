@@ -58,7 +58,12 @@ export function ShiftCashPanel({
         <h2>Shifts and cash</h2>
         <p role="status">No shifts are currently available in your management scope.</p>
         {view ? <p className="muted">{scopeCopy(view)}</p> : null}
-        <PolicyContext policy={policy} policyLoading={policyLoading} onOpenPolicies={onOpenPolicies} />
+        <PolicyContext
+          policy={policy}
+          policyLoading={policyLoading}
+          onOpenPolicies={onOpenPolicies}
+          shiftScope={view?.scope}
+        />
       </section>
     );
   }
@@ -108,7 +113,12 @@ export function ShiftCashPanel({
         )}
       </section>
 
-      <PolicyContext policy={policy} policyLoading={policyLoading} onOpenPolicies={onOpenPolicies} />
+      <PolicyContext
+        policy={policy}
+        policyLoading={policyLoading}
+        onOpenPolicies={onOpenPolicies}
+        shiftScope={view.scope}
+      />
     </div>
   );
 }
@@ -201,19 +211,25 @@ function PolicyContext({
   policy,
   policyLoading,
   onOpenPolicies,
+  shiftScope,
 }: {
   readonly policy: OperationalPolicyView | null;
   readonly policyLoading: boolean;
   readonly onOpenPolicies?: () => void;
+  readonly shiftScope?: ManagementShiftCashView["scope"];
 }) {
   return (
     <section className="card card-pad stack" aria-labelledby="shift-cash-policy-heading">
       <h2 id="shift-cash-policy-heading">Shift close</h2>
       {policyLoading ? <p>Loading close policy…</p> : null}
       {!policyLoading && policy ? (
-        <ul className="shift-cash-policy">
-          {policyLines(policy.effective).map((line) => <li key={line}>{line}</li>)}
-        </ul>
+        <>
+          <p className="muted">{policyScopeCopy(policy)}</p>
+          <ul className="shift-cash-policy">
+            {policyLines(policy.effective).map((line) => <li key={line}>{line}</li>)}
+          </ul>
+          <p className="muted">{policyScopeCaveat(policy, shiftScope)}</p>
+        </>
       ) : null}
       {!policyLoading && !policy ? <p>Close policy could not be loaded. Shift oversight above is unchanged.</p> : null}
       {onOpenPolicies ? (
@@ -223,6 +239,35 @@ function PolicyContext({
       ) : null}
     </section>
   );
+}
+
+function policyScopeCopy(policy: OperationalPolicyView): string {
+  if (policy.scope.registerId) {
+    return `Policy reference: location ${policy.scope.locationId} / register ${policy.scope.registerId}.`;
+  }
+  if (policy.scope.locationId) {
+    return `Policy reference: location ${policy.scope.locationId}.`;
+  }
+  return "Policy reference: organization default.";
+}
+
+function policyScopeCaveat(
+  policy: OperationalPolicyView,
+  shiftScope: ManagementShiftCashView["scope"] | undefined,
+): string {
+  if (!shiftScope) {
+    return "Location or register overrides may differ from this policy reference.";
+  }
+  if (shiftScope.kind === "organization") {
+    return "This is not necessarily the effective policy for every shift shown; location or register overrides may differ.";
+  }
+  if (shiftScope.locationIds.length > 1) {
+    return "This policy reference covers one scope only; other visible locations or register overrides may differ.";
+  }
+  if (!policy.scope.registerId) {
+    return "Register-specific overrides may differ from this location policy.";
+  }
+  return "This policy reference applies only to the named register scope.";
 }
 
 function policyLines(policy: ShiftClosePolicy): readonly string[] {

@@ -161,12 +161,49 @@ describe("ShiftCashPanel", () => {
       },
       onOpenPolicies: () => undefined,
     });
+    expect(html).toContain("Policy reference: location loc_a1.");
     expect(html).toContain("Managers allowed");
     expect(html).toContain("Cashier close disabled");
     expect(html).toContain("Non-zero variance requires manager");
+    expect(html).toContain("Register-specific overrides may differ from this location policy.");
     expect(html).toContain("Open Policies");
     expect(html).not.toContain("<form");
     expect(html).not.toContain("type=\"checkbox\"");
+  });
+
+  test("does not present one scoped policy as universal across multiple visible locations", () => {
+    const html = render({
+      view: view(
+        [
+          row({ shiftId: "loc-a", status: "open", locationId: "loc_a1", locationName: "Accra" }),
+          row({ shiftId: "loc-b", status: "open", locationId: "loc_a2", locationName: "Tema" }),
+        ],
+        { kind: "locations", locationIds: ["loc_a1", "loc_a2"] },
+      ),
+      policy: {
+        scope: { organizationId: "org_a", locationId: "loc_a1" },
+        effective: DEFAULT_SHIFT_CLOSE_POLICY,
+        canManage: false,
+      },
+    });
+    expect(html).toContain("Policy reference: location loc_a1.");
+    expect(html).toContain("other visible locations or register overrides may differ");
+  });
+
+  test("labels an organization default as a reference when organization-wide shifts are shown", () => {
+    const html = render({
+      view: view(
+        [row({ shiftId: "org-open", status: "open", locationId: "loc_a1", locationName: "Accra" })],
+        { kind: "organization" },
+      ),
+      policy: {
+        scope: { organizationId: "org_a" },
+        effective: DEFAULT_SHIFT_CLOSE_POLICY,
+        canManage: true,
+      },
+    });
+    expect(html).toContain("Policy reference: organization default.");
+    expect(html).toContain("not necessarily the effective policy for every shift shown");
   });
 
   test("management screen uses the shift panel instead of the foundation placeholder", () => {
