@@ -7,6 +7,8 @@ import type { OperationalPolicyView } from "../server/admin/handle-operational-p
 import type { ManagementLocation } from "../server/admin/management-topology-directory";
 import type { ManagementShiftCashView } from "../server/admin/management-shift-cash-directory";
 import type { ManagementReturnsAttentionView } from "../server/admin/management-returns-attention-directory";
+import type { ManagementReceiptSettingsView } from "../server/admin/handle-management-receipt-settings";
+import type { ReceiptSettings } from "../../../../docs/contracts/domain.generated";
 import type { StaffAssignmentMutationResult } from "../server/admin/staff-assignment-admin-store";
 import type { ControlMembershipMutationResult } from "../server/admin/control-membership-admin-store";
 import type { StaffAccessStatusMutationResult } from "../server/admin/staff-access-status-admin-store";
@@ -110,6 +112,32 @@ export function fetchManagementShiftsCash(fetchImpl: typeof fetch = fetch) {
 
 export function fetchManagementReturnsAttention(fetchImpl: typeof fetch = fetch) {
   return jsonResult<ManagementReturnsAttentionView>(fetchImpl, "/api/pos/v1/admin/returns-attention");
+}
+
+export function fetchManagementReceiptSettings(locationId: string, fetchImpl: typeof fetch = fetch) {
+  const params = new URLSearchParams({ locationId });
+  return jsonResult<ManagementReceiptSettingsView>(
+    fetchImpl,
+    `/api/pos/v1/admin/receipt-settings?${params.toString()}`,
+  );
+}
+
+export function updateManagementReceiptSettings(
+  input: { readonly locationId: string; readonly settings: ReceiptSettings },
+  fetchImpl: typeof fetch = fetch,
+) {
+  return jsonResult<ManagementReceiptSettingsView>(
+    fetchImpl,
+    "/api/pos/v1/admin/receipt-settings",
+    {
+      method: "PUT",
+      headers: {
+        "content-type": "application/json",
+        [STAFF_CSRF_HEADER]: readCookie(STAFF_CSRF_COOKIE),
+      },
+      body: JSON.stringify(input),
+    },
+  );
 }
 
 export function updateStaffAssignment(

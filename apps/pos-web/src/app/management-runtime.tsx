@@ -9,10 +9,13 @@ import type { OperationalPolicyView } from "../server/admin/handle-operational-p
 import type { ManagementLocation } from "../server/admin/management-topology-directory";
 import type { ManagementShiftCashView } from "../server/admin/management-shift-cash-directory";
 import type { ManagementReturnsAttentionView } from "../server/admin/management-returns-attention-directory";
+import type { ManagementReceiptSettingsView } from "../server/admin/handle-management-receipt-settings";
+import type { ReceiptSettings } from "../../../../docs/contracts/domain.generated";
 import type { ShiftClosePolicyOverride } from "../server/auth/policy";
 import { ManagementScreen } from "../features/admin/ManagementScreen";
 import {
   fetchManagementContext,
+  fetchManagementReceiptSettings,
   fetchManagementReturnsAttention,
   fetchManagementShiftsCash,
   fetchManagementTopology,
@@ -20,6 +23,7 @@ import {
   fetchStaffAccess,
   inviteStaff,
   updateControlMembership,
+  updateManagementReceiptSettings,
   updateOperationalPolicy,
   updateStaffAccessStatus,
   updateStaffAssignment,
@@ -35,6 +39,11 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
   const [topologyResult, setTopologyResult] = useState<ApiResult<readonly ManagementLocation[]> | null>(null);
   const [shiftCashResult, setShiftCashResult] = useState<ApiResult<ManagementShiftCashView> | null>(null);
   const [returnsAttentionResult, setReturnsAttentionResult] = useState<ApiResult<ManagementReturnsAttentionView> | null>(null);
+  const [receiptSettingsResult, setReceiptSettingsResult] = useState<ApiResult<ManagementReceiptSettingsView> | null>(null);
+  const [receiptLocationId, setReceiptLocationId] = useState<string | null>(null);
+  const [receiptSaving, setReceiptSaving] = useState(false);
+  const [receiptSaveError, setReceiptSaveError] = useState<string | null>(null);
+  const [receiptSaveMessage, setReceiptSaveMessage] = useState<string | null>(null);
   const [staffSavingActorId, setStaffSavingActorId] = useState<string | null>(null);
   const [staffMutationError, setStaffMutationError] = useState<string | null>(null);
   const [invitingStaff, setInvitingStaff] = useState(false);
@@ -79,7 +88,7 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
   useEffect(() => {
     if (
       !context ||
-      !["staff_access", "locations", "registers", "devices"].includes(allowedSection)
+      !["staff_access", "locations", "registers", "devices", "receipt_settings"].includes(allowedSection)
     ) {
       return;
     }
@@ -113,6 +122,27 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
       cancelled = true;
     };
   }, [allowedSection, context, fetchImpl]);
+
+  const receiptLocations = useMemo(() => {
+    if (!context || !topologyResult?.ok) return [];
+    const rows = topologyResult.data.map((row) => ({ id: row.id, name: row.name }));
+    if (context.controlRole === "owner" || context.controlRole === "admin") return rows;
+    return rows.filter((row) => context.managerLocationIds.includes(row.id));
+  }, [context, topologyResult]);
+  const selectedReceiptLocationId = receiptLocations.some((row) => row.id === receiptLocationId)
+    ? receiptLocationId
+    : receiptLocations[0]?.id ?? null;
+
+  useEffect(() => {
+    if (!context || allowedSection !== "receipt_settings" || !selectedReceiptLocationId) return;
+    let cancelled = false;
+    void fetchManagementReceiptSettings(selectedReceiptLocationId, fetchImpl).then((next) => {
+      if (!cancelled) setReceiptSettingsResult(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [allowedSection, context, fetchImpl, selectedReceiptLocationId]);
 
   useEffect(() => {
     if (!context || (allowedSection !== "policies" && allowedSection !== "shifts_cash")) return;
@@ -223,6 +253,27 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
     }
   }
 
+  async function saveReceiptSettings(settings: ReceiptSettings) {
+    if (!selectedReceiptLocationId) return;
+    setReceiptSaving(true);
+    setReceiptSaveError(null);
+    setReceiptSaveMessage(null);
+    try {
+      const saved = await updateManagementReceiptSettings({
+        locationId: selectedReceiptLocationId,
+        settings,
+      }, fetchImpl);
+      if (!saved.ok) {
+        setReceiptSaveError(saved.error.message);
+        return;
+      }
+      setReceiptSettingsResult(saved);
+      setReceiptSaveMessage("Receipt settings saved.");
+    } finally {
+      setReceiptSaving(false);
+    }
+  }
+
   if (!result) {
     return (
       <main className="management-standalone-state">
@@ -260,12 +311,17 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
       activeSection={allowedSection}
       onSelectSection={(next) => {
         if (next === "staff_access") setStaffResult(null);
-        if (["staff_access", "locations", "registers", "devices"].includes(next)) {
+        if (["staff_access", "locations", "registers", "devices", "receipt_settings"].includes(next)) {
           setTopologyResult(null);
         }
         if (next === "policies" || next === "shifts_cash") setPolicyResult(null);
         if (next === "shifts_cash") setShiftCashResult(null);
         if (next === "returns_approvals") setReturnsAttentionResult(null);
+        if (next === "receipt_settings") {
+          setReceiptSettingsResult(null);
+          setReceiptSaveError(null);
+          setReceiptSaveMessage(null);
+        }
         setSection(next);
       }}
       onBackToPos={() => router.push("/sell")}
@@ -279,11 +335,11 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
       }
       topologyRows={topologyResult?.ok ? topologyResult.data : []}
       topologyLoading={
-        ["staff_access", "locations", "registers", "devices"].includes(allowedSection) &&
+        ["staff_access", "locations", "registers", "devices", "receipt_settings"].includes(allowedSection) &&
         topologyResult === null
       }
       topologyError={
-        ["staff_access", "locations", "registers", "devices"].includes(allowedSection) &&
+        ["staff_access", "locations", "registers", "devices", "receipt_settings"].includes(allowedSection) &&
         topologyResult &&
         !topologyResult.ok
           ? topologyResult.error.message
@@ -350,6 +406,38 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
       returnsAttentionCorrelationId={
         allowedSection === "returns_approvals" && returnsAttentionResult && !returnsAttentionResult.ok
           ? returnsAttentionResult.correlationId
+          : undefined
+      }
+      receiptLocations={receiptLocations}
+      receiptLocationId={selectedReceiptLocationId ?? undefined}
+      onSelectReceiptLocation={(locationId) => {
+        setReceiptLocationId(locationId);
+        setReceiptSettingsResult(null);
+        setReceiptSaveError(null);
+        setReceiptSaveMessage(null);
+      }}
+      receiptSettingsView={receiptSettingsResult?.ok ? receiptSettingsResult.data : null}
+      receiptSettingsLoading={
+        allowedSection === "receipt_settings" && (
+          topologyResult === null ||
+          (selectedReceiptLocationId !== null && receiptSettingsResult === null)
+        )
+      }
+      receiptSettingsSaving={receiptSaving}
+      receiptSettingsError={
+        allowedSection === "receipt_settings" && topologyResult && !topologyResult.ok
+          ? topologyResult.error.message
+          : allowedSection === "receipt_settings" && receiptSettingsResult && !receiptSettingsResult.ok
+            ? receiptSettingsResult.error.message
+            : undefined
+      }
+      receiptSettingsSaveError={receiptSaveError ?? undefined}
+      receiptSettingsSaveMessage={receiptSaveMessage ?? undefined}
+      onSaveReceiptSettings={
+        receiptSettingsResult?.ok && receiptSettingsResult.data.canManage
+          ? (settings) => {
+              void saveReceiptSettings(settings);
+            }
           : undefined
       }
       onSavePolicy={

@@ -51,7 +51,9 @@ Current R9 PR #63 remains DRAFT. Existing R9 evidence is preserved. Final ADR-01
 
 Shift and cash oversight is complete on `ws3/admin-105-control-plane` / PR #109. It is a read-only Management view over existing `pos_shifts` aggregates.
 
-Returns, approvals, and requires-attention oversight is the active #105 slice. It is a read-only Management view over existing return, refund, stock-disposition, and pending-operation records. It does not grant approval, issue refunds, or restock. It does not complete #105.
+Returns, approvals, and requires-attention oversight is complete on `ws3/admin-105-control-plane` / PR #109. It is a read-only Management view over existing return, refund, stock-disposition, and pending-operation records. It does not grant approval, issue refunds, or restock.
+
+Receipt settings administration is the active #105 slice. It reuses location-scoped `pos_receipt_settings` and `ReceiptSettings`. Owner and Admin may change settings through the still-unreleased `20260922123000_pos_admin_control_plane.sql` atomic RPC, which also appends `pos_admin_audit_events`. That migration has not been applied to staging or production, so the receipt-settings function was added there instead of as a later migration. Managers can view managed locations only. It does not complete #105.
 
 ## 5PM bounded UX-01 cashier-copy slice — ACTIVE until 2026-09-21 17:00 Africa/Accra
 

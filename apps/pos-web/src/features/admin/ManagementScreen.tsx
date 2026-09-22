@@ -14,6 +14,9 @@ import { PolicyPanel } from "./PolicyPanel";
 import { TopologyPanel } from "./TopologyPanel";
 import { ShiftCashPanel } from "./ShiftCashPanel";
 import { ReturnsApprovalsPanel } from "./ReturnsApprovalsPanel";
+import { ReceiptSettingsPanel, type ReceiptLocationOption } from "./ReceiptSettingsPanel";
+import type { ManagementReceiptSettingsView } from "../../server/admin/handle-management-receipt-settings";
+import type { ReceiptSettings } from "../../../../../docs/contracts/domain.generated";
 
 const LABELS: Record<ManagementSection, { label: string; description: string }> = {
   overview: { label: "Overview", description: "Live operational management summary." },
@@ -26,6 +29,10 @@ const LABELS: Record<ManagementSection, { label: string; description: string }> 
   system_health: { label: "System health", description: "Integration health, diagnostics and support evidence." },
   audit: { label: "Audit", description: "Who changed what, where and when." },
   policies: { label: "Policies", description: "Operational permissions and inherited organization/location/register policy." },
+  receipt_settings: {
+    label: "Receipt settings",
+    description: "Configure receipt product-name display and SKU presentation by location.",
+  },
 };
 
 export function ManagementScreen({
@@ -53,6 +60,16 @@ export function ManagementScreen({
   returnsAttentionLoading = false,
   returnsAttentionError,
   returnsAttentionCorrelationId,
+  receiptLocations = [],
+  receiptLocationId,
+  onSelectReceiptLocation,
+  receiptSettingsView = null,
+  receiptSettingsLoading = false,
+  receiptSettingsSaving = false,
+  receiptSettingsError,
+  receiptSettingsSaveError,
+  receiptSettingsSaveMessage,
+  onSaveReceiptSettings,
   staffSavingActorId,
   onSaveStaffAssignment,
   onSaveControlMembership,
@@ -84,6 +101,16 @@ export function ManagementScreen({
   readonly returnsAttentionLoading?: boolean;
   readonly returnsAttentionError?: string;
   readonly returnsAttentionCorrelationId?: string;
+  readonly receiptLocations?: readonly ReceiptLocationOption[];
+  readonly receiptLocationId?: string;
+  readonly onSelectReceiptLocation?: (locationId: string) => void;
+  readonly receiptSettingsView?: ManagementReceiptSettingsView | null;
+  readonly receiptSettingsLoading?: boolean;
+  readonly receiptSettingsSaving?: boolean;
+  readonly receiptSettingsError?: string;
+  readonly receiptSettingsSaveError?: string;
+  readonly receiptSettingsSaveMessage?: string;
+  readonly onSaveReceiptSettings?: (settings: ReceiptSettings) => void;
   readonly staffSavingActorId?: string | null;
   readonly onSaveStaffAssignment?: (input: {
     readonly actorId: string;
@@ -232,6 +259,19 @@ export function ManagementScreen({
               saving={policySaving}
               errorMessage={policyError}
               onSave={onSavePolicy}
+            />
+          ) : activeSection === "receipt_settings" ? (
+            <ReceiptSettingsPanel
+              locations={receiptLocations}
+              selectedLocationId={receiptLocationId}
+              onSelectLocation={onSelectReceiptLocation}
+              view={receiptSettingsView}
+              loading={receiptSettingsLoading}
+              saving={receiptSettingsSaving}
+              errorMessage={receiptSettingsError}
+              saveError={receiptSettingsSaveError}
+              saveMessage={receiptSettingsSaveMessage}
+              onSave={onSaveReceiptSettings}
             />
           ) : (
             <section className="card card-pad stack">

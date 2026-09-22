@@ -72,6 +72,7 @@ describe("ADMIN-105 management context", () => {
     expect(result.data.sections).toContain("shifts_cash");
     expect(result.data.sections).toContain("returns_approvals");
     expect(result.data.sections).toContain("policies");
+    expect(result.data.sections).toContain("receipt_settings");
     expect(result.data.sections).not.toContain("locations");
   });
 
@@ -98,6 +99,7 @@ describe("ADMIN-105 management context", () => {
     expect(result.data.sections).toContain("staff_access");
     expect(result.data.sections).toContain("locations");
     expect(result.data.sections).toContain("policies");
+    expect(result.data.sections).toContain("receipt_settings");
     expect(result.data.sections).toContain("audit");
   });
 
@@ -121,6 +123,7 @@ describe("ADMIN-105 management context", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("expected management context");
     expect(result.data.sections).toEqual(["overview", "system_health", "audit"]);
+    expect(result.data.sections).not.toContain("receipt_settings");
   });
 
   test("disabled organization membership does not grant management", async () => {

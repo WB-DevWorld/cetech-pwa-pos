@@ -12,6 +12,7 @@ export const MANAGEMENT_SECTIONS = [
   "system_health",
   "audit",
   "policies",
+  "receipt_settings",
 ] as const;
 
 export type ManagementSection = (typeof MANAGEMENT_SECTIONS)[number];
@@ -38,6 +39,7 @@ const MANAGER: readonly ManagementSection[] = [
   "system_health",
   "audit",
   "policies",
+  "receipt_settings",
 ];
 
 export function resolveManagementSections(input: {

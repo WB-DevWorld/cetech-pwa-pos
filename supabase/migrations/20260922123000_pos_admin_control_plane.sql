@@ -724,3 +724,129 @@ COMMENT ON FUNCTION pos_admin_set_staff_access_status(
   text, text, text, text, text, uuid
 ) IS
   'Atomic POS staff access-status change, active POS-session revocation on disable, and append-only admin audit. BFF owner/admin authorization required.';
+
+
+-- Atomic location receipt-settings upsert plus append-only admin audit.
+-- Receipt settings stay location-scoped. A missing row is not inserted here;
+-- the BFF shows ReceiptSettings defaults until an authorized save creates the row.
+-- This function is part of the still-unreleased #105 migration.
+CREATE OR REPLACE FUNCTION pos_admin_set_receipt_settings(
+  p_organization_id text,
+  p_location_id text,
+  p_actor_id text,
+  p_correlation_id uuid,
+  p_shorten_product_names boolean,
+  p_product_name_max_characters integer,
+  p_show_sku boolean
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  existing public.pos_receipt_settings%ROWTYPE;
+  saved public.pos_receipt_settings%ROWTYPE;
+  before_json jsonb;
+  after_json jsonb;
+BEGIN
+  IF p_organization_id IS NULL OR p_location_id IS NULL OR p_actor_id IS NULL THEN
+    RAISE EXCEPTION 'organization, location, and actor are required' USING ERRCODE = '23502';
+  END IF;
+  IF p_shorten_product_names IS NULL OR p_show_sku IS NULL THEN
+    RAISE EXCEPTION 'receipt presentation choices are required' USING ERRCODE = '23502';
+  END IF;
+  IF p_product_name_max_characters IS NULL
+     OR p_product_name_max_characters < 1
+     OR p_product_name_max_characters > 256 THEN
+    RAISE EXCEPTION 'product name max characters must be from 1 to 256' USING ERRCODE = '23514';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.pos_locations
+    WHERE id = p_location_id
+      AND organization_id = p_organization_id
+  ) THEN
+    RAISE EXCEPTION 'location is outside the organization' USING ERRCODE = '23503';
+  END IF;
+
+  SELECT *
+  INTO existing
+  FROM public.pos_receipt_settings
+  WHERE organization_id = p_organization_id
+    AND location_id = p_location_id
+  FOR UPDATE;
+
+  IF FOUND THEN
+    before_json := to_jsonb(existing);
+    UPDATE public.pos_receipt_settings
+    SET shorten_product_names = p_shorten_product_names,
+        product_name_max_characters = p_product_name_max_characters,
+        show_sku = p_show_sku,
+        updated_at = now()
+    WHERE organization_id = p_organization_id
+      AND location_id = p_location_id
+    RETURNING * INTO saved;
+  ELSE
+    before_json := NULL;
+    INSERT INTO public.pos_receipt_settings (
+      organization_id,
+      location_id,
+      shorten_product_names,
+      product_name_max_characters,
+      show_sku
+    ) VALUES (
+      p_organization_id,
+      p_location_id,
+      p_shorten_product_names,
+      p_product_name_max_characters,
+      p_show_sku
+    )
+    RETURNING * INTO saved;
+  END IF;
+
+  after_json := to_jsonb(saved);
+
+  INSERT INTO public.pos_admin_audit_events (
+    organization_id,
+    actor_id,
+    action,
+    target_type,
+    target_id,
+    location_id,
+    before_state,
+    after_state,
+    correlation_id
+  ) VALUES (
+    p_organization_id,
+    p_actor_id,
+    'receipt_settings.set',
+    'receipt_settings',
+    p_location_id,
+    p_location_id,
+    before_json,
+    after_json,
+    p_correlation_id
+  );
+
+  RETURN jsonb_build_object(
+    'locationId', saved.location_id,
+    'shortenProductNames', saved.shorten_product_names,
+    'productNameMaxCharacters', saved.product_name_max_characters,
+    'showSku', saved.show_sku
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION pos_admin_set_receipt_settings(
+  text, text, text, uuid, boolean, integer, boolean
+) FROM PUBLIC, anon, authenticated;
+
+GRANT EXECUTE ON FUNCTION pos_admin_set_receipt_settings(
+  text, text, text, uuid, boolean, integer, boolean
+) TO service_role;
+
+COMMENT ON FUNCTION pos_admin_set_receipt_settings(
+  text, text, text, uuid, boolean, integer, boolean
+) IS
+  'Atomic trusted-server receipt-settings upsert plus append-only admin audit. Business authorization is required in the BFF before service_role invocation. Does not rewrite historical receipts.';
