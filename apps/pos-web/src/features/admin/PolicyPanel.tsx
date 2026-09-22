@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { ShiftClosePolicyOverride } from "../../server/auth/policy";
 import type { OperationalPolicyView } from "../../server/admin/handle-operational-policy";
 import { parseDecimalToMinorUnits } from "../register/parseDecimalToMinorUnits";
@@ -18,31 +18,6 @@ export function PolicyPanel({
   readonly errorMessage?: string;
   readonly onSave?: (override: ShiftClosePolicyOverride) => void;
 }) {
-  const [draft, setDraft] = useState<ShiftClosePolicyOverride>({});
-  const [toleranceText, setToleranceText] = useState("0.00");
-  const [localError, setLocalError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!view) return;
-    setDraft({
-      cashierCanCloseShift: view.effective.cashierCanCloseShift,
-      managerCanCloseShift: view.effective.managerCanCloseShift,
-      cashierOwnShiftOnly: view.effective.cashierOwnShiftOnly,
-      managerCanCloseOthersShift: view.effective.managerCanCloseOthersShift,
-      nonZeroVarianceRequiresManager: view.effective.nonZeroVarianceRequiresManager,
-      ...(view.effective.varianceToleranceMinor !== undefined
-        ? { varianceToleranceMinor: view.effective.varianceToleranceMinor }
-        : {}),
-      ...(view.effective.varianceCurrency
-        ? { varianceCurrency: view.effective.varianceCurrency }
-        : {}),
-    });
-    setToleranceText(
-      ((view.effective.varianceToleranceMinor ?? 0) / 100).toFixed(2),
-    );
-    setLocalError(null);
-  }, [view]);
-
   if (loading) {
     return <section className="card card-pad"><p>Loading operational policy…</p></section>;
   }
@@ -53,6 +28,55 @@ export function PolicyPanel({
     return <section className="card card-pad"><p>Operational policy is not available.</p></section>;
   }
 
+  const editorKey = [
+    view.scope.organizationId,
+    view.scope.locationId ?? "",
+    view.scope.registerId ?? "",
+    view.effective.cashierCanCloseShift,
+    view.effective.managerCanCloseShift,
+    view.effective.cashierOwnShiftOnly,
+    view.effective.managerCanCloseOthersShift,
+    view.effective.nonZeroVarianceRequiresManager,
+    view.effective.varianceToleranceMinor ?? "",
+    view.effective.varianceCurrency ?? "",
+  ].join(":");
+
+  return (
+    <PolicyEditor
+      key={editorKey}
+      view={view}
+      saving={saving}
+      onSave={onSave}
+    />
+  );
+}
+
+function PolicyEditor({
+  view,
+  saving,
+  onSave,
+}: {
+  readonly view: OperationalPolicyView;
+  readonly saving?: boolean;
+  readonly onSave?: (override: ShiftClosePolicyOverride) => void;
+}) {
+  const [draft, setDraft] = useState<ShiftClosePolicyOverride>(() => ({
+    cashierCanCloseShift: view.effective.cashierCanCloseShift,
+    managerCanCloseShift: view.effective.managerCanCloseShift,
+    cashierOwnShiftOnly: view.effective.cashierOwnShiftOnly,
+    managerCanCloseOthersShift: view.effective.managerCanCloseOthersShift,
+    nonZeroVarianceRequiresManager: view.effective.nonZeroVarianceRequiresManager,
+    ...(view.effective.varianceToleranceMinor !== undefined
+      ? { varianceToleranceMinor: view.effective.varianceToleranceMinor }
+      : {}),
+    ...(view.effective.varianceCurrency
+      ? { varianceCurrency: view.effective.varianceCurrency }
+      : {}),
+  }));
+  const [toleranceText, setToleranceText] = useState(
+    ((view.effective.varianceToleranceMinor ?? 0) / 100).toFixed(2),
+  );
+  const [localError, setLocalError] = useState<string | null>(null);
   const currency = view.effective.varianceCurrency ?? "GHS";
 
   function setBoolean(key: keyof ShiftClosePolicyOverride, value: boolean) {
@@ -137,8 +161,8 @@ export function PolicyPanel({
 
       <label className="management-policy-row">
         <span>
-          <strong>Manager may close another staff member's shift</strong>
-          <small>Applies only inside the manager's authorized location/register scope.</small>
+          <strong>Manager may close another staff member&apos;s shift</strong>
+          <small>Applies only inside the manager&apos;s authorized location/register scope.</small>
         </span>
         <input
           type="checkbox"
