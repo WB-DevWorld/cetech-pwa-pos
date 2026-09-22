@@ -16,6 +16,7 @@ import {
   fetchStaffAccess,
   updateControlMembership,
   updateOperationalPolicy,
+  updateStaffAccessStatus,
   updateStaffAssignment,
 } from "./management-client";
 
@@ -114,6 +115,26 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
       ]);
       setStaffResult(staff);
       setTopologyResult(topology);
+    } finally {
+      setStaffSavingActorId(null);
+    }
+  }
+
+  async function saveStaffAccessStatus(input: {
+    readonly actorId: string;
+    readonly status: "active" | "disabled";
+    readonly reason?: string;
+  }) {
+    setStaffSavingActorId(input.actorId);
+    setStaffMutationError(null);
+    try {
+      const saved = await updateStaffAccessStatus(input, fetchImpl);
+      if (!saved.ok) {
+        setStaffMutationError(saved.error.message);
+        return;
+      }
+      const staff = await fetchStaffAccess(fetchImpl);
+      setStaffResult(staff);
     } finally {
       setStaffSavingActorId(null);
     }
@@ -229,6 +250,13 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
         context.controlRole === "owner" || context.controlRole === "admin"
           ? (input) => {
               void saveControlMembership(input);
+            }
+          : undefined
+      }
+      onSaveAccessStatus={
+        context.controlRole === "owner" || context.controlRole === "admin"
+          ? (input) => {
+              void saveStaffAccessStatus(input);
             }
           : undefined
       }
