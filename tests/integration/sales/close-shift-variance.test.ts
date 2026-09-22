@@ -8,6 +8,7 @@ import {
 import type { ShiftClosePolicyOverride } from "../../../apps/pos-web/src/server/auth/policy";
 import {
   commandBase,
+  CORRELATION,
   ghs,
   openRegister,
   seedRegister,
