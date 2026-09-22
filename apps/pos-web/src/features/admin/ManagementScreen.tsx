@@ -4,9 +4,12 @@ import type { ReactNode } from "react";
 import type { ManagementContext, ManagementSection } from "../../server/admin/management-context";
 import type { StaffAccessRecord } from "../../server/admin/staff-access-directory";
 import type { OperationalPolicyView } from "../../server/admin/handle-operational-policy";
+import type { ManagementLocation } from "../../server/admin/management-topology-directory";
+import type { StaffAssignmentRole } from "../../server/auth/roles";
 import type { ShiftClosePolicyOverride } from "../../server/auth/policy";
 import { StaffAccessPanel } from "./StaffAccessPanel";
 import { PolicyPanel } from "./PolicyPanel";
+import { TopologyPanel } from "./TopologyPanel";
 
 const LABELS: Record<ManagementSection, { label: string; description: string }> = {
   overview: { label: "Overview", description: "Live operational management summary." },
@@ -34,6 +37,11 @@ export function ManagementScreen({
   policySaving = false,
   policyError,
   onSavePolicy,
+  topologyRows = [],
+  topologyLoading = false,
+  topologyError,
+  staffSavingActorId,
+  onSaveStaffAssignment,
 }: {
   readonly context: ManagementContext;
   readonly activeSection?: ManagementSection;
@@ -47,6 +55,16 @@ export function ManagementScreen({
   readonly policySaving?: boolean;
   readonly policyError?: string;
   readonly onSavePolicy?: (override: ShiftClosePolicyOverride) => void;
+  readonly topologyRows?: readonly ManagementLocation[];
+  readonly topologyLoading?: boolean;
+  readonly topologyError?: string;
+  readonly staffSavingActorId?: string | null;
+  readonly onSaveStaffAssignment?: (input: {
+    readonly actorId: string;
+    readonly locationId: string;
+    readonly role: StaffAssignmentRole;
+    readonly registerIds: readonly string[];
+  }) => void;
 }) {
   const active = LABELS[activeSection];
   const roleLabel = context.controlRole
@@ -126,9 +144,19 @@ export function ManagementScreen({
           ) : activeSection === "staff_access" ? (
             <StaffAccessPanel
               rows={staffRows}
+              topology={topologyRows}
+              canManage={context.controlRole === "owner" || context.controlRole === "admin"}
               loading={staffLoading}
+              savingActorId={staffSavingActorId}
               errorMessage={staffError}
+              onSaveAssignment={onSaveStaffAssignment}
             />
+          ) : activeSection === "locations" ? (
+            <TopologyPanel rows={topologyRows} mode="locations" loading={topologyLoading} errorMessage={topologyError} />
+          ) : activeSection === "registers" ? (
+            <TopologyPanel rows={topologyRows} mode="registers" loading={topologyLoading} errorMessage={topologyError} />
+          ) : activeSection === "devices" ? (
+            <TopologyPanel rows={topologyRows} mode="devices" loading={topologyLoading} errorMessage={topologyError} />
           ) : activeSection === "policies" ? (
             <PolicyPanel
               view={policyView}
