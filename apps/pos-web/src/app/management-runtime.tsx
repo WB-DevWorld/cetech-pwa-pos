@@ -27,6 +27,7 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
   const [policySaving, setPolicySaving] = useState(false);
   const [topologyResult, setTopologyResult] = useState<ApiResult<readonly ManagementLocation[]> | null>(null);
   const [staffSavingActorId, setStaffSavingActorId] = useState<string | null>(null);
+  const [staffMutationError, setStaffMutationError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,10 +100,11 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
     readonly registerIds: readonly string[];
   }) {
     setStaffSavingActorId(input.actorId);
+    setStaffMutationError(null);
     try {
       const saved = await updateStaffAssignment(input, fetchImpl);
       if (!saved.ok) {
-        setStaffResult(saved as ApiResult<readonly StaffAccessRecord[]>);
+        setStaffMutationError(saved.error.message);
         return;
       }
       const [staff, topology] = await Promise.all([
@@ -173,9 +175,10 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
       staffRows={staffResult?.ok ? staffResult.data : []}
       staffLoading={allowedSection === "staff_access" && staffResult === null}
       staffError={
-        allowedSection === "staff_access" && staffResult && !staffResult.ok
+        staffMutationError ??
+        (allowedSection === "staff_access" && staffResult && !staffResult.ok
           ? staffResult.error.message
-          : undefined
+          : undefined)
       }
       topologyRows={topologyResult?.ok ? topologyResult.data : []}
       topologyLoading={
