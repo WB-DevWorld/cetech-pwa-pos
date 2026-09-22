@@ -17,6 +17,7 @@ export function StaffAccessPanel({
   currentActorId,
   onSaveAssignment,
   onSaveControlMembership,
+  onSaveAccessStatus,
 }: {
   readonly rows: readonly StaffAccessRecord[];
   readonly topology?: readonly ManagementLocation[];
@@ -36,6 +37,11 @@ export function StaffAccessPanel({
     readonly actorId: string;
     readonly controlRole: OrganizationControlRole;
     readonly status: "active" | "disabled";
+  }) => void;
+  readonly onSaveAccessStatus?: (input: {
+    readonly actorId: string;
+    readonly status: "active" | "disabled";
+    readonly reason?: string;
   }) => void;
 }) {
   if (loading) {
@@ -61,6 +67,7 @@ export function StaffAccessPanel({
           saving={savingActorId === row.actorId}
           onSaveAssignment={onSaveAssignment}
           onSaveControlMembership={onSaveControlMembership}
+          onSaveAccessStatus={onSaveAccessStatus}
         />
       ))}
     </div>
@@ -76,6 +83,7 @@ function StaffCard({
   saving,
   onSaveAssignment,
   onSaveControlMembership,
+  onSaveAccessStatus,
 }: {
   readonly row: StaffAccessRecord;
   readonly topology: readonly ManagementLocation[];
@@ -94,6 +102,11 @@ function StaffCard({
     readonly controlRole: OrganizationControlRole;
     readonly status: "active" | "disabled";
   }) => void;
+  readonly onSaveAccessStatus?: (input: {
+    readonly actorId: string;
+    readonly status: "active" | "disabled";
+    readonly reason?: string;
+  }) => void;
 }) {
   const firstUnassigned = topology.find(
     (location) => !row.locations.some((assignment) => assignment.locationId === location.id),
@@ -105,9 +118,14 @@ function StaffCard({
           <h2>{row.displayName}</h2>
           <p className="muted">{row.email ?? row.actorId}</p>
         </div>
-        <span className={row.authStatus === "active" ? "status-pill success" : "status-pill warning"}>
-          {row.authStatus === "active" ? "Active" : "Disabled"}
-        </span>
+        <div className="management-staff-statuses">
+          <span className={row.authStatus === "active" ? "status-pill success" : "status-pill warning"}>
+            Auth {row.authStatus}
+          </span>
+          <span className={(row.posAccessStatus ?? "active") === "active" ? "status-pill success" : "status-pill warning"}>
+            POS {row.posAccessStatus ?? "active"}
+          </span>
+        </div>
       </div>
       <div className="management-meta-grid">
         <div>
@@ -122,6 +140,16 @@ function StaffCard({
           onSave={onSaveControlMembership}
         />
       </div>
+
+      {canManage && onSaveAccessStatus ? (
+        <StaffAccessStatusEditor
+          row={row}
+          currentActorId={currentActorId}
+          callerControlRole={callerControlRole}
+          saving={saving}
+          onSave={onSaveAccessStatus}
+        />
+      ) : null}
 
       <div className="stack">
         <strong>Operational assignments</strong>
@@ -396,6 +424,56 @@ function ControlRoleEditor({
       {currentActorId === row.actorId && row.controlRole === "owner" ? (
         <small className="muted">The database will refuse removal of the last active owner.</small>
       ) : null}
+    </div>
+  );
+}
+
+
+function StaffAccessStatusEditor({
+  row,
+  currentActorId,
+  callerControlRole,
+  saving,
+  onSave,
+}: {
+  readonly row: StaffAccessRecord;
+  readonly currentActorId?: string;
+  readonly callerControlRole?: OrganizationControlRole | null;
+  readonly saving: boolean;
+  readonly onSave: (input: {
+    readonly actorId: string;
+    readonly status: "active" | "disabled";
+    readonly reason?: string;
+  }) => void;
+}) {
+  const status = row.posAccessStatus ?? "active";
+  const cannotDisable =
+    currentActorId === row.actorId ||
+    row.controlRole === "owner" ||
+    (callerControlRole === "admin" && row.controlRole === "owner");
+  const next = status === "active" ? "disabled" : "active";
+  return (
+    <div className="management-access-control">
+      <div>
+        <strong>POS access</strong>
+        <small className="muted">
+          Disabling immediately revokes active POS sessions and blocks new POS sign-in.
+        </small>
+      </div>
+      <button
+        className={next === "disabled" ? "btn small" : "btn small primary"}
+        type="button"
+        disabled={saving || (next === "disabled" && cannotDisable)}
+        onClick={() =>
+          onSave({
+            actorId: row.actorId,
+            status: next,
+            reason: next === "disabled" ? "Disabled from POS management" : undefined,
+          })
+        }
+      >
+        {saving ? "Saving…" : next === "disabled" ? "Disable POS access" : "Re-enable POS access"}
+      </button>
     </div>
   );
 }
