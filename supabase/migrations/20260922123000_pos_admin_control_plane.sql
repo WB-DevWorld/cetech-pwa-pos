@@ -582,3 +582,145 @@ COMMENT ON FUNCTION pos_admin_set_control_membership(
   text, text, text, text, text, uuid
 ) IS
   'Atomic organization control-role membership mutation plus append-only audit. Refuses removal of the last active owner. BFF owner/admin authorization is required before invocation.';
+
+
+CREATE TABLE pos_staff_access_controls (
+  organization_id pos_id NOT NULL REFERENCES pos_organizations (id),
+  actor_id pos_id NOT NULL,
+  status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'disabled')),
+  reason text,
+  updated_by_actor_id pos_id NOT NULL,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (organization_id, actor_id)
+);
+
+COMMENT ON TABLE pos_staff_access_controls IS
+  'POS-owned staff access override. Missing row means active for backward compatibility. disabled blocks new BFF sessions and is paired with transactional revocation of existing POS sessions.';
+
+ALTER TABLE pos_staff_access_controls ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE pos_staff_access_controls FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT, UPDATE ON TABLE pos_staff_access_controls TO service_role;
+
+CREATE INDEX pos_staff_access_controls_status_idx
+  ON pos_staff_access_controls (organization_id, status);
+
+CREATE OR REPLACE FUNCTION pos_admin_set_staff_access_status(
+  p_organization_id text,
+  p_target_actor_id text,
+  p_status text,
+  p_reason text,
+  p_actor_id text,
+  p_correlation_id uuid
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  existing public.pos_staff_access_controls%ROWTYPE;
+  saved public.pos_staff_access_controls%ROWTYPE;
+  before_json jsonb;
+  after_json jsonb;
+  revoked_count integer := 0;
+BEGIN
+  IF p_organization_id IS NULL OR p_target_actor_id IS NULL OR p_actor_id IS NULL THEN
+    RAISE EXCEPTION 'organization, target actor and actor are required' USING ERRCODE = '23502';
+  END IF;
+  IF p_status NOT IN ('active', 'disabled') THEN
+    RAISE EXCEPTION 'staff access status is invalid' USING ERRCODE = '23514';
+  END IF;
+
+  PERFORM 1
+  FROM public.pos_organizations
+  WHERE id = p_organization_id
+  FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'organization was not found' USING ERRCODE = '23503';
+  END IF;
+
+  SELECT *
+  INTO existing
+  FROM public.pos_staff_access_controls
+  WHERE organization_id = p_organization_id
+    AND actor_id = p_target_actor_id
+  FOR UPDATE;
+
+  before_json := CASE WHEN FOUND THEN to_jsonb(existing) ELSE NULL END;
+
+  INSERT INTO public.pos_staff_access_controls (
+    organization_id,
+    actor_id,
+    status,
+    reason,
+    updated_by_actor_id,
+    updated_at
+  ) VALUES (
+    p_organization_id,
+    p_target_actor_id,
+    p_status,
+    NULLIF(btrim(COALESCE(p_reason, '')), ''),
+    p_actor_id,
+    now()
+  )
+  ON CONFLICT (organization_id, actor_id)
+  DO UPDATE SET
+    status = EXCLUDED.status,
+    reason = EXCLUDED.reason,
+    updated_by_actor_id = EXCLUDED.updated_by_actor_id,
+    updated_at = EXCLUDED.updated_at
+  RETURNING * INTO saved;
+
+  IF p_status = 'disabled' THEN
+    UPDATE public.pos_staff_sessions
+    SET revoked_at = now()
+    WHERE organization_id = p_organization_id
+      AND actor_id = p_target_actor_id
+      AND revoked_at IS NULL;
+    GET DIAGNOSTICS revoked_count = ROW_COUNT;
+  END IF;
+
+  after_json := to_jsonb(saved);
+
+  INSERT INTO public.pos_admin_audit_events (
+    organization_id,
+    actor_id,
+    action,
+    target_type,
+    target_id,
+    before_state,
+    after_state,
+    correlation_id
+  ) VALUES (
+    p_organization_id,
+    p_actor_id,
+    'staff.access_status.set',
+    'staff_access',
+    p_target_actor_id,
+    before_json,
+    after_json || jsonb_build_object('revokedSessionCount', revoked_count),
+    p_correlation_id
+  );
+
+  RETURN jsonb_build_object(
+    'organizationId', saved.organization_id,
+    'actorId', saved.actor_id,
+    'status', saved.status,
+    'reason', saved.reason,
+    'revokedSessionCount', revoked_count
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION pos_admin_set_staff_access_status(
+  text, text, text, text, text, uuid
+) FROM PUBLIC, anon, authenticated;
+
+GRANT EXECUTE ON FUNCTION pos_admin_set_staff_access_status(
+  text, text, text, text, text, uuid
+) TO service_role;
+
+COMMENT ON FUNCTION pos_admin_set_staff_access_status(
+  text, text, text, text, text, uuid
+) IS
+  'Atomic POS staff access-status change, active POS-session revocation on disable, and append-only admin audit. BFF owner/admin authorization required.';
