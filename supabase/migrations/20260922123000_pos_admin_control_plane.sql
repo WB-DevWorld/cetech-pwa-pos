@@ -273,3 +273,177 @@ COMMENT ON FUNCTION pos_admin_set_operational_policy(
   text, text, text, text, uuid, boolean, boolean, boolean, boolean, boolean, bigint, text
 ) IS
   'Atomic trusted-server operational-policy upsert plus append-only admin audit. Business authorization is required in the BFF before service_role invocation.';
+
+
+-- Atomic staff operational assignment mutation + audit.
+CREATE OR REPLACE FUNCTION pos_admin_set_staff_assignment(
+  p_organization_id text,
+  p_target_actor_id text,
+  p_location_id text,
+  p_role text,
+  p_register_ids text[],
+  p_actor_id text,
+  p_correlation_id uuid
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  before_role text;
+  before_register_ids text[];
+  after_register_ids text[];
+  expected_register_count integer;
+  matched_register_count integer;
+  before_json jsonb;
+  after_json jsonb;
+BEGIN
+  IF p_organization_id IS NULL
+     OR p_target_actor_id IS NULL
+     OR p_location_id IS NULL
+     OR p_actor_id IS NULL THEN
+    RAISE EXCEPTION 'organization, target actor, location and actor are required'
+      USING ERRCODE = '23502';
+  END IF;
+
+  IF p_role NOT IN ('cashier', 'manager') THEN
+    RAISE EXCEPTION 'staff assignment role is invalid' USING ERRCODE = '23514';
+  END IF;
+
+  -- Serialize assignment edits at the location and prove tenant scope.
+  PERFORM 1
+  FROM public.pos_locations
+  WHERE id = p_location_id
+    AND organization_id = p_organization_id
+  FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'location is outside organization scope' USING ERRCODE = '23503';
+  END IF;
+
+  p_register_ids := COALESCE(p_register_ids, ARRAY[]::text[]);
+  SELECT COUNT(DISTINCT value)
+  INTO expected_register_count
+  FROM unnest(p_register_ids) AS ids(value);
+
+  SELECT COUNT(*)
+  INTO matched_register_count
+  FROM public.pos_registers
+  WHERE organization_id = p_organization_id
+    AND location_id = p_location_id
+    AND id = ANY (p_register_ids);
+
+  IF matched_register_count <> expected_register_count THEN
+    RAISE EXCEPTION 'one or more registers are outside location scope' USING ERRCODE = '23514';
+  END IF;
+
+  SELECT role
+  INTO before_role
+  FROM public.pos_staff_location_assignments
+  WHERE actor_id = p_target_actor_id
+    AND organization_id = p_organization_id
+    AND location_id = p_location_id;
+
+  SELECT COALESCE(array_agg(register_id ORDER BY register_id), ARRAY[]::text[])
+  INTO before_register_ids
+  FROM public.pos_staff_register_assignments
+  WHERE actor_id = p_target_actor_id
+    AND organization_id = p_organization_id
+    AND location_id = p_location_id;
+
+  before_json := jsonb_build_object(
+    'role', before_role,
+    'registerIds', to_jsonb(COALESCE(before_register_ids, ARRAY[]::text[]))
+  );
+
+  INSERT INTO public.pos_staff_location_assignments (
+    actor_id,
+    organization_id,
+    location_id,
+    role
+  ) VALUES (
+    p_target_actor_id,
+    p_organization_id,
+    p_location_id,
+    p_role
+  )
+  ON CONFLICT (actor_id, organization_id, location_id)
+  DO UPDATE SET role = EXCLUDED.role;
+
+  DELETE FROM public.pos_staff_register_assignments
+  WHERE actor_id = p_target_actor_id
+    AND organization_id = p_organization_id
+    AND location_id = p_location_id;
+
+  INSERT INTO public.pos_staff_register_assignments (
+    actor_id,
+    organization_id,
+    location_id,
+    register_id
+  )
+  SELECT
+    p_target_actor_id,
+    p_organization_id,
+    p_location_id,
+    value
+  FROM (
+    SELECT DISTINCT value
+    FROM unnest(p_register_ids) AS ids(value)
+  ) AS unique_ids;
+
+  SELECT COALESCE(array_agg(register_id ORDER BY register_id), ARRAY[]::text[])
+  INTO after_register_ids
+  FROM public.pos_staff_register_assignments
+  WHERE actor_id = p_target_actor_id
+    AND organization_id = p_organization_id
+    AND location_id = p_location_id;
+
+  after_json := jsonb_build_object(
+    'role', p_role,
+    'registerIds', to_jsonb(COALESCE(after_register_ids, ARRAY[]::text[]))
+  );
+
+  INSERT INTO public.pos_admin_audit_events (
+    organization_id,
+    actor_id,
+    action,
+    target_type,
+    target_id,
+    location_id,
+    before_state,
+    after_state,
+    correlation_id
+  ) VALUES (
+    p_organization_id,
+    p_actor_id,
+    'staff.assignment.set',
+    'staff_assignment',
+    p_target_actor_id,
+    p_location_id,
+    before_json,
+    after_json,
+    p_correlation_id
+  );
+
+  RETURN jsonb_build_object(
+    'actorId', p_target_actor_id,
+    'organizationId', p_organization_id,
+    'locationId', p_location_id,
+    'role', p_role,
+    'registerIds', to_jsonb(COALESCE(after_register_ids, ARRAY[]::text[]))
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION pos_admin_set_staff_assignment(
+  text, text, text, text, text[], text, uuid
+) FROM PUBLIC, anon, authenticated;
+
+GRANT EXECUTE ON FUNCTION pos_admin_set_staff_assignment(
+  text, text, text, text, text[], text, uuid
+) TO service_role;
+
+COMMENT ON FUNCTION pos_admin_set_staff_assignment(
+  text, text, text, text, text[], text, uuid
+) IS
+  'Atomic trusted-server staff location/register assignment update plus append-only admin audit. BFF owner/admin authorization is required before invocation.';
