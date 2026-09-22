@@ -1,17 +1,17 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { STAFF_CSRF_COOKIE, STAFF_CSRF_HEADER } from "../../../../../../../config/auth";
-import { staffAllowedOrigins } from "../../../../../../../config/env";
-import { parseCookieHeader } from "../../../../../../../server/auth/cookies";
-import { isStaffAssignmentRole } from "../../../../../../../server/auth/roles";
-import { composeStaffSessionStore } from "../../../../../../../server/auth/compose-session-store";
-import { composeStaffAssignmentDirectory } from "../../../../../../../server/sales/compose-assignment-directory";
-import { composeControlPlaneDirectory } from "../../../../../../../server/admin/compose-control-plane-directory";
-import { composeStaffAccessDirectory } from "../../../../../../../server/admin/compose-staff-access-directory";
-import { composeStaffAssignmentAdminStore } from "../../../../../../../server/admin/compose-staff-assignment-admin-store";
-import { handleSetStaffAssignment } from "../../../../../../../server/admin/handle-staff-access";
-import { createServerRestFetch } from "../../../../../../../server/http/server-fetch";
-import { resolveCorrelationId } from "../../../../../../../server/http/correlation";
-import { httpStatusFor } from "../../../../../../../server/http/status";
+import { STAFF_CSRF_COOKIE, STAFF_CSRF_HEADER } from "@/config/auth";
+import { staffAllowedOrigins } from "@/config/env";
+import { parseCookieHeader } from "@/server/auth/cookies";
+import { isStaffAssignmentRole } from "@/server/auth/roles";
+import { composeStaffSessionStore } from "@/server/auth/compose-session-store";
+import { composeStaffAssignmentDirectory } from "@/server/sales/compose-assignment-directory";
+import { composeControlPlaneDirectory } from "@/server/admin/compose-control-plane-directory";
+import { composeStaffAccessDirectory } from "@/server/admin/compose-staff-access-directory";
+import { composeStaffAssignmentAdminStore } from "@/server/admin/compose-staff-assignment-admin-store";
+import { handleSetStaffAssignment } from "@/server/admin/handle-staff-access";
+import { createServerRestFetch } from "@/server/http/server-fetch";
+import { resolveCorrelationId } from "@/server/http/correlation";
+import { httpStatusFor } from "@/server/http/status";
 
 export async function PATCH(
   request: NextRequest,
@@ -99,9 +99,10 @@ function parseBody(value: unknown): {
 } | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const root = value as Record<string, unknown>;
+  const role = root.role;
   if (
     typeof root.locationId !== "string" ||
-    !isStaffAssignmentRole(root.role) ||
+    !isStaffAssignmentRole(role) ||
     !Array.isArray(root.registerIds) ||
     root.registerIds.some((id) => typeof id !== "string" || id.length === 0)
   ) {
@@ -109,7 +110,7 @@ function parseBody(value: unknown): {
   }
   return {
     locationId: root.locationId,
-    role: root.role,
+    role,
     registerIds: root.registerIds as string[],
   };
 }
