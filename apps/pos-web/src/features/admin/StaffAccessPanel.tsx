@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { StaffAssignmentRole } from "../../server/auth/roles";
+import type { OrganizationControlRole } from "../../server/auth/policy";
 import type { StaffAccessLocation, StaffAccessRecord } from "../../server/admin/staff-access-directory";
 import type { ManagementLocation } from "../../server/admin/management-topology-directory";
 
@@ -12,7 +13,10 @@ export function StaffAccessPanel({
   loading,
   savingActorId,
   errorMessage,
+  callerControlRole,
+  currentActorId,
   onSaveAssignment,
+  onSaveControlMembership,
 }: {
   readonly rows: readonly StaffAccessRecord[];
   readonly topology?: readonly ManagementLocation[];
@@ -20,11 +24,18 @@ export function StaffAccessPanel({
   readonly loading?: boolean;
   readonly savingActorId?: string | null;
   readonly errorMessage?: string;
+  readonly callerControlRole?: OrganizationControlRole | null;
+  readonly currentActorId?: string;
   readonly onSaveAssignment?: (input: {
     readonly actorId: string;
     readonly locationId: string;
     readonly role: StaffAssignmentRole;
     readonly registerIds: readonly string[];
+  }) => void;
+  readonly onSaveControlMembership?: (input: {
+    readonly actorId: string;
+    readonly controlRole: OrganizationControlRole;
+    readonly status: "active" | "disabled";
   }) => void;
 }) {
   if (loading) {
@@ -45,8 +56,11 @@ export function StaffAccessPanel({
           row={row}
           topology={topology}
           canManage={canManage}
+          callerControlRole={callerControlRole}
+          currentActorId={currentActorId}
           saving={savingActorId === row.actorId}
           onSaveAssignment={onSaveAssignment}
+          onSaveControlMembership={onSaveControlMembership}
         />
       ))}
     </div>
@@ -57,18 +71,28 @@ function StaffCard({
   row,
   topology,
   canManage,
+  callerControlRole,
+  currentActorId,
   saving,
   onSaveAssignment,
+  onSaveControlMembership,
 }: {
   readonly row: StaffAccessRecord;
   readonly topology: readonly ManagementLocation[];
   readonly canManage: boolean;
+  readonly callerControlRole?: OrganizationControlRole | null;
+  readonly currentActorId?: string;
   readonly saving: boolean;
   readonly onSaveAssignment?: (input: {
     readonly actorId: string;
     readonly locationId: string;
     readonly role: StaffAssignmentRole;
     readonly registerIds: readonly string[];
+  }) => void;
+  readonly onSaveControlMembership?: (input: {
+    readonly actorId: string;
+    readonly controlRole: OrganizationControlRole;
+    readonly status: "active" | "disabled";
   }) => void;
 }) {
   const firstUnassigned = topology.find(
@@ -90,10 +114,13 @@ function StaffCard({
           <span className="label">Actor</span>
           <strong>{row.actorId}</strong>
         </div>
-        <div>
-          <span className="label">Control role</span>
-          <strong>{row.controlRole ?? "Operational staff"}</strong>
-        </div>
+        <ControlRoleEditor
+          row={row}
+          callerControlRole={callerControlRole}
+          currentActorId={currentActorId}
+          saving={saving}
+          onSave={onSaveControlMembership}
+        />
       </div>
 
       <div className="stack">
@@ -273,6 +300,102 @@ function NewAssignmentEditor({
       >
         {saving ? "Saving…" : "Add assignment"}
       </button>
+    </div>
+  );
+}
+
+
+function ControlRoleEditor({
+  row,
+  callerControlRole,
+  currentActorId,
+  saving,
+  onSave,
+}: {
+  readonly row: StaffAccessRecord;
+  readonly callerControlRole?: OrganizationControlRole | null;
+  readonly currentActorId?: string;
+  readonly saving: boolean;
+  readonly onSave?: (input: {
+    readonly actorId: string;
+    readonly controlRole: OrganizationControlRole;
+    readonly status: "active" | "disabled";
+  }) => void;
+}) {
+  const canEditOwner = callerControlRole === "owner";
+  const targetIsOwner = row.controlRole === "owner";
+  const canEdit =
+    Boolean(onSave) &&
+    (callerControlRole === "owner" ||
+      (callerControlRole === "admin" && !targetIsOwner));
+
+  const [draft, setDraft] = useState<"none" | OrganizationControlRole>(
+    row.controlRole ?? "none",
+  );
+
+  const options: Array<"none" | OrganizationControlRole> =
+    callerControlRole === "owner"
+      ? ["none", "owner", "admin", "support"]
+      : ["none", "admin", "support"];
+
+  function save() {
+    if (!onSave || !canEdit) return;
+    if (draft === "none") {
+      if (!row.controlRole) return;
+      onSave({
+        actorId: row.actorId,
+        controlRole: row.controlRole,
+        status: "disabled",
+      });
+      return;
+    }
+    onSave({
+      actorId: row.actorId,
+      controlRole: draft,
+      status: "active",
+    });
+  }
+
+  return (
+    <div className="management-control-role">
+      <span className="label">Control role</span>
+      {canEdit ? (
+        <div className="management-control-role-edit">
+          <select
+            className="select"
+            value={draft}
+            disabled={saving}
+            onChange={(event) =>
+              setDraft(event.target.value as "none" | OrganizationControlRole)
+            }
+          >
+            {options.map((value) => (
+              <option key={value} value={value}>
+                {value === "none"
+                  ? "Operational staff only"
+                  : value[0]!.toUpperCase() + value.slice(1)}
+              </option>
+            ))}
+          </select>
+          <button
+            className="btn small"
+            type="button"
+            disabled={
+              saving ||
+              draft === (row.controlRole ?? "none") ||
+              (draft === "owner" && !canEditOwner)
+            }
+            onClick={save}
+          >
+            {saving ? "Saving…" : "Save role"}
+          </button>
+        </div>
+      ) : (
+        <strong>{row.controlRole ?? "Operational staff"}</strong>
+      )}
+      {currentActorId === row.actorId && row.controlRole === "owner" ? (
+        <small className="muted">The database will refuse removal of the last active owner.</small>
+      ) : null}
     </div>
   );
 }
