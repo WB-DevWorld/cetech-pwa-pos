@@ -11,13 +11,13 @@ export type ManagementRegister = {
   readonly name: string;
   readonly currency: string;
   readonly status: "active" | "disabled" | "maintenance";
-  readonly devices: readonly ManagementDevice[];
 };
 
 export type ManagementLocation = {
   readonly id: string;
   readonly name: string;
   readonly registers: readonly ManagementRegister[];
+  readonly devices: readonly ManagementDevice[];
 };
 
 export interface ManagementTopologyDirectory {
@@ -121,9 +121,6 @@ export function createSupabaseManagementTopologyDirectory(input: {
             name: register.name,
             currency: register.currency,
             status: register.status as ManagementRegister["status"],
-            // Current schema associates devices to locations, not directly to a register.
-            // Surface location devices without inventing a false register binding.
-            devices,
           } satisfies ManagementRegister];
         });
 
@@ -131,6 +128,7 @@ export function createSupabaseManagementTopologyDirectory(input: {
           id: locationId,
           name: row.name,
           registers,
+          devices,
         } satisfies ManagementLocation];
       });
     },
