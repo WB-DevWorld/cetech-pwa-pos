@@ -37,6 +37,7 @@ const MANAGER: readonly ManagementSection[] = [
   "returns_approvals",
   "system_health",
   "audit",
+  "policies",
 ];
 
 export function resolveManagementSections(input: {
