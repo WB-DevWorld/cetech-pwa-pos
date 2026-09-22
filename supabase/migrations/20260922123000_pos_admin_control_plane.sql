@@ -855,3 +855,143 @@ COMMENT ON FUNCTION pos_admin_set_receipt_settings(
   text, text, text, uuid, boolean, integer, boolean
 ) IS
   'Atomic trusted-server receipt-settings upsert plus append-only admin audit. Business authorization is required in the BFF before service_role invocation. Does not rewrite historical receipts.';
+
+
+-- Atomic manager return-approval binding + append-only admin audit.
+-- This does not execute the return, refund a tender, or mutate stock.
+CREATE OR REPLACE FUNCTION pos_admin_bind_return_approval(
+  p_organization_id text,
+  p_return_id uuid,
+  p_fingerprint text,
+  p_actor_id text,
+  p_correlation_id uuid,
+  p_approval_id uuid,
+  p_expires_at timestamptz
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  target public.pos_returns%ROWTYPE;
+  existing public.pos_return_approvals%ROWTYPE;
+  effective_expires_at timestamptz;
+BEGIN
+  IF p_organization_id IS NULL
+     OR p_return_id IS NULL
+     OR p_fingerprint IS NULL
+     OR p_actor_id IS NULL
+     OR p_approval_id IS NULL
+     OR p_expires_at IS NULL THEN
+    RAISE EXCEPTION 'organization, return, fingerprint, actor, approval, and expiry are required'
+      USING ERRCODE = '23502';
+  END IF;
+
+  SELECT *
+  INTO target
+  FROM public.pos_returns
+  WHERE return_id = p_return_id
+  FOR UPDATE;
+
+  IF NOT FOUND OR target.organization_id <> p_organization_id THEN
+    RAISE EXCEPTION 'return is outside organization scope' USING ERRCODE = '23503';
+  END IF;
+  IF target.fingerprint <> p_fingerprint THEN
+    RAISE EXCEPTION 'return fingerprint does not match' USING ERRCODE = '23514';
+  END IF;
+  IF NOT target.approval_required OR target.status <> 'approval_required' THEN
+    RAISE EXCEPTION 'return is not awaiting approval' USING ERRCODE = '23514';
+  END IF;
+  IF target.preview_expires_at <= now() THEN
+    RAISE EXCEPTION 'return preview has expired' USING ERRCODE = '23514';
+  END IF;
+
+  effective_expires_at := LEAST(p_expires_at, target.preview_expires_at);
+  IF effective_expires_at <= now() THEN
+    RAISE EXCEPTION 'approval expiry must be in the future' USING ERRCODE = '23514';
+  END IF;
+
+  SELECT *
+  INTO existing
+  FROM public.pos_return_approvals
+  WHERE return_id = p_return_id
+    AND fingerprint = p_fingerprint
+    AND expires_at > now()
+  ORDER BY expires_at DESC, created_at DESC
+  LIMIT 1;
+
+  IF FOUND THEN
+    RETURN jsonb_build_object(
+      'approvalId', existing.approval_id,
+      'returnId', existing.return_id,
+      'fingerprint', existing.fingerprint,
+      'actorId', existing.actor_id,
+      'expiresAt', existing.expires_at
+    );
+  END IF;
+
+  INSERT INTO public.pos_return_approvals (
+    approval_id,
+    return_id,
+    fingerprint,
+    actor_id,
+    organization_id,
+    location_id,
+    expires_at
+  ) VALUES (
+    p_approval_id,
+    target.return_id,
+    target.fingerprint,
+    p_actor_id,
+    target.organization_id,
+    target.location_id,
+    effective_expires_at
+  )
+  RETURNING * INTO existing;
+
+  INSERT INTO public.pos_admin_audit_events (
+    organization_id,
+    actor_id,
+    action,
+    target_type,
+    target_id,
+    location_id,
+    after_state,
+    correlation_id
+  ) VALUES (
+    target.organization_id,
+    p_actor_id,
+    'return.approval.bound',
+    'return_approval',
+    target.return_id::text,
+    target.location_id,
+    jsonb_build_object(
+      'approvalId', existing.approval_id,
+      'expiresAt', existing.expires_at
+    ),
+    p_correlation_id
+  );
+
+  RETURN jsonb_build_object(
+    'approvalId', existing.approval_id,
+    'returnId', existing.return_id,
+    'fingerprint', existing.fingerprint,
+    'actorId', existing.actor_id,
+    'expiresAt', existing.expires_at
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION pos_admin_bind_return_approval(
+  text, uuid, text, text, uuid, uuid, timestamptz
+) FROM PUBLIC, anon, authenticated;
+
+GRANT EXECUTE ON FUNCTION pos_admin_bind_return_approval(
+  text, uuid, text, text, uuid, uuid, timestamptz
+) TO service_role;
+
+COMMENT ON FUNCTION pos_admin_bind_return_approval(
+  text, uuid, text, text, uuid, uuid, timestamptz
+) IS
+  'Atomic trusted-server binding of an existing approval-required return to an operational manager approval plus admin audit. Replays return the existing live binding. No refund or stock effect is executed.';

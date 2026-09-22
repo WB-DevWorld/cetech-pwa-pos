@@ -116,6 +116,7 @@ export interface ReturnStore {
   acceptedRefundedMinor(paymentId: Uuid): Promise<number>;
   bindApproval(approval: StoredReturnApproval): Promise<void>;
   getApproval(approvalId: Uuid): Promise<StoredReturnApproval | undefined>;
+  getApprovalForReturn(returnId: Uuid, fingerprint: string): Promise<StoredReturnApproval | undefined>;
   insertTenderRefund(row: StoredTenderRefund): Promise<"ok" | "duplicate">;
   getTenderRefund(refundId: Uuid): Promise<StoredTenderRefund | undefined>;
   saveTenderRefund(row: StoredTenderRefund): Promise<void>;

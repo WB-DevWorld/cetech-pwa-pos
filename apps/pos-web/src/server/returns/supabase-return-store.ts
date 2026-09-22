@@ -168,6 +168,13 @@ export function createSupabaseReturnStore(options: SupabaseReturnStoreOptions): 
       return row ? mapApproval(row) : undefined;
     },
 
+    async getApprovalForReturn(returnId, fingerprint) {
+      const row = await getOne(
+        `pos_return_approvals?return_id=eq.${encodeURIComponent(returnId)}&fingerprint=eq.${encodeURIComponent(fingerprint)}&order=expires_at.desc,created_at.desc&limit=1`,
+      );
+      return row ? mapApproval(row) : undefined;
+    },
+
     async insertTenderRefund(row) {
       const result = await request({
         path: "pos_tender_refunds",

@@ -200,6 +200,31 @@ describe("RT-01 preview", () => {
   });
 });
 
+describe("RT-01 server-owned approval lookup", () => {
+  test("approved return executes the same fingerprint without a browser approval id", async () => {
+    const runtime = await createRt01Runtime();
+    const previewed = await preview(runtime, { requireApproval: true });
+    expect(previewed.body.ok).toBe(true);
+    if (!previewed.body.ok) return;
+
+    const approval = await approve(runtime, previewed.body.data.returnId);
+    expect(approval.ok).toBe(true);
+    if (!approval.ok) return;
+
+    const executed = await execute(
+      runtime,
+      {
+        returnId: previewed.body.data.returnId,
+        fingerprint: previewed.body.data.fingerprint,
+      },
+      "66666666-6666-4666-8666-666666666699",
+    );
+    expect(executed.body.ok).toBe(true);
+    if (!executed.body.ok) return;
+    expect(executed.body.data.status).toBe("completed");
+  });
+});
+
 describe("RT-01 approval", () => {
   test("valid approval binding executes and mismatches fail closed", async () => {
     const runtime = await createRt01Runtime();

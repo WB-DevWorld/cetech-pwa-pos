@@ -106,7 +106,9 @@ review:
   @Ben-001-sys independent exact-head review at final #105 freeze
 ```
 
-Cashier diagnostics cleanup is the active #105 slice. It does not complete #105.
+Cashier diagnostics cleanup is source-complete on `ws3/admin-105-control-plane` / PR #109. Ordinary cashier Settings/System status no longer expose raw build/API/schema/quote diagnostics or repair controls; safe R9 local-recovery and update-safety behavior remains intact. System status is reached from Settings rather than primary cashier navigation.
+
+Return/refund approval policy closeout is the active #105 slice. The inherited operational policy now includes `returnApprovalRequired` (default false), and return preview resolves it server-side at organization → location → register scope. The current backend slice adds an atomic, audited, replay-safe operational-manager approval binding without executing refund or stock effects. It does not complete #105.
 
 ## 5PM bounded UX-01 cashier-copy slice — ACTIVE until 2026-09-21 17:00 Africa/Accra
 

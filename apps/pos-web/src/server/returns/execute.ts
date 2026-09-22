@@ -144,12 +144,11 @@ async function validateApproval(
   now: Date,
   correlationId: string,
 ): Promise<ApiResult<true>> {
-  if (!request.approvalId) {
-    return apiFailure("FORBIDDEN", "manager approval is required", correlationId);
-  }
-  const approval = await store.getApproval(request.approvalId);
+  const approval = request.approvalId
+    ? await store.getApproval(request.approvalId)
+    : await store.getApprovalForReturn(stored.returnId, stored.fingerprint);
   if (!approval) {
-    return apiFailure("FORBIDDEN", "approval was not found", correlationId);
+    return apiFailure("FORBIDDEN", "manager approval is required", correlationId);
   }
   if (approval.returnId !== stored.returnId || approval.fingerprint !== stored.fingerprint) {
     return apiFailure("FORBIDDEN", "approval is not bound to this return fingerprint", correlationId);
