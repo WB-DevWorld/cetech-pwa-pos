@@ -16,7 +16,9 @@ import { ShiftCashPanel } from "./ShiftCashPanel";
 import { ReturnsApprovalsPanel } from "./ReturnsApprovalsPanel";
 import { ReceiptSettingsPanel, type ReceiptLocationOption } from "./ReceiptSettingsPanel";
 import { SystemHealthPanel } from "./SystemHealthPanel";
+import { AuditPanel } from "./AuditPanel";
 import type { ManagementSystemHealthView } from "../../server/admin/management-system-health";
+import type { ManagementAuditView } from "../../server/admin/management-audit";
 import type { ManagementReceiptSettingsView } from "../../server/admin/handle-management-receipt-settings";
 import type { ReceiptSettings } from "../../../../../docs/contracts/domain.generated";
 
@@ -76,6 +78,10 @@ export function ManagementScreen({
   systemHealthLoading = false,
   systemHealthError,
   systemHealthCorrelationId,
+  auditView = null,
+  auditLoading = false,
+  auditError,
+  auditCorrelationId,
   staffSavingActorId,
   onSaveStaffAssignment,
   onSaveControlMembership,
@@ -121,6 +127,10 @@ export function ManagementScreen({
   readonly systemHealthLoading?: boolean;
   readonly systemHealthError?: string;
   readonly systemHealthCorrelationId?: string;
+  readonly auditView?: ManagementAuditView | null;
+  readonly auditLoading?: boolean;
+  readonly auditError?: string;
+  readonly auditCorrelationId?: string;
   readonly staffSavingActorId?: string | null;
   readonly onSaveStaffAssignment?: (input: {
     readonly actorId: string;
@@ -289,6 +299,13 @@ export function ManagementScreen({
               loading={systemHealthLoading}
               errorMessage={systemHealthError}
               correlationId={systemHealthCorrelationId}
+            />
+          ) : activeSection === "audit" ? (
+            <AuditPanel
+              view={auditView}
+              loading={auditLoading}
+              errorMessage={auditError}
+              correlationId={auditCorrelationId}
             />
           ) : (
             <section className="card card-pad stack">

@@ -55,7 +55,9 @@ Returns, approvals, and requires-attention oversight is complete on `ws3/admin-1
 
 Receipt settings administration is complete on `ws3/admin-105-control-plane` / PR #109. It reuses location-scoped `pos_receipt_settings` and `ReceiptSettings`. Owner and Admin may change settings through the still-unreleased `20260922123000_pos_admin_control_plane.sql` atomic RPC, which also appends `pos_admin_audit_events`. That migration has not been applied to staging or production, so the receipt-settings function was added there instead of as a later migration. Managers can view managed locations only.
 
-System health is the active #105 slice. It is a read-only Management view over the existing store, commerce-connection, and commerce-contract checks. Owner, Admin, Manager, and Support may read it. Cashiers stay on the existing staff health route. It does not complete #105.
+System health is complete on `ws3/admin-105-control-plane` / PR #109. It is a read-only Management view over the existing store, commerce-connection, and commerce-contract checks. Owner, Admin, Manager, and Support may read it. Cashiers stay on the existing staff health route.
+
+Audit browser is the active #105 slice. It is a bounded read-only view over append-only `pos_admin_audit_events`. Owner, Admin, and Support may read organization-wide events; operational managers may read only events tied to verified managed locations. Raw before/after JSON is not exposed to the browser. It does not complete #105.
 
 ## 5PM bounded UX-01 cashier-copy slice — ACTIVE until 2026-09-21 17:00 Africa/Accra
 

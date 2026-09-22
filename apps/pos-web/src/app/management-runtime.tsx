@@ -11,10 +11,12 @@ import type { ManagementShiftCashView } from "../server/admin/management-shift-c
 import type { ManagementReturnsAttentionView } from "../server/admin/management-returns-attention-directory";
 import type { ManagementReceiptSettingsView } from "../server/admin/handle-management-receipt-settings";
 import type { ManagementSystemHealthView } from "../server/admin/management-system-health";
+import type { ManagementAuditView } from "../server/admin/management-audit";
 import type { ReceiptSettings } from "../../../../docs/contracts/domain.generated";
 import type { ShiftClosePolicyOverride } from "../server/auth/policy";
 import { ManagementScreen } from "../features/admin/ManagementScreen";
 import {
+  fetchManagementAudit,
   fetchManagementContext,
   fetchManagementReceiptSettings,
   fetchManagementReturnsAttention,
@@ -43,6 +45,7 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
   const [returnsAttentionResult, setReturnsAttentionResult] = useState<ApiResult<ManagementReturnsAttentionView> | null>(null);
   const [receiptSettingsResult, setReceiptSettingsResult] = useState<ApiResult<ManagementReceiptSettingsView> | null>(null);
   const [systemHealthResult, setSystemHealthResult] = useState<ApiResult<ManagementSystemHealthView> | null>(null);
+  const [auditResult, setAuditResult] = useState<ApiResult<ManagementAuditView> | null>(null);
   const [receiptLocationId, setReceiptLocationId] = useState<string | null>(null);
   const [receiptSaving, setReceiptSaving] = useState(false);
   const [receiptSaveError, setReceiptSaveError] = useState<string | null>(null);
@@ -120,6 +123,17 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
     let cancelled = false;
     void fetchManagementSystemHealth(fetchImpl).then((next) => {
       if (!cancelled) setSystemHealthResult(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [allowedSection, context, fetchImpl]);
+
+  useEffect(() => {
+    if (!context || allowedSection !== "audit") return;
+    let cancelled = false;
+    void fetchManagementAudit(fetchImpl).then((next) => {
+      if (!cancelled) setAuditResult(next);
     });
     return () => {
       cancelled = true;
@@ -332,6 +346,7 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
         if (next === "shifts_cash") setShiftCashResult(null);
         if (next === "returns_approvals") setReturnsAttentionResult(null);
         if (next === "system_health") setSystemHealthResult(null);
+        if (next === "audit") setAuditResult(null);
         if (next === "receipt_settings") {
           setReceiptSettingsResult(null);
           setReceiptSaveError(null);
@@ -458,6 +473,18 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
       systemHealthCorrelationId={
         allowedSection === "system_health" && systemHealthResult && !systemHealthResult.ok
           ? systemHealthResult.correlationId
+          : undefined
+      }
+      auditView={auditResult?.ok ? auditResult.data : null}
+      auditLoading={allowedSection === "audit" && auditResult === null}
+      auditError={
+        allowedSection === "audit" && auditResult && !auditResult.ok
+          ? auditResult.error.message
+          : undefined
+      }
+      auditCorrelationId={
+        allowedSection === "audit" && auditResult && !auditResult.ok
+          ? auditResult.correlationId
           : undefined
       }
       onSaveReceiptSettings={

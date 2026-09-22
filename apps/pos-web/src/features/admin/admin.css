@@ -624,3 +624,81 @@
 .system-health-card details {
   margin-top: 12px;
 }
+
+
+.management-audit-panel,
+.management-audit-list,
+.management-audit-card {
+  min-width: 0;
+}
+
+.management-audit-list {
+  display: grid;
+  gap: 12px;
+}
+
+.management-audit-card {
+  overflow-wrap: anywhere;
+}
+
+.management-audit-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.management-audit-head > div {
+  min-width: 0;
+  flex: 1 1 16rem;
+}
+
+.management-audit-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+  margin: 14px 0;
+}
+
+.management-audit-facts div,
+.management-audit-changes div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.management-audit-facts dt {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.management-audit-facts dd {
+  margin: 0;
+}
+
+.management-audit-changes {
+  display: grid;
+  gap: 8px;
+}
+
+.management-audit-changes div {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+}
+
+.management-audit-changes span {
+  color: var(--color-text-muted);
+}
+
+.management-audit-card details {
+  margin-top: 14px;
+}
+
+@media (max-width: 640px) {
+  .management-audit-facts {
+    grid-template-columns: 1fr;
+  }
+}

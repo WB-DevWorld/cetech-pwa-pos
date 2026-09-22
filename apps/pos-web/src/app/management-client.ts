@@ -9,6 +9,7 @@ import type { ManagementShiftCashView } from "../server/admin/management-shift-c
 import type { ManagementReturnsAttentionView } from "../server/admin/management-returns-attention-directory";
 import type { ManagementReceiptSettingsView } from "../server/admin/handle-management-receipt-settings";
 import type { ManagementSystemHealthView } from "../server/admin/management-system-health";
+import type { ManagementAuditView } from "../server/admin/management-audit";
 import type { ReceiptSettings } from "../../../../docs/contracts/domain.generated";
 import type { StaffAssignmentMutationResult } from "../server/admin/staff-assignment-admin-store";
 import type { ControlMembershipMutationResult } from "../server/admin/control-membership-admin-store";
@@ -117,6 +118,10 @@ export function fetchManagementReturnsAttention(fetchImpl: typeof fetch = fetch)
 
 export function fetchManagementSystemHealth(fetchImpl: typeof fetch = fetch) {
   return jsonResult<ManagementSystemHealthView>(fetchImpl, "/api/pos/v1/admin/system-health");
+}
+
+export function fetchManagementAudit(fetchImpl: typeof fetch = fetch) {
+  return jsonResult<ManagementAuditView>(fetchImpl, "/api/pos/v1/admin/audit");
 }
 
 export function fetchManagementReceiptSettings(locationId: string, fetchImpl: typeof fetch = fetch) {
