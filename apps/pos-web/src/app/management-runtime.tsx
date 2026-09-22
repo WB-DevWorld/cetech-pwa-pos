@@ -261,21 +261,21 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
       }
       staffSavingActorId={staffSavingActorId}
       onSaveStaffAssignment={
-        context.controlRole === "owner" || context.controlRole === "admin"
+        result.data.controlRole === "owner" || result.data.controlRole === "admin"
           ? (input) => {
               void saveStaffAssignment(input);
             }
           : undefined
       }
       onSaveControlMembership={
-        context.controlRole === "owner" || context.controlRole === "admin"
+        result.data.controlRole === "owner" || result.data.controlRole === "admin"
           ? (input) => {
               void saveControlMembership(input);
             }
           : undefined
       }
       onSaveAccessStatus={
-        context.controlRole === "owner" || context.controlRole === "admin"
+        result.data.controlRole === "owner" || result.data.controlRole === "admin"
           ? (input) => {
               void saveStaffAccessStatus(input);
             }
@@ -283,7 +283,7 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
       }
       invitingStaff={invitingStaff}
       onInviteStaff={
-        context.controlRole === "owner" || context.controlRole === "admin"
+        result.data.controlRole === "owner" || result.data.controlRole === "admin"
           ? (input) => {
               void sendStaffInvite(input);
             }

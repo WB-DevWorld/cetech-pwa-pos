@@ -442,7 +442,6 @@ function ControlRoleEditor({
 function StaffAccessStatusEditor({
   row,
   currentActorId,
-  callerControlRole,
   saving,
   onSave,
 }: {
@@ -457,10 +456,7 @@ function StaffAccessStatusEditor({
   }) => void;
 }) {
   const status = row.posAccessStatus ?? "active";
-  const cannotDisable =
-    currentActorId === row.actorId ||
-    row.controlRole === "owner" ||
-    (callerControlRole === "admin" && row.controlRole === "owner");
+  const cannotDisable = currentActorId === row.actorId || row.controlRole === "owner";
   const next = status === "active" ? "disabled" : "active";
   return (
     <div className="management-access-control">
