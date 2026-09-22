@@ -8,6 +8,7 @@ import type { ManagementLocation } from "../server/admin/management-topology-dir
 import type { ManagementShiftCashView } from "../server/admin/management-shift-cash-directory";
 import type { ManagementReturnsAttentionView } from "../server/admin/management-returns-attention-directory";
 import type { ManagementReceiptSettingsView } from "../server/admin/handle-management-receipt-settings";
+import type { ManagementSystemHealthView } from "../server/admin/management-system-health";
 import type { ReceiptSettings } from "../../../../docs/contracts/domain.generated";
 import type { StaffAssignmentMutationResult } from "../server/admin/staff-assignment-admin-store";
 import type { ControlMembershipMutationResult } from "../server/admin/control-membership-admin-store";
@@ -112,6 +113,10 @@ export function fetchManagementShiftsCash(fetchImpl: typeof fetch = fetch) {
 
 export function fetchManagementReturnsAttention(fetchImpl: typeof fetch = fetch) {
   return jsonResult<ManagementReturnsAttentionView>(fetchImpl, "/api/pos/v1/admin/returns-attention");
+}
+
+export function fetchManagementSystemHealth(fetchImpl: typeof fetch = fetch) {
+  return jsonResult<ManagementSystemHealthView>(fetchImpl, "/api/pos/v1/admin/system-health");
 }
 
 export function fetchManagementReceiptSettings(locationId: string, fetchImpl: typeof fetch = fetch) {

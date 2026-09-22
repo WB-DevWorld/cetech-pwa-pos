@@ -15,6 +15,8 @@ import { TopologyPanel } from "./TopologyPanel";
 import { ShiftCashPanel } from "./ShiftCashPanel";
 import { ReturnsApprovalsPanel } from "./ReturnsApprovalsPanel";
 import { ReceiptSettingsPanel, type ReceiptLocationOption } from "./ReceiptSettingsPanel";
+import { SystemHealthPanel } from "./SystemHealthPanel";
+import type { ManagementSystemHealthView } from "../../server/admin/management-system-health";
 import type { ManagementReceiptSettingsView } from "../../server/admin/handle-management-receipt-settings";
 import type { ReceiptSettings } from "../../../../../docs/contracts/domain.generated";
 
@@ -70,6 +72,10 @@ export function ManagementScreen({
   receiptSettingsSaveError,
   receiptSettingsSaveMessage,
   onSaveReceiptSettings,
+  systemHealthView = null,
+  systemHealthLoading = false,
+  systemHealthError,
+  systemHealthCorrelationId,
   staffSavingActorId,
   onSaveStaffAssignment,
   onSaveControlMembership,
@@ -111,6 +117,10 @@ export function ManagementScreen({
   readonly receiptSettingsSaveError?: string;
   readonly receiptSettingsSaveMessage?: string;
   readonly onSaveReceiptSettings?: (settings: ReceiptSettings) => void;
+  readonly systemHealthView?: ManagementSystemHealthView | null;
+  readonly systemHealthLoading?: boolean;
+  readonly systemHealthError?: string;
+  readonly systemHealthCorrelationId?: string;
   readonly staffSavingActorId?: string | null;
   readonly onSaveStaffAssignment?: (input: {
     readonly actorId: string;
@@ -272,6 +282,13 @@ export function ManagementScreen({
               saveError={receiptSettingsSaveError}
               saveMessage={receiptSettingsSaveMessage}
               onSave={onSaveReceiptSettings}
+            />
+          ) : activeSection === "system_health" ? (
+            <SystemHealthPanel
+              view={systemHealthView}
+              loading={systemHealthLoading}
+              errorMessage={systemHealthError}
+              correlationId={systemHealthCorrelationId}
             />
           ) : (
             <section className="card card-pad stack">

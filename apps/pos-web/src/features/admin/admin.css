@@ -588,3 +588,39 @@
     align-items: flex-start;
   }
 }
+
+.system-health-panel {
+  min-width: 0;
+}
+
+.system-health-list {
+  display: grid;
+  gap: 12px;
+}
+
+.system-health-card {
+  min-width: 0;
+}
+
+.system-health-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.system-health-head > div {
+  min-width: 0;
+  flex: 1 1 16rem;
+}
+
+.system-health-head h2,
+.system-health-head p,
+.system-health-card p {
+  overflow-wrap: anywhere;
+}
+
+.system-health-card details {
+  margin-top: 12px;
+}
