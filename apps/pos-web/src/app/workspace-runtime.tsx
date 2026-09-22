@@ -22,12 +22,14 @@ import {
   type AttentionItemView,
   type OperationalLoadState,
 } from "../ui/operational";
+import { inspectLocalRecoveryState, type LocalRecoveryDiagnostics } from "../local";
 import type { CatalogProjectionAvailability, CatalogProjectionSyncResult } from "../local/catalog-sync";
 import { ensureCatalogProjection } from "../local/catalog-sync";
 import { resolveBrowserCatalogSourcePolicy } from "../core/catalog/source-policy";
 import { readOrCreateLocalDeviceId, type StaffRuntimeAuthority } from "../core/identity";
 import type { PosRoute } from "../ui/shell";
 import type { CatalogRebuildView } from "./catalog-rebuild-status";
+import { usePwaLifecycle } from "./pwa-lifecycle-runtime";
 import {
   fetchCustomerDirectory,
   fetchOrderDetail,
@@ -323,12 +325,19 @@ function HealthWorkspace({
   readonly attentionCount: number;
   readonly onNavigate: (route: PosRoute) => void;
 }) {
+  const lifecycle = usePwaLifecycle();
   const [health, setHealth] = useState<StoreHealth | undefined>();
   const [state, setState] = useState<OperationalLoadState>("loading");
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
+  const [recovery, setRecovery] = useState<LocalRecoveryDiagnostics | undefined>();
+  const [updateCheckBusy, setUpdateCheckBusy] = useState(false);
 
   const load = useCallback(async () => {
-    const result = await fetchStoreHealth(fetchImpl);
+    const [result, diagnostics] = await Promise.all([
+      fetchStoreHealth(fetchImpl),
+      inspectLocalRecoveryState().catch(() => undefined),
+    ]);
+    setRecovery(diagnostics);
     if (!result.ok) {
       setHealth(undefined);
       setState("error");
@@ -354,19 +363,81 @@ function HealthWorkspace({
   }, [load]);
 
   return (
-    <StoreHealthScreen
-      health={health}
-      state={state}
-      errorMessage={errorMessage}
-      online={online}
-      catalogAvailability={catalogAvailability}
-      electronicPaymentsAvailable={false}
-      attentionCountOverride={attentionCount}
-      onRetry={() => {
-        void load();
-      }}
-      onOpenAttention={() => onNavigate("attention")}
-    />
+    <>
+      <StoreHealthScreen
+        health={health}
+        state={state}
+        errorMessage={errorMessage}
+        online={online}
+        catalogAvailability={catalogAvailability}
+        electronicPaymentsAvailable={false}
+        attentionCountOverride={attentionCount}
+        onRetry={() => {
+          void load();
+        }}
+        onOpenAttention={() => onNavigate("attention")}
+      />
+
+      {recovery ? (
+        <section className="card card-pad operational-panel" aria-labelledby="recovery-summary-title">
+          <h2 id="recovery-summary-title">Saved work & recovery</h2>
+          <p className="muted">
+            Your current sale and pending work are kept separately from replaceable app files and the product list.
+          </p>
+          <div className="operational-metrics" aria-label="Recovery summary">
+            <div className="card operational-metric">
+              <span className="eyebrow">Current sale saved</span>
+              <strong>{recovery.recoverableCartCount > 0 ? "Yes" : "No"}</strong>
+            </div>
+            <div className="card operational-metric">
+              <span className="eyebrow">Pending work</span>
+              <strong>{recovery.pendingOperationCount}</strong>
+            </div>
+            <div className="card operational-metric">
+              <span className="eyebrow">Needs attention</span>
+              <strong>{recovery.attentionOperationCount}</strong>
+            </div>
+          </div>
+
+          {!recovery.schemaCompatible ? (
+            <div className="banner danger" role="alert">
+              <strong>Saved offline data needs a safe update.</strong>
+              <span>Do not clear the current sale or pending work as a normal repair step.</span>
+            </div>
+          ) : null}
+
+          {recovery.pendingOperationCount > 0 ? (
+            <div className="banner warning" role="status">
+              <strong>Pending work must be resolved before an app update.</strong>
+              <span>Do not repeat a sale just because its result is not yet confirmed.</span>
+            </div>
+          ) : null}
+
+          {lifecycle?.updateReady ? (
+            <div className="banner info" role="status">
+              <strong>Update ready.</strong>
+              <span>The app will wait for a safe point before applying it.</span>
+            </div>
+          ) : null}
+
+          {lifecycle ? (
+            <div className="operational-actions">
+              <button
+                className="btn"
+                type="button"
+                disabled={updateCheckBusy}
+                onClick={() => {
+                  setUpdateCheckBusy(true);
+                  void lifecycle.checkForUpdate().finally(() => setUpdateCheckBusy(false));
+                }}
+              >
+                {updateCheckBusy ? "Checking for update…" : "Check for update"}
+              </button>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+    </>
   );
 }
 
