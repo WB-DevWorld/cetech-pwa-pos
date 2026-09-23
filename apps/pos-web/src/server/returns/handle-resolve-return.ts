@@ -74,7 +74,7 @@ export async function handleResolveReturn(input: {
     returnStore: input.returnStore,
     provider: input.provider,
     bridge: input.bridge,
-    actor: guard.session,
+    actor: authorized.data.session,
     returnId: input.returnId,
     correlationId: guard.correlationId,
     now: input.now,
