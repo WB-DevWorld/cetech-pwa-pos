@@ -31,6 +31,7 @@ async function lookupHistoric(
     readonly saleKey: string;
     readonly cookieHeader: string;
     readonly sessionStore: Awaited<ReturnType<typeof staffCookies>>["store"];
+    readonly assignments?: ReturnType<typeof cashierAssignments>;
   },
 ) {
   return handleGetHistoricReturnSale({
@@ -44,7 +45,7 @@ async function lookupHistoric(
     sessionStore: input.sessionStore,
     allowedOrigins: [ORIGIN],
     checkoutStore: runtime.checkoutStore,
-    assignments: cashierAssignments(),
+    assignments: input.assignments ?? cashierAssignments(),
   });
 }
 
@@ -176,6 +177,7 @@ describe("R8-02 historic return-sale lookup", () => {
       saleKey: TX_A,
       cookieHeader: otherLocation.cookieHeader,
       sessionStore: otherLocation.store,
+      assignments: cashierAssignments(["reg_b1"], "loc_a2"),
     });
     expect(result.body.ok).toBe(false);
     if (result.body.ok) {
