@@ -108,7 +108,7 @@ export async function handleInitializePayment(input: HandleInitializePaymentInpu
   const result = await initializeElectronicPayment({
     store: input.checkoutStore,
     provider,
-    actor: guard.session,
+    actor: authorized.data.session,
     request: input.body,
     context: { idempotencyKey: guard.idempotencyKey, correlationId: guard.correlationId },
     now: input.now,
