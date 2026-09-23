@@ -414,7 +414,7 @@ describe("CORE-05 cash + FinalizeSale orchestration", () => {
       sessionStore: otherLocation.store,
       allowedOrigins: [ORIGIN],
       checkoutStore,
-      assignments: cashierAssignments(),
+      assignments: createMemoryAssignmentDirectory([]),
     });
     expect(scope.status).toBe(403);
     expect(scope.body.ok).toBe(false);
