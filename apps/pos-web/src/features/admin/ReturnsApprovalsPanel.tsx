@@ -3,18 +3,18 @@
 import { useState } from "react";
 import type { ManagementReturnsAttentionItem, ManagementReturnsAttentionView } from "../../server/admin/management-returns-attention-directory";
 import { approveManagementReturn, reconcileManagementRefund } from "../../app/management-client";
-import { formatMoneyLabel } from "../../ui/cashier-language";
+import { formatMoneyLabel, paymentStatusLabel } from "../../ui/cashier-language";
 
 const PRIORITY_LABEL = {
   needs_attention: "Needs attention",
-  awaiting_reconciliation: "Awaiting reconciliation",
+  awaiting_reconciliation: "Waiting for confirmation",
   pending: "Pending",
   informational: "Completed",
 } as const;
 
 const INTERVENTION_LABEL = {
   required: "Needs review",
-  blocked: "Do not start another refund or return",
+  blocked: "Use the existing work; do not start another one",
   informational: "No action needed",
 } as const;
 
@@ -144,7 +144,7 @@ function AttentionCard({
       setActionError(result.error.message);
       return;
     }
-    setNotice(`Refund check finished. Stored state: ${result.data.status}.`);
+    setNotice(`Refund check finished. Status: ${paymentStatusLabel(result.data.status)}.`);
     onChanged?.();
   }
   return (

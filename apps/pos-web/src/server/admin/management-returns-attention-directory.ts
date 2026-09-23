@@ -338,7 +338,7 @@ function describeTenderRefund(status: string): Copy | undefined {
       return {
         priority: "awaiting_reconciliation",
         intervention: "blocked",
-        statusLabel: "Refund awaiting reconciliation",
+        statusLabel: "Refund check needed",
         summary: "This refund is still pending.",
         nextAction: "Check the existing refund. Do not start another refund.",
       };

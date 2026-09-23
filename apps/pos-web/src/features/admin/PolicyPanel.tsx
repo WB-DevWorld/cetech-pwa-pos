@@ -19,13 +19,13 @@ export function PolicyPanel({
   readonly onSave?: (override: ShiftClosePolicyOverride) => void;
 }) {
   if (loading) {
-    return <section className="card card-pad"><p>Loading operational policy…</p></section>;
+    return <section className="card card-pad"><p>Loading operational rules…</p></section>;
   }
   if (errorMessage) {
     return <section className="card card-pad"><div className="banner danger">{errorMessage}</div></section>;
   }
   if (!view) {
-    return <section className="card card-pad"><p>Operational policy is not available.</p></section>;
+    return <section className="card card-pad"><p>Operational rules are not available.</p></section>;
   }
 
   const editorKey = [
@@ -114,11 +114,13 @@ function PolicyEditor({
     <section className="card card-pad stack management-policy">
       <div className="management-policy-head">
         <div>
-          <h2>Shift close authority</h2>
+          <h2>Shift closing</h2>
           <p className="muted">
-            Scope: {view.scope.registerId
-              ? `${view.scope.locationId} / ${view.scope.registerId}`
-              : view.scope.locationId ?? "Organization default"}
+            Applies to: {view.scope.registerId
+              ? "this register"
+              : view.scope.locationId
+                ? "this location"
+                : "organization default"}
           </p>
         </div>
         <span className="status-pill">{view.canManage ? "Editable" : "Read only"}</span>
@@ -152,7 +154,7 @@ function PolicyEditor({
 
       <label className="management-policy-row">
         <span>
-          <strong>Cashier own shift only</strong>
+          <strong>Cashier can close only their own shift</strong>
           <small>Prevents a cashier from closing a shift opened by another staff member.</small>
         </span>
         <input
@@ -183,8 +185,8 @@ function PolicyEditor({
 
       <label className="management-policy-row">
         <span>
-          <strong>Non-zero variance requires manager</strong>
-          <small>Cashier close escalates when the drawer variance exceeds the tolerance.</small>
+          <strong>Cash difference requires manager review</strong>
+          <small>Cashier shift close needs manager review when the drawer difference exceeds the allowed amount.</small>
         </span>
         <input
           type="checkbox"
@@ -200,7 +202,7 @@ function PolicyEditor({
       </label>
 
       <label className="field">
-        <span>Variance tolerance ({currency})</span>
+        <span>Allowed cash difference ({currency})</span>
         <input
           className="input"
           inputMode="decimal"
@@ -223,7 +225,7 @@ function PolicyEditor({
           <span>
             <strong>Require manager approval before completing a return</strong>
             <small>
-              New return previews in this policy scope wait for an operational manager approval. Approval itself does not refund a payment or change stock. Checking an existing refund is a separate reconciliation step. This is the only return and refund policy control currently available.
+              New returns covered by these rules wait for a manager approval before completion. Approval does not refund a payment or change stock. Checking an existing refund is a separate step.
             </small>
           </span>
           <input
@@ -237,11 +239,11 @@ function PolicyEditor({
 
       {view.canManage && onSave ? (
         <button className="btn primary" type="button" disabled={saving} onClick={submit}>
-          {saving ? "Saving…" : "Save operational policy"}
+          {saving ? "Saving…" : "Save operational rules"}
         </button>
       ) : (
         <div className="banner warning" role="status">
-          You can review the effective policy for this scope, but organization owner/admin authority is required to change it.
+          You can review these rules, but only an Owner or Admin can change them.
         </div>
       )}
     </section>

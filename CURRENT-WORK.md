@@ -158,7 +158,7 @@ review:
   @Ben-001-sys independent exact-head review
 ```
 
-#105 source candidate is frozen for independent review. Next gate: independent review / runtime acceptance. R9 remains paused. Do not apply `20260922123000_pos_admin_control_plane.sql` to staging or production from this freeze.
+#105 exact head `054e386fe13360f255fb44fdfc37cec7fcfe4218` passed source review, exact-SHA Preview identity, and staging database acceptance. The final UI/language audit reopened only a bounded Management presentation remediation: missing Staff/Policy layout styles, compact responsive navigation, 44px Management touch targets, operator-facing Management copy, and CI-running Management viewport tests. Business authorization/accounting/return/payment/PWA semantics remain frozen. The staging `pos_admin_control_plane` migration is already applied; production remains untouched. This remediation requires fresh exact-head CI and a new independent Ben review before runtime acceptance resumes. R9 remains paused.
 
 The inherited operational policy includes `returnApprovalRequired` (default false). Return preview resolves it server-side at organization → location → register scope. Staging and production do not fall back to an ephemeral policy store. An operational manager binds an atomic, audited, replay-safe approval. The cashier continues the same stored return; the server matches return id and fingerprint and does not require a pasted approval id. Approval does not refund or change stock. `pos_returns.status` stays `approval_required` until existing return execution advances it.
 

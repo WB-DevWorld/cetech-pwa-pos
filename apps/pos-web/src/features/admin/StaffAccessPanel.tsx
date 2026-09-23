@@ -131,22 +131,18 @@ function StaffCard({
       <div className="management-staff-head">
         <div>
           <h2>{row.displayName}</h2>
-          <p className="muted">{row.email ?? row.actorId}</p>
+          <p className="muted">{row.email ?? "Staff account"}</p>
         </div>
         <div className="management-staff-statuses">
           <span className={row.authStatus === "active" ? "status-pill success" : "status-pill warning"}>
-            Auth {row.authStatus}
+            Account {row.authStatus}
           </span>
           <span className={(row.posAccessStatus ?? "active") === "active" ? "status-pill success" : "status-pill warning"}>
-            POS {row.posAccessStatus ?? "active"}
+            POS access {row.posAccessStatus ?? "active"}
           </span>
         </div>
       </div>
       <div className="management-meta-grid">
-        <div>
-          <span className="label">Actor</span>
-          <strong>{row.actorId}</strong>
-        </div>
         <ControlRoleEditor
           row={row}
           callerControlRole={callerControlRole}
@@ -154,6 +150,10 @@ function StaffCard({
           saving={saving}
           onSave={onSaveControlMembership}
         />
+        <details className="management-reference">
+          <summary>Reference</summary>
+          <p className="muted">Staff ID {row.actorId}</p>
+        </details>
       </div>
 
       {canManage && onSaveAccessStatus ? (
@@ -167,7 +167,7 @@ function StaffCard({
       ) : null}
 
       <div className="stack">
-        <strong>Operational assignments</strong>
+        <strong>Location and register assignments</strong>
         {row.locations.length === 0 ? <p className="muted">No location assignment.</p> : null}
         {row.locations.map((assignment) => (
           <AssignmentEditor
@@ -410,7 +410,7 @@ function ControlRoleEditor({
 
   return (
     <div className="management-control-role">
-      <span className="label">Control role</span>
+      <span className="label">Organization role</span>
       {canEdit ? (
         <div className="management-control-role-edit">
           <select
@@ -424,7 +424,7 @@ function ControlRoleEditor({
             {options.map((value) => (
               <option key={value} value={value}>
                 {value === "none"
-                  ? "Operational staff only"
+                  ? "No organization role"
                   : value[0]!.toUpperCase() + value.slice(1)}
               </option>
             ))}
@@ -443,10 +443,10 @@ function ControlRoleEditor({
           </button>
         </div>
       ) : (
-        <strong>{row.controlRole ?? "Operational staff"}</strong>
+        <strong>{row.controlRole ?? "No organization role"}</strong>
       )}
       {currentActorId === row.actorId && row.controlRole === "owner" ? (
-        <small className="muted">The database will refuse removal of the last active owner.</small>
+        <small className="muted">At least one Owner must remain active.</small>
       ) : null}
     </div>
   );
@@ -477,7 +477,7 @@ function StaffAccessStatusEditor({
       <div>
         <strong>POS access</strong>
         <small className="muted">
-          Disabling immediately revokes active POS sessions and blocks new POS sign-in.
+          Disabling POS access signs this staff member out of active POS sessions and blocks new POS sign-in.
         </small>
       </div>
       <button
@@ -530,7 +530,7 @@ function InviteStaffCard({
       <div>
         <h2>Invite staff</h2>
         <p className="muted">
-          Invited staff start POS-disabled until you assign their operational scope and enable access.
+          Invited staff cannot use the POS until you assign their locations and registers and enable POS access.
         </p>
       </div>
       <div className="management-invite-grid">

@@ -197,7 +197,6 @@ function ShiftCard({
             </div>
             <span className={statusClass(row.status)}>{STATUS_LABEL[row.status]}</span>
           </div>
-          <p>Opened by {row.cashierId}</p>
           <p data-opened-at={row.openedAt}>Opened {formatOperationalDateTime(row.openedAt)}</p>
           {openLength ? <p>Open for {openLength}</p> : null}
           {row.closedAt ? <p data-closed-at={row.closedAt}>Closed {formatOperationalDateTime(row.closedAt)}</p> : null}
@@ -227,14 +226,15 @@ function ShiftCard({
         <div className="shift-cash-report">
           <p className="eyebrow">Report</p>
           {reportLines(row).map((line) => <p key={line}>{line}</p>)}
-          {row.report.zReportId ? <p className="muted">Z reference {row.report.zReportId}</p> : null}
           <ShiftReportActions row={row} canCorrect={canCorrect} onChanged={onChanged} />
         </div>
       </div>
-      <details>
+      <details className="management-reference">
         <summary>Reference</summary>
-        <p className="muted">Shift {row.shiftId}</p>
-        <p className="muted">Device {row.deviceId}</p>
+        <p className="muted">Shift ID {row.shiftId}</p>
+        <p className="muted">Cashier ID {row.cashierId}</p>
+        <p className="muted">Device ID {row.deviceId}</p>
+        {row.report.zReportId ? <p className="muted">Z report ID {row.report.zReportId}</p> : null}
       </details>
     </article>
   );
@@ -295,7 +295,7 @@ function ShiftReportActions({
     }
     setMessage(result.data.replayed
       ? "This movement was already reversed. Expected cash was not changed again."
-      : "Cash movement reversed. Expected cash now includes that exact reversal.");
+      : "Cash entry reversed. Expected cash now includes that exact reversal.");
     setReason("");
     onChanged?.();
     await loadMovements();
@@ -329,7 +329,7 @@ function ShiftReportActions({
       ) : null}
       {movements ? (
         <ul className="stack">
-          {movements.length === 0 ? <li>No cash movements are stored for this shift.</li> : null}
+          {movements.length === 0 ? <li>No cash entries are stored for this shift.</li> : null}
           {movements.map((movement) => (
             <li key={movement.id}>
               <span>{movementLabel(movement.kind)} {formatSigned(movement.signedAmountMinor, movement.currency)}</span>
@@ -345,7 +345,7 @@ function ShiftReportActions({
       ) : null}
       {canCorrect && row.status === "open" ? (
         <label className="field">
-          <span>Reason for reversing a movement</span>
+          <span>Reason for reversing a cash entry</span>
           <input className="input" value={reason} onChange={(event) => setReason(event.target.value)} />
         </label>
       ) : null}
@@ -388,8 +388,8 @@ function PolicyContext({
 }) {
   return (
     <section className="card card-pad stack" aria-labelledby="shift-cash-policy-heading">
-      <h2 id="shift-cash-policy-heading">Shift close</h2>
-      {policyLoading ? <p>Loading close policy…</p> : null}
+      <h2 id="shift-cash-policy-heading">Shift-closing rules</h2>
+      {policyLoading ? <p>Loading shift-closing rules…</p> : null}
       {!policyLoading && policy ? (
         <>
           <p className="muted">{policyScopeCopy(policy)}</p>
@@ -399,7 +399,7 @@ function PolicyContext({
           <p className="muted">{policyScopeCaveat(policy, shiftScope)}</p>
         </>
       ) : null}
-      {!policyLoading && !policy ? <p>Close policy could not be loaded. Shift oversight above is unchanged.</p> : null}
+      {!policyLoading && !policy ? <p>Shift-closing rules could not be loaded. Shift oversight above is unchanged.</p> : null}
       {onOpenPolicies ? (
         <button className="btn" type="button" onClick={onOpenPolicies}>
           Open Policies
@@ -410,13 +410,9 @@ function PolicyContext({
 }
 
 function policyScopeCopy(policy: OperationalPolicyView): string {
-  if (policy.scope.registerId) {
-    return `Policy reference: location ${policy.scope.locationId} / register ${policy.scope.registerId}.`;
-  }
-  if (policy.scope.locationId) {
-    return `Policy reference: location ${policy.scope.locationId}.`;
-  }
-  return "Policy reference: organization default.";
+  if (policy.scope.registerId) return "These rules apply to this register.";
+  if (policy.scope.locationId) return "These rules apply to this location.";
+  return "These are the organization-wide default rules.";
 }
 
 function policyScopeCaveat(
@@ -424,28 +420,28 @@ function policyScopeCaveat(
   shiftScope: ManagementShiftCashView["scope"] | undefined,
 ): string {
   if (!shiftScope) {
-    return "Location or register overrides may differ from this policy reference.";
+    return "A location or register may have more specific rules.";
   }
   if (shiftScope.kind === "organization") {
-    return "This is not necessarily the effective policy for every shift shown; location or register overrides may differ.";
+    return "Some locations or registers shown here may use different rules.";
   }
   if (shiftScope.locationIds.length > 1) {
-    return "This policy reference covers one scope only; other visible locations or register overrides may differ.";
+    return "Other visible locations or registers may use different rules.";
   }
   if (!policy.scope.registerId) {
-    return "Register-specific overrides may differ from this location policy.";
+    return "Some registers at this location may use different rules.";
   }
-  return "This policy reference applies only to the named register scope.";
+  return "These rules apply only to this register.";
 }
 
 function policyLines(policy: ShiftClosePolicy): readonly string[] {
   return [
-    policy.managerCanCloseShift ? "Managers allowed" : "Manager close disabled",
-    policy.cashierCanCloseShift ? "Cashier close allowed" : "Cashier close disabled",
+    policy.managerCanCloseShift ? "Managers can close shifts" : "Managers cannot close shifts",
+    policy.cashierCanCloseShift ? "Cashiers can close shifts" : "Cashiers cannot close shifts",
     policy.cashierCanCloseShift && policy.cashierOwnShiftOnly ? "Cashiers can close only their own shift" : "",
     policy.nonZeroVarianceRequiresManager
-      ? "Non-zero variance requires manager"
-      : "Non-zero variance does not require a manager",
+      ? "Cash differences require manager review"
+      : "Cash differences do not require manager review",
   ].filter((line) => line.length > 0);
 }
 

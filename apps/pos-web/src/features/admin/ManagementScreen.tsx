@@ -23,19 +23,19 @@ import type { ManagementReceiptSettingsView } from "../../server/admin/handle-ma
 import type { ReceiptSettings } from "../../../../../docs/contracts/domain.generated";
 
 const LABELS: Record<ManagementSection, { label: string; description: string }> = {
-  overview: { label: "Overview", description: "Live operational management summary." },
-  staff_access: { label: "Staff & access", description: "Staff identities, roles, locations and register assignments." },
-  locations: { label: "Locations", description: "Organization locations and operational scope." },
-  registers: { label: "Registers", description: "Register status, assignments and configuration." },
-  devices: { label: "Devices", description: "POS devices and register/device associations." },
-  shifts_cash: { label: "Shifts & cash", description: "Open/closed shifts, X/Z reports, cash policy and variance review." },
-  returns_approvals: { label: "Returns & approvals", description: "Returns, refund reconciliation and approval work." },
-  system_health: { label: "System health", description: "Integration health, diagnostics and support evidence." },
-  audit: { label: "Audit", description: "Who changed what, where and when." },
-  policies: { label: "Policies", description: "Operational permissions and inherited organization/location/register policy." },
+  overview: { label: "Overview", description: "Current store-management summary." },
+  staff_access: { label: "Staff & access", description: "Staff accounts, organization roles, locations and register assignments." },
+  locations: { label: "Locations", description: "Store locations and the registers available at each one." },
+  registers: { label: "Registers", description: "Registers, status and location." },
+  devices: { label: "Devices", description: "POS devices assigned to each location." },
+  shifts_cash: { label: "Shifts & cash", description: "Open and closed shifts, cash differences, reports and shift-closing rules." },
+  returns_approvals: { label: "Returns & approvals", description: "Returns, approvals and refund checks that need attention." },
+  system_health: { label: "System status", description: "Service availability and support details." },
+  audit: { label: "Activity log", description: "Who changed what, where and when." },
+  policies: { label: "Operational rules", description: "Shift-closing and return-approval rules by organization, location and register." },
   receipt_settings: {
     label: "Receipt settings",
-    description: "Configure receipt product-name display and SKU presentation by location.",
+    description: "Receipt product-name and SKU display by location.",
   },
 };
 
@@ -198,7 +198,7 @@ export function ManagementScreen({
       <main className="management-main">
         <header className="management-topbar">
           <div>
-            <span className="eyebrow">Management control plane</span>
+            <span className="eyebrow">Management</span>
             <h1>{active.label}</h1>
           </div>
           <div className="management-identity">
@@ -212,25 +212,22 @@ export function ManagementScreen({
 
           {activeSection === "overview" ? (
             <div className="management-grid">
-              <ManagementCard title="Authority">
-                <p>Organization: {context.organizationId}</p>
-                <p>Control role: {context.controlRole ?? "Operational manager"}</p>
-                <p>
-                  Manager locations: {context.managerLocationIds.length > 0
-                    ? context.managerLocationIds.join(", ")
-                    : "None"}
-                </p>
+              <ManagementCard title="Access">
+                <p>Organization role: {context.controlRole
+                  ? context.controlRole[0]!.toUpperCase() + context.controlRole.slice(1)
+                  : "No organization role"}</p>
+                <p>Managed locations: {context.managerLocationIds.length}</p>
               </ManagementCard>
               <ManagementCard title="Staff & access">
-                <p>Staff access is server-scoped to the current organization and managed locations.</p>
-                <p>Owner and admin manage organization access. A manager may update register assignments only for staff already assigned at a managed location.</p>
+                <p>Staff access is limited to the organization and locations you are allowed to manage.</p>
+                <p>Owners and Admins manage organization access. Managers may update register assignments only for staff already assigned to their locations.</p>
               </ManagementCard>
-              <ManagementCard title="Shift-close policy">
-                <p>Policy is server-owned and inherits organization → location → register.</p>
-                <p>Cashier, manager, or both can be permitted according to the effective policy.</p>
+              <ManagementCard title="Shift-closing rules">
+                <p>Rules can be set for the organization, a location, or a register.</p>
+                <p>Cashiers, managers, or both can be allowed to close shifts according to the applicable rules.</p>
               </ManagementCard>
-              <ManagementCard title="Security boundary">
-                <p>Cashier POS stays separate. Technical diagnostics and privileged controls belong here.</p>
+              <ManagementCard title="Management boundary">
+                <p>Cashier screens stay separate. Support details and privileged actions are available only here.</p>
               </ManagementCard>
             </div>
           ) : activeSection === "staff_access" ? (

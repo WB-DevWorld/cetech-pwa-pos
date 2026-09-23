@@ -68,15 +68,15 @@ describe("ReturnsApprovalsPanel", () => {
         category: "refund_reconciliation",
         priority: "awaiting_reconciliation",
         intervention: "blocked",
-        statusLabel: "Refund awaiting reconciliation",
+        statusLabel: "Refund check needed",
         summary: "This refund is still pending.",
         nextAction: "Check the existing refund. Do not start another refund.",
         refundId: "55555555-5555-4555-8555-555555555555",
         amount: { minor: 2500, currency: "GHS" },
       })]),
     });
-    expect(html).toContain("Refund awaiting reconciliation");
-    expect(html).toContain("Awaiting reconciliation");
+    expect(html).toContain("Refund check needed");
+    expect(html).toContain("Waiting for confirmation");
     expect(html).toContain("Do not start another refund");
     expect(html).toContain("status-pill warning");
     expect(html).not.toContain("Refund now");

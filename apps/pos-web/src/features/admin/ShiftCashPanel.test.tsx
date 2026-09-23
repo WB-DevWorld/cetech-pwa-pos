@@ -161,12 +161,12 @@ describe("ShiftCashPanel", () => {
       },
       onOpenPolicies: () => undefined,
     });
-    expect(html).toContain("Policy reference: location loc_a1.");
-    expect(html).toContain("Managers allowed");
-    expect(html).toContain("Cashier close disabled");
-    expect(html).toContain("Non-zero variance requires manager");
-    expect(html).toContain("Register-specific overrides may differ from this location policy.");
-    expect(html).toContain("Open Policies");
+    expect(html).toContain("These rules apply to this location.");
+    expect(html).toContain("Managers can close shifts");
+    expect(html).toContain("Cashiers cannot close shifts");
+    expect(html).toContain("Cash differences require manager review");
+    expect(html).toContain("Some registers at this location may use different rules.");
+    expect(html).toContain("Open operational rules");
     expect(html).not.toContain("<form");
     expect(html).not.toContain("type=\"checkbox\"");
   });
@@ -186,8 +186,8 @@ describe("ShiftCashPanel", () => {
         canManage: false,
       },
     });
-    expect(html).toContain("Policy reference: location loc_a1.");
-    expect(html).toContain("other visible locations or register overrides may differ");
+    expect(html).toContain("These rules apply to this location.");
+    expect(html).toContain("Other visible locations or registers may use different rules");
   });
 
   test("labels an organization default as a reference when organization-wide shifts are shown", () => {
@@ -202,7 +202,7 @@ describe("ShiftCashPanel", () => {
         canManage: true,
       },
     });
-    expect(html).toContain("Policy reference: organization default.");
+    expect(html).toContain("These are the organization-wide default rules.");
     expect(html).toContain("not necessarily the effective policy for every shift shown");
   });
 

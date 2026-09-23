@@ -50,6 +50,7 @@
   text-align: left;
   cursor: pointer;
   font: inherit;
+  min-height: var(--touch);
 }
 
 .management-nav-item:hover {
@@ -152,14 +153,46 @@
     min-height: auto;
     border-right: 0;
     border-bottom: 1px solid var(--color-border);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+  }
+
+  .management-brand {
+    min-width: max-content;
   }
 
   .management-nav {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    min-width: 0;
+    gap: 6px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+  }
+
+  .management-nav-item {
+    flex: 0 0 auto;
+    min-height: var(--touch);
+    white-space: nowrap;
   }
 
   .management-sidebar > .btn {
     margin-top: 0;
+    width: auto;
+    white-space: nowrap;
+  }
+
+  .management-topbar {
+    position: static;
+    padding: 12px 16px;
+    flex-wrap: wrap;
+    align-items: flex-start;
   }
 
   .management-grid {
@@ -167,6 +200,139 @@
   }
 }
 
+@media (max-width: 640px) {
+  .management-sidebar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .management-brand {
+    display: none;
+  }
+
+  .management-topbar {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .management-identity {
+    text-align: left;
+  }
+
+  .management-content {
+    padding: 12px;
+  }
+}
+
+
+
+.management-staff-list {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.management-staff-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.management-staff-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.management-staff-head > div {
+  min-width: 0;
+  flex: 1 1 16rem;
+}
+
+.management-meta-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, .75fr);
+  gap: 12px 16px;
+  align-items: start;
+}
+
+.management-reference {
+  min-width: 0;
+}
+
+.management-reference summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.management-reference p {
+  overflow-wrap: anywhere;
+}
+
+.management-policy {
+  min-width: 0;
+}
+
+.management-policy-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.management-policy-head > div {
+  min-width: 0;
+  flex: 1 1 18rem;
+}
+
+.management-policy-row {
+  min-height: var(--touch);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.management-policy-row > span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.management-policy-row small {
+  color: var(--color-text-muted);
+}
+
+.management-policy-row input[type="checkbox"] {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+@media (max-width: 640px) {
+  .management-staff-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .management-staff-statuses {
+    justify-content: flex-start;
+  }
+
+  .management-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .management-policy-row {
+    gap: 12px;
+  }
+}
 
 .management-assignment-editor {
   display: grid;
