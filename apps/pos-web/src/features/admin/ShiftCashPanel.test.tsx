@@ -43,7 +43,8 @@ describe("ShiftCashPanel", () => {
     });
     expect(html).toContain("Accra Main Store and Service Counter — North Ridge Industrial");
     expect(html).toContain("Front Register A — Express Lane");
-    expect(html).toContain("Opened by Ama Mensah — Morning Cashier");
+    expect(html).not.toContain("Opened by Ama Mensah — Morning Cashier");
+    expect(html).toContain("Cashier ID Ama Mensah — Morning Cashier");
     expect(html).toContain("Open for 1 hr 30 min");
     expect(html).toContain("Expected cash");
     expect(html).toContain("GHS");
@@ -203,7 +204,7 @@ describe("ShiftCashPanel", () => {
       },
     });
     expect(html).toContain("These are the organization-wide default rules.");
-    expect(html).toContain("not necessarily the effective policy for every shift shown");
+    expect(html).toContain("Some locations or registers shown here may use different rules.");
   });
 
   test("management screen uses the shift panel instead of the foundation placeholder", () => {

@@ -315,7 +315,7 @@ function ShiftReportActions({
           </button>
         ) : null}
         <button className="btn small" type="button" disabled={pending} onClick={() => void loadMovements()}>
-          Cash movements
+          Cash entries
         </button>
       </div>
       {report ? (
@@ -336,7 +336,7 @@ function ShiftReportActions({
               {movement.reason ? <span className="muted"> {movement.reason}</span> : null}
               {canCorrect && row.status === "open" && movement.kind !== "correction" ? (
                 <button className="btn small" type="button" disabled={pending || reason.trim().length === 0} onClick={() => void reverse(movement.id)}>
-                  Reverse movement
+                  Reverse cash entry
                 </button>
               ) : null}
             </li>
@@ -402,7 +402,7 @@ function PolicyContext({
       {!policyLoading && !policy ? <p>Shift-closing rules could not be loaded. Shift oversight above is unchanged.</p> : null}
       {onOpenPolicies ? (
         <button className="btn" type="button" onClick={onOpenPolicies}>
-          Open Policies
+          Open operational rules
         </button>
       ) : null}
     </section>
