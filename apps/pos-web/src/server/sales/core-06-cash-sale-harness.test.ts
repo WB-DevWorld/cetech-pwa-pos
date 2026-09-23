@@ -246,7 +246,8 @@ describe("CORE-06 current durable assignment authority", () => {
     });
     expect(opened.body.ok).toBe(true);
     if (!opened.body.ok) throw new Error("current assignment should open the shift");
-    expect(opened.body.data.locationId).toBe("loc_a1");
+    const storedShift = await checkoutStore.getShift(opened.body.data.id);
+    expect(storedShift?.locationId).toBe("loc_a1");
 
     const salesPort = createInstrumentedBridgeSalesPort();
     const quoted = await handleQuote({
