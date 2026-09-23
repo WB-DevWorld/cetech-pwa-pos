@@ -204,7 +204,11 @@ function StaffCard({
       ) : null}
 
       {canManage && onResetTemporaryPassword ? (
-        <PasswordResetEditor actorId={row.actorId} saving={saving} onSave={onResetTemporaryPassword} />
+        callerControlRole === "admin" && row.controlRole === "owner" ? (
+          <p className="muted">An admin cannot reset an owner password.</p>
+        ) : (
+          <PasswordResetEditor actorId={row.actorId} saving={saving} onSave={onResetTemporaryPassword} />
+        )
       ) : null}
 
       <div className="stack">

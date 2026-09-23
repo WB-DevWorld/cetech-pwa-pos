@@ -166,16 +166,25 @@ describe("direct staff account creation", () => {
 
 });
 
+const REPLACEMENT = "Bb8replacement-pass";
+
+async function staffIdentity(
+  identities: Awaited<ReturnType<typeof runtime>>["identities"],
+  actorId: string,
+) {
+  await identities.createWithTemporaryPassword({
+    organizationId: "org_a",
+    actorId,
+    email: `${actorId}@example.com`,
+    displayName: actorId,
+    temporaryPassword: PASSWORD,
+  });
+}
+
 describe("temporary password reset", () => {
-  test("revokes POS sessions before changing the credential", async () => {
+  test("records the reset request, revokes POS sessions, then changes the credential", async () => {
     const base = await runtime("owner_a", "owner");
-    await base.identities.createWithTemporaryPassword({
-      organizationId: "org_a",
-      actorId: "cashier_b",
-      email: "cashier.b@example.com",
-      displayName: "Cashier B",
-      temporaryPassword: PASSWORD,
-    });
+    await staffIdentity(base.identities, "cashier_b");
     const targetSessionId = await base.sessions.create(
       session("cashier_b"),
       "csrf-target",
@@ -196,27 +205,53 @@ describe("temporary password reset", () => {
         return base.identities.resetTemporaryPassword(input);
       },
     };
+    const audit = {
+      ...base.audit,
+      async append(event: Parameters<typeof base.audit.append>[0]) {
+        order.push(event.action);
+        return base.audit.append(event);
+      },
+    };
     const result = await handleResetStaffPassword({
       ...base,
       sessions,
       identities,
+      audit,
       targetActorId: "cashier_b",
-      temporaryPassword: "Bb8replacement-pass",
+      temporaryPassword: REPLACEMENT,
     });
     expect(result.ok).toBe(true);
-    expect(order).toEqual(["revoke", "reset"]);
+    if (!result.ok) return;
+    expect(result.data.mustChangePassword).toBe(true);
+    expect(order).toEqual([
+      "staff.password.reset.requested",
+      "revoke",
+      "reset",
+      "staff.password.reset.completed",
+    ]);
     expect(await base.sessions.get(targetSessionId, NOW)).toBeNull();
+    const evidence = JSON.stringify(base.audit.events);
+    expect(evidence).not.toContain(REPLACEMENT);
+    expect(evidence).not.toContain(PASSWORD);
+    expect(base.audit.events.map((event) => event.action)).toEqual([
+      "staff.password.reset.requested",
+      "staff.password.reset.completed",
+    ]);
+    expect(base.audit.events[1]?.afterState).toMatchObject({
+      status: "completed",
+      mustChangePassword: true,
+      sessionsRevoked: true,
+    });
   });
 
   test("does not change the credential when POS-session revocation fails", async () => {
     const base = await runtime("owner_a", "owner");
-    await base.identities.createWithTemporaryPassword({
-      organizationId: "org_a",
-      actorId: "cashier_b",
-      email: "cashier.b@example.com",
-      displayName: "Cashier B",
-      temporaryPassword: PASSWORD,
-    });
+    await staffIdentity(base.identities, "cashier_b");
+    const targetSessionId = await base.sessions.create(
+      session("cashier_b"),
+      "csrf-target",
+      new Date("2026-09-23T18:00:00.000Z"),
+    );
     let resetCalled = false;
     const sessions = {
       ...base.sessions,
@@ -236,10 +271,189 @@ describe("temporary password reset", () => {
       sessions,
       identities,
       targetActorId: "cashier_b",
-      temporaryPassword: "Bb8replacement-pass",
+      temporaryPassword: REPLACEMENT,
     });
     expect(result.ok).toBe(false);
     expect(resetCalled).toBe(false);
+    expect(await base.sessions.get(targetSessionId, NOW)).not.toBeNull();
+    expect(base.audit.events.map((event) => event.action)).toEqual(["staff.password.reset.requested"]);
+    expect(JSON.stringify(base.audit.events)).not.toContain(REPLACEMENT);
+  });
+
+  test("an admin cannot reset an owner password", async () => {
+    const base = await runtime("admin_a", "admin");
+    await staffIdentity(base.identities, "owner_a");
+    const targetSessionId = await base.sessions.create(
+      session("owner_a"),
+      "csrf-owner",
+      new Date("2026-09-23T18:00:00.000Z"),
+    );
+    let resetCalled = false;
+    let revoked = false;
+    const result = await handleResetStaffPassword({
+      ...base,
+      controlPlane: createMemoryControlPlaneDirectory([
+        { organizationId: "org_a", actorId: "admin_a", controlRole: "admin", status: "active" },
+        { organizationId: "org_a", actorId: "owner_a", controlRole: "owner", status: "disabled" },
+      ]),
+      sessions: {
+        ...base.sessions,
+        async revokeActorSessions() {
+          revoked = true;
+        },
+      },
+      identities: {
+        ...base.identities,
+        async resetTemporaryPassword() {
+          resetCalled = true;
+          return "ok" as const;
+        },
+      },
+      targetActorId: "owner_a",
+      temporaryPassword: REPLACEMENT,
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe("FORBIDDEN");
+    expect(revoked).toBe(false);
+    expect(resetCalled).toBe(false);
+    expect(await base.sessions.get(targetSessionId, NOW)).not.toBeNull();
+    expect(base.audit.events).toEqual([]);
+    expect(JSON.stringify(result)).not.toContain(REPLACEMENT);
+  });
+
+  test("an owner can reset another owner password", async () => {
+    const base = await runtime("owner_a", "owner");
+    await staffIdentity(base.identities, "owner_b");
+    const result = await handleResetStaffPassword({
+      ...base,
+      controlPlane: createMemoryControlPlaneDirectory([
+        { organizationId: "org_a", actorId: "owner_a", controlRole: "owner", status: "active" },
+        { organizationId: "org_a", actorId: "owner_b", controlRole: "owner", status: "active" },
+      ]),
+      targetActorId: "owner_b",
+      temporaryPassword: REPLACEMENT,
+    });
+    expect(result.ok).toBe(true);
+    expect(base.audit.events.at(-1)?.action).toBe("staff.password.reset.completed");
+  });
+
+  test("fails closed when the target organization role cannot be checked", async () => {
+    const base = await runtime("admin_a", "admin");
+    await staffIdentity(base.identities, "cashier_b");
+    let resetCalled = false;
+    let revoked = false;
+    const result = await handleResetStaffPassword({
+      ...base,
+      controlPlane: {
+        async lookup() {
+          return "unavailable" as const;
+        },
+      },
+      sessions: {
+        ...base.sessions,
+        async revokeActorSessions() {
+          revoked = true;
+        },
+      },
+      identities: {
+        ...base.identities,
+        async resetTemporaryPassword() {
+          resetCalled = true;
+          return "ok" as const;
+        },
+      },
+      targetActorId: "cashier_b",
+      temporaryPassword: REPLACEMENT,
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe("INTEGRATION_UNAVAILABLE");
+    expect(revoked).toBe(false);
+    expect(resetCalled).toBe(false);
+    expect(base.audit.events).toEqual([]);
+  });
+
+  test("does not change the credential when the reset request cannot be recorded", async () => {
+    const base = await runtime("owner_a", "owner");
+    await staffIdentity(base.identities, "cashier_b");
+    let resetCalled = false;
+    let revoked = false;
+    const result = await handleResetStaffPassword({
+      ...base,
+      audit: { async append() { return "unavailable" as const; } },
+      sessions: {
+        ...base.sessions,
+        async revokeActorSessions() {
+          revoked = true;
+        },
+      },
+      identities: {
+        ...base.identities,
+        async resetTemporaryPassword() {
+          resetCalled = true;
+          return "ok" as const;
+        },
+      },
+      targetActorId: "cashier_b",
+      temporaryPassword: REPLACEMENT,
+    });
+    expect(result.ok).toBe(false);
+    expect(resetCalled).toBe(false);
+    expect(revoked).toBe(false);
+    expect(JSON.stringify(result)).not.toContain(REPLACEMENT);
+  });
+
+  test("leaves the pending reset record when the credential change fails", async () => {
+    const base = await runtime("owner_a", "owner");
+    await staffIdentity(base.identities, "cashier_b");
+    const result = await handleResetStaffPassword({
+      ...base,
+      identities: {
+        ...base.identities,
+        async resetTemporaryPassword() {
+          return "unavailable" as const;
+        },
+      },
+      targetActorId: "cashier_b",
+      temporaryPassword: REPLACEMENT,
+    });
+    expect(result.ok).toBe(false);
+    expect(base.audit.events.map((event) => event.action)).toEqual(["staff.password.reset.requested"]);
+    expect(JSON.stringify(base.audit.events)).not.toContain(REPLACEMENT);
+  });
+
+  test("does not report success when the completion record cannot be saved", async () => {
+    const base = await runtime("owner_a", "owner");
+    await staffIdentity(base.identities, "cashier_b");
+    const targetSessionId = await base.sessions.create(
+      session("cashier_b"),
+      "csrf-target",
+      new Date("2026-09-23T18:00:00.000Z"),
+    );
+    let appends = 0;
+    const result = await handleResetStaffPassword({
+      ...base,
+      audit: {
+        async append(event) {
+          appends += 1;
+          if (appends === 1) {
+            base.audit.events.push(event);
+            return "ok" as const;
+          }
+          return "unavailable" as const;
+        },
+      },
+      targetActorId: "cashier_b",
+      temporaryPassword: REPLACEMENT,
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe("INTEGRATION_UNAVAILABLE");
+    expect(result.error.message).toContain("Do not reset this password again");
+    expect(await base.sessions.get(targetSessionId, NOW)).toBeNull();
+    expect(base.audit.events.map((event) => event.action)).toEqual(["staff.password.reset.requested"]);
+    expect(JSON.stringify({ result, events: base.audit.events })).not.toContain(REPLACEMENT);
   });
 });
 

@@ -38,6 +38,8 @@ const ACTION_LABELS: Record<string, string> = {
   "organization_membership.set": "Organization role changed",
   "staff.access_status.set": "POS access changed",
   "staff.identity.invited": "Staff invited",
+  "staff.password.reset.requested": "Password reset requested",
+  "staff.password.reset.completed": "Password reset completed",
   "receipt_settings.set": "Receipt settings changed",
 };
 
@@ -68,6 +70,8 @@ const FIELDS: Record<string, readonly FieldSpec[]> = {
   staff_identity: [
     { label: "Staff name", keys: ["displayName", "display_name"] },
     { label: "POS access", keys: ["posAccessStatus", "pos_access_status"] },
+    { label: "Password reset", keys: ["status"] },
+    { label: "Password change required", keys: ["mustChangePassword", "must_change_password"] },
   ],
   receipt_settings: [
     { label: "Shorten product names", keys: ["shorten_product_names", "shortenProductNames"] },
