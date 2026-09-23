@@ -213,7 +213,12 @@ export async function initializeCard(runtime: Awaited<ReturnType<typeof createPa
     provider: runtime.provider,
     appEnv: "local",
     sandboxPayerEmail: SANDBOX_EMAIL,
-    env: {},
+    env: {
+      PAYMENT_PROVIDER: "paystack",
+      PAYSTACK_MODE: "test",
+      PAYSTACK_SECRET_KEY: "sk_test_fixture_key",
+      PAYSTACK_CARD_ENABLED: "true",
+    },
   });
 }
 
