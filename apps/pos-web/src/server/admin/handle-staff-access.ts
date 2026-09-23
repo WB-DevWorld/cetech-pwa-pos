@@ -118,6 +118,38 @@ export async function handleSetStaffAssignment(
   if (!target) {
     return apiFailure("NOT_FOUND", "staff identity was not found in this organization", input.correlationId);
   }
+  if (!input.topology) {
+    return authFailure(
+      "INTEGRATION_UNAVAILABLE",
+      "register scope could not be verified",
+      input.correlationId,
+    );
+  }
+  const topology = await input.topology.listOrganization({
+    organizationId: authority.data.organizationId,
+  });
+  if (topology === "unavailable") {
+    return authFailure(
+      "INTEGRATION_UNAVAILABLE",
+      "register scope could not be verified",
+      input.correlationId,
+    );
+  }
+  const targetLocation = topology.find((row) => row.id === input.locationId);
+  if (!targetLocation) {
+    return authFailure("FORBIDDEN", "That location is outside this organization.", input.correlationId);
+  }
+  if (targetLocation.status === "inactive") {
+    return authFailure("VALIDATION_ERROR", "Choose an active location for POS access.", input.correlationId);
+  }
+  const registerById = new Map(targetLocation.registers.map((row) => [row.id, row]));
+  if (input.registerIds.some((id) => !registerById.has(id))) {
+    return authFailure("FORBIDDEN", "A register is outside the selected location.", input.correlationId);
+  }
+  if (input.registerIds.some((id) => registerById.get(id)?.status !== "active")) {
+    return authFailure("VALIDATION_ERROR", "Choose only active registers for POS access.", input.correlationId);
+  }
+
   const existing = target.locations.find((location) => location.locationId === input.locationId);
   let role = input.role;
   let registersOnly = false;
@@ -140,32 +172,6 @@ export async function handleSetStaffAssignment(
       return authFailure(
         "FORBIDDEN",
         "manager assignment cannot change operational role",
-        input.correlationId,
-      );
-    }
-    if (!input.topology) {
-      return authFailure(
-        "INTEGRATION_UNAVAILABLE",
-        "register scope could not be verified",
-        input.correlationId,
-      );
-    }
-    const topology = await input.topology.listOrganization({
-      organizationId: authority.data.organizationId,
-    });
-    if (topology === "unavailable") {
-      return authFailure(
-        "INTEGRATION_UNAVAILABLE",
-        "register scope could not be verified",
-        input.correlationId,
-      );
-    }
-    const location = topology.find((row) => row.id === input.locationId);
-    const allowed = new Set(location?.registers.map((register) => register.id) ?? []);
-    if (input.registerIds.some((id) => !allowed.has(id))) {
-      return authFailure(
-        "FORBIDDEN",
-        "one or more registers are outside the managed location",
         input.correlationId,
       );
     }
