@@ -5,6 +5,7 @@ import { authFailure } from "../auth/errors";
 import { assertMutationProtection } from "../auth/csrf";
 import { parseCookieHeader } from "../auth/cookies";
 import type { StaffSessionStore } from "../auth/session-store";
+import type { StaffAssignmentDirectory } from "../auth/assignments";
 import { resolveCorrelationId } from "../http/correlation";
 import { httpStatusFor } from "../http/status";
 import {
@@ -29,6 +30,7 @@ export type HandleQuoteInput = {
   readonly body: unknown;
   readonly now: Date;
   readonly sessionStore: StaffSessionStore;
+  readonly assignments: StaffAssignmentDirectory;
   readonly allowedOrigins: readonly string[];
   readonly bridge?: QuoteBridge;
   readonly snapshots?: { saveQuote(quote: Quote): Promise<void> };
@@ -86,7 +88,19 @@ export async function handleQuote(input: HandleQuoteInput): Promise<HandleQuoteR
     const body = authFailure("VALIDATION_ERROR", "QuoteRequest is invalid", correlation.correlationId);
     return { status: httpStatusFor(body.error.code), body, headers };
   }
-  if (!stored.session.locationIds.includes(request.locationId)) {
+  const assignments = await input.assignments.lookup({
+    actorId: stored.session.actorId,
+    organizationId: stored.session.organizationId,
+  });
+  if (assignments === "unavailable") {
+    const body = authFailure(
+      "INTEGRATION_UNAVAILABLE",
+      "staff assignment directory is unavailable",
+      correlation.correlationId,
+    );
+    return { status: httpStatusFor(body.error.code), body, headers };
+  }
+  if (!assignments.locationIds.includes(request.locationId)) {
     const body = authFailure("FORBIDDEN", "location is out of staff scope", correlation.correlationId);
     return { status: httpStatusFor(body.error.code), body, headers };
   }
