@@ -540,7 +540,7 @@ describe("assigned register selection", () => {
     const { runtime } = controller(stubRegisters(), ["reg_a", "reg_b"]);
     await runtime.restore();
     await runtime.selectRegister("reg_b");
-    const scope = checkoutScopeFromStaffAuthority(runtime.getState(), "fallback-device");
+    const scope = checkoutScopeFromStaffAuthority(runtime.getState());
     expect(scope).toEqual({
       registerId: "reg_b",
       shiftId: SHIFT_B.id,
