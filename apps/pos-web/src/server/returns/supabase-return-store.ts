@@ -12,6 +12,7 @@ import type {
   StoredTenderRefund,
 } from "../../core/returns/types";
 import { cloneReturn } from "../../core/returns/types";
+import { formatNonNegativeQuantity, formatQuantity } from "../../core/returns/quantities";
 
 export type SupabaseReturnStoreOptions = {
   readonly url: string;
@@ -434,9 +435,9 @@ function mapHistoricLine(row: Record<string, unknown>) {
   const currency = String(row.currency);
   return {
     orderLineId: String(row.order_line_id) as Id,
-    originalSoldQuantity: String(row.original_sold_quantity),
-    previouslyReturnedQuantity: String(row.previously_returned_quantity),
-    remainingReturnableQuantity: String(row.remaining_returnable_quantity),
+    originalSoldQuantity: formatQuantity(Number(row.original_sold_quantity)),
+    previouslyReturnedQuantity: formatNonNegativeQuantity(Number(row.previously_returned_quantity)),
+    remainingReturnableQuantity: formatNonNegativeQuantity(Number(row.remaining_returnable_quantity)),
     historicalSubtotal: { minor: Number(row.historical_subtotal_minor), currency },
     historicalDiscount: { minor: Number(row.historical_discount_minor), currency },
     historicalTax: { minor: Number(row.historical_tax_minor), currency },
@@ -459,12 +460,14 @@ function mapRequested(row: Record<string, unknown>): StoredRequestedReturnLine {
   const allocatedCurrency = String(row.allocated_historic_currency ?? row.currency ?? "GHS");
   return {
     orderLineId: String(row.order_line_id),
-    requestedQuantity: String(row.quantity),
-    remainingReturnableQuantity: String(row.remaining_returnable_quantity ?? row.quantity),
+    requestedQuantity: formatQuantity(Number(row.quantity)),
+    remainingReturnableQuantity: formatNonNegativeQuantity(
+      Number(row.remaining_returnable_quantity ?? row.quantity),
+    ),
     condition: row.condition as StoredRequestedReturnLine["condition"],
     intendedDisposition: row.intended_disposition as StoredRequestedReturnLine["intendedDisposition"],
     dispositionPolicy: row.disposition_policy as StoredRequestedReturnLine["dispositionPolicy"],
-    quantity: String(row.quantity),
+    quantity: formatQuantity(Number(row.quantity)),
     reason: String(row.reason),
     allocatedHistoricAmount: {
       minor: Number(row.allocated_historic_amount_minor),
