@@ -129,6 +129,23 @@ export async function authorizeStaffAction(
   if (registerId && !assignments.registerIds.includes(registerId)) {
     return authFailure("FORBIDDEN", "register is not assigned to this staff session", correlationId);
   }
+  if (registerId && locationId) {
+    const registerLocationProven = assignments.registerAssignments
+      ? assignments.registerAssignments.some(
+          (assignment) =>
+            assignment.registerId === registerId &&
+            assignment.locationId === locationId,
+        )
+      : assignments.locationIds.length === 1 &&
+        assignments.locationIds[0] === locationId;
+    if (!registerLocationProven) {
+      return authFailure(
+        "FORBIDDEN",
+        "register is not assigned at this staff location",
+        correlationId,
+      );
+    }
+  }
   if (
     input.client?.registerId !== undefined &&
     (!assignments.registerIds.includes(input.client.registerId) ||
