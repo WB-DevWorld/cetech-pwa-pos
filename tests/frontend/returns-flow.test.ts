@@ -417,6 +417,32 @@ describe("FE-06 returns", () => {
     expect(html).toContain("Payment refund");
   });
 
+  test("18b mixed return state clearly warns that cash is already refunded", async () => {
+    const previewFn = vi.fn(async () => success(preview()));
+    const { controller, execute } = await readyPreview(previewFn);
+    execute.mockResolvedValue(
+      success({
+        returnId: RETURN_ID,
+        status: "requires_attention",
+        providerRefund: settled("not_required"),
+        cashRefund: settled("completed", REFUND_2),
+        commercialRefund: openEffect("requires_attention", COMMERCIAL_ID),
+        stockDisposition: openEffect("pending", STOCK_ID),
+      }),
+    );
+    await controller.execute();
+    const html = renderFlow(controller.getSession());
+    expect(html).toContain('data-cash-refund-complete-warning');
+    expect(html).toContain("Cash refund already completed.");
+    expect(html).toContain("Do not refund the customer again");
+    expect(html).toContain('data-order-refund-review');
+    expect(html).toContain("Do not create another Woo order refund");
+    expect(html).toContain('data-stock-update-review');
+    expect(html).toContain("Do not adjust stock manually");
+    expect(html).toContain("return-effect-row");
+    expect(html).toContain("Order refund needs review");
+  });
+
   test("19 completed aggregate is presented only from authoritative completed resolution", async () => {
     const previewFn = vi.fn(async () => success(preview()));
     const { controller, execute } = await readyPreview(previewFn);
