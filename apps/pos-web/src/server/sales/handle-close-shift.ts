@@ -108,7 +108,7 @@ export async function handleCloseShift(input: {
 
   const decision = mayCloseShift({
     role,
-    actorId: guard.session.actorId,
+    actorId: authorized.data.session.actorId,
     shiftCashierId: shift.cashierId,
     varianceMinor,
     policy,
@@ -121,7 +121,7 @@ export async function handleCloseShift(input: {
   const result = await closeShift({
     store: input.checkoutStore,
     closeStore: input.closeStore,
-    actor: guard.session,
+    actor: authorized.data.session,
     request: input.body,
     context: { idempotencyKey: guard.idempotencyKey, correlationId: guard.correlationId },
     now: input.now,
