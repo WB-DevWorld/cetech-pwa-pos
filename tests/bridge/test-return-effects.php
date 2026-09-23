@@ -200,7 +200,7 @@ $engine_src = file_get_contents( dirname( __DIR__, 2 ) . '/wordpress/cetech-pos-
 br01_assert( strpos( $woo_src, 'wc_create_refund' ) !== false, 'production commercial refund uses wc_create_refund' );
 br01_assert( strpos( $woo_src, "'refund_payment' => false" ) !== false, 'production refund_payment=false' );
 br01_assert( strpos( $woo_src, "'restock_items'  => false" ) !== false || strpos( $woo_src, "'restock_items' => false" ) !== false, 'production restock_items=false' );
-br01_assert( strpos( $woo_src, 'woocommerce_before_order_object_save' ) !== false, 'production binds commercialRefundId during refund save' );
+br01_assert( strpos( $woo_src, 'woocommerce_before_order_refund_object_save' ) !== false, 'production binds commercialRefundId on the WC_Order_Refund pre-save hook' );
 br01_assert( strpos( $woo_src, 'wc_update_product_stock' ) !== false, 'production stock uses wc_update_product_stock' );
 br01_assert( strpos( $woo_src, "'increase'" ) !== false, 'production stock increase uses official Woo operator' );
 br01_assert( strpos( $engine_src, 'calculate_totals' ) === false, 'return-effect engine does not invoke calculate_totals' );
@@ -731,10 +731,28 @@ br01_assert_eq( 1, $ind_runtime->commercial_refund_creates, 'independence one co
 $ind2_runtime = br06_runtime();
 $ind2_plugin  = br08_plugin( $ind2_runtime );
 $ind2_sale    = br08_completed_sale( $ind2_plugin, $ind2_runtime );
-br08_dispatch_refund( $ind2_plugin, br08_refund_body( $ind2_sale ), br08_headers( br06_next_uuid() ) );
+$ind2_return  = br06_next_uuid();
+$ind2_refund_body = br08_refund_body( $ind2_sale, array( 'returnId' => $ind2_return ) );
+br08_dispatch_refund( $ind2_plugin, $ind2_refund_body, br08_headers( br06_next_uuid() ) );
+
+// Real Woo can move a fully refunded order out of an is_paid() status before
+// the independent stock effect runs. Simulate that live transition.
+foreach ( $ind2_runtime->orders as $ind2_i => $ind2_order ) {
+	if ( (string) $ind2_order['id'] === (string) $ind2_sale['order_id'] ) {
+		$ind2_order['status'] = 'refunded';
+		$ind2_order['paid']   = false;
+		$ind2_runtime->orders[ $ind2_i ] = $ind2_order;
+		break;
+	}
+}
 $ind2_before = $ind2_runtime->stock['101'];
-$ind2_stock  = br08_dispatch_stock( $ind2_plugin, br08_stock_body( $ind2_sale, 'restock_sellable' ), br08_headers( br06_next_uuid() ) );
-br01_assert_eq( 'completed', br08_code( $ind2_stock ), 'independence restock_sellable with commercial' );
+$ind2_stock_body = br08_stock_body(
+	$ind2_sale,
+	'restock_sellable',
+	array( 'returnId' => $ind2_return )
+);
+$ind2_stock  = br08_dispatch_stock( $ind2_plugin, $ind2_stock_body, br08_headers( br06_next_uuid() ) );
+br01_assert_eq( 'completed', br08_code( $ind2_stock ), 'independence restock_sellable after CETECH full refund' );
 br01_assert_eq( $ind2_before + 1, $ind2_runtime->stock['101'], 'independence one intended stock increment' );
 br01_assert_eq( 1, $ind2_runtime->commercial_refund_creates, 'independence still one commercial refund' );
 br01_assert_eq( 1, $ind2_runtime->stock_increase_calls, 'independence one stock increment' );
