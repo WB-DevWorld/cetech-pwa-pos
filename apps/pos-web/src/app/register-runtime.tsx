@@ -97,21 +97,16 @@ export function RegisterRuntimeScreen({
   const [devices, setDevices] = useState<readonly DeviceChoice[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
   const [deviceState, setDeviceState] = useState<DeviceLoadState>("idle");
+  const [deviceRegisterId, setDeviceRegisterId] = useState<string | null>(null);
   const [deviceError, setDeviceError] = useState<string | undefined>();
 
   useEffect(() => {
     if (!registerId) {
-      setDevices([]);
-      setSelectedDeviceId("");
-      setDeviceState("idle");
-      setDeviceError(undefined);
       return;
     }
 
     const requestedRegisterId = registerId;
     let cancelled = false;
-    setDeviceState("loading");
-    setDeviceError(undefined);
 
     void fetchRegisterDevices(requestedRegisterId)
       .then((result) => {
@@ -119,6 +114,7 @@ export function RegisterRuntimeScreen({
         if (!result.ok) {
           setDevices([]);
           setSelectedDeviceId("");
+          setDeviceRegisterId(requestedRegisterId);
           setDeviceState("error");
           setDeviceError("Available POS devices could not be confirmed. Try again.");
           return;
@@ -137,6 +133,7 @@ export function RegisterRuntimeScreen({
 
         setDevices(activeDevices);
         setSelectedDeviceId(nextDeviceId);
+        setDeviceRegisterId(requestedRegisterId);
         setDeviceState("ready");
 
         if (nextDeviceId) {
@@ -155,6 +152,7 @@ export function RegisterRuntimeScreen({
         if (cancelled) return;
         setDevices([]);
         setSelectedDeviceId("");
+        setDeviceRegisterId(requestedRegisterId);
         setDeviceState("error");
         setDeviceError("Available POS devices could not be confirmed. Try again.");
       });
@@ -164,12 +162,20 @@ export function RegisterRuntimeScreen({
     };
   }, [registerId]);
 
+  const registerCanOpen = registerStatus === "active";
+  const devicesMatchRegister = deviceRegisterId === registerId;
+  const effectiveDevices = devicesMatchRegister ? devices : [];
+  const effectiveSelectedDeviceId = devicesMatchRegister ? selectedDeviceId : "";
+  const effectiveDeviceState: DeviceLoadState =
+    !registerId ? "idle" : devicesMatchRegister ? deviceState : "loading";
+  const effectiveDeviceError = devicesMatchRegister ? deviceError : undefined;
+
   const ports = useMemo(
     () =>
-      registerId && selectedDeviceId && registerCanOpen
-        ? { register, registerId, deviceId: selectedDeviceId, currency }
+      registerId && effectiveSelectedDeviceId && registerCanOpen
+        ? { register, registerId, deviceId: effectiveSelectedDeviceId, currency }
         : undefined,
-    [register, registerId, selectedDeviceId, currency],
+    [register, registerId, effectiveSelectedDeviceId, currency, registerCanOpen],
   );
   const flow = useRegisterFlow(ports);
   const [closePresentation, setClosePresentation] = useState<{
@@ -240,7 +246,6 @@ export function RegisterRuntimeScreen({
     };
   }, [flow.session.shiftId, flow.session.status, onShiftChange, register, registerId]);
 
-  const registerCanOpen = registerStatus === "active";
   const registerStatusMessage =
     registerStatus === "maintenance"
       ? "This register is under maintenance. Choose another active register or contact a manager."
@@ -252,8 +257,8 @@ export function RegisterRuntimeScreen({
     registers: choices,
     selectedRegisterId: registerId ?? "",
     onRegisterChange: onSelectRegister,
-    devices,
-    selectedDeviceId,
+    devices: effectiveDevices,
+    selectedDeviceId: effectiveSelectedDeviceId,
     onDeviceChange: (deviceId: string) => {
       setSelectedDeviceId(deviceId);
       if (deviceId) {
@@ -261,8 +266,8 @@ export function RegisterRuntimeScreen({
         setDeviceError(undefined);
       }
     },
-    devicesLoading: deviceState === "loading",
-    deviceErrorMessage: registerStatusMessage ?? deviceError,
+    devicesLoading: effectiveDeviceState === "loading",
+    deviceErrorMessage: registerStatusMessage ?? effectiveDeviceError,
     online: typeof navigator === "undefined" ? true : navigator.onLine,
     errorMessage:
       flow.session.inputError ??
@@ -272,14 +277,14 @@ export function RegisterRuntimeScreen({
         ? flow.session.message
         : undefined),
     onSubmit:
-      registerId && selectedDeviceId
+      registerId && effectiveSelectedDeviceId && registerCanOpen
         ? (input: { openingFloatMinor: number }) => {
             void flow.controller?.open(input.openingFloatMinor);
           }
         : undefined,
   };
 
-  if (!registerId || !selectedDeviceId || deviceState !== "ready") {
+  if (!registerId || !effectiveSelectedDeviceId || effectiveDeviceState !== "ready") {
     return <RegisterScreen openForm={openForm} session={idleShiftWorkspace()} inFlight={false} />;
   }
 
