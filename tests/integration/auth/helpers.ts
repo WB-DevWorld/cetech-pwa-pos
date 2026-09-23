@@ -50,6 +50,7 @@ export function directory() {
       organizationId: "org_a",
       locationRoles: [{ locationId: "loc_a1", role: "cashier" }],
       registerIds: ["reg_a"],
+      registerAssignments: [{ registerId: "reg_a", locationId: "loc_a1" }],
     },
     {
       actorId: "manager_a",
@@ -59,6 +60,11 @@ export function directory() {
         { locationId: "loc_a2", role: "manager" },
       ],
       registerIds: ["reg_a", "reg_a2", "reg_b"],
+      registerAssignments: [
+        { registerId: "reg_a", locationId: "loc_a1" },
+        { registerId: "reg_a2", locationId: "loc_a1" },
+        { registerId: "reg_b", locationId: "loc_a2" },
+      ],
     },
   ]);
 }
