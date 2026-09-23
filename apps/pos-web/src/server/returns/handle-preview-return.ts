@@ -86,7 +86,7 @@ export async function handlePreviewReturn(input: {
   const result = await previewReturn({
     checkoutStore: input.checkoutStore,
     returnStore: input.returnStore,
-    actor: guard.session,
+    actor: authorized.data.session,
     request: input.body,
     correlationId: guard.correlationId,
     now: input.now,
