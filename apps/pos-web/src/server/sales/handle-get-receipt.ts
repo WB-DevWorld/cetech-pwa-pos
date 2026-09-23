@@ -69,7 +69,7 @@ export async function handleGetReceipt(input: HandleGetReceiptInput): Promise<Ha
   }
   const result = await getReceiptByTransaction({
     store: input.checkoutStore,
-    actor: guard.session,
+    actor: authorized.data.session,
     transactionId: input.transactionId,
     context: { correlationId: guard.correlationId },
   });
