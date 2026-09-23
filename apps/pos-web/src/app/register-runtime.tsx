@@ -14,6 +14,7 @@ import { readLocalDeviceId, rememberLocalDeviceId } from "../core/identity/local
 import type { RegisterPort } from "../../../../docs/contracts/ports";
 import type { ApiErrorCode, Shift } from "../../../../docs/contracts/domain.generated";
 import { createBrowserRegisterPort } from "./checkout-client";
+import { fetchRegisterClosePresentation } from "./operational-client";
 
 type DeviceLoadState = "idle" | "loading" | "ready" | "error";
 
@@ -160,7 +161,7 @@ export function RegisterRuntimeScreen({
     return () => {
       cancelled = true;
     };
-  }, [registerId]);
+  }, [registerId, flow.session.shiftId, flow.session.status]);
 
   const registerCanOpen = registerStatus === "active";
   const devicesMatchRegister = deviceRegisterId === registerId;
@@ -194,15 +195,12 @@ export function RegisterRuntimeScreen({
     if (!registerId) return;
     const requestedId = registerId;
     let cancelled = false;
-    void fetch(`/api/pos/v1/registers/${encodeURIComponent(requestedId)}/close-presentation`, {
-      credentials: "include",
-    })
-      .then(async (response) => response.json() as Promise<{ ok?: boolean; data?: { showClose: boolean; notice: string } }>)
+    void fetchRegisterClosePresentation(requestedId)
       .then((body) => {
         if (cancelled) return;
-        const next = body.ok && body.data
+        const next = body.ok
           ? body.data
-          : { showClose: false, notice: "Close availability could not be confirmed." };
+          : { showClose: false, notice: "Close availability could not be confirmed. Try again." };
         setClosePresentation({ registerId: requestedId, ...next });
       })
       .catch(() => {
