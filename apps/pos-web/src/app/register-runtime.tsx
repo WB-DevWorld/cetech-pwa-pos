@@ -161,7 +161,7 @@ export function RegisterRuntimeScreen({
     return () => {
       cancelled = true;
     };
-  }, [registerId, flow.session.shiftId, flow.session.status]);
+  }, [registerId]);
 
   const registerCanOpen = registerStatus === "active";
   const devicesMatchRegister = deviceRegisterId === registerId;
@@ -215,7 +215,7 @@ export function RegisterRuntimeScreen({
     return () => {
       cancelled = true;
     };
-  }, [registerId]);
+  }, [registerId, flow.session.shiftId, flow.session.status]);
 
   useEffect(() => {
     const previous = previousStatus.current;
