@@ -117,6 +117,12 @@ export function TopologyPanel({
                 </div>
                 <p>Currency: {register.currency}</p>
                 <p className="muted">Currency stays the same after the register is created.</p>
+                {register.status === "active" &&
+                location.devices.filter((device) => device.status === "active").length === 0 ? (
+                  <div className="banner warning" role="status">
+                    Cannot open a shift until this location has an active POS device.
+                  </div>
+                ) : null}
                 {canManage && onSave ? (
                   <RegisterEditor locationId={location.id} register={register} saving={saving} onSave={onSave} />
                 ) : null}
