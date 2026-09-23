@@ -293,13 +293,6 @@ export function RegisterRuntimeScreen({
         }}
         closePresentation={visibleClosePresentation}
       />
-      {flow.session.message &&
-      flow.session.message !== "Select a register and open a shift before taking payment." &&
-      flow.session.status === "no_open_shift" ? (
-        <p className="banner danger" role="alert" data-register-command-error="">
-          {flow.session.message}
-        </p>
-      ) : null}
       {flow.session.status === "requires_attention" ? (
         <p className="muted" data-shift-variance-recorded="" role="status">
           Counted cash has been recorded. A manager still needs to review this shift.
