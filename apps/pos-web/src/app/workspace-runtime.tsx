@@ -27,7 +27,7 @@ import { inspectLocalRecoveryState, type LocalRecoveryDiagnostics } from "../loc
 import type { CatalogProjectionAvailability, CatalogProjectionSyncResult } from "../local/catalog-sync";
 import { ensureCatalogProjection } from "../local/catalog-sync";
 import { resolveBrowserCatalogSourcePolicy } from "../core/catalog/source-policy";
-import { readOrCreateLocalDeviceId, type StaffRuntimeAuthority } from "../core/identity";
+import type { StaffRuntimeAuthority } from "../core/identity";
 import type { PosRoute } from "../ui/shell";
 import type { CatalogRebuildView } from "./catalog-rebuild-status";
 import { usePwaLifecycle } from "./pwa-lifecycle-runtime";
@@ -113,7 +113,7 @@ export function ApprovedWorkspaceScreens({
     return (
       <SettingsScreen
         settings={{
-          deviceName: readOrCreateLocalDeviceId(),
+          deviceName: authority.shift?.deviceId ? "Assigned to current shift" : "Select a POS device when opening a register",
           registerName: authority.register?.name ?? "No register assigned",
           scannerLabel: KEYBOARD_SCANNER_CAPABILITY,
           printerLabel: BROWSER_PRINT_CAPABILITY,
