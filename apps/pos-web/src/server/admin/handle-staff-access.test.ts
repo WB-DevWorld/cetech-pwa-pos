@@ -258,6 +258,7 @@ describe("ADMIN-105 staff access", () => {
       ]),
       staff: createMemoryStaffAccessDirectory(staffRows),
       mutation,
+      topology: locationTopology(),
       targetActorId: "cashier_a",
       locationId: "loc_a1",
       role: "manager",
