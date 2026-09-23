@@ -239,7 +239,6 @@ export function ReturnFlow({
             </div>
           ) : null}
           {(session.stockDisposition?.status === "pending" ||
-            session.stockDisposition?.status === "in_progress" ||
             session.stockDisposition?.status === "requires_attention") ? (
             <div className="banner warning return-effect-safety" role="status" data-stock-update-review="">
               <strong>Stock update is not settled yet.</strong>
