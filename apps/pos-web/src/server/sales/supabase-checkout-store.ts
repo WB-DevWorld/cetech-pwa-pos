@@ -804,7 +804,6 @@ function mapCommandScope(row: RestRow): CommandScopeBinding | undefined {
   if (
     typeof row.organization_id !== "string" ||
     typeof row.location_id !== "string" ||
-    typeof row.transaction_id !== "string" ||
     typeof row.operation !== "string"
   ) {
     return undefined;
@@ -814,7 +813,7 @@ function mapCommandScope(row: RestRow): CommandScopeBinding | undefined {
     locationId: row.location_id,
     registerId: typeof row.register_id === "string" ? row.register_id : undefined,
     shiftId: typeof row.shift_id === "string" ? row.shift_id : undefined,
-    transactionId: row.transaction_id,
+    transactionId: typeof row.transaction_id === "string" ? row.transaction_id : undefined,
     operation: row.operation as CommandScopeBinding["operation"],
   };
 }
