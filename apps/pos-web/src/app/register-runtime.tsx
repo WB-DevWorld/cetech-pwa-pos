@@ -200,8 +200,7 @@ export function RegisterRuntimeScreen({
       {flow.session.status === "requires_attention" ? (
         <p className="muted" data-shift-variance-recorded="" role="status">
           Counted cash has been recorded. Variance requires attention. Manager/reconciliation
-          action is still required. Do not resubmit close with another approval ID or open a
-          replacement close to bypass this state.
+          action is still required. Do not resubmit the close or open a replacement close to bypass this state.
         </p>
       ) : null}
     </>
