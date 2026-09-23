@@ -42,6 +42,8 @@ describe("OrdersScreen", () => {
     expect(html).toContain("Wholesale");
     expect(html).toContain("GHS 245.00");
     expect(html).toContain("Completed");
+    expect(html).not.toContain('value="refunded"');
+    expect(html).not.toContain('value="partially_refunded"');
   });
 
   test("matches company and canonical customer identity in the Orders search predicate", () => {
@@ -78,6 +80,12 @@ describe("OrdersScreen", () => {
     expect(html).toContain("Reprint");
     expect(html).toContain("Return items");
     expect(html).toContain("LED Panel");
+  });
+
+  test("shows action feedback without hiding the order list", () => {
+    const html = render({ actionError: "Receipt could not be loaded." });
+    expect(html).toContain("Receipt could not be loaded.");
+    expect(html).toContain("#1042");
   });
 
   test("renders an explicit empty state", () => {

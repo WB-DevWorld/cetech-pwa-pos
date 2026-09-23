@@ -5,7 +5,7 @@ import type { Money } from "../../../../../docs/contracts/domain.generated";
 import { formatMoneyLabel, formatOperationalDateTime, orderStatusLabel, paymentStatusLabel, toCashierError } from "../../ui/cashier-language";
 
 export type OrdersWorkspaceState = "ready" | "loading" | "error" | "offline" | "degraded";
-export type OrderWorkspaceStatus = "completed" | "refunded" | "partially_refunded" | "payment_pending" | "needs_attention" | "cancelled";
+export type OrderWorkspaceStatus = "completed" | "payment_pending" | "needs_attention" | "cancelled";
 
 export interface OrderListItemView {
   readonly id: string;
@@ -53,6 +53,8 @@ export interface OrdersScreenProps {
   readonly orders: readonly OrderListItemView[];
   readonly state?: OrdersWorkspaceState;
   readonly errorMessage?: string;
+  readonly actionMessage?: string;
+  readonly actionError?: string;
   readonly onRetry?: () => void;
   readonly onSelectOrder?: (orderId: string) => void;
   readonly onNewSale?: () => void;
@@ -60,8 +62,6 @@ export interface OrdersScreenProps {
 
 const STATUS_LABELS: Record<OrderWorkspaceStatus, string> = {
   completed: "Completed",
-  refunded: "Refunded",
-  partially_refunded: "Partially refunded",
   payment_pending: "Pending",
   needs_attention: "Needs review",
   cancelled: "Cancelled",
@@ -97,7 +97,7 @@ export function matchesOrderSearch(order: OrderListItemView, query: string): boo
 function badgeTone(status: OrderWorkspaceStatus | NonNullable<OrderListItemView["paymentStatus"]>): string {
   if (status === "completed" || status === "verified") return "success";
   if (status === "needs_attention" || status === "failed" || status === "requires_attention") return "danger";
-  if (status === "refunded" || status === "partially_refunded" || status === "payment_pending" || status === "pending") return "warning";
+  if (status === "payment_pending" || status === "pending") return "warning";
   return "neutral";
 }
 
@@ -105,6 +105,8 @@ export function OrdersScreen({
   orders,
   state = "ready",
   errorMessage,
+  actionMessage,
+  actionError,
   onRetry,
   onSelectOrder,
   onNewSale,
@@ -134,6 +136,9 @@ export function OrdersScreen({
           </button>
         ) : null}
       </div>
+
+      {actionMessage ? <div className="banner success workspace-banner" role="status">{actionMessage}</div> : null}
+      {actionError ? <div className="banner danger workspace-banner" role="alert">{actionError}</div> : null}
 
       {state === "offline" ? (
         <div className="banner warning workspace-banner" role="status">

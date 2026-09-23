@@ -171,6 +171,8 @@ function OrdersWorkspace({
   const [detail, setDetail] = useState<OrderDetailView | undefined>();
   const [detailOpen, setDetailOpen] = useState(false);
   const [printReceipt, setPrintReceipt] = useState<ReceiptViewModel | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | undefined>();
+  const [actionError, setActionError] = useState<string | undefined>();
 
   const load = useCallback(async () => {
     setState("loading");
@@ -195,14 +197,19 @@ function OrdersWorkspace({
       <OrdersScreen
         orders={orders}
         state={state}
+        actionMessage={actionMessage}
+        actionError={actionError}
         onRetry={() => {
           void load();
         }}
         onNewSale={() => onNavigate("sell")}
         onSelectOrder={(orderId) => {
+          setActionMessage(undefined);
+          setActionError(undefined);
           void (async () => {
             const result = await fetchOrderDetail(orderId, fetchImpl);
             if (!result.ok) {
+              setActionError("Order details could not be loaded. Try again.");
               return;
             }
             setDetail(result.data);
@@ -217,15 +224,26 @@ function OrdersWorkspace({
         onReprint={
           receipts && printer
             ? (order) => {
+                setActionMessage(undefined);
+                setActionError(undefined);
                 void (async () => {
                   const receipt = await receipts.getByTransaction(order.id);
                   if (!receipt.ok) {
+                    setActionError("Receipt could not be loaded. The sale has not been changed.");
                     return;
                   }
                   setPrintReceipt(mapReceiptSnapshot(receipt.data));
                   window.setTimeout(() => {
                     void printer
                       .print({ receiptId: receipt.data.id, reason: "reprint" })
+                      .then((result) => {
+                        if (result.status === "dialog_opened") {
+                          setActionMessage("Print dialog opened.");
+                        } else {
+                          setActionError(result.message ?? "Receipt printing is not available.");
+                        }
+                      })
+                      .catch(() => setActionError("Receipt printing failed. The sale has not been changed."))
                       .finally(() => setPrintReceipt(null));
                   }, 0);
                 })();
@@ -380,9 +398,9 @@ function HealthWorkspace({
 
       {recovery ? (
         <section className="card card-pad operational-panel" aria-labelledby="recovery-summary-title">
-          <h2 id="recovery-summary-title">Saved work & recovery</h2>
+          <h2 id="recovery-summary-title">Saved work</h2>
           <p className="muted">
-            Your current sale and pending work are kept separately from replaceable app files and the product list.
+            Your current sale and pending work are kept while the app updates or refreshes.
           </p>
           <div className="operational-metrics" aria-label="Recovery summary">
             <div className="card operational-metric">
@@ -516,7 +534,7 @@ export function clientAttentionExtras(input: {
     next.push({
       id: "register-unassigned",
       title: "No register assigned",
-      summary: "This staff session has no permitted register. Open/close shift stays blocked until assignment exists.",
+      summary: "No register is assigned to this staff account. Opening or closing a shift stays unavailable until a manager assigns one.",
       typeLabel: "Register",
       severity: "medium",
       recoverKind: "register",
@@ -525,7 +543,7 @@ export function clientAttentionExtras(input: {
     next.push({
       id: "shift-closed",
       title: "No open shift",
-      summary: "Checkout stays blocked until an assigned register has an open shift. Use Register; do not invent a shift.",
+      summary: "Checkout stays unavailable until you open a shift on an assigned register. Open Register to continue.",
       typeLabel: "Register",
       severity: "low",
       recoverKind: "register",

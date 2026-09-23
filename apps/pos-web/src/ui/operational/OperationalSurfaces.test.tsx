@@ -83,7 +83,8 @@ describe("operational recovery surfaces", () => {
     expect(blocked).toContain("disabled");
     const safe = renderToStaticMarkup(<UpdateReadyDialog open safety="safe" currentBuild="r8" nextBuild="r8.1" onLater={() => undefined} onApply={() => undefined} />);
     expect(safe).toContain("Safe to update.");
-    expect(safe).toContain("r8.1");
+    expect(safe).toContain("New version ready");
+    expect(safe).not.toContain("r8.1");
   });
 
   test("connectivity, passive-tab, migration and Troubleshoot copy preserve critical local state", () => {
