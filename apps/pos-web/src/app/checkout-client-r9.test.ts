@@ -63,7 +63,8 @@ describe("R9 tender activity on current checkout composition", () => {
     };
     const ports = createBrowserCashCheckoutPorts({
       fetchImpl,
-      scope: tenderActivity,
+      scope: LOCAL_CHECKOUT_SCOPE,
+      tenderActivity,
     });
 
     await ports.checkout.prepare(
@@ -130,7 +131,7 @@ describe("R9 tender activity on current checkout composition", () => {
         headers: { "content-type": "application/json" },
       });
     };
-    const ports = createBrowserCashCheckoutPorts({ fetchImpl, scope: tenderActivity });
+    const ports = createBrowserCashCheckoutPorts({ fetchImpl, scope: LOCAL_CHECKOUT_SCOPE, tenderActivity });
     await ports.checkout.prepare(
       {
         transactionId: TX,
