@@ -70,6 +70,7 @@ export function RegisterRuntimeScreen({
   registerChoices = [],
   registerName = registerId ?? "Register",
   locationLabel = "Assigned location",
+  registerStatus = "active",
   currency,
   onSelectRegister,
   onShiftChange,
@@ -80,6 +81,7 @@ export function RegisterRuntimeScreen({
   readonly registerChoices?: readonly RegisterChoice[];
   readonly registerName?: string;
   readonly locationLabel?: string;
+  readonly registerStatus?: "active" | "disabled" | "maintenance";
   readonly currency: string;
   readonly onSelectRegister?: (registerId: string) => void;
   readonly onShiftChange?: (shift: Shift | null) => void;
@@ -164,7 +166,7 @@ export function RegisterRuntimeScreen({
 
   const ports = useMemo(
     () =>
-      registerId && selectedDeviceId
+      registerId && selectedDeviceId && registerCanOpen
         ? { register, registerId, deviceId: selectedDeviceId, currency }
         : undefined,
     [register, registerId, selectedDeviceId, currency],
@@ -238,6 +240,14 @@ export function RegisterRuntimeScreen({
     };
   }, [flow.session.shiftId, flow.session.status, onShiftChange, register, registerId]);
 
+  const registerCanOpen = registerStatus === "active";
+  const registerStatusMessage =
+    registerStatus === "maintenance"
+      ? "This register is under maintenance. Choose another active register or contact a manager."
+      : registerStatus === "disabled"
+        ? "This register is disabled. Choose another active register or contact a manager."
+        : undefined;
+
   const openForm = {
     registers: choices,
     selectedRegisterId: registerId ?? "",
@@ -252,7 +262,7 @@ export function RegisterRuntimeScreen({
       }
     },
     devicesLoading: deviceState === "loading",
-    deviceErrorMessage: deviceError,
+    deviceErrorMessage: registerStatusMessage ?? deviceError,
     online: typeof navigator === "undefined" ? true : navigator.onLine,
     errorMessage:
       flow.session.inputError ??
