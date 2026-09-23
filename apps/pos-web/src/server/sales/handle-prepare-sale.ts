@@ -82,7 +82,7 @@ export async function handlePrepareSale(input: HandlePrepareSaleInput): Promise<
     store: input.checkoutStore,
     salesPort: input.salesPort,
     catalogLookup: input.catalogLookup,
-    actor: guard.session,
+    actor: authorized.data.session,
     request: input.body,
     context: { idempotencyKey: guard.idempotencyKey, correlationId: guard.correlationId },
     now: input.now,
