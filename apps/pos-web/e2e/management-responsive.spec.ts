@@ -138,12 +138,13 @@ test.describe("ADMIN-105 Management responsiveness and operator language", () =>
     await page.setViewportSize({ width: 1440, height: 900 });
     await installManagementMocks(page);
     await page.goto("/management");
+    await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible({ timeout: 15_000 });
     await page.getByRole("button", { name: "Staff & access" }).click();
 
     await expect(page.getByRole("heading", { name: "Staff & access" })).toBeVisible();
     await expect(page.getByText("Account active")).toBeVisible();
     await expect(page.getByText("POS access active")).toBeVisible();
-    await expect(page.getByText("Organization role")).toBeVisible();
+    await expect(page.locator(".management-control-role .label").filter({ hasText: "Organization role" }).first()).toBeVisible();
     await expect(page.getByText("Location and register assignments")).toBeVisible();
 
     expect(await page.locator(".management-staff-head").first().evaluate((el) => getComputedStyle(el).display)).toBe("flex");
@@ -157,6 +158,7 @@ test.describe("ADMIN-105 Management responsiveness and operator language", () =>
     await page.setViewportSize({ width: 768, height: 900 });
     await installManagementMocks(page);
     await page.goto("/management");
+    await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible({ timeout: 15_000 });
 
     const nav = page.getByRole("navigation", { name: "Management navigation" });
     await expect(nav).toBeVisible();
@@ -178,6 +180,7 @@ test.describe("ADMIN-105 Management responsiveness and operator language", () =>
     await page.setViewportSize({ width: 390, height: 844 });
     await installManagementMocks(page);
     await page.goto("/management");
+    await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible({ timeout: 15_000 });
 
     await expect(page.locator(".management-brand")).toBeHidden();
     const sidebar = page.locator(".management-sidebar");
