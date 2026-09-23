@@ -115,9 +115,15 @@ export async function handleCreateStaffAccount(input: {
     if (!location) {
       return authFailure("FORBIDDEN", "That location is outside this organization.", input.correlationId);
     }
-    const registerIds = new Set(location.registers.map((row) => row.id));
-    if (assignment.registerIds.some((id) => !registerIds.has(id))) {
+    if (location.status === "inactive") {
+      return authFailure("VALIDATION_ERROR", "Choose an active location for POS access.", input.correlationId);
+    }
+    const registerById = new Map(location.registers.map((row) => [row.id, row]));
+    if (assignment.registerIds.some((id) => !registerById.has(id))) {
       return authFailure("FORBIDDEN", "A register is outside the selected location.", input.correlationId);
+    }
+    if (assignment.registerIds.some((id) => registerById.get(id)?.status !== "active")) {
+      return authFailure("VALIDATION_ERROR", "Choose only active registers for POS access.", input.correlationId);
     }
   }
 
