@@ -223,7 +223,7 @@ function PolicyEditor({
           <span>
             <strong>Require manager approval before completing a return</strong>
             <small>
-              New return previews in this policy scope wait for an operational manager approval before any refund or stock effect can execute.
+              New return previews in this policy scope wait for an operational manager approval. Approval itself does not refund a payment or change stock. Checking an existing refund is a separate reconciliation step. This is the only return and refund policy control currently available.
             </small>
           </span>
           <input

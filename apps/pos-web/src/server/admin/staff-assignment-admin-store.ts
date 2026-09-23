@@ -18,6 +18,7 @@ export interface StaffAssignmentAdminStore {
     readonly registerIds: readonly string[];
     readonly actorId: string;
     readonly correlationId: string;
+    readonly registersOnly?: boolean;
   }): Promise<StaffAssignmentMutationResult | "unavailable">;
 }
 
@@ -80,6 +81,7 @@ export function createSupabaseStaffAssignmentAdminStore(input: {
               p_register_ids: [...new Set(value.registerIds)],
               p_actor_id: value.actorId,
               p_correlation_id: value.correlationId,
+              p_registers_only: value.registersOnly === true,
             }),
           },
         );

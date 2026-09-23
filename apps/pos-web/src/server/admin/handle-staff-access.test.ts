@@ -5,6 +5,7 @@ import { createEphemeralInMemoryStaffSessionStore } from "../auth/session-store"
 import { createMemoryControlPlaneDirectory } from "./control-plane-directory";
 import { createMemoryStaffAccessDirectory, type StaffAccessRecord } from "./staff-access-directory";
 import { createMemoryStaffAssignmentAdminStore } from "./staff-assignment-admin-store";
+import { createMemoryManagementTopologyDirectory } from "./management-topology-directory";
 import { handleListStaffAccess, handleSetStaffAssignment } from "./handle-staff-access";
 
 const NOW = new Date("2026-09-22T15:00:00.000Z");
@@ -39,6 +40,36 @@ async function base(actorId: string, role: "cashier" | "manager", locations = ["
       },
     ]),
   };
+}
+
+function protection() {
+  return {
+    origin: ORIGIN,
+    referer: null,
+    csrfCookie: "csrf",
+    csrfHeader: "csrf",
+    allowedOrigins: [ORIGIN],
+  };
+}
+
+function locationTopology() {
+  return createMemoryManagementTopologyDirectory([
+    {
+      id: "loc_a1",
+      name: "Location A1",
+      registers: [
+        { id: "reg_a", name: "Register A", currency: "GHS", status: "active" },
+        { id: "reg_a2", name: "Register A2", currency: "GHS", status: "active" },
+      ],
+      devices: [],
+    },
+    {
+      id: "loc_a2",
+      name: "Location A2",
+      registers: [{ id: "reg_b", name: "Register B", currency: "GHS", status: "active" }],
+      devices: [],
+    },
+  ]);
 }
 
 const staffRows: StaffAccessRecord[] = [
@@ -122,7 +153,7 @@ describe("ADMIN-105 staff access", () => {
     expect(result.error.code).toBe("FORBIDDEN");
   });
 
-  test("manager cannot mutate staff assignments", async () => {
+  test("manager register update fails closed until location registers are known", async () => {
     const common = await base("manager_a", "manager");
     const result = await handleSetStaffAssignment({
       ...common,
@@ -142,8 +173,74 @@ describe("ADMIN-105 staff access", () => {
       },
     });
     expect(result.ok).toBe(false);
-    if (result.ok) throw new Error("expected forbidden");
-    expect(result.error.code).toBe("FORBIDDEN");
+    if (result.ok) throw new Error("expected unavailable");
+    expect(result.error.code).toBe("INTEGRATION_UNAVAILABLE");
+  });
+
+  test("manager can update registers for existing staff at a managed location", async () => {
+    const common = await base("manager_a", "manager");
+    const mutation = createMemoryStaffAssignmentAdminStore();
+    const result = await handleSetStaffAssignment({
+      ...common,
+      controlPlane: createMemoryControlPlaneDirectory([]),
+      staff: createMemoryStaffAccessDirectory(staffRows),
+      mutation,
+      topology: locationTopology(),
+      targetActorId: "cashier_a",
+      locationId: "loc_a1",
+      role: "cashier",
+      registerIds: ["reg_a2"],
+      protection: protection(),
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("expected register update");
+    expect(result.data.role).toBe("cashier");
+    expect(result.data.registerIds).toEqual(["reg_a2"]);
+  });
+
+  test("manager cannot promote, leave the location, or edit their own scope", async () => {
+    const common = await base("manager_a", "manager");
+    const shared = {
+      ...common,
+      controlPlane: createMemoryControlPlaneDirectory([]),
+      staff: createMemoryStaffAccessDirectory(staffRows),
+      mutation: createMemoryStaffAssignmentAdminStore(),
+      topology: locationTopology(),
+      protection: protection(),
+    };
+    const promoted = await handleSetStaffAssignment({
+      ...shared,
+      targetActorId: "cashier_a",
+      locationId: "loc_a1",
+      role: "manager",
+      registerIds: ["reg_a"],
+    });
+    const otherLocation = await handleSetStaffAssignment({
+      ...shared,
+      targetActorId: "cashier_b",
+      locationId: "loc_a2",
+      role: "cashier",
+      registerIds: ["reg_b"],
+    });
+    const self = await handleSetStaffAssignment({
+      ...shared,
+      targetActorId: "manager_a",
+      locationId: "loc_a1",
+      role: "manager",
+      registerIds: ["reg_a"],
+    });
+    const outsideRegister = await handleSetStaffAssignment({
+      ...shared,
+      targetActorId: "cashier_a",
+      locationId: "loc_a1",
+      role: "cashier",
+      registerIds: ["reg_b"],
+    });
+    for (const result of [promoted, otherLocation, self, outsideRegister]) {
+      expect(result.ok).toBe(false);
+      if (result.ok) throw new Error("expected forbidden");
+      expect(result.error.code).toBe("FORBIDDEN");
+    }
   });
 
   test("owner/admin can atomically update operational assignment", async () => {

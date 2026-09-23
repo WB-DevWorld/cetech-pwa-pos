@@ -10,7 +10,8 @@ import type { ManagementReturnsAttentionView } from "../server/admin/management-
 import type { ManagementReceiptSettingsView } from "../server/admin/handle-management-receipt-settings";
 import type { ManagementSystemHealthView } from "../server/admin/management-system-health";
 import type { ManagementAuditView } from "../server/admin/management-audit";
-import type { ReceiptSettings } from "../../../../docs/contracts/domain.generated";
+import type { ReceiptSettings, RefundState, ReturnApprovalBinding, ShiftReport } from "../../../../docs/contracts/domain.generated";
+import type { CashCorrectionResult, ManagementCashMovement } from "../server/admin/cash-correction-admin-store";
 import type { StaffAssignmentMutationResult } from "../server/admin/staff-assignment-admin-store";
 import type { ControlMembershipMutationResult } from "../server/admin/control-membership-admin-store";
 import type { StaffAccessStatusMutationResult } from "../server/admin/staff-access-status-admin-store";
@@ -247,6 +248,62 @@ export function inviteStaff(
         [STAFF_CSRF_HEADER]: readCookie(STAFF_CSRF_COOKIE),
       },
       body: JSON.stringify(input),
+    },
+  );
+}
+
+function mutationHeaders(): HeadersInit {
+  return {
+    "content-type": "application/json",
+    [STAFF_CSRF_HEADER]: readCookie(STAFF_CSRF_COOKIE),
+  };
+}
+
+export function approveManagementReturn(returnId: string, fetchImpl: typeof fetch = fetch) {
+  return jsonResult<ReturnApprovalBinding>(
+    fetchImpl,
+    `/api/pos/v1/admin/returns/${encodeURIComponent(returnId)}/approve`,
+    { method: "POST", headers: mutationHeaders() },
+  );
+}
+
+export function reconcileManagementRefund(refundId: string, fetchImpl: typeof fetch = fetch) {
+  return jsonResult<RefundState>(
+    fetchImpl,
+    `/api/pos/v1/admin/refunds/${encodeURIComponent(refundId)}/reconcile`,
+    { method: "POST", headers: mutationHeaders() },
+  );
+}
+
+export function fetchManagementShiftReport(
+  shiftId: string,
+  kind: "X" | "Z",
+  fetchImpl: typeof fetch = fetch,
+) {
+  return jsonResult<ShiftReport>(
+    fetchImpl,
+    `/api/pos/v1/admin/shifts/${encodeURIComponent(shiftId)}/report?kind=${kind}`,
+  );
+}
+
+export function fetchManagementCashMovements(shiftId: string, fetchImpl: typeof fetch = fetch) {
+  return jsonResult<readonly ManagementCashMovement[]>(
+    fetchImpl,
+    `/api/pos/v1/admin/shifts/${encodeURIComponent(shiftId)}/movements`,
+  );
+}
+
+export function reverseManagementCashMovement(
+  input: { readonly shiftId: string; readonly movementId: string; readonly reason: string },
+  fetchImpl: typeof fetch = fetch,
+) {
+  return jsonResult<CashCorrectionResult>(
+    fetchImpl,
+    `/api/pos/v1/admin/shifts/${encodeURIComponent(input.shiftId)}/corrections`,
+    {
+      method: "POST",
+      headers: mutationHeaders(),
+      body: JSON.stringify({ movementId: input.movementId, reason: input.reason }),
     },
   );
 }

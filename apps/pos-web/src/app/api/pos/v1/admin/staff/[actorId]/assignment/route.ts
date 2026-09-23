@@ -8,6 +8,7 @@ import { composeStaffAssignmentDirectory } from "@/server/sales/compose-assignme
 import { composeControlPlaneDirectory } from "@/server/admin/compose-control-plane-directory";
 import { composeStaffAccessDirectory } from "@/server/admin/compose-staff-access-directory";
 import { composeStaffAssignmentAdminStore } from "@/server/admin/compose-staff-assignment-admin-store";
+import { composeManagementTopologyDirectory } from "@/server/admin/compose-management-topology-directory";
 import { handleSetStaffAssignment } from "@/server/admin/handle-staff-access";
 import { createServerRestFetch } from "@/server/http/server-fetch";
 import { resolveCorrelationId } from "@/server/http/correlation";
@@ -52,6 +53,7 @@ export async function PATCH(
       controlPlane: composeControlPlaneDirectory(process.env),
       staff: composeStaffAccessDirectory(process.env),
       mutation: composeStaffAssignmentAdminStore(process.env),
+      topology: composeManagementTopologyDirectory(process.env),
       targetActorId: actorId,
       locationId: parsed.locationId,
       role: parsed.role,

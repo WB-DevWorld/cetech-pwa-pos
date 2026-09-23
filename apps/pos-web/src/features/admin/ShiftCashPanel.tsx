@@ -1,5 +1,13 @@
 "use client";
 
+import { useState } from "react";
+import type { ShiftReport } from "../../../../../docs/contracts/domain.generated";
+import {
+  fetchManagementCashMovements,
+  fetchManagementShiftReport,
+  reverseManagementCashMovement,
+} from "../../app/management-client";
+import type { ManagementCashMovement } from "../../server/admin/cash-correction-admin-store";
 import type { OperationalPolicyView } from "../../server/admin/handle-operational-policy";
 import type {
   ManagementShiftCashRow,
@@ -23,11 +31,15 @@ export function ShiftCashPanel({
   policy = null,
   policyLoading = false,
   onOpenPolicies,
+  managedLocationIds = [],
+  onChanged,
   now = new Date(),
 }: {
   readonly view: ManagementShiftCashView | null;
   readonly loading?: boolean;
   readonly errorMessage?: string;
+  readonly managedLocationIds?: readonly string[];
+  readonly onChanged?: () => void;
   readonly correlationId?: string;
   readonly policy?: OperationalPolicyView | null;
   readonly policyLoading?: boolean;
@@ -97,7 +109,15 @@ export function ShiftCashPanel({
           <p>No open, closing, or attention shifts in this view.</p>
         ) : (
           <div className="shift-cash-list">
-            {active.map((row) => <ShiftCard key={row.shiftId} row={row} now={now} />)}
+            {active.map((row) => (
+              <ShiftCard
+                key={row.shiftId}
+                row={row}
+                now={now}
+                canCorrect={managedLocationIds.includes(row.locationId)}
+                onChanged={onChanged}
+              />
+            ))}
           </div>
         )}
       </section>
@@ -108,7 +128,15 @@ export function ShiftCashPanel({
           <p>No recently closed shifts in this view.</p>
         ) : (
           <div className="shift-cash-list">
-            {closed.map((row) => <ShiftCard key={row.shiftId} row={row} now={now} />)}
+            {closed.map((row) => (
+              <ShiftCard
+                key={row.shiftId}
+                row={row}
+                now={now}
+                canCorrect={managedLocationIds.includes(row.locationId)}
+                onChanged={onChanged}
+              />
+            ))}
           </div>
         )}
       </section>
@@ -143,9 +171,13 @@ function SummaryStat({
 function ShiftCard({
   row,
   now,
+  canCorrect,
+  onChanged,
 }: {
   readonly row: ManagementShiftCashRow;
   readonly now: Date;
+  readonly canCorrect: boolean;
+  readonly onChanged?: () => void;
 }) {
   const location = row.locationName ?? row.locationId;
   const register = row.registerName ?? row.registerId;
@@ -196,6 +228,7 @@ function ShiftCard({
           <p className="eyebrow">Report</p>
           {reportLines(row).map((line) => <p key={line}>{line}</p>)}
           {row.report.zReportId ? <p className="muted">Z reference {row.report.zReportId}</p> : null}
+          <ShiftReportActions row={row} canCorrect={canCorrect} onChanged={onChanged} />
         </div>
       </div>
       <details>
@@ -205,6 +238,141 @@ function ShiftCard({
       </details>
     </article>
   );
+}
+
+function ShiftReportActions({
+  row,
+  canCorrect,
+  onChanged,
+}: {
+  readonly row: ManagementShiftCashRow;
+  readonly canCorrect: boolean;
+  readonly onChanged?: () => void;
+}) {
+  const [report, setReport] = useState<ShiftReport | null>(null);
+  const [movements, setMovements] = useState<readonly ManagementCashMovement[] | null>(null);
+  const [reason, setReason] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  async function loadReport(kind: "X" | "Z") {
+    setPending(true);
+    setError(null);
+    const result = await fetchManagementShiftReport(row.shiftId, kind);
+    setPending(false);
+    if (!result.ok) {
+      setError(result.error.message);
+      return;
+    }
+    setReport(result.data);
+  }
+
+  async function loadMovements() {
+    setPending(true);
+    setError(null);
+    const result = await fetchManagementCashMovements(row.shiftId);
+    setPending(false);
+    if (!result.ok) {
+      setError(result.error.message);
+      return;
+    }
+    setMovements(result.data);
+  }
+
+  async function reverse(movementId: string) {
+    setPending(true);
+    setError(null);
+    const result = await reverseManagementCashMovement({
+      shiftId: row.shiftId,
+      movementId,
+      reason,
+    });
+    setPending(false);
+    if (!result.ok) {
+      setError(result.error.message);
+      return;
+    }
+    setMessage(result.data.replayed
+      ? "This movement was already reversed. Expected cash was not changed again."
+      : "Cash movement reversed. Expected cash now includes that exact reversal.");
+    setReason("");
+    onChanged?.();
+    await loadMovements();
+  }
+
+  return (
+    <div className="stack">
+      <div className="dialog-actions">
+        {row.report.xAvailable ? (
+          <button className="btn small" type="button" disabled={pending} onClick={() => void loadReport("X")}>
+            View X report
+          </button>
+        ) : null}
+        {row.report.zAvailable ? (
+          <button className="btn small" type="button" disabled={pending} onClick={() => void loadReport("Z")}>
+            View Z report
+          </button>
+        ) : null}
+        <button className="btn small" type="button" disabled={pending} onClick={() => void loadMovements()}>
+          Cash movements
+        </button>
+      </div>
+      {report ? (
+        <div className="card card-pad" data-management-report={report.kind}>
+          <strong>{report.kind === "Z" ? "Z report" : "X report"}</strong>
+          <p>Expected {formatMoneyLabel(report.expectedCash)}</p>
+          {report.countedCash ? <p>Counted {formatMoneyLabel(report.countedCash)}</p> : null}
+          {report.variance ? <p>Variance {formatMoneyLabel({ minor: Math.abs(report.variance.minor), currency: report.variance.currency })}</p> : null}
+          {report.kind === "X" ? <p className="muted">This X report is the live shift. It is not stored as a Z report.</p> : null}
+        </div>
+      ) : null}
+      {movements ? (
+        <ul className="stack">
+          {movements.length === 0 ? <li>No cash movements are stored for this shift.</li> : null}
+          {movements.map((movement) => (
+            <li key={movement.id}>
+              <span>{movementLabel(movement.kind)} {formatSigned(movement.signedAmountMinor, movement.currency)}</span>
+              {movement.reason ? <span className="muted"> {movement.reason}</span> : null}
+              {canCorrect && row.status === "open" && movement.kind !== "correction" ? (
+                <button className="btn small" type="button" disabled={pending || reason.trim().length === 0} onClick={() => void reverse(movement.id)}>
+                  Reverse movement
+                </button>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {canCorrect && row.status === "open" ? (
+        <label className="field">
+          <span>Reason for reversing a movement</span>
+          <input className="input" value={reason} onChange={(event) => setReason(event.target.value)} />
+        </label>
+      ) : null}
+      {message ? <p role="status">{message}</p> : null}
+      {error ? <div className="banner danger" role="alert">{error}</div> : null}
+    </div>
+  );
+}
+
+function movementLabel(kind: string): string {
+  switch (kind) {
+    case "opening_float": return "Opening float";
+    case "cash_sale": return "Cash sale";
+    case "cash_refund": return "Cash refund";
+    case "pay_in": return "Pay in";
+    case "pay_out": return "Pay out";
+    case "cash_pickup": return "Cash pickup";
+    case "correction": return "Correction";
+    default: return "Cash movement";
+  }
+}
+
+function formatSigned(minor: number, currency: string): string {
+  const amount = formatMoneyLabel({ minor: Math.abs(minor), currency });
+  if (minor > 0) return `+${amount}`;
+  if (minor < 0) return `-${amount}`;
+  return amount;
 }
 
 function PolicyContext({

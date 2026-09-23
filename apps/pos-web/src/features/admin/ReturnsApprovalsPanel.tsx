@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import type { ManagementReturnsAttentionItem, ManagementReturnsAttentionView } from "../../server/admin/management-returns-attention-directory";
+import { approveManagementReturn, reconcileManagementRefund } from "../../app/management-client";
 import { formatMoneyLabel } from "../../ui/cashier-language";
 
 const PRIORITY_LABEL = {
@@ -21,11 +23,13 @@ export function ReturnsApprovalsPanel({
   loading = false,
   errorMessage,
   correlationId,
+  onChanged,
 }: {
   readonly view: ManagementReturnsAttentionView | null;
   readonly loading?: boolean;
   readonly errorMessage?: string;
   readonly correlationId?: string;
+  readonly onChanged?: () => void;
 }) {
   if (loading) {
     return (
@@ -77,7 +81,7 @@ export function ReturnsApprovalsPanel({
           <section className="stack" aria-labelledby={headingId} key={priority}>
             <h2 id={headingId}>{PRIORITY_LABEL[priority]}</h2>
             <div className="returns-attention-list">
-              {rows.map((row) => <AttentionCard key={row.id} row={row} />)}
+              {rows.map((row) => <AttentionCard key={row.id} row={row} onChanged={onChanged} />)}
             </div>
           </section>
         );
@@ -103,9 +107,46 @@ function SummaryStat({
   );
 }
 
-function AttentionCard({ row }: { readonly row: ManagementReturnsAttentionItem }) {
+function AttentionCard({
+  row,
+  onChanged,
+}: {
+  readonly row: ManagementReturnsAttentionItem;
+  readonly onChanged?: () => void;
+}) {
+  const [pending, setPending] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const location = row.locationName ?? row.locationId;
   const register = row.registerName ?? row.registerId;
+
+  async function approve() {
+    if (!row.returnId || pending) return;
+    setPending(true);
+    setActionError(null);
+    const result = await approveManagementReturn(row.returnId);
+    setPending(false);
+    if (!result.ok) {
+      setActionError(result.error.message);
+      return;
+    }
+    setNotice("Manager approval recorded. The cashier can continue the same return.");
+    onChanged?.();
+  }
+
+  async function reconcile() {
+    if (!row.refundId || pending) return;
+    setPending(true);
+    setActionError(null);
+    const result = await reconcileManagementRefund(row.refundId);
+    setPending(false);
+    if (!result.ok) {
+      setActionError(result.error.message);
+      return;
+    }
+    setNotice(`Refund check finished. Stored state: ${result.data.status}.`);
+    onChanged?.();
+  }
   return (
     <article
       className="card card-pad returns-attention-card"
@@ -124,7 +165,21 @@ function AttentionCard({ row }: { readonly row: ManagementReturnsAttentionItem }
           </div>
           <p>{row.summary}</p>
           <p>{INTERVENTION_LABEL[row.intervention]}</p>
-          <p>{row.nextAction}</p>
+          <p>{row.approvalState === "recorded"
+            ? "Manager approval recorded. The cashier can continue the same return."
+            : row.nextAction}</p>
+          {notice ? <p role="status">{notice}</p> : null}
+          {actionError ? <div className="banner danger" role="alert">{actionError}</div> : null}
+          {row.canApprove && row.returnId ? (
+            <button className="btn primary" type="button" disabled={pending} onClick={() => void approve()}>
+              {pending ? "Approving…" : "Approve return"}
+            </button>
+          ) : null}
+          {row.canReconcile && row.refundId ? (
+            <button className="btn" type="button" disabled={pending} onClick={() => void reconcile()}>
+              {pending ? "Checking…" : "Check refund"}
+            </button>
+          ) : null}
         </div>
         <div className="returns-attention-facts">
           {row.amount ? (

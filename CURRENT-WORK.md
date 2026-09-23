@@ -51,7 +51,7 @@ Current R9 PR #63 remains DRAFT. Existing R9 evidence is preserved. Final ADR-01
 
 Shift and cash oversight is complete on `ws3/admin-105-control-plane` / PR #109. It is a read-only Management view over existing `pos_shifts` aggregates.
 
-Returns, approvals, and requires-attention oversight is complete on `ws3/admin-105-control-plane` / PR #109. It is a read-only Management view over existing return, refund, stock-disposition, and pending-operation records. It does not grant approval, issue refunds, or restock.
+Returns, approvals, and requires-attention oversight is complete on `ws3/admin-105-control-plane` / PR #109. It is a Management view over existing return, refund, stock-disposition, and pending-operation records. It does not invent Approved or Rejected statuses, issue a new refund, or restock. An operational manager at the return location can bind an audited approval for an `approval_required` return. An operational manager at the refund location can check that existing refund through the existing reconciliation path. Organization Owner or Admin authority does not grant either action by itself.
 
 Receipt settings administration is complete on `ws3/admin-105-control-plane` / PR #109. It reuses location-scoped `pos_receipt_settings` and `ReceiptSettings`. Owner and Admin may change settings through the still-unreleased `20260922123000_pos_admin_control_plane.sql` atomic RPC, which also appends `pos_admin_audit_events`. That migration has not been applied to staging or production, so the receipt-settings function was added there instead of as a later migration. Managers can view managed locations only.
 
@@ -59,7 +59,7 @@ System health is complete on `ws3/admin-105-control-plane` / PR #109. It is a re
 
 Audit browser is complete on `ws3/admin-105-control-plane` / PR #109. It is a bounded read-only view over append-only `pos_admin_audit_events`. Owner, Admin, and Support may read organization-wide events; operational managers may read only events tied to verified managed locations. Raw before/after JSON is not exposed to the browser.
 
-## Temporary senior #105 cashier-boundary cleanup — ACTIVE
+## Temporary senior #105 cashier-boundary cleanup — COMPLETE
 
 Owner/user's 2026-09-22 instruction to continue #105 authorizes this bounded task-specific reassignment so step 9 can remove technical/admin/support diagnostics from ordinary cashier surfaces. This does **not** permanently alter `OWNERSHIP.md`. Ben / `@Ben-001-sys` remains the independent reviewer of the frozen #105 head.
 
@@ -108,7 +108,65 @@ review:
 
 Cashier diagnostics cleanup is source-complete on `ws3/admin-105-control-plane` / PR #109. Ordinary cashier Settings/System status no longer expose raw build/API/schema/quote diagnostics or repair controls; safe R9 local-recovery and update-safety behavior remains intact. System status is reached from Settings rather than primary cashier navigation.
 
-Return/refund approval policy closeout is the active #105 slice. The inherited operational policy now includes `returnApprovalRequired` (default false), and return preview resolves it server-side at organization → location → register scope. The current backend slice adds an atomic, audited, replay-safe operational-manager approval binding without executing refund or stock effects. It does not complete #105.
+## Temporary senior #105 source closeout — COMPLETE
+
+Owner/user's 2026-09-22 instruction to finish #105 authorizes this bounded task-specific reassignment for the remaining source candidate. This does **not** permanently alter `OWNERSHIP.md`. Ben / `@Ben-001-sys` remains the independent reviewer of the frozen #105 head.
+
+```text
+human / implementing editor: @wbdevworld
+workstream: WS3 control plane + bounded WS1 cashier surfaces
+task: #105 source closeout — return approval continuation, cashier diagnostic boundary, manager register assignment, refund reconciliation, X/Z read, cash correction, close visibility
+branch: ws3/admin-105-control-plane
+starting SHA: ae854d1a1085887c1f379e83eabba9f7164bc0ff
+allowed WS1:
+  apps/pos-web/src/features/returns/**
+  apps/pos-web/src/features/register/**
+  apps/pos-web/src/features/sell/components/ReceiptPaper.tsx
+  apps/pos-web/src/ui/operational/**
+  apps/pos-web/src/ui/shell/**
+  tests/frontend/**
+  apps/pos-web/e2e/**
+allowed WS3:
+  apps/pos-web/src/server/admin/**
+  apps/pos-web/src/server/auth/**
+  apps/pos-web/src/server/returns/**
+  apps/pos-web/src/server/payments/**
+  apps/pos-web/src/server/sales/**
+  apps/pos-web/src/app/management-client.ts
+  apps/pos-web/src/app/management-runtime.tsx
+  apps/pos-web/src/app/register-runtime.tsx
+  apps/pos-web/src/app/api/pos/v1/admin/**
+  apps/pos-web/src/app/api/pos/v1/registers/**
+  apps/pos-web/src/features/admin/**
+  supabase/migrations/20260922123000_pos_admin_control_plane.sql
+  supabase/tests/**
+  CURRENT-WORK.md
+scope:
+  finish defined #105 source gaps without new commerce effects
+  cashier continuation after server-owned return approval
+  manager register assignment inside an existing location assignment
+  exact-reversal cash correction only
+forbidden:
+  OWNERSHIP.md changes
+  new refund or restock engines
+  pricing or Woo authority changes
+  staging migration apply
+  production promotion
+  self-merge
+review:
+  exact-head CI green
+  @Ben-001-sys independent exact-head review
+```
+
+#105 source candidate is frozen for independent review. Next gate: independent review / runtime acceptance. R9 remains paused. Do not apply `20260922123000_pos_admin_control_plane.sql` to staging or production from this freeze.
+
+The inherited operational policy includes `returnApprovalRequired` (default false). Return preview resolves it server-side at organization → location → register scope. Staging and production do not fall back to an ephemeral policy store. An operational manager binds an atomic, audited, replay-safe approval. The cashier continues the same stored return; the server matches return id and fingerprint and does not require a pasted approval id. Approval does not refund or change stock. `pos_returns.status` stays `approval_required` until existing return execution advances it.
+
+Manager register assignment can change registers only for operational staff already assigned at a location the manager manages. It cannot change the operational role, add a location, invite, disable, or change Owner/Admin/Support membership. Owner and Admin keep full assignment management.
+
+Cash correction reuses the existing exact-reversal rule: the signed amount is the negative of the original movement, the original row is unchanged, a correction cannot correct a correction, and expected cash moves only through the existing insert trigger. A manager at the shift location supplies a reason. Owner or Admin authority alone does not reverse cash.
+
+Management X report is the live expected-cash view and is not stored. Z report reads the durable closed report and is not recalculated. Shift close controls on the register follow effective policy; the server close command remains the final gate.
 
 ## 5PM bounded UX-01 cashier-copy slice — ACTIVE until 2026-09-21 17:00 Africa/Accra
 

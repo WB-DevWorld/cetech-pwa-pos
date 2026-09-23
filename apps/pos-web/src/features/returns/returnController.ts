@@ -419,14 +419,6 @@ export function createReturnController(ports: ReturnControllerPorts) {
       if (commandLock || identityIsLocked() || !session.returnId || !session.fingerprint) {
         return;
       }
-      if (session.approvalRequired && !session.approvalId) {
-        setSession({
-          ...session,
-          stage: "approval_required",
-          message: "Manager approval is required before you can continue.",
-        });
-        return;
-      }
       commandLock = true;
       const request: ReturnExecuteRequest = {
         returnId: session.returnId,
@@ -451,11 +443,16 @@ export function createReturnController(ports: ReturnControllerPorts) {
           return;
         }
         if (outcome.kind === "result" && !outcome.value.ok) {
+          const waiting = session.approvalRequired
+            && !session.approvalId
+            && outcome.value.error.code === "FORBIDDEN";
           setSession({
             ...session,
-            stage: "failed",
+            stage: waiting ? "approval_required" : "failed",
             complete: false,
-            message: cashierErrorMessage(outcome.value.error, "returns"),
+            message: waiting
+              ? "Manager approval is required before you can continue."
+              : cashierErrorMessage(outcome.value.error, "returns"),
           });
         }
       } finally {

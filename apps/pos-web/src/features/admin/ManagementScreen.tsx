@@ -88,6 +88,8 @@ export function ManagementScreen({
   onSaveAccessStatus,
   invitingStaff = false,
   onInviteStaff,
+  onReturnsChanged,
+  onShiftsChanged,
 }: {
   readonly context: ManagementContext;
   readonly activeSection?: ManagementSection;
@@ -153,6 +155,8 @@ export function ManagementScreen({
     readonly email: string;
     readonly displayName: string;
   }) => void;
+  readonly onReturnsChanged?: () => void;
+  readonly onShiftsChanged?: () => void;
 }) {
   const active = LABELS[activeSection];
   const roleLabel = context.controlRole
@@ -219,7 +223,7 @@ export function ManagementScreen({
               </ManagementCard>
               <ManagementCard title="Staff & access">
                 <p>Staff access is server-scoped to the current organization and managed locations.</p>
-                <p>Organization owner/admin may change operational assignments; managers currently have read-only oversight.</p>
+                <p>Owner and admin manage organization access. A manager may update register assignments only for staff already assigned at a managed location.</p>
               </ManagementCard>
               <ManagementCard title="Shift-close policy">
                 <p>Policy is server-owned and inherits organization → location → register.</p>
@@ -234,6 +238,7 @@ export function ManagementScreen({
               rows={staffRows}
               topology={topologyRows}
               canManage={context.controlRole === "owner" || context.controlRole === "admin"}
+              managedLocationIds={context.managerLocationIds}
               callerControlRole={context.controlRole}
               currentActorId={context.actorId}
               loading={staffLoading}
@@ -264,6 +269,8 @@ export function ManagementScreen({
                   ? () => onSelectSection?.("policies")
                   : undefined
               }
+              managedLocationIds={context.managerLocationIds}
+              onChanged={onShiftsChanged}
             />
           ) : activeSection === "returns_approvals" ? (
             <ReturnsApprovalsPanel
@@ -271,6 +278,7 @@ export function ManagementScreen({
               loading={returnsAttentionLoading}
               errorMessage={returnsAttentionError}
               correlationId={returnsAttentionCorrelationId}
+              onChanged={onReturnsChanged}
             />
           ) : activeSection === "policies" ? (
             <PolicyPanel

@@ -1,10 +1,9 @@
 "use client";
 
 import { CloseShiftForm } from "./CloseShiftForm";
-import { OpenRegisterForm, type OpenRegisterFormProps } from "./OpenRegisterForm";
+import { OpenRegisterForm, type OpenRegisterFormProps, type RegisterChoice } from "./OpenRegisterForm";
 import { formatMoneyDisplay } from "../sell/state/quotePresentation";
 import { describeShiftStatus, formatSignedMoneyDisplay, type ShiftWorkspaceView } from "./shiftView";
-import { TechnicalDetails } from "../../ui/cashier-language";
 
 export function RegisterScreen({
   openForm,
@@ -14,6 +13,7 @@ export function RegisterScreen({
   onClose,
   onShowXReport,
   onBindApproval,
+  closePresentation,
 }: {
   openForm: OpenRegisterFormProps;
   session: ShiftWorkspaceView;
@@ -22,10 +22,12 @@ export function RegisterScreen({
   onClose?: (countedCashText: string) => void;
   onShowXReport?: () => void;
   onBindApproval?: () => void;
+  closePresentation?: { readonly showClose: boolean; readonly notice: string };
 }) {
   const copy = describeShiftStatus(session.status);
   const showOpen = session.status === "no_open_shift" || session.status === "opening";
-  const showClose = session.status === "open" || session.status === "closing";
+  const showClose = (session.status === "open" || session.status === "closing")
+    && (closePresentation?.showClose ?? false);
   const showClosed = session.status === "closed";
   const showAttention = session.status === "requires_attention";
 
@@ -56,13 +58,16 @@ export function RegisterScreen({
       {session.status === "open" ? (
         <section className="card card-pad">
           <p className="muted">{session.registerName ?? "Shift open"}</p>
-          {session.shiftId ? <TechnicalDetails rows={[{ label: "Shift ID", value: session.shiftId }]} /> : null}
+          <WorkingRegister choices={openForm.registers} selectedId={openForm.selectedRegisterId} onSelect={openForm.onRegisterChange} />
           {onShowXReport ? (
             <button type="button" className="btn" disabled={inFlight} onClick={onShowXReport}>
               View shift summary (X report)
             </button>
           ) : null}
         </section>
+      ) : null}
+      {(session.status === "open" || session.status === "closing") && closePresentation?.notice ? (
+        <p className="muted" role="status">{closePresentation.notice}</p>
       ) : null}
       {showClose ? (
         <CloseShiftForm
@@ -111,6 +116,42 @@ export function RegisterScreen({
           {session.report.variance ? <div>Variance {formatSignedMoneyDisplay(session.report.variance)}</div> : null}
         </section>
       ) : null}
+    </div>
+  );
+}
+
+function WorkingRegister({
+  choices,
+  selectedId,
+  onSelect,
+}: {
+  readonly choices: readonly RegisterChoice[];
+  readonly selectedId?: string;
+  readonly onSelect?: (registerId: string) => void;
+}) {
+  if (choices.length === 0) return null;
+  const current = choices.find((choice) => choice.id === selectedId);
+  return (
+    <div className="field" data-working-register="">
+      <label htmlFor="working-register">Working register</label>
+      {current?.locationLabel ? <p>{current.locationLabel}</p> : null}
+      {choices.length > 1 && onSelect ? (
+        <select
+          className="select"
+          id="working-register"
+          value={selectedId ?? ""}
+          onChange={(event) => onSelect(event.target.value)}
+        >
+          {selectedId ? null : <option value="">Select a register</option>}
+          {choices.map((choice) => (
+            <option key={choice.id} value={choice.id}>
+              {choice.locationLabel ? `${choice.name} · ${choice.locationLabel}` : choice.name}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <p id="working-register">{current?.name ?? "Assigned register"}</p>
+      )}
     </div>
   );
 }

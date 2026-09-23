@@ -1,6 +1,5 @@
 import { formatMoneyDisplay } from "../state/quotePresentation";
 import type { ReceiptViewModel } from "../state/checkoutSession";
-import { TechnicalDetails } from "../../../ui/cashier-language";
 
 export function ReceiptPaper({ receipt }: { receipt: ReceiptViewModel }) {
   return (
@@ -84,9 +83,7 @@ export function ReceiptPaper({ receipt }: { receipt: ReceiptViewModel }) {
           <span>{formatMoneyDisplay(receipt.changeDue)}</span>
         </div>
       ) : null}
-      {receipt.transactionId ? (
-        <TechnicalDetails rows={[{ label: "Sale reference", value: receipt.transactionId }]} />
-      ) : null}
+      {receipt.transactionId ? <span hidden data-sale-reference={receipt.transactionId} /> : null}
       <hr />
       <p className="center muted">Thank you.</p>
     </article>

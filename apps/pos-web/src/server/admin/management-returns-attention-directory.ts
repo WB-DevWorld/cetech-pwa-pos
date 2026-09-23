@@ -69,6 +69,10 @@ export type ManagementReturnsAttentionItem = {
   readonly refundId?: string;
   readonly operationLabel?: string;
   readonly persistedStatus: string;
+  /** Present only for stored approval_required returns. Does not change pos_returns.status. */
+  readonly approvalState?: "required" | "recorded";
+  readonly canApprove?: boolean;
+  readonly canReconcile?: boolean;
   readonly statusLabel: string;
   readonly summary: string;
   readonly nextAction: string;
@@ -207,7 +211,8 @@ export function createSupabaseManagementReturnsAttentionDirectory(input: {
         ? `&location_id=in.(${locationIds.map((id) => encodeURIComponent(id)).join(",")})`
         : "";
       const operations = RETURN_OPERATIONS.map((operation) => encodeURIComponent(operation)).join(",");
-      const [locationsBody, registersBody, activeReturns, completedReturns, refunds, commercial, stock, operationsBody] =
+      const expiresAfter = encodeURIComponent(new Date().toISOString());
+      const [locationsBody, registersBody, activeReturns, completedReturns, refunds, commercial, stock, operationsBody, approvalsBody] =
         await Promise.all([
           get(`pos_locations?${org}&select=id,name`),
           get(`pos_registers?${org}&select=id,name`),
@@ -217,8 +222,9 @@ export function createSupabaseManagementReturnsAttentionDirectory(input: {
           get(`pos_commercial_refunds?${org}${locationFilter}&status=in.(requires_attention,pending,not_found)&select=${COMMERCIAL_SELECT}&order=updated_at.desc&limit=${EFFECT_LIMIT + 1}`),
           get(`pos_stock_dispositions?${org}${locationFilter}&status=in.(requires_attention,pending,not_found)&select=${STOCK_SELECT}&order=updated_at.desc&limit=${EFFECT_LIMIT + 1}`),
           get(`pos_pending_operations?${org}${locationFilter}&operation=in.(${operations})&status=in.(requires_attention,response_unknown,sent,pending)&select=${OPERATION_SELECT}&order=created_at.desc&limit=${OPERATION_LIMIT + 1}`),
+          get(`pos_return_approvals?${org}${locationFilter}&expires_at=gt.${expiresAfter}&select=return_id,fingerprint,location_id`),
         ]);
-      const bodies = [locationsBody, registersBody, activeReturns, completedReturns, refunds, commercial, stock, operationsBody];
+      const bodies = [locationsBody, registersBody, activeReturns, completedReturns, refunds, commercial, stock, operationsBody, approvalsBody];
       if (bodies.some((body) => !Array.isArray(body))) return "unavailable";
 
       const locationNames = nameMap(locationsBody as readonly unknown[]);
@@ -231,9 +237,10 @@ export function createSupabaseManagementReturnsAttentionDirectory(input: {
         bound(stock as readonly unknown[], EFFECT_LIMIT),
         bound(operationsBody as readonly unknown[], OPERATION_LIMIT),
       ];
+      const recordedApprovals = approvalIndex(approvalsBody as readonly unknown[]);
       const rows = [
-        ...buckets[0]!.rows.flatMap((row) => normalizeReturn(row, locationNames, registerNames)),
-        ...buckets[1]!.rows.flatMap((row) => normalizeReturn(row, locationNames, registerNames)),
+        ...buckets[0]!.rows.flatMap((row) => normalizeReturn(row, locationNames, registerNames, recordedApprovals)),
+        ...buckets[1]!.rows.flatMap((row) => normalizeReturn(row, locationNames, registerNames, recordedApprovals)),
         ...buckets[2]!.rows.flatMap((row) => normalizeRefund(row, locationNames)),
         ...buckets[3]!.rows.flatMap((row) => normalizeCommercial(row, locationNames)),
         ...buckets[4]!.rows.flatMap((row) => normalizeStock(row, locationNames)),
@@ -248,7 +255,7 @@ export function createSupabaseManagementReturnsAttentionDirectory(input: {
   };
 }
 
-const RETURN_SELECT = "return_id,organization_id,location_id,register_id,transaction_id,sale_id,status,refund_total_minor,refund_currency,updated_at";
+const RETURN_SELECT = "return_id,organization_id,location_id,register_id,transaction_id,sale_id,status,fingerprint,refund_total_minor,refund_currency,updated_at";
 const REFUND_SELECT = "refund_id,return_id,organization_id,location_id,transaction_id,status,amount_minor,currency,updated_at";
 const COMMERCIAL_SELECT = "commercial_refund_id,return_id,organization_id,location_id,transaction_id,sale_id,status,amount_minor,currency,updated_at";
 const STOCK_SELECT = "stock_disposition_id,return_id,organization_id,location_id,transaction_id,sale_id,status,updated_at";
@@ -269,8 +276,8 @@ function describeReturn(status: string): Copy | undefined {
         priority: "pending",
         intervention: "required",
         statusLabel: "Approval required",
-        summary: "This return is stored as requiring approval before it can execute.",
-        nextAction: "Approval is still required. This screen does not grant it.",
+        summary: "Review the return amount, location, and register.",
+        nextAction: "Approve return when you are the operational manager at this location.",
       };
     case "refund_pending":
       return {
@@ -416,10 +423,21 @@ function operationLabel(operation: string): string | undefined {
   }
 }
 
+function approvalIndex(rows: readonly unknown[]): ReadonlyMap<string, string> {
+  const recorded = new Map<string, string>();
+  for (const row of rows) {
+    if (!record(row) || typeof row.return_id !== "string" || typeof row.fingerprint !== "string") continue;
+    if (typeof row.location_id !== "string") continue;
+    recorded.set(`${row.location_id}:${row.return_id}`, row.fingerprint);
+  }
+  return recorded;
+}
+
 function normalizeReturn(
   value: unknown,
   locationNames: ReadonlyMap<string, string>,
   registerNames: ReadonlyMap<string, string>,
+  recordedApprovals: ReadonlyMap<string, string> = new Map(),
 ): readonly ManagementReturnsAttentionItem[] {
   if (!record(value) || typeof value.return_id !== "string" || typeof value.status !== "string") return [];
   const copy = describeManagementReturnsAttention({ category: "return", persistedStatus: value.status });
@@ -428,15 +446,29 @@ function normalizeReturn(
   if (!copy || !base || !amount || typeof value.transaction_id !== "string" || typeof value.sale_id !== "string") {
     return [];
   }
+  const approvalFingerprint = recordedApprovals.get(`${base.locationId}:${value.return_id}`);
+  const approvalRecorded = value.status === "approval_required"
+    && typeof value.fingerprint === "string"
+    && approvalFingerprint === value.fingerprint;
+  const approvalCopy = approvalRecorded
+    ? {
+        ...copy,
+        summary: "Manager approval recorded.",
+        nextAction: "The cashier can continue the same return.",
+      }
+    : copy;
   return [{
     id: `return:${value.return_id}`,
     category: "return",
-    ...copy,
+    ...approvalCopy,
     ...base,
     returnId: value.return_id,
     transactionId: value.transaction_id,
     saleId: value.sale_id,
     persistedStatus: value.status,
+    ...(value.status === "approval_required"
+      ? { approvalState: approvalRecorded ? "recorded" as const : "required" as const }
+      : {}),
     amount,
   }];
 }

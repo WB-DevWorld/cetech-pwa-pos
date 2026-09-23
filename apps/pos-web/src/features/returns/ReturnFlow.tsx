@@ -1,7 +1,7 @@
 "use client";
 
 import { formatMoneyDisplay } from "../sell/state/quotePresentation";
-import { orderStatusLabel, TechnicalDetails } from "../../ui/cashier-language";
+import { orderStatusLabel } from "../../ui/cashier-language";
 import {
   canPresentReturnComplete,
   conditionLabel,
@@ -23,6 +23,21 @@ const CONDITIONS: readonly ReturnConditionView[] = [
   "quarantine",
   "not_physically_returned",
 ];
+
+function friendlyPending(label: string): string {
+  switch (label) {
+    case "payment refund":
+      return "Payment refund pending";
+    case "cash refund":
+      return "Cash refund pending";
+    case "order refund":
+      return "Order refund pending";
+    case "stock update":
+      return "Stock update needs attention";
+    default:
+      return label;
+  }
+}
 
 function EffectRow({
   label,
@@ -188,8 +203,8 @@ export function ReturnFlow({
         </div>
       ) : null}
       {session.approvalId ? (
-        <div data-bound-approval={session.approvalId}>
-          <TechnicalDetails rows={[{ label: "Approval ID", value: session.approvalId }]} />
+        <div className="banner success" role="status" data-bound-approval="">
+          Manager approval recorded.
         </div>
       ) : null}
       {session.providerRefund || session.cashRefund || session.commercialRefund || session.stockDisposition ? (
@@ -201,15 +216,12 @@ export function ReturnFlow({
           <EffectRow label="Stock update" effect={session.stockDisposition} />
         </div>
       ) : null}
-      {session.refundIdentities.length > 0 ? (
-        <TechnicalDetails
-          rows={session.refundIdentities.map((id, index) => ({ label: `Refund ${index + 1}`, value: id }))}
-        />
-      ) : null}
       {!complete && unresolved.length > 0 ? (
         <div className="banner warning" role="alert" data-return-unresolved="">
           {"This return isn't finished yet. Some refund or stock updates are still pending."}
-          <TechnicalDetails rows={unresolved.map((label) => ({ label: "Pending", value: label }))} />
+          <ul>
+            {unresolved.map((label) => <li key={label}>{friendlyPending(label)}</li>)}
+          </ul>
         </div>
       ) : null}
       {complete ? (
@@ -223,9 +235,9 @@ export function ReturnFlow({
             Review return
           </button>
         ) : null}
-        {!locked && (session.stage === "previewed" || (session.stage === "approval_required" && session.approvalId)) && session.returnId ? (
+        {!locked && (session.stage === "previewed" || session.stage === "approval_required") && session.returnId ? (
           <button type="button" className="btn primary" disabled={inFlight} onClick={onExecute}>
-            Complete return
+            {session.stage === "approval_required" && !session.approvalId ? "Check approval" : "Complete return"}
           </button>
         ) : null}
         {locked || session.stage === "resolving" || session.stage === "in_progress" || session.stage === "refund_pending" || session.stage === "requires_attention" ? (

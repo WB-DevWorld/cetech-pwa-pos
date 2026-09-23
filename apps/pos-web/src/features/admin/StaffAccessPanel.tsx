@@ -10,6 +10,7 @@ export function StaffAccessPanel({
   rows,
   topology = [],
   canManage = false,
+  managedLocationIds = [],
   loading,
   savingActorId,
   errorMessage,
@@ -24,6 +25,7 @@ export function StaffAccessPanel({
   readonly rows: readonly StaffAccessRecord[];
   readonly topology?: readonly ManagementLocation[];
   readonly canManage?: boolean;
+  readonly managedLocationIds?: readonly string[];
   readonly loading?: boolean;
   readonly savingActorId?: string | null;
   readonly errorMessage?: string;
@@ -72,6 +74,7 @@ export function StaffAccessPanel({
           row={row}
           topology={topology}
           canManage={canManage}
+          managedLocationIds={managedLocationIds}
           callerControlRole={callerControlRole}
           currentActorId={currentActorId}
           saving={savingActorId === row.actorId}
@@ -88,6 +91,7 @@ function StaffCard({
   row,
   topology,
   canManage,
+  managedLocationIds,
   callerControlRole,
   currentActorId,
   saving,
@@ -98,6 +102,7 @@ function StaffCard({
   readonly row: StaffAccessRecord;
   readonly topology: readonly ManagementLocation[];
   readonly canManage: boolean;
+  readonly managedLocationIds: readonly string[];
   readonly callerControlRole?: OrganizationControlRole | null;
   readonly currentActorId?: string;
   readonly saving: boolean;
@@ -171,6 +176,7 @@ function StaffCard({
             assignment={assignment}
             location={topology.find((item) => item.id === assignment.locationId)}
             canManage={canManage}
+            registersOnly={!canManage && managedLocationIds.includes(assignment.locationId) && row.actorId !== currentActorId}
             saving={saving}
             onSave={onSaveAssignment}
           />
@@ -194,6 +200,7 @@ function AssignmentEditor({
   assignment,
   location,
   canManage,
+  registersOnly = false,
   saving,
   onSave,
 }: {
@@ -201,6 +208,7 @@ function AssignmentEditor({
   readonly assignment: StaffAccessLocation;
   readonly location?: ManagementLocation;
   readonly canManage: boolean;
+  readonly registersOnly?: boolean;
   readonly saving: boolean;
   readonly onSave?: (input: {
     readonly actorId: string;
@@ -212,6 +220,7 @@ function AssignmentEditor({
   const [role, setRole] = useState<StaffAssignmentRole>(assignment.role);
   const [registerIds, setRegisterIds] = useState<readonly string[]>(assignment.registerIds);
   const choices = location?.registers ?? [];
+  const editable = canManage || registersOnly;
   return (
     <div className="management-assignment-editor">
       <div className="management-assignment-title">
@@ -237,7 +246,7 @@ function AssignmentEditor({
             <input
               type="checkbox"
               checked={registerIds.includes(register.id)}
-              disabled={!canManage || saving}
+              disabled={!editable || saving}
               onChange={(event) => {
                 setRegisterIds((current) =>
                   event.target.checked
@@ -250,12 +259,17 @@ function AssignmentEditor({
           </label>
         ))}
       </div>
-      {canManage && onSave ? (
+      {editable && onSave ? (
         <button
           className="btn small"
           type="button"
           disabled={saving}
-          onClick={() => onSave({ actorId, locationId: assignment.locationId, role, registerIds })}
+          onClick={() => onSave({
+            actorId,
+            locationId: assignment.locationId,
+            role: registersOnly ? assignment.role : role,
+            registerIds,
+          })}
         >
           {saving ? "Saving…" : "Save assignment"}
         </button>

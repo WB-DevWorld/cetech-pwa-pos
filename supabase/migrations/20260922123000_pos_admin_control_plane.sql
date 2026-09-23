@@ -288,7 +288,8 @@ CREATE OR REPLACE FUNCTION pos_admin_set_staff_assignment(
   p_role text,
   p_register_ids text[],
   p_actor_id text,
-  p_correlation_id uuid
+  p_correlation_id uuid,
+  p_registers_only boolean DEFAULT false
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -348,6 +349,15 @@ BEGIN
   WHERE actor_id = p_target_actor_id
     AND organization_id = p_organization_id
     AND location_id = p_location_id;
+
+  IF p_registers_only THEN
+    IF before_role IS NULL THEN
+      RAISE EXCEPTION 'target is not assigned at this location' USING ERRCODE = '23503';
+    END IF;
+    IF p_role IS DISTINCT FROM before_role THEN
+      RAISE EXCEPTION 'register assignment cannot change operational role' USING ERRCODE = '23514';
+    END IF;
+  END IF;
 
   SELECT COALESCE(array_agg(register_id ORDER BY register_id), ARRAY[]::text[])
   INTO before_register_ids
@@ -441,17 +451,17 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION pos_admin_set_staff_assignment(
-  text, text, text, text, text[], text, uuid
+  text, text, text, text, text[], text, uuid, boolean
 ) FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION pos_admin_set_staff_assignment(
-  text, text, text, text, text[], text, uuid
+  text, text, text, text, text[], text, uuid, boolean
 ) TO service_role;
 
 COMMENT ON FUNCTION pos_admin_set_staff_assignment(
-  text, text, text, text, text[], text, uuid
+  text, text, text, text, text[], text, uuid, boolean
 ) IS
-  'Atomic trusted-server staff location/register assignment update plus append-only admin audit. BFF owner/admin authorization is required before invocation.';
+  'Atomic trusted-server staff location/register assignment update plus append-only admin audit. BFF authorization is required before invocation. p_registers_only refuses a missing location assignment and any operational-role change.';
 
 
 -- Atomic organization control-role mutation + audit.
@@ -995,3 +1005,159 @@ COMMENT ON FUNCTION pos_admin_bind_return_approval(
   text, uuid, text, text, uuid, uuid, timestamptz
 ) IS
   'Atomic trusted-server binding of an existing approval-required return to an operational manager approval plus admin audit. Replays return the existing live binding. No refund or stock effect is executed.';
+
+
+-- Exact reversal of one non-correction cash movement, plus append-only admin audit.
+-- Signed amount is computed from the original row. Expected cash still moves only
+-- through pos_cash_after_insert. A second call returns the existing reversal.
+CREATE OR REPLACE FUNCTION pos_admin_reverse_cash_movement(
+  p_organization_id text,
+  p_movement_id uuid,
+  p_reason text,
+  p_actor_id text,
+  p_correlation_id uuid,
+  p_approval_id uuid
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  original public.pos_cash_movements%ROWTYPE;
+  sh public.pos_shifts%ROWTYPE;
+  existing public.pos_cash_movements%ROWTYPE;
+  created public.pos_cash_movements%ROWTYPE;
+  trimmed_reason text;
+BEGIN
+  trimmed_reason := btrim(COALESCE(p_reason, ''));
+  IF p_organization_id IS NULL
+     OR p_movement_id IS NULL
+     OR p_actor_id IS NULL
+     OR p_approval_id IS NULL
+     OR char_length(trimmed_reason) < 1 THEN
+    RAISE EXCEPTION 'organization, movement, reason, actor, and approval are required'
+      USING ERRCODE = '23502';
+  END IF;
+
+  SELECT *
+  INTO original
+  FROM public.pos_cash_movements
+  WHERE id = p_movement_id
+  FOR UPDATE;
+
+  IF NOT FOUND OR original.organization_id <> p_organization_id THEN
+    RAISE EXCEPTION 'cash movement is outside organization scope' USING ERRCODE = '23503';
+  END IF;
+  IF original.kind = 'correction' THEN
+    RAISE EXCEPTION 'correction of a correction is not permitted' USING ERRCODE = '23514';
+  END IF;
+
+  SELECT *
+  INTO sh
+  FROM public.pos_shifts
+  WHERE id = original.shift_id
+  FOR UPDATE;
+  IF NOT FOUND OR sh.status <> 'open' OR sh.organization_id <> original.organization_id THEN
+    RAISE EXCEPTION 'cash movements require an open shift' USING ERRCODE = '55000';
+  END IF;
+
+  SELECT *
+  INTO existing
+  FROM public.pos_cash_movements
+  WHERE kind = 'correction'
+    AND corrects_movement_id = original.id
+  LIMIT 1;
+  IF FOUND THEN
+    RETURN jsonb_build_object(
+      'movementId', existing.id,
+      'shiftId', existing.shift_id,
+      'correctsMovementId', existing.corrects_movement_id,
+      'signedAmountMinor', existing.signed_amount_minor,
+      'currency', existing.currency,
+      'approvalId', existing.approval_id,
+      'replayed', true
+    );
+  END IF;
+
+  INSERT INTO public.pos_cash_movements (
+    shift_id,
+    kind,
+    signed_amount_minor,
+    currency,
+    actor_id,
+    reason,
+    corrects_movement_id,
+    approval_id
+  ) VALUES (
+    original.shift_id,
+    'correction',
+    - original.signed_amount_minor,
+    original.currency,
+    p_actor_id,
+    trimmed_reason,
+    original.id,
+    p_approval_id
+  )
+  RETURNING * INTO created;
+
+  INSERT INTO public.pos_admin_audit_events (
+    organization_id,
+    actor_id,
+    action,
+    target_type,
+    target_id,
+    location_id,
+    register_id,
+    before_state,
+    after_state,
+    correlation_id
+  ) VALUES (
+    original.organization_id,
+    p_actor_id,
+    'cash.correction.reversed',
+    'cash_movement',
+    created.id::text,
+    original.location_id,
+    original.register_id,
+    jsonb_build_object(
+      'movementId', original.id,
+      'kind', original.kind,
+      'signedAmountMinor', original.signed_amount_minor,
+      'currency', original.currency
+    ),
+    jsonb_build_object(
+      'movementId', created.id,
+      'correctsMovementId', original.id,
+      'signedAmountMinor', created.signed_amount_minor,
+      'currency', created.currency,
+      'approvalId', created.approval_id,
+      'reason', trimmed_reason
+    ),
+    p_correlation_id
+  );
+
+  RETURN jsonb_build_object(
+    'movementId', created.id,
+    'shiftId', created.shift_id,
+    'correctsMovementId', original.id,
+    'signedAmountMinor', created.signed_amount_minor,
+    'currency', created.currency,
+    'approvalId', created.approval_id,
+    'replayed', false
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION pos_admin_reverse_cash_movement(
+  text, uuid, text, text, uuid, uuid
+) FROM PUBLIC, anon, authenticated;
+
+GRANT EXECUTE ON FUNCTION pos_admin_reverse_cash_movement(
+  text, uuid, text, text, uuid, uuid
+) TO service_role;
+
+COMMENT ON FUNCTION pos_admin_reverse_cash_movement(
+  text, uuid, text, text, uuid, uuid
+) IS
+  'Atomic exact reversal of one original cash movement on its open shift, plus admin audit. Replay returns the existing correction and does not append another audit event. Expected cash changes only by the stored reverse amount.';

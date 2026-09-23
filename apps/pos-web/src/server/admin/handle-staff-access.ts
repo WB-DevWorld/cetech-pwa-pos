@@ -16,6 +16,7 @@ import type {
   StaffAssignmentAdminStore,
   StaffAssignmentMutationResult,
 } from "./staff-assignment-admin-store";
+import type { ManagementTopologyDirectory } from "./management-topology-directory";
 
 type Common = {
   readonly correlationId: Uuid;
@@ -69,6 +70,7 @@ export async function handleSetStaffAssignment(
     readonly role: StaffAssignmentRole;
     readonly registerIds: readonly string[];
     readonly mutation: StaffAssignmentAdminStore;
+    readonly topology?: ManagementTopologyDirectory;
     readonly protection: MutationProtectionInput;
   },
 ): Promise<ApiResult<StaffAssignmentMutationResult>> {
@@ -85,10 +87,13 @@ export async function handleSetStaffAssignment(
 
   const authority = await loadManagementAuthority(input);
   if (!authority.ok) return authority;
-  if (authority.data.controlRole !== "owner" && authority.data.controlRole !== "admin") {
+  const organizationManager =
+    authority.data.controlRole === "owner" || authority.data.controlRole === "admin";
+  const scopedManager = authority.data.managerLocationIds.includes(input.locationId);
+  if (!organizationManager && !scopedManager) {
     return authFailure(
       "FORBIDDEN",
-      "organization admin authority is required to change staff assignments",
+      "staff assignment is outside management authority",
       input.correlationId,
     );
   }
@@ -109,18 +114,74 @@ export async function handleSetStaffAssignment(
   if (rows === "unavailable") {
     return authFailure("INTEGRATION_UNAVAILABLE", "staff access directory is unavailable", input.correlationId);
   }
-  if (!rows.some((row) => row.actorId === input.targetActorId)) {
+  const target = rows.find((row) => row.actorId === input.targetActorId);
+  if (!target) {
     return apiFailure("NOT_FOUND", "staff identity was not found in this organization", input.correlationId);
+  }
+  const existing = target.locations.find((location) => location.locationId === input.locationId);
+  let role = input.role;
+  let registersOnly = false;
+  if (!organizationManager) {
+    if (authority.data.actorId === input.targetActorId) {
+      return authFailure(
+        "FORBIDDEN",
+        "a manager cannot change their own assignment",
+        input.correlationId,
+      );
+    }
+    if (!existing) {
+      return authFailure(
+        "FORBIDDEN",
+        "manager assignment can only update staff already assigned at that location",
+        input.correlationId,
+      );
+    }
+    if (input.role !== existing.role) {
+      return authFailure(
+        "FORBIDDEN",
+        "manager assignment cannot change operational role",
+        input.correlationId,
+      );
+    }
+    if (!input.topology) {
+      return authFailure(
+        "INTEGRATION_UNAVAILABLE",
+        "register scope could not be verified",
+        input.correlationId,
+      );
+    }
+    const topology = await input.topology.listOrganization({
+      organizationId: authority.data.organizationId,
+    });
+    if (topology === "unavailable") {
+      return authFailure(
+        "INTEGRATION_UNAVAILABLE",
+        "register scope could not be verified",
+        input.correlationId,
+      );
+    }
+    const location = topology.find((row) => row.id === input.locationId);
+    const allowed = new Set(location?.registers.map((register) => register.id) ?? []);
+    if (input.registerIds.some((id) => !allowed.has(id))) {
+      return authFailure(
+        "FORBIDDEN",
+        "one or more registers are outside the managed location",
+        input.correlationId,
+      );
+    }
+    role = existing.role;
+    registersOnly = true;
   }
 
   const saved = await input.mutation.setAssignment({
     organizationId: authority.data.organizationId,
     targetActorId: input.targetActorId,
     locationId: input.locationId,
-    role: input.role,
+    role,
     registerIds: input.registerIds,
     actorId: authority.data.actorId,
     correlationId: input.correlationId,
+    registersOnly,
   });
   if (saved === "unavailable") {
     return authFailure(

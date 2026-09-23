@@ -79,7 +79,46 @@ export function RegisterRuntimeScreen({
     [register, registerId, deviceId, currency],
   );
   const flow = useRegisterFlow(ports);
+  const [closePresentation, setClosePresentation] = useState<{
+    readonly registerId: string;
+    readonly showClose: boolean;
+    readonly notice: string;
+  } | null>(null);
   const previousStatus = useRef(flow.session.status);
+  const visibleClosePresentation = closePresentation?.registerId === registerId
+    ? { showClose: closePresentation.showClose, notice: closePresentation.notice }
+    : registerId
+      ? { showClose: false, notice: "Checking whether you can close this shift." }
+      : undefined;
+
+  useEffect(() => {
+    if (!registerId) return;
+    const requestedId = registerId;
+    let cancelled = false;
+    void fetch(`/api/pos/v1/registers/${encodeURIComponent(requestedId)}/close-presentation`, {
+      credentials: "include",
+    })
+      .then(async (response) => response.json() as Promise<{ ok?: boolean; data?: { showClose: boolean; notice: string } }>)
+      .then((body) => {
+        if (cancelled) return;
+        const next = body.ok && body.data
+          ? body.data
+          : { showClose: false, notice: "Close availability could not be confirmed." };
+        setClosePresentation({ registerId: requestedId, ...next });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setClosePresentation({
+            registerId: requestedId,
+            showClose: false,
+            notice: "Close availability could not be confirmed.",
+          });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [registerId]);
 
   useEffect(() => {
     const previous = previousStatus.current;
@@ -149,6 +188,7 @@ export function RegisterRuntimeScreen({
         onShowXReport={() => {
           void flow.controller?.report("X");
         }}
+        closePresentation={visibleClosePresentation}
       />
       {flow.session.message &&
       flow.session.message !== "Select a register and open a shift before taking payment." &&

@@ -147,7 +147,7 @@ describe("ReturnsApprovalsPanel", () => {
         statusLabel: "Approval required",
         locationName: "Accra Main Store",
         summary: "This return is stored as requiring approval before it can execute.",
-        nextAction: "Approval is still required. This screen does not grant it.",
+        nextAction: "Approve return when you are the operational manager at this location.",
       })]),
     });
     expect(html).toContain("Accra Main Store");

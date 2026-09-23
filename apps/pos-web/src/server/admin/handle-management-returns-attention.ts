@@ -112,7 +112,17 @@ export async function handleGetManagementReturnsAttention(input: {
       scope,
       limit: MANAGEMENT_RETURNS_ATTENTION_RESULT_LIMIT,
       truncated: listed.truncated || selected.truncated,
-      rows: selected.rows,
+      rows: selected.rows.map((row) => ({
+        ...row,
+        canApprove: row.approvalState === "required"
+          && authority.data.managerLocationIds.includes(row.locationId),
+        canReconcile: row.category === "refund_reconciliation"
+          && Boolean(row.refundId)
+          && authority.data.managerLocationIds.includes(row.locationId)
+          && (row.persistedStatus === "pending"
+            || row.persistedStatus === "failed"
+            || row.persistedStatus === "requires_attention"),
+      })),
     },
     correlationId: input.correlationId,
   };

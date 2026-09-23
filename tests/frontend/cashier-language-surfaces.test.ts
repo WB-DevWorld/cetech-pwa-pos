@@ -282,6 +282,30 @@ describe("UX-01 cashier surfaces hide engineering vocabulary", () => {
     expect(source).not.toContain("wc_get_price");
   });
 
+  test("ordinary cashier source does not label raw technical identifiers", () => {
+    const source = [
+      "apps/pos-web/src/features/register",
+      "apps/pos-web/src/features/returns",
+      "apps/pos-web/src/features/sell",
+      "apps/pos-web/src/features/settings",
+      "apps/pos-web/src/features/payments",
+      "apps/pos-web/src/ui/operational",
+      "apps/pos-web/src/ui/shell",
+    ].map((dir) => collectSource(resolve(repoRoot, dir))).join("\n");
+    for (const label of [
+      "Technical details",
+      "Shift ID",
+      "Approval ID",
+      "Build ID",
+      "API contract",
+      "Local schema",
+      "service-role",
+      "service_role",
+    ]) {
+      expect(source).not.toContain(label);
+    }
+  });
+
   test("prohibited terms stay out of primary cashier markup for the sell cart", () => {
     const html = renderToStaticMarkup(
       createElement(CartPanel, {

@@ -42,7 +42,9 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
   const [policySaving, setPolicySaving] = useState(false);
   const [topologyResult, setTopologyResult] = useState<ApiResult<readonly ManagementLocation[]> | null>(null);
   const [shiftCashResult, setShiftCashResult] = useState<ApiResult<ManagementShiftCashView> | null>(null);
+  const [shiftCashRefresh, setShiftCashRefresh] = useState(0);
   const [returnsAttentionResult, setReturnsAttentionResult] = useState<ApiResult<ManagementReturnsAttentionView> | null>(null);
+  const [returnsAttentionRefresh, setReturnsAttentionRefresh] = useState(0);
   const [receiptSettingsResult, setReceiptSettingsResult] = useState<ApiResult<ManagementReceiptSettingsView> | null>(null);
   const [systemHealthResult, setSystemHealthResult] = useState<ApiResult<ManagementSystemHealthView> | null>(null);
   const [auditResult, setAuditResult] = useState<ApiResult<ManagementAuditView> | null>(null);
@@ -116,7 +118,7 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
     return () => {
       cancelled = true;
     };
-  }, [allowedSection, context, fetchImpl]);
+  }, [allowedSection, context, fetchImpl, shiftCashRefresh]);
 
   useEffect(() => {
     if (!context || allowedSection !== "system_health") return;
@@ -149,7 +151,7 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
     return () => {
       cancelled = true;
     };
-  }, [allowedSection, context, fetchImpl]);
+  }, [allowedSection, context, fetchImpl, returnsAttentionRefresh]);
 
   const receiptLocations = useMemo(() => {
     if (!context || !topologyResult?.ok) return [];
@@ -377,7 +379,9 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
       }
       staffSavingActorId={staffSavingActorId}
       onSaveStaffAssignment={
-        result.data.controlRole === "owner" || result.data.controlRole === "admin"
+        result.data.controlRole === "owner" ||
+        result.data.controlRole === "admin" ||
+        result.data.managerLocationIds.length > 0
           ? (input) => {
               void saveStaffAssignment(input);
             }
@@ -438,6 +442,12 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
           ? returnsAttentionResult.correlationId
           : undefined
       }
+      onReturnsChanged={() => {
+        setReturnsAttentionRefresh((value) => value + 1);
+      }}
+      onShiftsChanged={() => {
+        setShiftCashRefresh((value) => value + 1);
+      }}
       receiptLocations={receiptLocations}
       receiptLocationId={selectedReceiptLocationId ?? undefined}
       onSelectReceiptLocation={(locationId) => {

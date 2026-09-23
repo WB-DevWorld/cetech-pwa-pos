@@ -226,11 +226,24 @@ describe("FE-06 returns", () => {
 
   test("11 approval-required does not fabricate approval", async () => {
     const previewFn = vi.fn(async () => success(preview({ approvalRequired: true })));
-    const { controller } = await readyPreview(previewFn);
+    const { controller, execute } = await readyPreview(previewFn);
     expect(controller.getSession().approvalRequired).toBe(true);
     expect(controller.getSession().approvalId).toBeUndefined();
     expect(controller.getSession().stage).toBe("approval_required");
+    execute.mockResolvedValue({
+      ok: false,
+      correlationId: CORRELATION,
+      error: {
+        code: "FORBIDDEN",
+        message: "manager approval is required",
+        retryable: false,
+        nextAction: "contact_manager",
+      },
+    });
     await controller.execute();
+    expect(execute).toHaveBeenCalled();
+    expect(execute.mock.calls[0]?.[0]).toMatchObject({ returnId: RETURN_ID, fingerprint: FINGERPRINT });
+    expect(execute.mock.calls[0]?.[0].approvalId).toBeUndefined();
     expect(controller.getSession().stage).toBe("approval_required");
     expect(controller.getSession().approvalId).toBeUndefined();
     const html = renderToStaticMarkup(
@@ -244,6 +257,9 @@ describe("FE-06 returns", () => {
       }),
     );
     expect(html).toContain("Manager approval is required before you can continue.");
+    expect(html).toContain("Check approval");
+    expect(html).not.toContain("Approval ID");
+    expect(html).not.toContain("Technical details");
     expect(html).toContain('data-approval-id=""');
   });
 
