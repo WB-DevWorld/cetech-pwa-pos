@@ -707,11 +707,11 @@ export function PosRuntime({
               return {
                 id,
                 name: record?.name ?? id,
-                locationLabel: record && !isUuidLike(record.locationId) ? record.locationId : undefined,
+                locationLabel: undefined,
               };
             })}
             registerName={authority.register?.name ?? authority.selectedRegisterId ?? "Register"}
-            locationLabel={isUuidLike(authority.register?.locationId) ? undefined : authority.register?.locationId}
+            locationLabel={undefined}
             currency={authority.register?.currency ?? "GHS"}
             onSelectRegister={(id) => {
               void runtime.selectRegister(id);
