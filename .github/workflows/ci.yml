@@ -44,6 +44,8 @@ jobs:
       - name: Stop local Supabase
         if: ${{ always() && steps.supabase-start.outcome == 'success' }}
         run: npx --yes supabase@2.117.0 stop --no-backup
+      - name: Bridge PHP syntax, tests and parity
+        run: make -C wordpress/cetech-pos-bridge check test parity
       - name: App lint
         run: pnpm --dir apps/pos-web lint
       - name: App typecheck
