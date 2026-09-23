@@ -294,7 +294,7 @@ describe("FE-06 returns", () => {
       }),
     );
     expect(html).toContain('data-automatic-sellable="false"');
-    expect(html).toContain("never automatically restocked as sellable");
+    expect(html).toContain("not automatically returned to sellable stock");
   });
 
   test("13 quarantine never displays automatic sellable restock", async () => {

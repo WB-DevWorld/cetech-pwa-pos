@@ -13,7 +13,7 @@ describe("R9 recovery on the accepted STG-01 operational surface", () => {
     expect(surfaceSource).not.toContain(">Store Health<");
     expect(settingsSource).toContain("Open System status");
     expect(workspaceSource).toContain("inspectLocalRecoveryState");
-    expect(workspaceSource).toContain("Saved work & recovery");
+    expect(workspaceSource).toContain("Saved work");
     expect(workspaceSource).toContain("Do not clear the current sale or pending work");
     expect(workspaceSource).toContain("Current sale saved");
     expect(workspaceSource).toContain("recovery.recoverableCartCount > 0");

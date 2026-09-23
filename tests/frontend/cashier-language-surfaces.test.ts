@@ -17,6 +17,10 @@ import { OrdersScreen } from "../../apps/pos-web/src/features/orders/OrdersScree
 import { INTEGRATION_UNAVAILABLE } from "../../apps/pos-web/src/features/sell/state/quotePresentation";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const mountedPosAppSource = readFileSync(
+  resolve(repoRoot, "apps/pos-web/src/app/pos-app.tsx"),
+  "utf8",
+);
 
 const PROHIBITED = [
   "INTEGRATION_UNAVAILABLE",
@@ -270,6 +274,13 @@ describe("UX-01 cashier surfaces hide engineering vocabulary", () => {
       createElement(CustomersScreen, { customers: [], state: "error", errorMessage: unsafe[3] }),
     );
     expect(visiblePrimaryText(customers)).not.toContain("staff session store is unavailable");
+  });
+
+  test("mounted cashier composition uses operator-facing refresh copy", () => {
+    expect(mountedPosAppSource).toContain('title: "Products refreshed."');
+    expect(mountedPosAppSource).toContain('detail: "Your current sale was kept."');
+    expect(mountedPosAppSource).not.toContain("Rebuildable catalog projection refreshed.");
+    expect(mountedPosAppSource).not.toContain("Durable cart was preserved.");
   });
 
   test("frontend presentation source does not move pricing or stock authority into the browser", () => {

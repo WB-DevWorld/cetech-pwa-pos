@@ -718,8 +718,8 @@ export function PosRuntime({
           }}
           onRebuildSuccess={() => {
             showToast({
-              title: "Rebuildable catalog projection refreshed.",
-              detail: "Durable cart was preserved.",
+              title: "Products refreshed.",
+              detail: "Your current sale was kept.",
             });
           }}
           onRetryAttention={() => {
