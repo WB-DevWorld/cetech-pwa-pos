@@ -10,6 +10,7 @@ import { httpStatusFor } from "../../../../../server/http/status";
 import { authFailure } from "../../../../../server/auth/errors";
 import { resolveCorrelationId } from "../../../../../server/http/correlation";
 import { composeCheckoutRuntime } from "../../../../../server/sales/compose-checkout-runtime";
+import { composeStaffAssignmentDirectory } from "../../../../../server/sales/compose-assignment-directory";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const fetchImpl = createServerRestFetch();
@@ -17,11 +18,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   let snapshots;
   let bridge;
   let catalogIdentity;
+  let assignments;
   try {
     sessionStore = composeStaffSessionStore(process.env, fetchImpl);
     snapshots = composeCheckoutRuntime(process.env, fetchImpl).store;
     bridge = composeQuoteBridge(process.env, fetchImpl);
     catalogIdentity = composeCatalogProjectionStore(process.env, fetchImpl);
+    assignments = composeStaffAssignmentDirectory(process.env, fetchImpl);
   } catch {
     const correlation = resolveCorrelationId(request.headers.get("x-correlation-id") ?? undefined);
     const body = authFailure(
@@ -49,6 +52,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     body,
     now: new Date(),
     sessionStore,
+    assignments,
     allowedOrigins: staffAllowedOrigins(),
     bridge,
     snapshots,
