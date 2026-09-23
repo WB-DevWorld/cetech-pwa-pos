@@ -20,11 +20,16 @@ import {
   hasActiveTender,
   openPosLocalDatabase,
 } from "../local";
-import { createBrowserCashCheckoutPorts, LOCAL_CHECKOUT_SCOPE } from "./checkout-client";
+import { createBrowserCashCheckoutPorts } from "./checkout-client";
 
 const TX = "11111111-1111-4111-8111-111111111077";
 const PAYMENT = "22222222-2222-4222-8222-222222222077";
 const CORRELATION = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const LOCAL_CHECKOUT_SCOPE = {
+  registerId: "reg-test",
+  shiftId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  deviceId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+} as const;
 
 const DBS: string[] = [];
 
