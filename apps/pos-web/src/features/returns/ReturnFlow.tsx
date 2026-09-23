@@ -31,7 +31,7 @@ function friendlyPending(label: string): string {
     case "cash refund":
       return "Cash refund pending";
     case "order refund":
-      return "Order refund pending";
+      return "Order refund needs review";
     case "stock update":
       return "Stock update needs attention";
     default:
@@ -51,16 +51,26 @@ function EffectRow({
   if (!effect) {
     return null;
   }
+  const tone =
+    effect.status === "completed"
+      ? "success"
+      : effect.status === "not_required"
+        ? "info"
+        : effect.status === "requires_attention"
+          ? "danger"
+          : "warning";
   return (
     <div
-      className="r-row"
+      className="r-row return-effect-row"
       data-effect-name={label}
       data-effect-status={effect.status}
       data-effect-id={effect.effectId ?? ""}
       data-refund-identity={refundIdentity ? effect.effectId ?? "" : undefined}
     >
-      <span>{label}</span>
-      <span>{orderStatusLabel(effect.status)}</span>
+      <span className="return-effect-label">{label}</span>
+      <span className={`workspace-badge ${tone} return-effect-status`}>
+        {orderStatusLabel(effect.status)}
+      </span>
     </div>
   );
 }
@@ -208,12 +218,34 @@ export function ReturnFlow({
         </div>
       ) : null}
       {session.providerRefund || session.cashRefund || session.commercialRefund || session.stockDisposition ? (
-        <div className="card card-pad" data-return-effects="">
+        <div className="card card-pad return-effect-card" data-return-effects="">
           <strong>Return progress</strong>
+          <div className="return-effect-list">
           <EffectRow label="Payment refund" effect={session.providerRefund} refundIdentity />
           <EffectRow label="Cash refund" effect={session.cashRefund} refundIdentity />
           <EffectRow label="Order refund" effect={session.commercialRefund} />
           <EffectRow label="Stock update" effect={session.stockDisposition} />
+          </div>
+          {session.cashRefund?.status === "completed" && !complete ? (
+            <div className="banner info return-effect-safety" role="status" data-cash-refund-complete-warning="">
+              <strong>Cash refund already completed.</strong>
+              <span>Do not refund the customer again while the order refund or stock update is being checked.</span>
+            </div>
+          ) : null}
+          {session.commercialRefund?.status === "requires_attention" ? (
+            <div className="banner warning return-effect-safety" role="alert" data-order-refund-review="">
+              <strong>Order refund needs review.</strong>
+              <span>Do not create another Woo order refund. A manager or support person must check the existing refund first.</span>
+            </div>
+          ) : null}
+          {(session.stockDisposition?.status === "pending" ||
+            session.stockDisposition?.status === "in_progress" ||
+            session.stockDisposition?.status === "requires_attention") ? (
+            <div className="banner warning return-effect-safety" role="status" data-stock-update-review="">
+              <strong>Stock update is not settled yet.</strong>
+              <span>Do not adjust stock manually until this return has been checked.</span>
+            </div>
+          ) : null}
         </div>
       ) : null}
       {!complete && unresolved.length > 0 ? (
