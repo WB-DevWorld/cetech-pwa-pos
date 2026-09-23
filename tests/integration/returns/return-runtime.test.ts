@@ -3,6 +3,7 @@ import { createPaystackElectronicRefundProvider } from "../../../apps/pos-web/sr
 import { allocateHistoricMinor, formatNonNegativeQuantity } from "../../../apps/pos-web/src/core/returns/quantities";
 import { mapConditionDisposition, stockEffectRequired } from "../../../apps/pos-web/src/core/returns/disposition";
 import {
+  CORRELATION,
   EXEC_KEY,
   EXEC_KEY_2,
   LINE_1,
@@ -578,6 +579,47 @@ describe("RT-01 execute, cash, provider, bridge, restart, security", () => {
     if (attention.body.ok) {
       expect(attention.body.data.status).toBe("requires_attention");
     }
+  });
+
+  test("status check safely reapplies stock only after remote NOT_FOUND proves no effect identity", async () => {
+    const runtime = await createRt01Runtime();
+    const previewed = await preview(runtime);
+    expect(previewed.body.ok).toBe(true);
+    if (!previewed.body.ok) return;
+
+    runtime.bridge.setDefaultStock("timeout");
+    const executed = await execute(
+      runtime,
+      { returnId: previewed.body.data.returnId, fingerprint: previewed.body.data.fingerprint },
+      EXEC_KEY,
+    );
+    expect(executed.body.ok).toBe(true);
+    if (!executed.body.ok || executed.body.data.stockDisposition.status === "not_required") return;
+    expect(executed.body.data.stockDisposition.status).toBe("pending");
+
+    const stockEffectId = executed.body.data.stockDisposition.effectId;
+    const applyCountBeforeResolve = runtime.bridge.stockApplyCount;
+    runtime.bridge.setDefaultStock("completed");
+    runtime.bridge.resolveStockDisposition = async () => ({
+      ok: false,
+      error: {
+        code: "NOT_FOUND",
+        message: "stock disposition was not found",
+        retryable: false,
+        nextAction: "none",
+      },
+      correlationId: CORRELATION,
+    });
+
+    const resolved = await resolveAggregate(runtime, previewed.body.data.returnId);
+    expect(resolved.body.ok).toBe(true);
+    if (resolved.body.ok) {
+      expect(resolved.body.data.stockDisposition.status).toBe("completed");
+      if (resolved.body.data.stockDisposition.status === "completed") {
+        expect(resolved.body.data.stockDisposition.effectId).toBe(stockEffectId);
+      }
+    }
+    expect(runtime.bridge.stockApplyCount).toBe(applyCountBeforeResolve + 1);
   });
 
   test("durable recovery after a new orchestrator keeps effect ids", async () => {
