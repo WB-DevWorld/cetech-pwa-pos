@@ -819,3 +819,9 @@ function AddStaffCard({
     </section>
   );
 }
+
+
+function statusLabel(status: string): string {
+  if (!status) return "Unknown";
+  return status.charAt(0).toUpperCase() + status.slice(1).replaceAll("_", " ");
+}
