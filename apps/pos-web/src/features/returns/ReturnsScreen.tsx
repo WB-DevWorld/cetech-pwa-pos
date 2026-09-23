@@ -117,7 +117,7 @@ export function ReturnsScreen({
       <div className="page-head">
         <div>
           <h1>Returns</h1>
-          <p>Returns keep refund, payment and physical stock disposition separate.</p>
+          <p>Review returned items, refund progress, and stock handling without mixing them together.</p>
         </div>
       </div>
       <form className="card card-pad returns-search" onSubmit={handleSearch}>

@@ -40,12 +40,12 @@ export function SettingsScreen({
       <div className="page-head">
         <div>
           <h1 id="settings-title">Settings</h1>
-          <p>Device, register and appearance settings for this POS.</p>
+          <p>Device and register information, appearance, and system status for this POS.</p>
         </div>
       </div>
 
       {state === "offline" ? (
-        <div className="banner warning workspace-banner" role="status"><strong>Offline.</strong><span>Device settings remain readable. Changes that need confirmation should wait for connection.</span></div>
+        <div className="banner warning workspace-banner" role="status"><strong>Offline.</strong><span>Device and register information remains readable. Changes that need confirmation should wait for connection.</span></div>
       ) : null}
       {state === "degraded" ? (
         <div className="banner warning workspace-banner" role="status"><strong>Some system information is temporarily unavailable.</strong><span>Open System status for current connection detail.</span></div>

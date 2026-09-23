@@ -18,6 +18,7 @@ export type PreparedSaleView = {
 
 export type ReceiptLineView = {
   readonly name: string;
+  readonly sku?: string;
   readonly variationLabel?: string;
   readonly quantity: string;
   readonly unitPrice: CheckoutMoneyView;

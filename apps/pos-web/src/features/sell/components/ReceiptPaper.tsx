@@ -1,3 +1,4 @@
+import { formatOperationalDateTime, paymentTenderLabel } from "../../../ui/cashier-language";
 import { formatMoneyDisplay } from "../state/quotePresentation";
 import type { ReceiptViewModel } from "../state/checkoutSession";
 
@@ -20,7 +21,7 @@ export function ReceiptPaper({ receipt }: { receipt: ReceiptViewModel }) {
       </div>
       <div className="r-row">
         <span>Date</span>
-        <span>{receipt.issuedAt}</span>
+        <span>{formatOperationalDateTime(receipt.issuedAt)}</span>
       </div>
       <div className="r-row">
         <span>Register</span>
@@ -39,6 +40,7 @@ export function ReceiptPaper({ receipt }: { receipt: ReceiptViewModel }) {
         <div key={`${line.name}-${index}`}>
           <strong>{line.name}</strong>
           {line.variationLabel ? <div>{line.variationLabel}</div> : null}
+          {line.sku ? <div className="muted">{line.sku.startsWith("SKU ") ? line.sku : `SKU ${line.sku}`}</div> : null}
           <div className="r-row">
             <span>
               {line.quantity} × {formatMoneyDisplay(line.unitPrice)}
@@ -69,7 +71,7 @@ export function ReceiptPaper({ receipt }: { receipt: ReceiptViewModel }) {
       <hr />
       <div className="r-row">
         <span>Payment</span>
-        <span>{receipt.tender}</span>
+        <span>{paymentTenderLabel(receipt.tender)}</span>
       </div>
       {receipt.cashReceived ? (
         <div className="r-row">

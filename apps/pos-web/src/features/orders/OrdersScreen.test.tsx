@@ -34,7 +34,7 @@ describe("OrdersScreen", () => {
   test("renders approved order search/table semantics", () => {
     const html = render();
     expect(html).toContain("Orders");
-    expect(html).toContain("Find sales, reprint receipts, and start returns.");
+    expect(html).toContain("Review recent POS sales, reprint receipts, and start returns.");
     expect(html).toContain("Search orders");
     expect(html).toContain("#1042");
     expect(html).toContain("POS-1042");

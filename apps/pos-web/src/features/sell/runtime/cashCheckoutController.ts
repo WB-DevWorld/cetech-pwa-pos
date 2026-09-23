@@ -91,7 +91,8 @@ export function mapReceiptSnapshot(snapshot: ReceiptSnapshot): ReceiptViewModel 
     cashierName: snapshot.cashierName,
     customerLabel: snapshot.customerLabel,
     lines: snapshot.lines.map((line) => ({
-      name: line.name,
+      name: line.displayName ?? line.name,
+      sku: line.sku,
       variationLabel: line.variationLabel,
       quantity: line.quantity,
       unitPrice: line.unitPrice,

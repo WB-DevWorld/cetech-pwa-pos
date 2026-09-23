@@ -27,7 +27,7 @@ describe("SettingsScreen", () => {
   });
 
   test.each([
-    ["offline", "Device settings remain readable."],
+    ["offline", "Device and register information remains readable."],
     ["degraded", "Some system information is temporarily unavailable."],
     ["error", "Settings could not be fully loaded."],
     ["loading", "Loading settings…"],

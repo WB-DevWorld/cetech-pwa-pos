@@ -126,7 +126,7 @@ export function OrdersScreen({
       <div className="page-head">
         <div>
           <h1 id="orders-title">Orders</h1>
-          <p>Find sales, reprint receipts, and start returns.</p>
+          <p>Review recent POS sales, reprint receipts, and start returns.</p>
         </div>
         {onNewSale ? (
           <button className="btn" type="button" onClick={onNewSale}>
@@ -166,7 +166,7 @@ export function OrdersScreen({
             id="order-search"
             className="input"
             type="search"
-            placeholder="Search order, receipt, customer or transaction…"
+            placeholder="Search recent order, receipt, customer or transaction…"
             value={query}
             disabled={unavailable}
             onChange={(event) => setQuery(event.target.value)}
