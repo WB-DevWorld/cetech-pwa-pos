@@ -5,7 +5,7 @@ import { assertMutationProtection } from "../auth/csrf";
 import { authFailure } from "../auth/errors";
 import type { StaffAssignmentDirectory } from "../auth/assignments";
 import type { StaffSessionStore } from "../auth/session-store";
-import type { ShiftClosePolicy, ShiftClosePolicyOverride } from "../auth/policy";
+import { resolveShiftClosePolicy, type ShiftClosePolicy, type ShiftClosePolicyOverride } from "../auth/policy";
 import type { ControlPlaneDirectory } from "./control-plane-directory";
 import { loadManagementAuthority } from "./management-authority";
 import type {
@@ -17,6 +17,7 @@ export type OperationalPolicyView = {
   readonly scope: PolicyScope;
   readonly effective: ShiftClosePolicy;
   readonly canManage: boolean;
+  readonly valueSource: "explicit" | "inherited";
 };
 
 type Common = {
@@ -45,17 +46,13 @@ export async function handleGetOperationalPolicy(
     return authFailure("FORBIDDEN", "policy scope is outside management authority", input.correlationId);
   }
 
-  const effective = await input.policies.readEffective(scope);
-  if (effective === "unavailable") {
+  const viewed = await readPolicyView(input.policies, scope, authority.data.controlRole);
+  if (viewed === "unavailable") {
     return authFailure("INTEGRATION_UNAVAILABLE", "operational policy store is unavailable", input.correlationId);
   }
   return {
     ok: true,
-    data: {
-      scope,
-      effective,
-      canManage: authority.data.controlRole === "owner" || authority.data.controlRole === "admin",
-    },
+    data: viewed,
     correlationId: input.correlationId,
   };
 }
@@ -101,15 +98,36 @@ export async function handleSetOperationalPolicy(
     return authFailure("INTEGRATION_UNAVAILABLE", "operational policy update was not committed", input.correlationId);
   }
 
-  const effective = await input.policies.readEffective(scope);
-  if (effective === "unavailable") {
+  const viewed = await readPolicyView(input.policies, scope, authority.data.controlRole);
+  if (viewed === "unavailable") {
     return authFailure("INTEGRATION_UNAVAILABLE", "operational policy could not be reloaded", input.correlationId);
   }
 
   return {
     ok: true,
-    data: { scope, effective, canManage: true },
+    data: viewed,
     correlationId: input.correlationId,
+  };
+}
+
+async function readPolicyView(
+  policies: OperationalPolicyStore,
+  scope: PolicyScope,
+  controlRole: string | null,
+): Promise<OperationalPolicyView | "unavailable"> {
+  const layers = await policies.readLayers(scope);
+  if (layers === "unavailable") return "unavailable";
+  const effective = resolveShiftClosePolicy(layers);
+  const explicit = scope.registerId
+    ? layers.register !== undefined
+    : scope.locationId
+      ? layers.location !== undefined
+      : layers.organization !== undefined;
+  return {
+    scope,
+    effective,
+    canManage: controlRole === "owner" || controlRole === "admin",
+    valueSource: explicit ? "explicit" : "inherited",
   };
 }
 

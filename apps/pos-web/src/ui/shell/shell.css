@@ -35,6 +35,8 @@
   flex-direction: column;
   gap: 8px;
   width: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .nav-btn {
@@ -76,14 +78,7 @@
 }
 
 .nav-list .nav-btn[data-route="settings"] {
-  display: none;
-}
-
-.sidebar-bottom {
   margin-top: auto;
-  width: 100%;
-  display: grid;
-  gap: 8px;
 }
 
 .app-main {
@@ -197,8 +192,7 @@
     z-index: 50;
   }
 
-  .brand-mark,
-  .sidebar-bottom {
+  .brand-mark {
     display: none;
   }
 
@@ -217,7 +211,7 @@
   }
 
   .nav-list .nav-btn[data-route="settings"] {
-    display: flex;
+    margin-top: 0;
   }
 
   .nav-btn {

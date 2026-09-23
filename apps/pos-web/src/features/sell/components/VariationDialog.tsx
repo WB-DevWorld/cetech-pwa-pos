@@ -25,7 +25,7 @@ export function VariationDialog({
           {variations.map((variation) => (
             <button key={variation.id} type="button" className="btn block" onClick={() => onSelect(variation)}>
               <span className="dialog-choice">
-                <strong>{variation.variationLabel ?? variation.name}</strong>
+                <strong className="compact-product-name">{variation.variationLabel ?? variation.name}</strong>
                 <span className="muted">{variation.sku ?? variation.id}</span>
               </span>
             </button>

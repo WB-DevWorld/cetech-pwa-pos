@@ -83,6 +83,12 @@ export async function guardStaffCommand(input: {
   if (!stored) {
     return fail(headers, authFailure("AUTH_REQUIRED", "staff session is required", correlation.correlationId));
   }
+  if (stored.mustChangePassword === true) {
+    return fail(
+      headers,
+      authFailure("FORBIDDEN", "Create a new password before continuing.", correlation.correlationId),
+    );
+  }
 
   if (!input.requireIdempotencyKey) {
     return { ok: true, correlationId: correlation.correlationId, session: stored.session, headers };

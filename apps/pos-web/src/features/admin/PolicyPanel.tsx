@@ -5,18 +5,29 @@ import type { ShiftClosePolicyOverride } from "../../server/auth/policy";
 import type { OperationalPolicyView } from "../../server/admin/handle-operational-policy";
 import { parseDecimalToMinorUnits } from "../register/parseDecimalToMinorUnits";
 
+export type PolicyScopeChoice = {
+  readonly id: string;
+  readonly label: string;
+};
+
 export function PolicyPanel({
   view,
   loading,
   saving,
   errorMessage,
   onSave,
+  scopes = [],
+  selectedScopeId,
+  onSelectScope,
 }: {
   readonly view: OperationalPolicyView | null;
   readonly loading?: boolean;
   readonly saving?: boolean;
   readonly errorMessage?: string;
   readonly onSave?: (override: ShiftClosePolicyOverride) => void;
+  readonly scopes?: readonly PolicyScopeChoice[];
+  readonly selectedScopeId?: string;
+  readonly onSelectScope?: (id: string) => void;
 }) {
   if (loading) {
     return <section className="card card-pad"><p>Loading operational rules…</p></section>;
@@ -43,12 +54,28 @@ export function PolicyPanel({
   ].join(":");
 
   return (
-    <PolicyEditor
-      key={editorKey}
-      view={view}
-      saving={saving}
-      onSave={onSave}
-    />
+    <div className="stack">
+      {scopes.length > 0 ? (
+        <label className="field">
+          <span>Configure rules for</span>
+          <select
+            className="input"
+            value={selectedScopeId ?? scopes[0]?.id}
+            onChange={(event) => onSelectScope?.(event.target.value)}
+          >
+            {scopes.map((scope) => (
+              <option key={scope.id} value={scope.id}>{scope.label}</option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+      <PolicyEditor
+        key={editorKey}
+        view={view}
+        saving={saving}
+        onSave={onSave}
+      />
+    </div>
   );
 }
 
@@ -121,6 +148,9 @@ function PolicyEditor({
               : view.scope.locationId
                 ? "this location"
                 : "organization default"}
+            . {view.valueSource === "explicit"
+              ? "These values are saved for this scope."
+              : "These values are inherited. Saving creates an override for this scope."}
           </p>
         </div>
         <span className="status-pill">{view.canManage ? "Editable" : "Read only"}</span>

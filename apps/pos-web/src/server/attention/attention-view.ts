@@ -50,6 +50,49 @@ export function classifyOperationRecovery(operation: PendingOperation["operation
   return { recoverKind: undefined, resolveAllowed: false };
 }
 
+function operationAttentionCopy(
+  recoverKind: AttentionItemView["recoverKind"],
+  resolveAllowed: boolean,
+): { readonly title: string; readonly summary: string; readonly typeLabel: string } {
+  if (recoverKind === "payment") {
+    return {
+      title: "This payment needs checking",
+      typeLabel: "Payment",
+      summary: resolveAllowed
+        ? "Check the existing payment first. Do not charge again."
+        : "This payment needs checking. Do not charge again.",
+    };
+  }
+  if (recoverKind === "sale") {
+    return {
+      title: "This sale needs checking",
+      typeLabel: "Sale",
+      summary: "This sale needs checking. Do not start another sale for the same payment.",
+    };
+  }
+  if (recoverKind === "return") {
+    return {
+      title: "This return needs review",
+      typeLabel: "Return",
+      summary: "This return needs review. Do not start another return for this transaction.",
+    };
+  }
+  if (recoverKind === "shift") {
+    return {
+      title: "This shift needs manager review",
+      typeLabel: "Shift",
+      summary: "A manager still needs to review this shift. Do not submit the close again.",
+    };
+  }
+  return {
+    title: "This transaction needs checking",
+    typeLabel: "Transaction",
+    summary: resolveAllowed
+      ? "Check the existing transaction before continuing. Do not charge again."
+      : "This transaction needs checking before you continue.",
+  };
+}
+
 export function attentionFromPayment(payment: StoredPayment): AttentionItemView {
   const reference = payment.displayReference ?? payment.transactionId;
   const critical = payment.status === "requires_attention";
@@ -73,7 +116,7 @@ export function attentionFromSale(sale: PosSaleRecord): AttentionItemView {
   return {
     id: `sale:${sale.prepared.transactionId}`,
     title: "Sale needs review",
-    summary: "This sale did not finish cleanly. Resolve the existing transaction. Do not start a replacement sale for the same payment.",
+    summary: "This sale needs checking. Check the existing sale before starting another one for the same payment.",
     typeLabel: "Sale",
     severity: "critical",
     transactionReference: sale.prepared.orderReference || sale.prepared.transactionId,
@@ -101,14 +144,12 @@ export function attentionFromShift(shift: StoredShift): AttentionItemView {
 export function attentionFromOperation(scope: CommandScopeBinding): AttentionItemView {
   const classified = classifyOperationRecovery(scope.operation);
   const resolveAllowed = classified.resolveAllowed && Boolean(scope.transactionId);
-  const summary = resolveAllowed
-    ? "A POS command did not finish cleanly. Recover the existing operation. Do not create a second payment, sale, or refund."
-    : "This operation needs manager or reconciliation review. Do not create a second payment, sale, refund, or stock movement.";
+  const copy = operationAttentionCopy(classified.recoverKind, resolveAllowed);
   return {
     id: `operation:${scope.operation}:${scope.transactionId}`,
-    title: "Operation needs recovery",
-    summary,
-    typeLabel: "Operation",
+    title: copy.title,
+    summary: copy.summary,
+    typeLabel: copy.typeLabel,
     severity: "critical",
     transactionReference: scope.transactionId,
     transactionId: scope.transactionId,

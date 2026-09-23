@@ -159,6 +159,7 @@ describe("ShiftCashPanel", () => {
         scope: { organizationId: "org_a", locationId: "loc_a1" },
         effective: DEFAULT_SHIFT_CLOSE_POLICY,
         canManage: false,
+      valueSource: "inherited",
       },
       onOpenPolicies: () => undefined,
     });
@@ -185,6 +186,7 @@ describe("ShiftCashPanel", () => {
         scope: { organizationId: "org_a", locationId: "loc_a1" },
         effective: DEFAULT_SHIFT_CLOSE_POLICY,
         canManage: false,
+      valueSource: "inherited",
       },
     });
     expect(html).toContain("These rules apply to this location.");
@@ -201,6 +203,7 @@ describe("ShiftCashPanel", () => {
         scope: { organizationId: "org_a" },
         effective: DEFAULT_SHIFT_CLOSE_POLICY,
         canManage: true,
+      valueSource: "explicit",
       },
     });
     expect(html).toContain("These are the organization-wide default rules.");

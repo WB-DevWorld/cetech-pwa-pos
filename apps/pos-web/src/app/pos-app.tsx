@@ -21,6 +21,7 @@ import {
 import { RegisterRuntimeScreen } from "./register-runtime";
 import { ReturnsRuntimeScreen, createBrowserHistoricReturnSaleLookup } from "./returns-runtime";
 import { StaffAuthGate } from "./staff-auth-gate";
+import { PasswordChangeScreen } from "../features/auth/PasswordChangeScreen";
 import { ApprovedWorkspaceScreens, clientAttentionExtras } from "./workspace-runtime";
 import { AppShell, POS_ROUTE_HREFS, type PosRoute } from "../ui/shell";
 import { returnSelectionHref } from "./pos-route";
@@ -64,7 +65,8 @@ import type { AttentionItemView, OperationalLoadState } from "../ui/operational"
 import { applyAppearance, readStoredAppearance, type AppearancePreference } from "../features/settings/appearance";
 import { loadCustomerSearchPresentation } from "../features/customers/loadCustomerSearch";
 import { customerViewFromSummary } from "../features/sell/runtime/mapCartDraft";
-import { fetchAttentionInbox, fetchCustomerDirectory } from "./operational-client";
+import { fetchAttentionInbox, fetchCustomerDirectory, fetchPaymentMethodCapabilities } from "./operational-client";
+import { STAFF_CSRF_COOKIE, STAFF_CSRF_HEADER } from "../config/auth";
 import { fetchManagementContext } from "./management-client";
 
 function bumpCatalogProjectionGeneration(
@@ -120,6 +122,8 @@ export function PosRuntime({
 }) {
   const [online, setOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
   const [ports, setPorts] = useState<SellSessionPorts | null>(null);
+  const [passwordChangeBusy, setPasswordChangeBusy] = useState(false);
+  const [passwordChangeError, setPasswordChangeError] = useState<string | undefined>();
   const [projectionAvailability, setProjectionAvailability] = useState<CatalogProjectionAvailability | null>(null);
   const refreshInFlight = useRef(false);
   const catalogProjectionGenerationRef = useRef(0);
@@ -340,6 +344,7 @@ export function PosRuntime({
               tenderActivity: createTenderActivityPort(db),
             })
           : null;
+      const capabilities = await fetchPaymentMethodCapabilities(fetchImpl);
       setProjectionAvailability(availability);
       setPorts({
         catalog: createLocalCatalogPort({ db }),
@@ -367,6 +372,7 @@ export function PosRuntime({
         checkoutScope: checkout?.scope,
         catalogAvailability: availability,
         catalogProjectionGeneration,
+        ...(capabilities.ok ? { paymentMethods: capabilities.data } : {}),
       });
     },
     [fetchImpl],
@@ -539,6 +545,37 @@ export function PosRuntime({
           errorMessage={authority.errorMessage}
           onSignIn={(request) => {
             void runtime.signIn(request);
+          }}
+        />
+      </PosRuntimeOwner>
+    );
+  }
+
+  if (authority.mustChangePassword) {
+    return (
+      <PosRuntimeOwner
+        ownerRef={ownerNodeRef}
+        restoreCountRef={restoreCountRef}
+        catalogBootstrapCountRef={catalogBootstrapCountRef}
+        status={authority.status}
+      >
+        <PasswordChangeScreen
+          busy={passwordChangeBusy}
+          errorMessage={passwordChangeError}
+          onSignOut={() => {
+            void runtime.signOut();
+          }}
+          onSubmit={(password) => {
+            setPasswordChangeBusy(true);
+            setPasswordChangeError(undefined);
+            void changeRequiredPassword(password, fetchImpl ?? fetch).then(async (result) => {
+              setPasswordChangeBusy(false);
+              if (!result.ok) {
+                setPasswordChangeError("The new password could not be saved. Try again.");
+                return;
+              }
+              await runtime.signOut();
+            });
           }}
         />
       </PosRuntimeOwner>
@@ -807,4 +844,37 @@ function PosRuntimeOwner({
       {children}
     </div>
   );
+}
+
+function readCookie(name: string): string {
+  if (typeof document === "undefined") return "";
+  const parts = document.cookie.split(";");
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (trimmed.startsWith(`${name}=`)) return decodeURIComponent(trimmed.slice(name.length + 1));
+  }
+  return "";
+}
+
+async function changeRequiredPassword(
+  password: string,
+  fetchImpl: typeof fetch,
+): Promise<{ readonly ok: boolean }> {
+  try {
+    const response = await fetchImpl("/api/pos/v1/session/password", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        "x-correlation-id": crypto.randomUUID(),
+        [STAFF_CSRF_HEADER]: readCookie(STAFF_CSRF_COOKIE),
+      },
+      body: JSON.stringify({ password }),
+    });
+    const body = await response.json() as { ok?: boolean };
+    return { ok: body.ok === true };
+  } catch {
+    return { ok: false };
+  }
 }

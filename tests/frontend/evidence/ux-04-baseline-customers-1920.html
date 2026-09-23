@@ -398,6 +398,8 @@ button:disabled {
   flex-direction: column;
   gap: 8px;
   width: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .nav-btn {
@@ -438,11 +440,8 @@ button:disabled {
   font-weight: 800;
 }
 
-.sidebar-bottom {
+.nav-list .nav-btn[data-route="settings"] {
   margin-top: auto;
-  width: 100%;
-  display: grid;
-  gap: 8px;
 }
 
 .app-main {
@@ -556,20 +555,31 @@ button:disabled {
     z-index: 50;
   }
 
-  .brand-mark,
-  .sidebar-bottom {
+  .brand-mark {
     display: none;
   }
 
   .nav-list {
     flex-direction: row;
-    justify-content: space-around;
+    justify-content: flex-start;
     gap: 2px;
     height: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+
+  .nav-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-list .nav-btn[data-route="settings"] {
+    margin-top: 0;
   }
 
   .nav-btn {
-    flex: 1;
+    flex: 1 0 54px;
+    min-width: 54px;
     min-height: 56px;
     padding: 3px;
   }
@@ -594,8 +604,21 @@ button:disabled {
 }
 
 @media (max-width: 480px) {
-  .topbar-right .status-pill .status-text {
+  .topbar .status-pill .status-text {
     display: none;
+  }
+
+  .topbar {
+    gap: 8px;
+  }
+
+  .topbar-left,
+  .topbar-right {
+    gap: 6px;
+  }
+
+  .topbar .btn.small {
+    padding-inline: 9px;
   }
 
   .page-head {
@@ -823,5 +846,5 @@ button:disabled {
 }
 </style>
 </head>
-<body><div class="app-shell"><a class="skip-link" href="#main-content">Skip to main content</a><div class="live-region" aria-live="polite"></div><aside class="sidebar" aria-label="App sidebar"><div class="brand-mark" title="CETECH">CT</div><nav class="nav-list" aria-label="Primary navigation"><button type="button" class="nav-btn" aria-label="Sell" data-route="sell" data-href="/sell"><span class="icon" aria-hidden="true">▦</span><span>Sell</span></button><button type="button" class="nav-btn" aria-label="Orders" data-route="orders" data-href="/orders"><span class="icon" aria-hidden="true">▤</span><span>Orders</span></button><button type="button" class="nav-btn active" aria-current="page" aria-label="Customers" data-route="customers" data-href="/customers"><span class="icon" aria-hidden="true">♙</span><span>Customers</span></button><button type="button" class="nav-btn" aria-label="Returns" data-route="returns" data-href="/returns"><span class="icon" aria-hidden="true">↩</span><span>Returns</span></button><button type="button" class="nav-btn" aria-label="Register" data-route="register" data-href="/register"><span class="icon" aria-hidden="true">▣</span><span>Register</span></button><button type="button" class="nav-btn" aria-label="Health" data-route="health" data-href="/health"><span class="icon" aria-hidden="true">●</span><span>Health</span></button><button type="button" class="nav-btn" aria-label="Attention" data-route="attention" data-href="/attention"><span class="icon" aria-hidden="true">!</span><span>Attention</span></button></nav><div class="sidebar-bottom"><button type="button" class="nav-btn" aria-label="Settings" data-route="settings" data-href="/settings"><span class="icon" aria-hidden="true">⚙</span><span>Settings</span></button></div></aside><div class="app-main"><header class="topbar"><div class="topbar-left"><span class="app-title">CETECH POS</span><span class="context-pill">Front Counter 1</span><span class="context-pill secondary">Staff member</span><span class="status-pill success"><span class="dot" aria-hidden="true"></span>Shift open</span></div><div class="topbar-right"><span class="status-pill success" data-online="true" aria-label="Online"><span class="dot" aria-hidden="true"></span><span class="status-text">Online</span></span><button class="icon-btn" type="button" title="Lock register" aria-label="Lock register">⌁</button></div></header><main class="content" id="main-content"><section class="customers-workspace workspace-surface" aria-labelledby="customers-title"><div class="page-head"><div><h1 id="customers-title">Customers</h1><p>Retail and wholesale customer context.</p></div></div><div class="card card-pad customers-search-card"><label class="field" for="customer-workspace-search"><span class="sr-only">Search customers</span><input id="customer-workspace-search" class="input" type="search" placeholder="Name, company or phone…" value=""/></label></div><div class="card card-pad workspace-state" role="status"><div><strong>No customer accounts available.</strong><p>No customer accounts are available yet. Walk-in remains possible.</p></div></div></section></main></div></div></body>
+<body><div class="app-shell"><a class="skip-link" href="#main-content">Skip to main content</a><div class="live-region" aria-live="polite"></div><aside class="sidebar" aria-label="App sidebar"><div class="brand-mark" title="CETECH">CT</div><nav class="nav-list" aria-label="Primary navigation"><button type="button" class="nav-btn" aria-label="Sell" data-route="sell" data-href="/sell"><span class="icon" aria-hidden="true">▦</span><span>Sell</span></button><button type="button" class="nav-btn" aria-label="Orders" data-route="orders" data-href="/orders"><span class="icon" aria-hidden="true">▤</span><span>Orders</span></button><button type="button" class="nav-btn active" aria-current="page" aria-label="Customers" data-route="customers" data-href="/customers"><span class="icon" aria-hidden="true">♙</span><span>Customers</span></button><button type="button" class="nav-btn" aria-label="Returns" data-route="returns" data-href="/returns"><span class="icon" aria-hidden="true">↩</span><span>Returns</span></button><button type="button" class="nav-btn" aria-label="Register" data-route="register" data-href="/register"><span class="icon" aria-hidden="true">▣</span><span>Register</span></button><button type="button" class="nav-btn" aria-label="Attention" data-route="attention" data-href="/attention"><span class="icon" aria-hidden="true">!</span><span>Attention</span></button><button type="button" class="nav-btn" aria-label="Settings" data-route="settings" data-href="/settings"><span class="icon" aria-hidden="true">⚙</span><span>Settings</span></button></nav></aside><div class="app-main"><header class="topbar"><div class="topbar-left"><span class="app-title">CETECH POS</span><span class="context-pill">Front Counter 1</span><span class="context-pill secondary">Staff member</span><span class="status-pill success shift-status" aria-label="Shift open"><span class="dot" aria-hidden="true"></span><span class="status-text">Shift open</span></span></div><div class="topbar-right"><span class="status-pill success" data-online="true" aria-label="Online"><span class="dot" aria-hidden="true"></span><span class="status-text">Online</span></span><button class="icon-btn" type="button" title="Lock register" aria-label="Lock register">⌁</button></div></header><main class="content" id="main-content"><section class="customers-workspace workspace-surface" aria-labelledby="customers-title"><div class="page-head"><div><h1 id="customers-title">Customers</h1><p>Search for a customer to use on the next sale.</p></div></div><div class="card card-pad customers-search-card"><label class="field" for="customer-workspace-search"><span class="sr-only">Search customers</span><input id="customer-workspace-search" class="input" type="search" placeholder="Name, company or phone…" value=""/></label></div><div class="card card-pad workspace-state" role="status"><div><strong>No customer accounts available.</strong><p>No customer accounts are available yet. Walk-in remains possible.</p></div></div></section></main></div></div></body>
 </html>

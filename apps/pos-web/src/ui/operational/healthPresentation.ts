@@ -1,5 +1,6 @@
 import type { HealthCheck, StoreHealth } from "../../../../../docs/contracts/domain.generated";
 import type { CatalogProjectionAvailability } from "../../local/catalog-sync";
+import type { PaymentMethodCapabilities } from "../../server/payments/method-capabilities";
 import { describeHealthCheckMessage } from "../cashier-language";
 
 export type HealthRowTone = "ok" | "degraded" | "unavailable" | "unverified";
@@ -30,6 +31,37 @@ function badgeFromTone(tone: HealthRowTone): string {
   return "Unverified";
 }
 
+function paymentHealthRow(
+  methods: PaymentMethodCapabilities | undefined,
+  electronicPaymentsAvailable: boolean | undefined,
+): HealthRowView {
+  if (!methods) {
+    return electronicPaymentsAvailable
+      ? { id: "payments", name: "Payments", detail: "Available", tone: "ok", badge: "OK" }
+      : { id: "payments", name: "Payments", detail: "Cash can be taken. Electronic methods are not confirmed.", tone: "unverified", badge: "Unverified" };
+  }
+  const configured = [
+    methods.mobileMoney === "configured" ? "Mobile Money" : null,
+    methods.card === "configured" ? "Card" : null,
+    methods.externalTerminal === "configured" ? "External terminal" : null,
+  ].filter((item): item is string => item !== null);
+  if (configured.length > 0) {
+    return {
+      id: "payments",
+      name: "Payments",
+      detail: `Cash is available. ${configured.join(" and ")} ${configured.length === 1 ? "is" : "are"} set up.`,
+      tone: "ok",
+      badge: "OK",
+    };
+  }
+  const unavailable = [methods.mobileMoney, methods.card, methods.externalTerminal].every(
+    (item) => item === "unavailable",
+  );
+  return unavailable
+    ? { id: "payments", name: "Payments", detail: "Cash can be taken. Electronic methods are unavailable.", tone: "unavailable", badge: "Unavailable" }
+    : { id: "payments", name: "Payments", detail: "Cash can be taken. Electronic methods are not set up.", tone: "unverified", badge: "Unverified" };
+}
+
 function catalogRow(availability: CatalogProjectionAvailability | null | undefined): HealthRowView {
   if (availability === "unavailable") return { id: "catalog", name: "Products", detail: "Unavailable", tone: "unavailable", badge: "Unavailable" };
   if (availability === "stale") return { id: "catalog", name: "Products", detail: "May be out of date", tone: "degraded", badge: "Degraded" };
@@ -54,6 +86,7 @@ export function presentHealthRows(input: {
   readonly health?: StoreHealth;
   readonly catalogAvailability?: CatalogProjectionAvailability | null;
   readonly electronicPaymentsAvailable?: boolean;
+  readonly paymentMethods?: PaymentMethodCapabilities;
 }): readonly HealthRowView[] {
   const checks = input.health?.checks ?? [];
   const commerce = checkById(checks, "commerce") ?? checkById(checks, "bridge");
@@ -62,9 +95,7 @@ export function presentHealthRows(input: {
   const internet: HealthRowView = input.online
     ? { id: "internet", name: "Internet", detail: "Connected", tone: "ok", badge: "OK" }
     : { id: "internet", name: "Internet", detail: "Offline", tone: "unavailable", badge: "Unavailable" };
-  const payments: HealthRowView = input.electronicPaymentsAvailable
-    ? { id: "payments", name: "Payments", detail: "Available", tone: "ok", badge: "OK" }
-    : { id: "payments", name: "Payments", detail: "Cash can be taken. Electronic methods are not confirmed.", tone: "unverified", badge: "Unverified" };
+  const payments = paymentHealthRow(input.paymentMethods, input.electronicPaymentsAvailable);
 
   return [
     internet,

@@ -268,7 +268,7 @@ function describeReturn(status: string): Copy | undefined {
         priority: "needs_attention",
         intervention: "required",
         statusLabel: "Return needs attention",
-        summary: "This return did not finish cleanly.",
+        summary: "This return needs review.",
         nextAction: "Review the existing return. Do not start a replacement return for the same sale.",
       };
     case "approval_required":
@@ -386,7 +386,7 @@ function describeOperation(status: string, operation: string | undefined): Copy 
       priority: "needs_attention",
       intervention: "required",
       statusLabel: `${label} needs attention`,
-      summary: "A return-related operation did not finish cleanly.",
+      summary: "This return needs review. Do not start another return for this transaction.",
       nextAction: "Do not create a second payment, refund, or stock movement.",
     };
   }

@@ -41,6 +41,7 @@ test.describe("FE-02 visual harness (shell, login, register)", () => {
     await page.keyboard.press("Tab");
     await expect(skipLink).toBeFocused();
     await expect(page.getByRole("button", { name: "Sell" })).toBeVisible();
+    await expect(page.locator('button.nav-btn[data-route="settings"]')).toHaveCount(1);
     await expect(page.getByRole("button", { name: "Settings" })).toBeVisible();
     await expect(page.getByText("CETECH POS")).toBeVisible();
     await expect(page.getByText("Demo controls")).toHaveCount(0);
@@ -62,6 +63,7 @@ test.describe("FE-02 visual harness (shell, login, register)", () => {
     const sidebar = page.locator(".sidebar");
     await expect(sidebar).toBeVisible();
     await expect(page.getByRole("button", { name: "Sell" })).toBeVisible();
+    await expect(page.locator('button.nav-btn[data-route="settings"]')).toHaveCount(1);
     await expect(page.getByRole("button", { name: "Settings" })).toBeVisible();
     await expect(page.locator(".context-pill.secondary")).toBeHidden();
 
@@ -82,6 +84,7 @@ test.describe("FE-02 visual harness (shell, login, register)", () => {
     await expect(sidebar).toBeVisible();
     const sell = page.getByRole("button", { name: "Sell" });
     await expect(sell).toBeVisible();
+    await expect(page.locator('button.nav-btn[data-route="settings"]')).toHaveCount(1);
     const settings = page.getByRole("button", { name: "Settings" });
     await expect(settings).toBeVisible();
     await expect(page.locator(".brand-mark")).toBeHidden();

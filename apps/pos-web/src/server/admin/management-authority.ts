@@ -31,6 +31,9 @@ export async function loadManagementAuthority(input: {
   if (!stored) {
     return authFailure("AUTH_REQUIRED", "staff session is expired or revoked", input.correlationId);
   }
+  if (stored.mustChangePassword === true) {
+    return authFailure("FORBIDDEN", "Create a new password before continuing.", input.correlationId);
+  }
 
   const session = stored.session;
   const assignmentResult = await input.assignments.lookup({

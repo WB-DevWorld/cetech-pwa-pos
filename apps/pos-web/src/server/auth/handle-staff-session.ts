@@ -259,6 +259,7 @@ export async function handleReadStaffSession(
         session: stored.session,
         assignedLocationIds,
         assignedRegisterIds,
+        mustChangePassword: stored.mustChangePassword === true,
       },
       correlationId: correlation.correlationId,
     },

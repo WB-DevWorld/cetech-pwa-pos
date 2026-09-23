@@ -19,8 +19,10 @@ export function StaffAccessPanel({
   onSaveAssignment,
   onSaveControlMembership,
   onSaveAccessStatus,
+  onResetTemporaryPassword,
   inviting = false,
   onInviteStaff,
+  onCreateStaff,
 }: {
   readonly rows: readonly StaffAccessRecord[];
   readonly topology?: readonly ManagementLocation[];
@@ -47,10 +49,26 @@ export function StaffAccessPanel({
     readonly status: "active" | "disabled";
     readonly reason?: string;
   }) => void;
+  readonly onResetTemporaryPassword?: (input: {
+    readonly actorId: string;
+    readonly temporaryPassword: string;
+  }) => void;
   readonly inviting?: boolean;
   readonly onInviteStaff?: (input: {
     readonly email: string;
     readonly displayName: string;
+  }) => void;
+  readonly onCreateStaff?: (input: {
+    readonly email: string;
+    readonly displayName: string;
+    readonly temporaryPassword: string;
+    readonly controlRole: "owner" | "admin" | "support" | null;
+    readonly locations: readonly {
+      readonly locationId: string;
+      readonly role: "cashier" | "manager";
+      readonly registerIds: readonly string[];
+    }[];
+    readonly enableAccess: boolean;
   }) => void;
 }) {
   if (loading) {
@@ -59,15 +77,28 @@ export function StaffAccessPanel({
   if (errorMessage) {
     return <section className="card card-pad"><div className="banner danger">{errorMessage}</div></section>;
   }
+  const addStaff = canManage && onInviteStaff && onCreateStaff ? (
+    <AddStaffCard
+      inviting={inviting}
+      callerControlRole={callerControlRole}
+      topology={topology}
+      onInvite={onInviteStaff}
+      onCreate={onCreateStaff}
+    />
+  ) : null;
+
   if (rows.length === 0) {
-    return <section className="card card-pad"><p>No staff records are visible in your management scope.</p></section>;
+    return (
+      <div className="management-staff-list">
+        {addStaff}
+        <section className="card card-pad"><p>No staff records are visible in your management scope.</p></section>
+      </div>
+    );
   }
 
   return (
     <div className="management-staff-list">
-      {canManage && onInviteStaff ? (
-        <InviteStaffCard inviting={inviting} onInvite={onInviteStaff} />
-      ) : null}
+      {addStaff}
       {rows.map((row) => (
         <StaffCard
           key={row.actorId}
@@ -81,6 +112,7 @@ export function StaffAccessPanel({
           onSaveAssignment={onSaveAssignment}
           onSaveControlMembership={onSaveControlMembership}
           onSaveAccessStatus={onSaveAccessStatus}
+          onResetTemporaryPassword={onResetTemporaryPassword}
         />
       ))}
     </div>
@@ -98,6 +130,7 @@ function StaffCard({
   onSaveAssignment,
   onSaveControlMembership,
   onSaveAccessStatus,
+  onResetTemporaryPassword,
 }: {
   readonly row: StaffAccessRecord;
   readonly topology: readonly ManagementLocation[];
@@ -121,6 +154,10 @@ function StaffCard({
     readonly actorId: string;
     readonly status: "active" | "disabled";
     readonly reason?: string;
+  }) => void;
+  readonly onResetTemporaryPassword?: (input: {
+    readonly actorId: string;
+    readonly temporaryPassword: string;
   }) => void;
 }) {
   const firstUnassigned = topology.find(
@@ -164,6 +201,10 @@ function StaffCard({
           saving={saving}
           onSave={onSaveAccessStatus}
         />
+      ) : null}
+
+      {canManage && onResetTemporaryPassword ? (
+        <PasswordResetEditor actorId={row.actorId} saving={saving} onSave={onResetTemporaryPassword} />
       ) : null}
 
       <div className="stack">
@@ -499,16 +540,107 @@ function StaffAccessStatusEditor({
 }
 
 
-function InviteStaffCard({
+function PasswordResetEditor({
+  actorId,
+  saving,
+  onSave,
+}: {
+  readonly actorId: string;
+  readonly saving: boolean;
+  readonly onSave: (input: { readonly actorId: string; readonly temporaryPassword: string }) => void;
+}) {
+  const [temporaryPassword, setTemporaryPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
+  return (
+    <form
+      className="stack"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!confirmed) return;
+        onSave({ actorId, temporaryPassword });
+        setTemporaryPassword("");
+        setConfirmed(false);
+      }}
+    >
+      <strong>Temporary password</strong>
+      <p className="muted">Sets a temporary password, requires a new password at the next sign-in, and signs this staff member out of the POS.</p>
+      <label className="stack">
+        Temporary password
+        <input
+          type={showPassword ? "text" : "password"}
+          autoComplete="new-password"
+          value={temporaryPassword}
+          onChange={(event) => setTemporaryPassword(event.target.value)}
+          disabled={saving}
+        />
+      </label>
+      <div className="row">
+        <button type="button" className="btn" disabled={saving} onClick={() => setShowPassword((value) => !value)}>
+          {showPassword ? "Hide password" : "Show password"}
+        </button>
+        <button
+          type="button"
+          className="btn"
+          disabled={saving}
+          onClick={() => {
+            const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+            const bytes = crypto.getRandomValues(new Uint8Array(18));
+            const body = Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
+            setTemporaryPassword(`Aa7${body}`);
+            setShowPassword(true);
+          }}
+        >
+          Generate strong password
+        </button>
+      </div>
+      <label className="row">
+        <input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} disabled={saving} />
+        I have shared this temporary password with the staff member through a safe channel.
+      </label>
+      <button type="submit" className="btn" disabled={saving || !confirmed || temporaryPassword.length < 12}>
+        Reset temporary password
+      </button>
+    </form>
+  );
+}
+
+function AddStaffCard({
   inviting,
+  callerControlRole,
+  topology,
   onInvite,
+  onCreate,
 }: {
   readonly inviting: boolean;
+  readonly callerControlRole?: "owner" | "admin" | "support" | null;
+  readonly topology: readonly ManagementLocation[];
   readonly onInvite: (input: { readonly email: string; readonly displayName: string }) => void;
+  readonly onCreate: (input: {
+    readonly email: string;
+    readonly displayName: string;
+    readonly temporaryPassword: string;
+    readonly controlRole: "owner" | "admin" | "support" | null;
+    readonly locations: readonly {
+      readonly locationId: string;
+      readonly role: "cashier" | "manager";
+      readonly registerIds: readonly string[];
+    }[];
+    readonly enableAccess: boolean;
+  }) => void;
 }) {
+  const [method, setMethod] = useState<"create" | "invite">("create");
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [temporaryPassword, setTemporaryPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [controlRole, setControlRole] = useState<"" | "admin" | "support" | "owner">("");
+  const [locationId, setLocationId] = useState(topology[0]?.id ?? "");
+  const [role, setRole] = useState<"cashier" | "manager">("cashier");
+  const [registerId, setRegisterId] = useState(topology[0]?.registers[0]?.id ?? "");
+  const [enableAccess, setEnableAccess] = useState(true);
   const [localError, setLocalError] = useState<string | null>(null);
+  const location = topology.find((item) => item.id === locationId);
 
   function submit() {
     const cleanEmail = email.trim();
@@ -521,48 +653,139 @@ function InviteStaffCard({
       setLocalError("Enter the staff member's name.");
       return;
     }
+    if (method === "invite") {
+      setLocalError(null);
+      onInvite({ email: cleanEmail, displayName: cleanName });
+      return;
+    }
+    if (temporaryPassword.length < 12) {
+      setLocalError("Use a temporary password of at least 12 characters.");
+      return;
+    }
     setLocalError(null);
-    onInvite({ email: cleanEmail, displayName: cleanName });
+    onCreate({
+      email: cleanEmail,
+      displayName: cleanName,
+      temporaryPassword,
+      controlRole: controlRole || null,
+      locations: locationId && registerId
+        ? [{ locationId, role, registerIds: [registerId] }]
+        : [],
+      enableAccess: enableAccess && Boolean((locationId && registerId) || controlRole),
+    });
   }
 
   return (
     <section className="card card-pad stack management-invite-card">
       <div>
-        <h2>Invite staff</h2>
-        <p className="muted">
-          Invited staff cannot use the POS until you assign their locations and registers and enable POS access.
-        </p>
+        <h2>Add staff</h2>
+        <p className="muted">Create a login now, or email a secure invitation. POS access stays off until setup succeeds.</p>
       </div>
+      <fieldset className="stack">
+        <legend>How should this account be created?</legend>
+        <label>
+          <input type="radio" name="staff-create-method" checked={method === "create"} onChange={() => setMethod("create")} />
+          {" "}Create account now
+        </label>
+        <p className="muted">Create a login and temporary password for this staff member.</p>
+        <label>
+          <input type="radio" name="staff-create-method" checked={method === "invite"} onChange={() => setMethod("invite")} />
+          {" "}Send invitation
+        </label>
+        <p className="muted">Email the staff member a secure link to complete account setup.</p>
+      </fieldset>
       <div className="management-invite-grid">
         <label className="field">
           <span>Name</span>
-          <input
-            className="input"
-            value={displayName}
-            disabled={inviting}
-            onChange={(event) => {
-              setDisplayName(event.target.value);
-              setLocalError(null);
-            }}
-          />
+          <input className="input" value={displayName} disabled={inviting} onChange={(event) => setDisplayName(event.target.value)} />
         </label>
         <label className="field">
           <span>Email</span>
-          <input
-            className="input"
-            type="email"
-            value={email}
-            disabled={inviting}
-            onChange={(event) => {
-              setEmail(event.target.value);
-              setLocalError(null);
-            }}
-          />
+          <input className="input" type="email" value={email} disabled={inviting} onChange={(event) => setEmail(event.target.value)} />
         </label>
       </div>
+      {method === "create" ? (
+        <div className="stack">
+          <label className="field">
+            <span>Temporary password</span>
+            <input
+              className="input"
+              type={showPassword ? "text" : "password"}
+              autoComplete="new-password"
+              value={temporaryPassword}
+              disabled={inviting}
+              onChange={(event) => setTemporaryPassword(event.target.value)}
+            />
+          </label>
+          <div className="row">
+            <button className="btn small" type="button" onClick={() => setShowPassword((current) => !current)}>
+              {showPassword ? "Hide password" : "Show password"}
+            </button>
+            <button
+              className="btn small"
+              type="button"
+              onClick={() => {
+                const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+                const bytes = crypto.getRandomValues(new Uint8Array(18));
+                let body = "";
+                for (const byte of bytes) body += alphabet[byte % alphabet.length];
+                setTemporaryPassword(`Aa7${body}`);
+                setShowPassword(true);
+              }}
+            >
+              Generate strong password
+            </button>
+          </div>
+          <p className="muted">The staff member must change this password at first sign-in.</p>
+          <label className="field">
+            <span>Organization role</span>
+            <select className="input" value={controlRole} disabled={inviting} onChange={(event) => setControlRole(event.target.value as "" | "admin" | "support" | "owner")}>
+              <option value="">No organization role</option>
+              <option value="admin">Admin</option>
+              <option value="support">Support</option>
+              {callerControlRole === "owner" ? <option value="owner">Owner</option> : null}
+            </select>
+          </label>
+          <label className="field">
+            <span>Location</span>
+            <select className="input" value={locationId} disabled={inviting} onChange={(event) => {
+              const next = event.target.value;
+              setLocationId(next);
+              const nextLocation = topology.find((item) => item.id === next);
+              setRegisterId(nextLocation?.registers[0]?.id ?? "");
+            }}>
+              <option value="">No location access</option>
+              {topology.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+          </label>
+          {location ? (
+            <>
+              <label className="field">
+                <span>Location role</span>
+                <select className="input" value={role} disabled={inviting} onChange={(event) => setRole(event.target.value as "cashier" | "manager")}>
+                  <option value="cashier">Cashier</option>
+                  <option value="manager">Manager</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>Register</span>
+                <select className="input" value={registerId} disabled={inviting} onChange={(event) => setRegisterId(event.target.value)}>
+                  {location.registers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </select>
+              </label>
+            </>
+          ) : null}
+          <label>
+            <input type="checkbox" checked={enableAccess} disabled={inviting} onChange={(event) => setEnableAccess(event.target.checked)} />
+            {" "}POS access active when setup succeeds
+          </label>
+        </div>
+      ) : (
+        <p className="muted">Invited staff cannot use the POS until you assign their locations and registers and enable POS access.</p>
+      )}
       {localError ? <div className="banner danger">{localError}</div> : null}
       <button className="btn primary" type="button" disabled={inviting} onClick={submit}>
-        {inviting ? "Inviting…" : "Send invitation"}
+        {inviting ? "Saving…" : method === "invite" ? "Send invitation" : "Create account"}
       </button>
     </section>
   );

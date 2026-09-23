@@ -117,7 +117,7 @@ export function ReturnFlow({
           <article key={line.orderLineId} className="card card-pad return-line" data-order-line-id={line.orderLineId}>
             <div className="row between">
               <div>
-                <strong>{line.name}</strong>
+                <strong className="compact-product-name">{line.name}</strong>
                 <div className="muted">Sold {line.originalSoldQuantity}</div>
               </div>
             </div>

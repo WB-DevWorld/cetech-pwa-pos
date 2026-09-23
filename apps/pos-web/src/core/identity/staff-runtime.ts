@@ -31,6 +31,7 @@ export type StaffRuntimeAuthority = {
   readonly shiftOpen: boolean;
   readonly errorMessage?: string;
   readonly presentationOnly?: boolean;
+  readonly mustChangePassword?: boolean;
 };
 
 export type StaffRuntimeController = {
@@ -306,8 +307,23 @@ export function createStaffRuntimeController(input: {
       });
       return;
     }
+    if (result.data.mustChangePassword === true) {
+      setState({
+        status: "ready",
+        session: result.data.session,
+        assignedLocationIds: result.data.assignedLocationIds,
+        assignedRegisterIds: result.data.assignedRegisterIds,
+        assignedRegisters: [],
+        selectedRegisterId: null,
+        register: null,
+        shift: null,
+        shiftOpen: false,
+        mustChangePassword: true,
+      });
+      return;
+    }
     const next = await loadRegister(result.data, state);
-    setState(next);
+    setState({ ...next, mustChangePassword: false });
     if (next.status === "ready" && next.session && !next.presentationOnly) {
       offlinePresentationStore?.write(next, now());
     }

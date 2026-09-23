@@ -8,6 +8,7 @@ export type StaffSessionContext = {
   readonly session: Session;
   readonly assignedLocationIds: readonly string[];
   readonly assignedRegisterIds: readonly string[];
+  readonly mustChangePassword?: boolean;
 };
 
 export function parseStaffSessionContext(value: unknown): StaffSessionContext | null {
@@ -21,7 +22,12 @@ export function parseStaffSessionContext(value: unknown): StaffSessionContext | 
   }
   const assignedLocationIds = parseIdList(root.assignedLocationIds) ?? session.locationIds;
   const assignedRegisterIds = parseIdList(root.assignedRegisterIds) ?? [];
-  return { session, assignedLocationIds, assignedRegisterIds };
+  return {
+    session,
+    assignedLocationIds,
+    assignedRegisterIds,
+    mustChangePassword: root.mustChangePassword === true,
+  };
 }
 
 function parseSessionPayload(value: unknown): Session | null {

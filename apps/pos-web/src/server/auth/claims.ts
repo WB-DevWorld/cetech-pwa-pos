@@ -9,6 +9,8 @@ export type StaffIdentityClaims = {
   readonly registerId: string | null;
   readonly capabilities: readonly string[];
   readonly expiresAt: string;
+  readonly mustChangePassword?: boolean;
+  readonly authUserId?: string | null;
 };
 
 /**
@@ -54,6 +56,7 @@ export function parseStaffIdentityClaims(payload: unknown): StaffIdentityClaims 
     return null;
   }
 
+  const authUserId = typeof root.id === "string" && root.id.length > 0 ? root.id : null;
   return {
     actorId,
     displayName,
@@ -62,6 +65,8 @@ export function parseStaffIdentityClaims(payload: unknown): StaffIdentityClaims 
     registerId: registerIdRaw && isPosId(registerIdRaw) ? registerIdRaw : null,
     capabilities,
     expiresAt,
+    mustChangePassword: appMetadata.must_change_password === true,
+    authUserId,
   };
 }
 

@@ -25,6 +25,7 @@ function sessionStore(session: Session): StaffSessionStore {
         : null;
     },
     async revoke() {},
+    async revokeActorSessions() {},
   };
 }
 

@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { StoreHealth } from "../../../../../docs/contracts/domain.generated";
 import type { CatalogProjectionAvailability } from "../../local/catalog-sync";
+import type { PaymentMethodCapabilities } from "../../server/payments/method-capabilities";
 import { toCashierError } from "../cashier-language";
 import { presentHealthRows } from "./healthPresentation";
 
@@ -33,6 +34,7 @@ export interface StoreHealthScreenProps {
   readonly online?: boolean;
   readonly catalogAvailability?: CatalogProjectionAvailability | null;
   readonly electronicPaymentsAvailable?: boolean;
+  readonly paymentMethods?: PaymentMethodCapabilities;
   readonly attentionCountOverride?: number;
   readonly onRetry?: () => void;
   readonly onOpenAttention?: () => void;
@@ -75,6 +77,7 @@ export function StoreHealthScreen({
   online = true,
   catalogAvailability,
   electronicPaymentsAvailable = false,
+  paymentMethods,
   attentionCountOverride,
   onRetry,
   onOpenAttention,
@@ -86,6 +89,7 @@ export function StoreHealthScreen({
     health,
     catalogAvailability,
     electronicPaymentsAvailable,
+    paymentMethods,
   });
 
   return (

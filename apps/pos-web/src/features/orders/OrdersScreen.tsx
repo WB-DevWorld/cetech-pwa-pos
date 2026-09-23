@@ -310,8 +310,13 @@ export function OrderDetailDialog({ open, order, canReturn = true, onClose, onRe
                 {order.customerCompany ? <span className="workspace-subline">{order.customerCompany}</span> : null}
                 {order.customerKind === "b2b" ? <span className="workspace-badge info">Wholesale</span> : null}
               </div>
-              {order.customerId ? <div><span className="eyebrow">Customer account ID</span><strong>{order.customerId}</strong></div> : null}
-              {order.transactionReference ? <div><span className="eyebrow">Reference</span><strong>{order.transactionReference}</strong></div> : null}
+              {order.customerId || order.transactionReference ? (
+                <details className="management-reference">
+                  <summary>Reference</summary>
+                  {order.customerId ? <p className="muted">Customer account {order.customerId}</p> : null}
+                  {order.transactionReference ? <p className="muted">Transaction {order.transactionReference}</p> : null}
+                </details>
+              ) : null}
               <div><span className="eyebrow">Payment</span><strong>{order.paymentLabel}</strong>{order.paymentStatus ? <span className={`workspace-badge ${badgeTone(order.paymentStatus)}`}>{paymentStatusLabel(order.paymentStatus)}</span> : null}</div>
             </div>
             <div className="stack">
@@ -323,7 +328,7 @@ export function OrderDetailDialog({ open, order, canReturn = true, onClose, onRe
           <div className="order-detail-lines" aria-label="Order lines">
             {order.lines.map((line) => (
               <div className="order-detail-line" key={line.id}>
-                <span>{line.quantity} × {line.name}{line.variationLabel ? <small>{line.variationLabel}</small> : null}</span>
+                <span className="compact-product-name">{line.quantity} × {line.name}{line.variationLabel ? <small>{line.variationLabel}</small> : null}</span>
                 <strong>{formatMoney(line.total)}</strong>
               </div>
             ))}

@@ -231,6 +231,75 @@ export function updateStaffAccessStatus(
 }
 
 
+export function resetStaffTemporaryPassword(
+  input: { readonly actorId: string; readonly temporaryPassword: string },
+  fetchImpl: typeof fetch = fetch,
+) {
+  return jsonResult<{ readonly mustChangePassword: true }>(
+    fetchImpl,
+    `/api/pos/v1/admin/staff/${encodeURIComponent(input.actorId)}/password`,
+    {
+      method: "POST",
+      headers: mutationHeaders(),
+      body: JSON.stringify({ temporaryPassword: input.temporaryPassword }),
+    },
+  );
+}
+
+export function createStaffAccount(
+  input: {
+    readonly email: string;
+    readonly displayName: string;
+    readonly temporaryPassword: string;
+    readonly controlRole: "owner" | "admin" | "support" | null;
+    readonly locations: readonly {
+      readonly locationId: string;
+      readonly role: "cashier" | "manager";
+      readonly registerIds: readonly string[];
+    }[];
+    readonly enableAccess: boolean;
+  },
+  fetchImpl: typeof fetch = fetch,
+) {
+  return jsonResult<{
+    readonly actorId: string;
+    readonly setupStatus: "complete" | "incomplete";
+    readonly posAccessStatus: "active" | "disabled";
+  }>(
+    fetchImpl,
+    "/api/pos/v1/admin/staff/create",
+    {
+      method: "POST",
+      headers: mutationHeaders(),
+      body: JSON.stringify(input),
+    },
+  );
+}
+
+export function saveTopology(
+  change: {
+    readonly kind: "location" | "register" | "device";
+    readonly locationId?: string;
+    readonly registerId?: string;
+    readonly deviceId?: string;
+    readonly name?: string;
+    readonly label?: string;
+    readonly currency?: string;
+    readonly status: string;
+  },
+  fetchImpl: typeof fetch = fetch,
+) {
+  return jsonResult<{ readonly id: string }>(
+    fetchImpl,
+    "/api/pos/v1/admin/topology",
+    {
+      method: "POST",
+      headers: mutationHeaders(),
+      body: JSON.stringify(change),
+    },
+  );
+}
+
 export function inviteStaff(
   input: {
     readonly email: string;

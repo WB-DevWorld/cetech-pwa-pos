@@ -10,8 +10,8 @@ import type { ManagementReturnsAttentionView } from "../../server/admin/manageme
 import type { StaffAssignmentRole } from "../../server/auth/roles";
 import type { ShiftClosePolicyOverride } from "../../server/auth/policy";
 import { StaffAccessPanel } from "./StaffAccessPanel";
-import { PolicyPanel } from "./PolicyPanel";
-import { TopologyPanel } from "./TopologyPanel";
+import { PolicyPanel, type PolicyScopeChoice } from "./PolicyPanel";
+import { TopologyPanel, type TopologyChange } from "./TopologyPanel";
 import { ShiftCashPanel } from "./ShiftCashPanel";
 import { ReturnsApprovalsPanel } from "./ReturnsApprovalsPanel";
 import { ReceiptSettingsPanel, type ReceiptLocationOption } from "./ReceiptSettingsPanel";
@@ -52,9 +52,14 @@ export function ManagementScreen({
   policySaving = false,
   policyError,
   onSavePolicy,
+  policyScopes = [],
+  selectedPolicyScopeId,
+  onSelectPolicyScope,
   topologyRows = [],
   topologyLoading = false,
+  topologySaving = false,
   topologyError,
+  onSaveTopology,
   shiftCashView = null,
   shiftCashLoading = false,
   shiftCashError,
@@ -86,8 +91,10 @@ export function ManagementScreen({
   onSaveStaffAssignment,
   onSaveControlMembership,
   onSaveAccessStatus,
+  onResetTemporaryPassword,
   invitingStaff = false,
   onInviteStaff,
+  onCreateStaff,
   onReturnsChanged,
   onShiftsChanged,
 }: {
@@ -103,9 +110,14 @@ export function ManagementScreen({
   readonly policySaving?: boolean;
   readonly policyError?: string;
   readonly onSavePolicy?: (override: ShiftClosePolicyOverride) => void;
+  readonly policyScopes?: readonly PolicyScopeChoice[];
+  readonly selectedPolicyScopeId?: string;
+  readonly onSelectPolicyScope?: (id: string) => void;
   readonly topologyRows?: readonly ManagementLocation[];
   readonly topologyLoading?: boolean;
+  readonly topologySaving?: boolean;
   readonly topologyError?: string;
+  readonly onSaveTopology?: (change: TopologyChange) => void;
   readonly shiftCashView?: ManagementShiftCashView | null;
   readonly shiftCashLoading?: boolean;
   readonly shiftCashError?: string;
@@ -150,10 +162,26 @@ export function ManagementScreen({
     readonly status: "active" | "disabled";
     readonly reason?: string;
   }) => void;
+  readonly onResetTemporaryPassword?: (input: {
+    readonly actorId: string;
+    readonly temporaryPassword: string;
+  }) => void;
   readonly invitingStaff?: boolean;
   readonly onInviteStaff?: (input: {
     readonly email: string;
     readonly displayName: string;
+  }) => void;
+  readonly onCreateStaff?: (input: {
+    readonly email: string;
+    readonly displayName: string;
+    readonly temporaryPassword: string;
+    readonly controlRole: "owner" | "admin" | "support" | null;
+    readonly locations: readonly {
+      readonly locationId: string;
+      readonly role: "cashier" | "manager";
+      readonly registerIds: readonly string[];
+    }[];
+    readonly enableAccess: boolean;
   }) => void;
   readonly onReturnsChanged?: () => void;
   readonly onShiftsChanged?: () => void;
@@ -244,15 +272,41 @@ export function ManagementScreen({
               onSaveAssignment={onSaveStaffAssignment}
               onSaveControlMembership={onSaveControlMembership}
               onSaveAccessStatus={onSaveAccessStatus}
+              onResetTemporaryPassword={onResetTemporaryPassword}
               inviting={invitingStaff}
               onInviteStaff={onInviteStaff}
+              onCreateStaff={onCreateStaff}
             />
           ) : activeSection === "locations" ? (
-            <TopologyPanel rows={topologyRows} mode="locations" loading={topologyLoading} errorMessage={topologyError} />
+            <TopologyPanel
+              rows={topologyRows}
+              mode="locations"
+              loading={topologyLoading}
+              saving={topologySaving}
+              errorMessage={topologyError}
+              canManage={context.controlRole === "owner" || context.controlRole === "admin"}
+              onSave={onSaveTopology}
+            />
           ) : activeSection === "registers" ? (
-            <TopologyPanel rows={topologyRows} mode="registers" loading={topologyLoading} errorMessage={topologyError} />
+            <TopologyPanel
+              rows={topologyRows}
+              mode="registers"
+              loading={topologyLoading}
+              saving={topologySaving}
+              errorMessage={topologyError}
+              canManage={context.controlRole === "owner" || context.controlRole === "admin"}
+              onSave={onSaveTopology}
+            />
           ) : activeSection === "devices" ? (
-            <TopologyPanel rows={topologyRows} mode="devices" loading={topologyLoading} errorMessage={topologyError} />
+            <TopologyPanel
+              rows={topologyRows}
+              mode="devices"
+              loading={topologyLoading}
+              saving={topologySaving}
+              errorMessage={topologyError}
+              canManage={context.controlRole === "owner" || context.controlRole === "admin"}
+              onSave={onSaveTopology}
+            />
           ) : activeSection === "shifts_cash" ? (
             <ShiftCashPanel
               view={shiftCashView}
@@ -284,6 +338,9 @@ export function ManagementScreen({
               saving={policySaving}
               errorMessage={policyError}
               onSave={onSavePolicy}
+              scopes={policyScopes}
+              selectedScopeId={selectedPolicyScopeId}
+              onSelectScope={onSelectPolicyScope}
             />
           ) : activeSection === "receipt_settings" ? (
             <ReceiptSettingsPanel
@@ -313,18 +370,16 @@ export function ManagementScreen({
               correlationId={auditCorrelationId}
             />
           ) : (
-            <section className="card card-pad stack">
-              <h2>{active.label}</h2>
-              <p>{active.description}</p>
-              <div className="banner warning" role="status">
-                This management section is not available yet. Changes remain disabled.
-              </div>
-            </section>
+            <UnhandledSection section={activeSection} />
           )}
         </section>
       </main>
     </div>
   );
+}
+
+function UnhandledSection({ section }: { readonly section: never }) {
+  return section;
 }
 
 function ManagementCard({

@@ -15,6 +15,7 @@ import type { ManagementAuditView } from "../server/admin/management-audit";
 import type { ReceiptSettings } from "../../../../docs/contracts/domain.generated";
 import type { ShiftClosePolicyOverride } from "../server/auth/policy";
 import { ManagementScreen } from "../features/admin/ManagementScreen";
+import type { TopologyChange } from "../features/admin/TopologyPanel";
 import {
   fetchManagementAudit,
   fetchManagementContext,
@@ -25,7 +26,10 @@ import {
   fetchManagementTopology,
   fetchOperationalPolicy,
   fetchStaffAccess,
+  createStaffAccount,
   inviteStaff,
+  resetStaffTemporaryPassword,
+  saveTopology,
   updateControlMembership,
   updateManagementReceiptSettings,
   updateOperationalPolicy,
@@ -41,6 +45,8 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
   const [policyResult, setPolicyResult] = useState<ApiResult<OperationalPolicyView> | null>(null);
   const [policySaving, setPolicySaving] = useState(false);
   const [topologyResult, setTopologyResult] = useState<ApiResult<readonly ManagementLocation[]> | null>(null);
+  const [topologySaving, setTopologySaving] = useState(false);
+  const [topologyMutationError, setTopologyMutationError] = useState<string | null>(null);
   const [shiftCashResult, setShiftCashResult] = useState<ApiResult<ManagementShiftCashView> | null>(null);
   const [shiftCashRefresh, setShiftCashRefresh] = useState(0);
   const [returnsAttentionResult, setReturnsAttentionResult] = useState<ApiResult<ManagementReturnsAttentionView> | null>(null);
@@ -73,14 +79,23 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
       : context.sections[0] ?? "overview"
     : "overview";
 
-  const policyScope = useMemo(() => {
+  const [policyScope, setPolicyScope] = useState<{ locationId?: string; registerId?: string }>({});
+  const effectivePolicyScope = useMemo(() => {
     if (!context) return {};
-    if (context.controlRole === "owner" || context.controlRole === "admin") {
-      return {};
-    }
-    const locationId = context.managerLocationIds[0];
-    return locationId ? { locationId } : {};
-  }, [context]);
+    if (context.controlRole === "owner" || context.controlRole === "admin") return policyScope;
+    const locationId = policyScope.locationId && context.managerLocationIds.includes(policyScope.locationId)
+      ? policyScope.locationId
+      : context.managerLocationIds[0];
+    if (!locationId) return {};
+    const registerAllowed = topologyResult?.ok
+      ? topologyResult.data.some((location) =>
+          location.id === locationId && location.registers.some((register) => register.id === policyScope.registerId))
+      : false;
+    return {
+      locationId,
+      ...(policyScope.registerId && registerAllowed ? { registerId: policyScope.registerId } : {}),
+    };
+  }, [context, policyScope, topologyResult]);
 
   useEffect(() => {
     if (!context || allowedSection !== "staff_access") return;
@@ -96,7 +111,7 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
   useEffect(() => {
     if (
       !context ||
-      !["staff_access", "locations", "registers", "devices", "receipt_settings"].includes(allowedSection)
+      !["staff_access", "locations", "registers", "devices", "receipt_settings", "policies"].includes(allowedSection)
     ) {
       return;
     }
@@ -159,6 +174,31 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
     if (context.controlRole === "owner" || context.controlRole === "admin") return rows;
     return rows.filter((row) => context.managerLocationIds.includes(row.id));
   }, [context, topologyResult]);
+  const policyScopeChoices = useMemo(() => {
+    const rows = topologyResult?.ok ? topologyResult.data : [];
+    const visible = !context || context.controlRole === "owner" || context.controlRole === "admin"
+      ? rows
+      : rows.filter((row) => context.managerLocationIds.includes(row.id));
+    const choices: { id: string; label: string }[] = [];
+    if (context?.controlRole === "owner" || context?.controlRole === "admin") {
+      choices.push({ id: "organization", label: "Organization default" });
+    }
+    for (const location of visible) {
+      choices.push({ id: `location:${location.id}`, label: location.name });
+      for (const register of location.registers) {
+        choices.push({
+          id: `register:${location.id}:${register.id}`,
+          label: `${location.name} / ${register.name}`,
+        });
+      }
+    }
+    return choices;
+  }, [context, topologyResult]);
+  const selectedPolicyScopeId = effectivePolicyScope.registerId && effectivePolicyScope.locationId
+    ? `register:${effectivePolicyScope.locationId}:${effectivePolicyScope.registerId}`
+    : effectivePolicyScope.locationId
+      ? `location:${effectivePolicyScope.locationId}`
+      : "organization";
   const selectedReceiptLocationId = receiptLocations.some((row) => row.id === receiptLocationId)
     ? receiptLocationId
     : receiptLocations[0]?.id ?? null;
@@ -177,13 +217,13 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
   useEffect(() => {
     if (!context || (allowedSection !== "policies" && allowedSection !== "shifts_cash")) return;
     let cancelled = false;
-    void fetchOperationalPolicy(policyScope, fetchImpl).then((next) => {
+    void fetchOperationalPolicy(effectivePolicyScope, fetchImpl).then((next) => {
       if (!cancelled) setPolicyResult(next);
     });
     return () => {
       cancelled = true;
     };
-  }, [allowedSection, context, fetchImpl, policyScope]);
+  }, [allowedSection, context, fetchImpl, effectivePolicyScope]);
 
   async function saveStaffAssignment(input: {
     readonly actorId: string;
@@ -196,7 +236,7 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
     try {
       const saved = await updateStaffAssignment(input, fetchImpl);
       if (!saved.ok) {
-        setStaffMutationError(saved.error.message);
+        setStaffMutationError(presentManagementError(saved.error.message));
         return;
       }
       const [staff, topology] = await Promise.all([
@@ -210,6 +250,36 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
     }
   }
 
+  async function createStaff(input: {
+    readonly email: string;
+    readonly displayName: string;
+    readonly temporaryPassword: string;
+    readonly controlRole: "owner" | "admin" | "support" | null;
+    readonly locations: readonly {
+      readonly locationId: string;
+      readonly role: "cashier" | "manager";
+      readonly registerIds: readonly string[];
+    }[];
+    readonly enableAccess: boolean;
+  }) {
+    setInvitingStaff(true);
+    setStaffMutationError(null);
+    try {
+      const created = await createStaffAccount(input, fetchImpl);
+      if (!created.ok) {
+        setStaffMutationError(presentManagementError(created.error.message));
+        return;
+      }
+      if (created.data.setupStatus === "incomplete") {
+        setStaffMutationError("Staff account created, but setup is incomplete. POS access remains disabled. Complete the highlighted assignments.");
+      }
+      const staff = await fetchStaffAccess(fetchImpl);
+      setStaffResult(staff);
+    } finally {
+      setInvitingStaff(false);
+    }
+  }
+
   async function sendStaffInvite(input: {
     readonly email: string;
     readonly displayName: string;
@@ -219,13 +289,47 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
     try {
       const invited = await inviteStaff(input, fetchImpl);
       if (!invited.ok) {
-        setStaffMutationError(invited.error.message);
+        setStaffMutationError(presentManagementError(invited.error.message));
         return;
       }
       const staff = await fetchStaffAccess(fetchImpl);
       setStaffResult(staff);
     } finally {
       setInvitingStaff(false);
+    }
+  }
+
+  async function resetTemporaryPassword(input: {
+    readonly actorId: string;
+    readonly temporaryPassword: string;
+  }) {
+    setStaffSavingActorId(input.actorId);
+    setStaffMutationError(null);
+    try {
+      const saved = await resetStaffTemporaryPassword(input, fetchImpl);
+      if (!saved.ok) {
+        setStaffMutationError(presentManagementError(saved.error.message));
+      }
+    } finally {
+      setStaffSavingActorId(null);
+    }
+  }
+
+  async function saveTopologyChange(change: TopologyChange) {
+    setTopologySaving(true);
+    setTopologyMutationError(null);
+    try {
+      const saved = await saveTopology(change, fetchImpl);
+      if (!saved.ok) {
+        setTopologyMutationError(presentManagementError(saved.error.message));
+        return;
+      }
+      setTopologyResult(null);
+      const next = await fetchManagementTopology(fetchImpl);
+      setTopologyResult(next);
+      if (!next.ok) setTopologyMutationError(presentManagementError(next.error.message));
+    } finally {
+      setTopologySaving(false);
     }
   }
 
@@ -239,7 +343,7 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
     try {
       const saved = await updateStaffAccessStatus(input, fetchImpl);
       if (!saved.ok) {
-        setStaffMutationError(saved.error.message);
+        setStaffMutationError(presentManagementError(saved.error.message));
         return;
       }
       const staff = await fetchStaffAccess(fetchImpl);
@@ -259,7 +363,7 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
     try {
       const saved = await updateControlMembership(input, fetchImpl);
       if (!saved.ok) {
-        setStaffMutationError(saved.error.message);
+        setStaffMutationError(presentManagementError(saved.error.message));
         return;
       }
       const [staff, contextNext] = await Promise.all([
@@ -277,7 +381,7 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
     if (!context) return;
     setPolicySaving(true);
     try {
-      setPolicyResult(await updateOperationalPolicy({ scope: policyScope, override }, fetchImpl));
+      setPolicyResult(await updateOperationalPolicy({ scope: effectivePolicyScope, override }, fetchImpl));
     } finally {
       setPolicySaving(false);
     }
@@ -294,7 +398,7 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
         settings,
       }, fetchImpl);
       if (!saved.ok) {
-        setReceiptSaveError(saved.error.message);
+        setReceiptSaveError(presentManagementError(saved.error.message));
         return;
       }
       setReceiptSettingsResult(saved);
@@ -362,20 +466,25 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
       staffError={
         staffMutationError ??
         (allowedSection === "staff_access" && staffResult && !staffResult.ok
-          ? staffResult.error.message
+          ? presentManagementError(staffResult.error.message)
           : undefined)
       }
       topologyRows={topologyResult?.ok ? topologyResult.data : []}
+      topologySaving={topologySaving}
+      onSaveTopology={(change) => {
+        void saveTopologyChange(change);
+      }}
       topologyLoading={
         ["staff_access", "locations", "registers", "devices", "receipt_settings"].includes(allowedSection) &&
         topologyResult === null
       }
       topologyError={
-        ["staff_access", "locations", "registers", "devices", "receipt_settings"].includes(allowedSection) &&
+        topologyMutationError ??
+        (["locations", "registers", "devices"].includes(allowedSection) &&
         topologyResult &&
         !topologyResult.ok
-          ? topologyResult.error.message
-          : undefined
+          ? presentManagementError(topologyResult.error.message)
+          : undefined)
       }
       staffSavingActorId={staffSavingActorId}
       onSaveStaffAssignment={
@@ -401,6 +510,13 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
             }
           : undefined
       }
+      onResetTemporaryPassword={
+        result.data.controlRole === "owner" || result.data.controlRole === "admin"
+          ? (input) => {
+              void resetTemporaryPassword(input);
+            }
+          : undefined
+      }
       invitingStaff={invitingStaff}
       onInviteStaff={
         result.data.controlRole === "owner" || result.data.controlRole === "admin"
@@ -409,19 +525,26 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
             }
           : undefined
       }
+      onCreateStaff={
+        result.data.controlRole === "owner" || result.data.controlRole === "admin"
+          ? (input) => {
+              void createStaff(input);
+            }
+          : undefined
+      }
       policyView={policyResult?.ok ? policyResult.data : null}
       policyLoading={allowedSection === "policies" && policyResult === null}
       policySaving={policySaving}
       policyError={
         allowedSection === "policies" && policyResult && !policyResult.ok
-          ? policyResult.error.message
+          ? presentManagementError(policyResult.error.message)
           : undefined
       }
       shiftCashView={shiftCashResult?.ok ? shiftCashResult.data : null}
       shiftCashLoading={allowedSection === "shifts_cash" && shiftCashResult === null}
       shiftCashError={
         allowedSection === "shifts_cash" && shiftCashResult && !shiftCashResult.ok
-          ? shiftCashResult.error.message
+          ? presentManagementError(shiftCashResult.error.message)
           : undefined
       }
       shiftCashCorrelationId={
@@ -434,7 +557,7 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
       returnsAttentionLoading={allowedSection === "returns_approvals" && returnsAttentionResult === null}
       returnsAttentionError={
         allowedSection === "returns_approvals" && returnsAttentionResult && !returnsAttentionResult.ok
-          ? returnsAttentionResult.error.message
+          ? presentManagementError(returnsAttentionResult.error.message)
           : undefined
       }
       returnsAttentionCorrelationId={
@@ -466,9 +589,9 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
       receiptSettingsSaving={receiptSaving}
       receiptSettingsError={
         allowedSection === "receipt_settings" && topologyResult && !topologyResult.ok
-          ? topologyResult.error.message
+          ? presentManagementError(topologyResult.error.message)
           : allowedSection === "receipt_settings" && receiptSettingsResult && !receiptSettingsResult.ok
-            ? receiptSettingsResult.error.message
+            ? presentManagementError(receiptSettingsResult.error.message)
             : undefined
       }
       receiptSettingsSaveError={receiptSaveError ?? undefined}
@@ -477,7 +600,7 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
       systemHealthLoading={allowedSection === "system_health" && systemHealthResult === null}
       systemHealthError={
         allowedSection === "system_health" && systemHealthResult && !systemHealthResult.ok
-          ? systemHealthResult.error.message
+          ? presentManagementError(systemHealthResult.error.message)
           : undefined
       }
       systemHealthCorrelationId={
@@ -489,7 +612,7 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
       auditLoading={allowedSection === "audit" && auditResult === null}
       auditError={
         allowedSection === "audit" && auditResult && !auditResult.ok
-          ? auditResult.error.message
+          ? presentManagementError(auditResult.error.message)
           : undefined
       }
       auditCorrelationId={
@@ -511,6 +634,24 @@ export function ManagementRuntime({ fetchImpl = fetch }: { readonly fetchImpl?: 
             }
           : undefined
       }
+      policyScopes={policyScopeChoices}
+      selectedPolicyScopeId={selectedPolicyScopeId}
+      onSelectPolicyScope={(id) => {
+        if (id === "organization") setPolicyScope({});
+        else if (id.startsWith("location:")) setPolicyScope({ locationId: id.slice("location:".length) });
+        else if (id.startsWith("register:")) {
+          const [, locationId, registerId] = id.split(":");
+          if (locationId && registerId) setPolicyScope({ locationId, registerId });
+        }
+        setPolicyResult(null);
+      }}
     />
   );
+}
+
+function presentManagementError(message: string): string {
+  if (/csrf|service[_ -]?role|sql|postgres|pos_|rpc|schema|endpoint|jwt|stack|function/i.test(message)) {
+    return "That change could not be saved. Try again.";
+  }
+  return message;
 }

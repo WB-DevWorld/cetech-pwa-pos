@@ -21,7 +21,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "CETECH POS",
-  description: "CETECH POS cashier workspace. Not a production payment terminal.",
+  description: "CETECH POS for in-store selling, payments, receipts, and store management.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

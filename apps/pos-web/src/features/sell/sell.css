@@ -358,9 +358,15 @@ button.product-card:disabled {
   gap: 10px;
 }
 
-.cart-line-name {
+.cart-line-name,
+.compact-product-name {
   font-weight: 750;
   line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .qty-row {

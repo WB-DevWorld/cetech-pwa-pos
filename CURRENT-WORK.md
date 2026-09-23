@@ -693,3 +693,17 @@ Semantic conflict: `apps/pos-web/src/app/pos-app.tsx` and `apps/pos-web/src/conf
 - No secrets in prompts, commits, screenshots, logs or evidence.
 - No wildcard origin/CSRF bypass.
 - Do not clear IndexedDB/drafts/journal as a routine recovery or catalog-sync technique.
+
+## Final #105 source remediation — IN SOURCE, NOT RUNTIME-ACCEPTED
+
+The 2026-09-23 whole-system remediation stays on `ws3/admin-105-control-plane` / PR #109.
+Starting remote head: `b5e70f6edd338428cc5e079db85ec4da45879645`.
+It does not merge the PR, close #105, resume R9, promote production, or launch an Exact SHA Preview.
+
+Source now includes one Settings navigation control, direct staff creation with a durable password-change gate, policy scope selection, server-owned payment-method capabilities, and owner/admin location, register, and device administration.
+Location lifecycle uses forward migration `20260923140000_pos_admin_topology.sql`.
+`20260922123000_pos_admin_control_plane.sql` stays unchanged because it is already applied on shared staging.
+
+No persistent staging Owner was created. The next controlled runtime action is `docs/runbooks/ADMIN-105-FIRST-OWNER-BOOTSTRAP.md`.
+Screen classification is `docs/workstreams/WS-03-CORE-DATA-INTEGRATION/evidence/ADMIN-105-SCREEN-CAPABILITY-MATRIX.md`.
+Fresh `@Ben-001-sys` review is required for the exact final SHA. Older review does not carry forward.

@@ -77,6 +77,10 @@ export async function handleQuote(input: HandleQuoteInput): Promise<HandleQuoteR
     const body = authFailure("AUTH_REQUIRED", "staff session is required", correlation.correlationId);
     return { status: httpStatusFor(body.error.code), body, headers };
   }
+  if (stored.mustChangePassword === true) {
+    const body = authFailure("FORBIDDEN", "Create a new password before continuing.", correlation.correlationId);
+    return { status: httpStatusFor(body.error.code), body, headers };
+  }
   const request = parseQuoteRequest(input.body);
   if (!request) {
     const body = authFailure("VALIDATION_ERROR", "QuoteRequest is invalid", correlation.correlationId);

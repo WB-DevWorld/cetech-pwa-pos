@@ -3,7 +3,7 @@ import type { Session } from "../../../../../docs/contracts/domain.generated";
 import { createMemoryAssignmentDirectory } from "../auth/assignments";
 import { createEphemeralInMemoryStaffSessionStore } from "../auth/session-store";
 import { createMemoryControlPlaneDirectory } from "./control-plane-directory";
-import { handleGetManagementTopology } from "./handle-management-topology";
+import { handleGetManagementTopology, handleSaveManagementTopology } from "./handle-management-topology";
 import { createMemoryManagementTopologyDirectory } from "./management-topology-directory";
 
 const NOW = new Date("2026-09-22T16:00:00.000Z");
@@ -124,6 +124,98 @@ describe("ADMIN-105 management topology", () => {
     });
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error("expected forbidden");
+    expect(result.error.code).toBe("FORBIDDEN");
+  });
+
+  test("owner can rename a location and cannot change a register currency", async () => {
+    const directory = createMemoryManagementTopologyDirectory([
+      {
+        id: "loc_a1",
+        name: "Accra",
+        registers: [{ id: "reg_a", name: "Front", currency: "GHS", status: "active" }],
+        devices: [],
+      },
+    ]);
+    const { sessions, cookieHeader } = await cookieFor("owner_a", []);
+    const saved = await handleSaveManagementTopology({
+      correlationId: CORRELATION,
+      cookieHeader,
+      now: NOW,
+      sessions,
+      assignments: createMemoryAssignmentDirectory([]),
+      controlPlane: createMemoryControlPlaneDirectory([
+        { organizationId: "org_a", actorId: "owner_a", controlRole: "owner", status: "active" },
+      ]),
+      topology: directory,
+      change: { kind: "location", locationId: "loc_a1", name: "Accra Main", status: "active" },
+      protection: {
+        origin: "https://pos.example.test",
+        referer: null,
+        csrfCookie: "csrf",
+        csrfHeader: "csrf",
+        allowedOrigins: ["https://pos.example.test"],
+      },
+    });
+    expect(saved.ok).toBe(true);
+    const currency = await handleSaveManagementTopology({
+      correlationId: CORRELATION,
+      cookieHeader,
+      now: NOW,
+      sessions,
+      assignments: createMemoryAssignmentDirectory([]),
+      controlPlane: createMemoryControlPlaneDirectory([
+        { organizationId: "org_a", actorId: "owner_a", controlRole: "owner", status: "active" },
+      ]),
+      topology: directory,
+      change: {
+        kind: "register",
+        registerId: "reg_a",
+        locationId: "loc_a1",
+        name: "Front",
+        currency: "USD",
+        status: "active",
+      },
+      protection: {
+        origin: "https://pos.example.test",
+        referer: null,
+        csrfCookie: "csrf",
+        csrfHeader: "csrf",
+        allowedOrigins: ["https://pos.example.test"],
+      },
+    });
+    expect(currency.ok).toBe(false);
+    if (currency.ok) throw new Error("currency change must fail");
+    expect(currency.error.code).toBe("VALIDATION_ERROR");
+  });
+
+  test("manager cannot change organization locations", async () => {
+    const { sessions, cookieHeader } = await cookieFor("manager_a", ["loc_a1"]);
+    const result = await handleSaveManagementTopology({
+      correlationId: CORRELATION,
+      cookieHeader,
+      now: NOW,
+      sessions,
+      assignments: createMemoryAssignmentDirectory([
+        {
+          actorId: "manager_a",
+          organizationId: "org_a",
+          locationRoles: [{ locationId: "loc_a1", role: "manager" }],
+          registerIds: ["reg_a"],
+        },
+      ]),
+      controlPlane: createMemoryControlPlaneDirectory([]),
+      topology,
+      change: { kind: "location", name: "New store", status: "active" },
+      protection: {
+        origin: "https://pos.example.test",
+        referer: null,
+        csrfCookie: "csrf",
+        csrfHeader: "csrf",
+        allowedOrigins: ["https://pos.example.test"],
+      },
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("manager must not create locations");
     expect(result.error.code).toBe("FORBIDDEN");
   });
 });

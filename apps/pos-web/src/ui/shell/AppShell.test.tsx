@@ -41,8 +41,8 @@ describe("AppShell", () => {
       expect(html).toContain(item.label);
     }
     expect(html).not.toContain('data-route="health"');
-    expect(html).toContain('data-route="settings"');
-    expect(html).toContain("sidebar-bottom");
+    expect(html.match(/data-route="settings"/g)).toHaveLength(1);
+    expect(html).not.toContain("sidebar-bottom");
     expect(html).toContain("Attention");
     expect(html).toContain("2");
     expect(html).not.toContain("Demo controls");

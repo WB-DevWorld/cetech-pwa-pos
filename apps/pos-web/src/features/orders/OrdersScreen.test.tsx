@@ -74,7 +74,8 @@ describe("OrdersScreen", () => {
     expect(html).toContain("Order detail");
     expect(html).toContain("Reference");
     expect(html).toContain("Cashier / register");
-    expect(html).toContain("Customer account ID");
+    expect(html).toContain("Customer account");
+    expect(html).not.toContain("Customer account ID");
     expect(html).toContain("cust-buildworks");
     expect(html).toContain("BuildWorks Ghana Ltd");
     expect(html).toContain("Reprint");

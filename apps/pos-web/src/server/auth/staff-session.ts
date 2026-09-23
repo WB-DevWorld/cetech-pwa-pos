@@ -78,7 +78,10 @@ export async function establishStaffSession(
   const session = toSession(verifyResult.identity);
   const csrfToken = crypto.randomUUID();
   const expiresAt = new Date(Date.parse(session.expiresAt));
-  const sessionId = await input.store.create(session, csrfToken, expiresAt);
+  const sessionId = await input.store.create(session, csrfToken, expiresAt, {
+    mustChangePassword: verifyResult.identity.mustChangePassword === true,
+    authUserId: verifyResult.identity.authUserId ?? null,
+  });
   const secure = input.secureCookies ?? true;
   return {
     ok: true,

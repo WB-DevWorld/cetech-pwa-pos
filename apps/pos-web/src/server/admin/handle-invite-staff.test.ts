@@ -146,6 +146,18 @@ describe("ADMIN-105 staff invitation", () => {
           displayName: input.displayName,
         };
       },
+      async createWithTemporaryPassword() {
+        return "unavailable";
+      },
+      async resetTemporaryPassword() {
+        return "unavailable";
+      },
+      async replaceOwnPassword() {
+        return "unavailable";
+      },
+      async findByActor() {
+        return "missing";
+      },
       async suspendAuthUser() {
         suspended = true;
         return "ok";
@@ -180,6 +192,18 @@ describe("ADMIN-105 staff invitation", () => {
           email: input.email,
           displayName: input.displayName,
         };
+      },
+      async createWithTemporaryPassword() {
+        return "unavailable";
+      },
+      async resetTemporaryPassword() {
+        return "unavailable";
+      },
+      async replaceOwnPassword() {
+        return "unavailable";
+      },
+      async findByActor() {
+        return "missing";
       },
       async suspendAuthUser() {
         suspended = true;

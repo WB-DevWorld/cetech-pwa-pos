@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CustomerPort, PrintPort, ReceiptPort } from "../../../../docs/contracts/ports";
 import type { CustomerSummary, StoreHealth } from "../../../../docs/contracts/domain.generated";
+import type { PaymentMethodCapabilities } from "../server/payments/method-capabilities";
 import { OrdersScreen, OrderDetailDialog, type OrderDetailView, type OrderListItemView } from "../features/orders";
 import { ReceiptPaper } from "../features/sell/components/ReceiptPaper";
 import type { ReceiptViewModel } from "../features/sell/state/checkoutSession";
@@ -34,6 +35,7 @@ import {
   fetchCustomerDirectory,
   fetchOrderDetail,
   fetchOrderHistory,
+  fetchPaymentMethodCapabilities,
   fetchStoreHealth,
 } from "./operational-client";
 
@@ -345,16 +347,19 @@ function HealthWorkspace({
 }) {
   const lifecycle = usePwaLifecycle();
   const [health, setHealth] = useState<StoreHealth | undefined>();
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodCapabilities | undefined>();
   const [state, setState] = useState<OperationalLoadState>("loading");
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
   const [recovery, setRecovery] = useState<LocalRecoveryDiagnostics | undefined>();
   const [updateCheckBusy, setUpdateCheckBusy] = useState(false);
 
   const load = useCallback(async () => {
-    const [result, diagnostics] = await Promise.all([
+    const [result, diagnostics, capabilities] = await Promise.all([
       fetchStoreHealth(fetchImpl),
       inspectLocalRecoveryState().catch(() => undefined),
+      fetchPaymentMethodCapabilities(fetchImpl),
     ]);
+    setPaymentMethods(capabilities.ok ? capabilities.data : undefined);
     setRecovery(diagnostics);
     if (!result.ok) {
       setHealth(undefined);
@@ -388,7 +393,7 @@ function HealthWorkspace({
         errorMessage={errorMessage}
         online={online}
         catalogAvailability={catalogAvailability}
-        electronicPaymentsAvailable={false}
+        paymentMethods={paymentMethods}
         attentionCountOverride={attentionCount}
         onRetry={() => {
           void load();
