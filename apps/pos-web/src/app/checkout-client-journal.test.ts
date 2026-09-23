@@ -67,7 +67,8 @@ describe("R9 mounted checkout OperationJournal", () => {
 
     const ports = createBrowserCashCheckoutPorts({
       fetchImpl,
-      scope: journal,
+      scope: LOCAL_CHECKOUT_SCOPE,
+      journal,
       now: () => new Date("2026-09-20T19:30:00.000Z"),
     });
 
@@ -104,7 +105,8 @@ describe("R9 mounted checkout OperationJournal", () => {
       fetchImpl: async () => {
         throw new TypeError("simulated response loss");
       },
-      scope: journal,
+      scope: LOCAL_CHECKOUT_SCOPE,
+      journal,
       now: () => new Date("2026-09-20T19:30:00.000Z"),
     });
 
@@ -134,7 +136,8 @@ describe("R9 mounted checkout OperationJournal", () => {
           { status: 200, headers: { "content-type": "application/json" } },
         );
       },
-      scope: journal,
+      scope: LOCAL_CHECKOUT_SCOPE,
+      journal,
     });
 
     const resolution = await recoveryPorts.sales.resolve(TX);
@@ -162,7 +165,8 @@ describe("R9 mounted checkout OperationJournal", () => {
       fetchImpl: async () => {
         throw new TypeError("simulated response loss");
       },
-      scope: journal,
+      scope: LOCAL_CHECKOUT_SCOPE,
+      journal,
       tenderActivity,
     });
 
@@ -183,7 +187,8 @@ describe("R9 mounted checkout OperationJournal", () => {
           }),
           { status: 200, headers: { "content-type": "application/json" } },
         ),
-      scope: journal,
+      scope: LOCAL_CHECKOUT_SCOPE,
+      journal,
       tenderActivity,
     });
 
@@ -207,7 +212,8 @@ describe("R9 mounted checkout OperationJournal", () => {
           { status: 200, headers: { "content-type": "application/json" } },
         );
       },
-      scope: journal,
+      scope: LOCAL_CHECKOUT_SCOPE,
+      journal,
     });
 
     const result = await ports.checkout.prepare(
