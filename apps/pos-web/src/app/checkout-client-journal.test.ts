@@ -6,7 +6,13 @@ import {
   inspectLocalRecoveryState,
   openPosLocalDatabase,
 } from "../local";
-import { createBrowserCashCheckoutPorts, LOCAL_CHECKOUT_SCOPE } from "./checkout-client";
+import { createBrowserCashCheckoutPorts } from "./checkout-client";
+
+const LOCAL_CHECKOUT_SCOPE = {
+  registerId: "reg-test",
+  shiftId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  deviceId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+} as const;
 
 const TX = "11111111-1111-4111-8111-111111111111";
 const KEY = "22222222-2222-4222-8222-222222222222";
@@ -61,8 +67,7 @@ describe("R9 mounted checkout OperationJournal", () => {
 
     const ports = createBrowserCashCheckoutPorts({
       fetchImpl,
-      scope: LOCAL_CHECKOUT_SCOPE,
-      journal,
+      scope: journal,
       now: () => new Date("2026-09-20T19:30:00.000Z"),
     });
 
@@ -99,8 +104,7 @@ describe("R9 mounted checkout OperationJournal", () => {
       fetchImpl: async () => {
         throw new TypeError("simulated response loss");
       },
-      scope: LOCAL_CHECKOUT_SCOPE,
-      journal,
+      scope: journal,
       now: () => new Date("2026-09-20T19:30:00.000Z"),
     });
 
@@ -130,8 +134,7 @@ describe("R9 mounted checkout OperationJournal", () => {
           { status: 200, headers: { "content-type": "application/json" } },
         );
       },
-      scope: LOCAL_CHECKOUT_SCOPE,
-      journal,
+      scope: journal,
     });
 
     const resolution = await recoveryPorts.sales.resolve(TX);
@@ -159,8 +162,7 @@ describe("R9 mounted checkout OperationJournal", () => {
       fetchImpl: async () => {
         throw new TypeError("simulated response loss");
       },
-      scope: LOCAL_CHECKOUT_SCOPE,
-      journal,
+      scope: journal,
       tenderActivity,
     });
 
@@ -181,8 +183,7 @@ describe("R9 mounted checkout OperationJournal", () => {
           }),
           { status: 200, headers: { "content-type": "application/json" } },
         ),
-      scope: LOCAL_CHECKOUT_SCOPE,
-      journal,
+      scope: journal,
       tenderActivity,
     });
 
@@ -206,8 +207,7 @@ describe("R9 mounted checkout OperationJournal", () => {
           { status: 200, headers: { "content-type": "application/json" } },
         );
       },
-      scope: LOCAL_CHECKOUT_SCOPE,
-      journal,
+      scope: journal,
     });
 
     const result = await ports.checkout.prepare(
