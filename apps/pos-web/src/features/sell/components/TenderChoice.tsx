@@ -120,7 +120,7 @@ export function TenderChoice({
       </div>
       <div className="dialog-actions">
         <button type="button" className="btn ghost" disabled={disabled} onClick={onCancelPrepared}>
-          Cancel prepared sale
+          Cancel sale
         </button>
       </div>
     </div>
