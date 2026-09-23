@@ -56,6 +56,21 @@ export async function fetchStoreHealth(fetchImpl?: typeof fetch): Promise<ApiRes
   return getJson<StoreHealth>("/api/pos/v1/health", fetchImpl);
 }
 
+export type RegisterClosePresentation = {
+  readonly showClose: boolean;
+  readonly notice: string;
+};
+
+export async function fetchRegisterClosePresentation(
+  registerId: string,
+  fetchImpl?: typeof fetch,
+): Promise<ApiResult<RegisterClosePresentation>> {
+  return getJson<RegisterClosePresentation>(
+    `/api/pos/v1/registers/${encodeURIComponent(registerId)}/close-presentation`,
+    fetchImpl,
+  );
+}
+
 export async function fetchOrderHistory(
   query: string,
   fetchImpl?: typeof fetch,
