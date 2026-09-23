@@ -172,6 +172,7 @@ async function setupSale(customer: QuoteRequest["customer"] = { kind: "walkin" }
     body: quoteRequest(customer),
     now: NOW,
     sessionStore: opened.sessionStore,
+    assignments: cashierAssignments(),
     allowedOrigins: [ORIGIN],
     snapshots: checkoutStore,
     catalogIdentity: {
