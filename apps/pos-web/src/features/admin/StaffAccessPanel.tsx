@@ -341,10 +341,20 @@ function NewAssignmentEditor({
     readonly registerIds: readonly string[];
   }) => void;
 }) {
-  const [locationId, setLocationId] = useState(initialLocationId);
+  const activeTopology = useMemo(
+    () => topology.filter((item) => item.status !== "inactive"),
+    [topology],
+  );
+  const initialActiveLocationId = activeTopology.some((item) => item.id === initialLocationId)
+    ? initialLocationId
+    : activeTopology[0]?.id ?? "";
+  const [locationId, setLocationId] = useState(initialActiveLocationId);
   const [role, setRole] = useState<StaffAssignmentRole>("cashier");
   const [registerIds, setRegisterIds] = useState<readonly string[]>([]);
-  const location = useMemo(() => topology.find((item) => item.id === locationId), [locationId, topology]);
+  const location = useMemo(
+    () => activeTopology.find((item) => item.id === locationId),
+    [activeTopology, locationId],
+  );
   return (
     <div className="management-assignment-editor new">
       <strong>Add location assignment</strong>
@@ -358,7 +368,7 @@ function NewAssignmentEditor({
             setRegisterIds([]);
           }}
         >
-          {topology.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          {activeTopology.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
         </select>
         <select
           className="select"
@@ -371,7 +381,7 @@ function NewAssignmentEditor({
         </select>
       </div>
       <div className="management-register-checks">
-        {(location?.registers ?? []).map((register) => (
+        {(location?.registers ?? []).filter((register) => register.status === "active").map((register) => (
           <label key={register.id}>
             <input
               type="checkbox"
@@ -633,18 +643,24 @@ function AddStaffCard({
     readonly enableAccess: boolean;
   }) => void;
 }) {
+  const activeTopology = useMemo(
+    () => topology.filter((item) => item.status !== "inactive"),
+    [topology],
+  );
   const [method, setMethod] = useState<"create" | "invite">("create");
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [temporaryPassword, setTemporaryPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [controlRole, setControlRole] = useState<"" | "admin" | "support" | "owner">("");
-  const [locationId, setLocationId] = useState(topology[0]?.id ?? "");
+  const [locationId, setLocationId] = useState(activeTopology[0]?.id ?? "");
   const [role, setRole] = useState<"cashier" | "manager">("cashier");
-  const [registerId, setRegisterId] = useState(topology[0]?.registers[0]?.id ?? "");
+  const [registerId, setRegisterId] = useState(
+    activeTopology[0]?.registers.find((item) => item.status === "active")?.id ?? "",
+  );
   const [enableAccess, setEnableAccess] = useState(true);
   const [localError, setLocalError] = useState<string | null>(null);
-  const location = topology.find((item) => item.id === locationId);
+  const location = activeTopology.find((item) => item.id === locationId);
 
   function submit() {
     const cleanEmail = email.trim();
@@ -755,11 +771,11 @@ function AddStaffCard({
             <select className="input" value={locationId} disabled={inviting} onChange={(event) => {
               const next = event.target.value;
               setLocationId(next);
-              const nextLocation = topology.find((item) => item.id === next);
-              setRegisterId(nextLocation?.registers[0]?.id ?? "");
+              const nextLocation = activeTopology.find((item) => item.id === next);
+              setRegisterId(nextLocation?.registers.find((item) => item.status === "active")?.id ?? "");
             }}>
               <option value="">No location access</option>
-              {topology.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+              {activeTopology.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
             </select>
           </label>
           {location ? (
@@ -774,7 +790,9 @@ function AddStaffCard({
               <label className="field">
                 <span>Register</span>
                 <select className="input" value={registerId} disabled={inviting} onChange={(event) => setRegisterId(event.target.value)}>
-                  {location.registers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                  {location.registers
+                    .filter((item) => item.status === "active")
+                    .map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                 </select>
               </label>
             </>
