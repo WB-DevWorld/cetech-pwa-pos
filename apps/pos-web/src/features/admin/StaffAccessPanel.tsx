@@ -777,7 +777,7 @@ function AddStaffCard({
           ) : null}
           <label>
             <input type="checkbox" checked={enableAccess} disabled={inviting} onChange={(event) => setEnableAccess(event.target.checked)} />
-            {" "}POS access active when setup succeeds
+            {" "}Turn on POS access after setup succeeds
           </label>
         </div>
       ) : (
