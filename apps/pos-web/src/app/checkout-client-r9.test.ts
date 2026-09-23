@@ -1,7 +1,13 @@
 import { describe, expect, test } from "vitest";
 import type { TenderActivityPort } from "../local";
 import { assessUpdateActivation } from "../local/pwa-lifecycle";
-import { createBrowserCashCheckoutPorts, LOCAL_CHECKOUT_SCOPE } from "./checkout-client";
+import { createBrowserCashCheckoutPorts } from "./checkout-client";
+
+const LOCAL_CHECKOUT_SCOPE = {
+  registerId: "reg-test",
+  shiftId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  deviceId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+} as const;
 
 const TX = "11111111-1111-4111-8111-111111111111";
 const KEY = "22222222-2222-4222-8222-222222222222";
@@ -57,8 +63,7 @@ describe("R9 tender activity on current checkout composition", () => {
     };
     const ports = createBrowserCashCheckoutPorts({
       fetchImpl,
-      scope: LOCAL_CHECKOUT_SCOPE,
-      tenderActivity,
+      scope: tenderActivity,
     });
 
     await ports.checkout.prepare(
@@ -125,7 +130,7 @@ describe("R9 tender activity on current checkout composition", () => {
         headers: { "content-type": "application/json" },
       });
     };
-    const ports = createBrowserCashCheckoutPorts({ fetchImpl, scope: LOCAL_CHECKOUT_SCOPE, tenderActivity });
+    const ports = createBrowserCashCheckoutPorts({ fetchImpl, scope: tenderActivity });
     await ports.checkout.prepare(
       {
         transactionId: TX,
