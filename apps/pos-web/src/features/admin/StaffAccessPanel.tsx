@@ -286,23 +286,30 @@ function AssignmentEditor({
       <div className="management-register-checks">
         {choices.length === 0 ? (
           <span className="muted">No registers are available at this location.</span>
-        ) : choices.map((register) => (
-          <label key={register.id}>
-            <input
-              type="checkbox"
-              checked={registerIds.includes(register.id)}
-              disabled={!editable || saving}
-              onChange={(event) => {
-                setRegisterIds((current) =>
-                  event.target.checked
-                    ? [...new Set([...current, register.id])]
-                    : current.filter((id) => id !== register.id),
-                );
-              }}
-            />
-            <span>{register.name}</span>
-          </label>
-        ))}
+        ) : choices.map((register) => {
+          const alreadyAssigned = registerIds.includes(register.id);
+          const unavailableForNewAssignment = register.status !== "active" && !alreadyAssigned;
+          return (
+            <label key={register.id}>
+              <input
+                type="checkbox"
+                checked={alreadyAssigned}
+                disabled={!editable || saving || unavailableForNewAssignment}
+                onChange={(event) => {
+                  setRegisterIds((current) =>
+                    event.target.checked
+                      ? [...new Set([...current, register.id])]
+                      : current.filter((id) => id !== register.id),
+                  );
+                }}
+              />
+              <span>
+                {register.name}
+                {register.status !== "active" ? ` · ${statusLabel(register.status)}` : ""}
+              </span>
+            </label>
+          );
+        })}
       </div>
       {editable && onSave ? (
         <button
