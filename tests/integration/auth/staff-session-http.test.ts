@@ -39,6 +39,7 @@ describe("CORE-02 staff session HTTP", () => {
       authorizationHeader: "Bearer synthetic-staff-access-token",
       now: NOW,
       verifier: verifierOk(),
+      assignments: directory(),
       store,
       allowedOrigins: [ORIGIN],
       secureCookies: true,
@@ -65,6 +66,7 @@ describe("CORE-02 staff session HTTP", () => {
       referer: null,
       now: NOW,
       verifier: verifierOk(),
+      assignments: directory(),
       store: createEphemeralInMemoryStaffSessionStore(),
       allowedOrigins: [ORIGIN],
       secureCookies: true,
@@ -81,6 +83,7 @@ describe("CORE-02 staff session HTTP", () => {
       authorizationHeader: "Bearer synthetic-staff-access-token",
       now: NOW,
       verifier: verifierOk(),
+      assignments: directory(),
       store: createEphemeralInMemoryStaffSessionStore(),
       allowedOrigins: [ORIGIN],
       secureCookies: true,
@@ -97,6 +100,7 @@ describe("CORE-02 staff session HTTP", () => {
       authorizationHeader: "Bearer synthetic-staff-access-token",
       now: NOW,
       verifier: verifierOk(),
+      assignments: directory(),
       store,
       allowedOrigins: [ORIGIN],
       secureCookies: true,
@@ -153,6 +157,7 @@ describe("CORE-02 staff session HTTP", () => {
       authorizationHeader: "Bearer synthetic-staff-access-token",
       now: NOW,
       verifier: verifierOk(),
+      assignments: directory(),
       store,
       allowedOrigins: [ORIGIN],
       secureCookies: true,
@@ -204,7 +209,7 @@ describe("CORE-02 staff session HTTP", () => {
     expect(expired.status).toBe(401);
   });
 
-  test("GET scopes register choices to the verified session location intersection", async () => {
+  test("GET refreshes session scope from current durable assignments", async () => {
     const store = createEphemeralInMemoryStaffSessionStore();
     const established = await handleEstablishStaffSession({
       correlationIdHeader: CORRELATION,
@@ -213,6 +218,7 @@ describe("CORE-02 staff session HTTP", () => {
       authorizationHeader: "Bearer synthetic-staff-access-token",
       now: NOW,
       verifier: verifierOk(),
+      assignments: directory(),
       store,
       allowedOrigins: [ORIGIN],
       secureCookies: true,
@@ -252,11 +258,11 @@ describe("CORE-02 staff session HTTP", () => {
     if (!recovered.body.ok) {
       throw new Error("expected recovered session");
     }
-    expect(recovered.body.data.assignedLocationIds).toEqual(["loc_a1"]);
-    expect(recovered.body.data.assignedRegisterIds).toEqual(["reg_a"]);
+    expect(recovered.body.data.assignedLocationIds).toEqual(["loc_a1", "loc_a2"]);
+    expect(recovered.body.data.assignedRegisterIds).toEqual(["reg_a", "reg_b"]);
   });
 
-  test("GET fails closed on cross-location registers when directory omits register-location mapping", async () => {
+  test("GET exposes current durable register ids when the directory lacks optional mapping", async () => {
     const store = createEphemeralInMemoryStaffSessionStore();
     const established = await handleEstablishStaffSession({
       correlationIdHeader: CORRELATION,
@@ -265,6 +271,7 @@ describe("CORE-02 staff session HTTP", () => {
       authorizationHeader: "Bearer synthetic-staff-access-token",
       now: NOW,
       verifier: verifierOk(),
+      assignments: directory(),
       store,
       allowedOrigins: [ORIGIN],
       secureCookies: true,
@@ -300,8 +307,8 @@ describe("CORE-02 staff session HTTP", () => {
     if (!recovered.body.ok) {
       throw new Error("expected recovered session");
     }
-    expect(recovered.body.data.assignedLocationIds).toEqual(["loc_a1"]);
-    expect(recovered.body.data.assignedRegisterIds).toEqual([]);
+    expect(recovered.body.data.assignedLocationIds).toEqual(["loc_a1", "loc_a2"]);
+    expect(recovered.body.data.assignedRegisterIds).toEqual(["reg_a", "reg_b"]);
   });
 
   test("Next session route does not embed privileged secrets", () => {
