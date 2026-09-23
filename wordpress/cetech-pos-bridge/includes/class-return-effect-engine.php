@@ -297,7 +297,7 @@ final class Cetech_Pos_Bridge_Return_Effect_Engine {
 					return $done;
 				}
 			}
-			$binding = $this->bind_completed_sale( $raw );
+			$binding = $this->bind_completed_sale( $raw, true );
 			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $binding ) ) {
 				return $binding;
 			}
@@ -412,7 +412,7 @@ final class Cetech_Pos_Bridge_Return_Effect_Engine {
 	 * @param array<string,mixed> $raw
 	 * @return array<string,mixed>|WP_Error
 	 */
-	private function bind_completed_sale( array $raw ) {
+	private function bind_completed_sale( array $raw, $allow_cetech_refunded = false ) {
 		$prepare = $this->prepare_claims->get_by_transaction( $raw['transactionId'] );
 		if ( ! is_array( $prepare ) ) {
 			return $this->not_found_sale();
@@ -445,7 +445,29 @@ final class Cetech_Pos_Bridge_Return_Effect_Engine {
 		if ( (string) $snap['saleId'] !== (string) $raw['saleId'] ) {
 			return $this->invalid_request( 'saleId', 'saleId' );
 		}
-		if ( ! empty( $snap['cancelled'] ) || empty( $snap['paid'] ) ) {
+		$refunded_by_this_return = false;
+		if (
+			$allow_cetech_refunded &&
+			isset( $snap['status'] ) &&
+			(string) $snap['status'] === 'refunded'
+		) {
+			$commercial_claims = $this->effects->list_by_transaction_operation(
+				$raw['transactionId'],
+				Cetech_Pos_Bridge_Constants::OPERATION_COMMERCIAL_REFUND
+			);
+			foreach ( $commercial_claims as $commercial_claim ) {
+				if (
+					isset( $commercial_claim['return_request_id'], $commercial_claim['sale_id'], $commercial_claim['woo_effect_entered'] ) &&
+					(string) $commercial_claim['return_request_id'] === (string) $raw['returnId'] &&
+					(string) $commercial_claim['sale_id'] === (string) $raw['saleId'] &&
+					(int) $commercial_claim['woo_effect_entered'] === 1
+				) {
+					$refunded_by_this_return = true;
+					break;
+				}
+			}
+		}
+		if ( ! empty( $snap['cancelled'] ) || ( empty( $snap['paid'] ) && ! $refunded_by_this_return ) ) {
 			return $this->invalid_request( 'transactionId', 'transactionId' );
 		}
 		if ( isset( $raw['amount']['currency'] ) && strtoupper( (string) $raw['amount']['currency'] ) !== strtoupper( (string) $snap['currency'] ) ) {
