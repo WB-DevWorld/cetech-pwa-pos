@@ -2626,7 +2626,7 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 			$this->attach_commercial_refund_identity( $order );
 		};
 		if ( $this->environment->function_exists( 'add_action' ) ) {
-			add_action( 'woocommerce_before_order_object_save', $binder, 0, 1 );
+			add_action( 'woocommerce_before_order_refund_object_save', $binder, 0, 1 );
 		}
 		$this->fire_seam( $this->before_refund_create );
 		try {
@@ -2814,7 +2814,7 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 	protected function disarm_commercial_refund( $binder ) {
 		$this->armed_commercial_refund = null;
 		if ( $this->environment->function_exists( 'remove_action' ) ) {
-			remove_action( 'woocommerce_before_order_object_save', $binder, 0 );
+			remove_action( 'woocommerce_before_order_refund_object_save', $binder, 0 );
 		}
 	}
 
