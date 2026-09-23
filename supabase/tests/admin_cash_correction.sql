@@ -58,8 +58,8 @@ SELECT lives_ok(
 );
 
 SELECT is(
-  (SELECT signed_amount_minor FROM pos_cash_movements WHERE corrects_movement_id = '88888888-8888-4888-8888-888888888881'),
-  -2500,
+  (SELECT signed_amount_minor::bigint FROM pos_cash_movements WHERE corrects_movement_id = '88888888-8888-4888-8888-888888888881'),
+  -2500::bigint,
   'correction amount is the exact reverse'
 );
 
