@@ -8,6 +8,7 @@ import { createMemoryAdminAuditStore } from "./admin-audit-store";
 import { createMemoryControlMembershipAdminStore } from "./control-membership-admin-store";
 import { createMemoryControlPlaneDirectory } from "./control-plane-directory";
 import { handleCreateStaffAccount } from "./handle-create-staff";
+import { handleResetStaffPassword } from "./handle-reset-staff-password";
 import { createMemoryManagementTopologyDirectory } from "./management-topology-directory";
 import { createMemoryStaffAccessStatusAdminStore } from "./staff-access-status-admin-store";
 import { createMemoryStaffAssignmentAdminStore } from "./staff-assignment-admin-store";
@@ -141,6 +142,104 @@ describe("direct staff account creation", () => {
     });
     expect(result.ok).toBe(false);
     expect(base.identities.rows).toHaveLength(0);
+  });
+
+  test("identity-audit failure leaves a direct-created account POS-disabled", async () => {
+    const base = await runtime("owner_a", "owner");
+    const result = await handleCreateStaffAccount({
+      ...base,
+      audit: { append: async () => "unavailable" as const },
+      email: "audit.failure@example.com",
+      displayName: "Audit Failure",
+      temporaryPassword: PASSWORD,
+      controlRole: null,
+      locations: [{ locationId: "loc_a1", role: "cashier", registerIds: ["reg_a"] }],
+      enableAccess: true,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.setupStatus).toBe("incomplete");
+    expect(result.data.posAccessStatus).toBe("disabled");
+    expect(base.accessStatus.rows).toHaveLength(1);
+    expect(base.accessStatus.rows[0]?.status).toBe("disabled");
+  });
+
+});
+
+describe("temporary password reset", () => {
+  test("revokes POS sessions before changing the credential", async () => {
+    const base = await runtime("owner_a", "owner");
+    await base.identities.createWithTemporaryPassword({
+      organizationId: "org_a",
+      actorId: "cashier_b",
+      email: "cashier.b@example.com",
+      displayName: "Cashier B",
+      temporaryPassword: PASSWORD,
+    });
+    const targetSessionId = await base.sessions.create(
+      session("cashier_b"),
+      "csrf-target",
+      new Date("2026-09-23T18:00:00.000Z"),
+    );
+    const order: string[] = [];
+    const sessions = {
+      ...base.sessions,
+      async revokeActorSessions(input: { readonly organizationId: string; readonly actorId: string }) {
+        order.push("revoke");
+        return base.sessions.revokeActorSessions(input);
+      },
+    };
+    const identities = {
+      ...base.identities,
+      async resetTemporaryPassword(input: { readonly authUserId: string; readonly temporaryPassword: string }) {
+        order.push("reset");
+        return base.identities.resetTemporaryPassword(input);
+      },
+    };
+    const result = await handleResetStaffPassword({
+      ...base,
+      sessions,
+      identities,
+      targetActorId: "cashier_b",
+      temporaryPassword: "Bb8replacement-pass",
+    });
+    expect(result.ok).toBe(true);
+    expect(order).toEqual(["revoke", "reset"]);
+    expect(await base.sessions.get(targetSessionId, NOW)).toBeNull();
+  });
+
+  test("does not change the credential when POS-session revocation fails", async () => {
+    const base = await runtime("owner_a", "owner");
+    await base.identities.createWithTemporaryPassword({
+      organizationId: "org_a",
+      actorId: "cashier_b",
+      email: "cashier.b@example.com",
+      displayName: "Cashier B",
+      temporaryPassword: PASSWORD,
+    });
+    let resetCalled = false;
+    const sessions = {
+      ...base.sessions,
+      async revokeActorSessions() {
+        throw new Error("session store unavailable");
+      },
+    };
+    const identities = {
+      ...base.identities,
+      async resetTemporaryPassword(input: { readonly authUserId: string; readonly temporaryPassword: string }) {
+        resetCalled = true;
+        return base.identities.resetTemporaryPassword(input);
+      },
+    };
+    const result = await handleResetStaffPassword({
+      ...base,
+      sessions,
+      identities,
+      targetActorId: "cashier_b",
+      temporaryPassword: "Bb8replacement-pass",
+    });
+    expect(result.ok).toBe(false);
+    expect(resetCalled).toBe(false);
   });
 });
 

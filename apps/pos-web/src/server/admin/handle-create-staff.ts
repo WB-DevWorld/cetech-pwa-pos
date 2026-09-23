@@ -183,6 +183,33 @@ export async function handleCreateStaffAccount(input: {
   }
 
   let posAccessStatus: "active" | "disabled" = "disabled";
+
+  // Record identity provisioning before POS access can be enabled. Access-status,
+  // membership, and assignment stores already write their own durable audit
+  // records. If this identity audit cannot be committed, provisioning remains
+  // incomplete and the account stays POS-disabled.
+  const audited = await input.audit.append({
+    organizationId: authority.data.organizationId,
+    actorId: authority.data.actorId,
+    action: "staff.identity.created",
+    targetType: "staff_identity",
+    targetId: created.actorId,
+    afterState: {
+      email: created.email,
+      displayName: created.displayName,
+      posAccessStatus: "disabled",
+      requestedPosAccessStatus: input.enableAccess ? "active" : "disabled",
+      setupStatus,
+      controlRole: input.controlRole,
+      locationCount: input.locations.length,
+      mustChangePassword: true,
+    },
+    correlationId: input.correlationId,
+  });
+  if (audited === "unavailable") {
+    setupStatus = "incomplete";
+  }
+
   if (setupStatus === "complete" && input.enableAccess) {
     const enabled = await input.accessStatus.setStatus({
       organizationId: authority.data.organizationId,
@@ -194,28 +221,6 @@ export async function handleCreateStaffAccount(input: {
     });
     posAccessStatus = enabled === "unavailable" ? "disabled" : "active";
     if (enabled === "unavailable") setupStatus = "incomplete";
-  }
-
-  const audited = await input.audit.append({
-    organizationId: authority.data.organizationId,
-    actorId: authority.data.actorId,
-    action: "staff.identity.created",
-    targetType: "staff_identity",
-    targetId: created.actorId,
-    afterState: {
-      email: created.email,
-      displayName: created.displayName,
-      posAccessStatus,
-      setupStatus,
-      controlRole: input.controlRole,
-      locationCount: input.locations.length,
-      mustChangePassword: true,
-    },
-    correlationId: input.correlationId,
-  });
-  if (audited === "unavailable" && setupStatus === "complete") {
-    setupStatus = "incomplete";
-    posAccessStatus = "disabled";
   }
 
   return {

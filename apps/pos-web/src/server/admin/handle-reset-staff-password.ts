@@ -53,13 +53,10 @@ export async function handleResetStaffPassword(input: {
   if (found === "unavailable") {
     return authFailure("INTEGRATION_UNAVAILABLE", "The staff account could not be checked.", input.correlationId);
   }
-  const reset = await input.identities.resetTemporaryPassword({
-    authUserId: found.authUserId,
-    temporaryPassword: input.temporaryPassword,
-  });
-  if (reset !== "ok") {
-    return authFailure("INTEGRATION_UNAVAILABLE", "The temporary password could not be saved.", input.correlationId);
-  }
+
+  // Close existing POS authority first. If revocation cannot be proven, do
+  // not change the credential: an already-open POS session must never survive
+  // a successful temporary-password reset.
   try {
     await input.sessions.revokeActorSessions({
       organizationId: authority.data.organizationId,
@@ -68,10 +65,23 @@ export async function handleResetStaffPassword(input: {
   } catch {
     return authFailure(
       "INTEGRATION_UNAVAILABLE",
-      "The temporary password was saved, but active POS sign-ins could not be closed.",
+      "Active POS sign-ins could not be closed, so the password was not changed.",
       input.correlationId,
     );
   }
+
+  const reset = await input.identities.resetTemporaryPassword({
+    authUserId: found.authUserId,
+    temporaryPassword: input.temporaryPassword,
+  });
+  if (reset !== "ok") {
+    return authFailure(
+      "INTEGRATION_UNAVAILABLE",
+      "Active POS sign-ins were closed, but the temporary password could not be saved.",
+      input.correlationId,
+    );
+  }
+
   const audited = await input.audit.append({
     organizationId: authority.data.organizationId,
     actorId: authority.data.actorId,

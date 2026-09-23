@@ -7,7 +7,12 @@ const PAYMENT_SECRET_NAMES = [
   "PAYSTACK_TEST_PAYER_EMAIL",
 ] as const;
 
-const PAYMENT_CONFIG_NAMES = ["PAYMENT_PROVIDER", "PAYSTACK_MODE"] as const;
+const PAYMENT_CONFIG_NAMES = [
+  "PAYMENT_PROVIDER",
+  "PAYSTACK_MODE",
+  "PAYSTACK_MOBILE_MONEY_ENABLED",
+  "PAYSTACK_CARD_ENABLED",
+] as const;
 
 export type PaymentProviderConfig =
   | { readonly kind: "disabled" }

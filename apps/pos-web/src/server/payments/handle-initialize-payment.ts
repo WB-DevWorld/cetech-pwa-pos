@@ -12,6 +12,7 @@ import { isInitializePaymentRequest } from "../sales/schema";
 import { initializeElectronicPayment } from "./initialize-electronic";
 import type { ElectronicPaymentProvider } from "./provider";
 import { readPaymentProviderConfig } from "./config";
+import { capabilityForElectronicTender, resolvePaymentMethodCapabilities } from "./method-capabilities";
 
 export type HandleInitializePaymentInput = {
   readonly correlationIdHeader?: string;
@@ -75,6 +76,18 @@ export async function handleInitializePayment(input: HandleInitializePaymentInpu
     );
     return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
   }
+
+  const capabilities = resolvePaymentMethodCapabilities(input.env ?? {});
+  const methodCapability = capabilityForElectronicTender(capabilities, input.body.tender);
+  if (methodCapability !== "configured") {
+    const body = apiFailure(
+      "INTEGRATION_UNAVAILABLE",
+      "the selected electronic payment method is not configured",
+      guard.correlationId,
+    );
+    return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
+  }
+
   const provider = input.provider;
   if (!provider) {
     const body = apiFailure("INTEGRATION_UNAVAILABLE", "electronic payment provider is not configured", guard.correlationId);

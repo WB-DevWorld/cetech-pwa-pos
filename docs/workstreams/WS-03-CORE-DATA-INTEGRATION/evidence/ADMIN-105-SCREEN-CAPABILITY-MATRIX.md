@@ -30,8 +30,8 @@ Shared staging still has no persistent Owner/Admin/Support membership from this 
 | Search / barcode / variation | Yes | Product read model | Add to cart | Cashier | Yes | No | Camera scan is post-P0 | 3 |
 | Cart | Yes | Quote | Quantity and lines | Cashier | Yes | No | Compact names are visually clamped to two lines | 1 |
 | Cash payment | Yes | Payment and sales ports | Tender | Cashier | Yes | No | | 1 |
-| Mobile Money | Yes, when configured | Server method capability | Initialize only if configured | Cashier | Yes | No | Enabled only when Paystack test config exposes `mobile_money`. Not hardcoded. | 3 |
-| Card | Yes, when configured | Same capability source | Initialize only if configured | Cashier | Yes | No | Enabled only when Paystack test config exposes `card` | 3 |
+| Mobile Money | Yes, when configured | Server method capability | Initialize only if configured | Cashier | Yes | No | Requires valid Paystack test configuration **and** explicit server `PAYSTACK_MOBILE_MONEY_ENABLED=true`. Provider presence alone does not enable it. | 3 |
+| Card | Yes, when configured | Same capability source | Initialize only if configured | Cashier | Yes | No | Requires valid Paystack test configuration **and** explicit server `PAYSTACK_CARD_ENABLED=true`. It is independent of Mobile Money. | 3 |
 | External terminal | Shown disabled | Capability stays unconfigured | No | Cashier | Yes | No | Not inferred from Paystack | 3 |
 | Payment recovery | Yes | Existing payment truth | Resolve, no second charge | Cashier | Yes | No | | 1 |
 | Receipt / reprint | Yes | Immutable receipt | Print | Cashier | Yes | No | Not a Ghana e-VAT invoice | 3 |
@@ -48,7 +48,7 @@ Shared staging still has no persistent Owner/Admin/Support membership from this 
 | Registers | Yes | `pos_registers` | Create, rename, status | Owner/admin | Yes | No | Currency and location stay fixed after creation | 3 |
 | Devices | Yes | `pos_devices` | Create, rename, move location, activate/deactivate | Owner/admin | Yes | No | Location-scoped. No invented register binding | 3 |
 | Shifts & cash | Yes | Shift aggregates | Exact cash-entry reversal where supported | Manager in scope; owner/admin read | Yes | No | Arbitrary cashier pay-in/pay-out is post-P0 | 3 |
-| Returns & approvals | Yes | Return attention | Approval and refund check | Manager at the location | Yes | No | Does not invent refund or restock | 2 |
+| Returns & approvals | Yes | Return attention | Approval and refund check | Manager at the location | Yes | No | Mutations are real but bounded: approval does not itself refund or restock. | 3 |
 | Operational rules | Yes | Policy layers | Save override at selected scope | Owner/admin; manager at managed locations | Yes | No | Server resolves inheritance | 1 |
 | Receipt settings | Yes | Location receipt settings | Save | Owner/admin | Yes | No | Does not rewrite historical receipts | 1 |
 | Management system status | Yes | Same health and payment capability | Observation | Owner, admin, manager, support | Yes | No | | 2 |
