@@ -40,7 +40,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const store = tryComposeStore();
   const verifier = tryComposeVerifier();
   const accessControl = tryComposeAccessControl();
-  if (!store || !verifier || !accessControl) {
+  const assignments = tryComposeAssignments();
+  if (!store || !verifier || !accessControl || !assignments) {
     return unavailable(request);
   }
   const result = await handleEstablishStaffSession({
@@ -51,6 +52,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     now: new Date(),
     verifier,
     accessControl,
+    assignments,
     store,
     allowedOrigins: staffAllowedOrigins(),
     secureCookies: staffCookieSecure(),
