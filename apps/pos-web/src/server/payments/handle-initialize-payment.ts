@@ -104,14 +104,6 @@ export async function handleInitializePayment(input: HandleInitializePaymentInpu
 
   const capabilities = resolvePaymentMethodCapabilities(input.env ?? {});
   const methodCapability = capabilityForElectronicTender(capabilities, input.body.tender);
-  if (methodCapability !== "configured") {
-    const body = apiFailure(
-      "INTEGRATION_UNAVAILABLE",
-      "the selected electronic payment method is not configured",
-      guard.correlationId,
-    );
-    return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
-  }
 
   const result = await initializeElectronicPayment({
     store: input.checkoutStore,
@@ -122,6 +114,7 @@ export async function handleInitializePayment(input: HandleInitializePaymentInpu
     now: input.now,
     appEnv: input.appEnv ?? "local",
     sandboxPayerEmail: input.sandboxPayerEmail ?? (config.kind === "paystack_test" ? config.sandboxPayerEmail : undefined),
+    methodConfigured: methodCapability === "configured",
   });
   return { status: result.ok ? 200 : httpStatusFor(result.error.code), body: result, headers: guard.headers };
 }
