@@ -4,14 +4,33 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   RegisterScreen,
   createRegisterController,
+  type DeviceChoice,
   type RegisterChoice,
   type RegisterController,
   type RegisterWorkspacePorts,
 } from "../features/register";
 import { idleShiftWorkspace, shouldAnnounceRegisterOpened, type ShiftWorkspaceView } from "../features/register/shiftView";
+import { readLocalDeviceId, rememberLocalDeviceId } from "../core/identity/local-device";
 import type { RegisterPort } from "../../../../docs/contracts/ports";
-import type { Shift } from "../../../../docs/contracts/domain.generated";
+import type { ApiErrorCode, Shift } from "../../../../docs/contracts/domain.generated";
 import { createBrowserRegisterPort } from "./checkout-client";
+
+type DeviceLoadState = "idle" | "loading" | "ready" | "error";
+
+type RegisterDevicesResponse =
+  | {
+      readonly ok: true;
+      readonly data: readonly DeviceChoice[];
+      readonly correlationId: string;
+    }
+  | {
+      readonly ok: false;
+      readonly error: {
+        readonly code: ApiErrorCode;
+        readonly message: string;
+      };
+      readonly correlationId: string;
+    };
 
 export function useRegisterFlow(ports: RegisterWorkspacePorts | undefined): {
   readonly ready: boolean;
@@ -51,7 +70,6 @@ export function RegisterRuntimeScreen({
   registerChoices = [],
   registerName = registerId ?? "Register",
   locationLabel = "Assigned location",
-  deviceId,
   currency,
   onSelectRegister,
   onShiftChange,
@@ -62,7 +80,6 @@ export function RegisterRuntimeScreen({
   readonly registerChoices?: readonly RegisterChoice[];
   readonly registerName?: string;
   readonly locationLabel?: string;
-  readonly deviceId: string;
   readonly currency: string;
   readonly onSelectRegister?: (registerId: string) => void;
   readonly onShiftChange?: (shift: Shift | null) => void;
@@ -74,9 +91,83 @@ export function RegisterRuntimeScreen({
       : registerId
         ? [{ id: registerId, name: registerName, locationLabel }]
         : [];
+
+  const [devices, setDevices] = useState<readonly DeviceChoice[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState("");
+  const [deviceState, setDeviceState] = useState<DeviceLoadState>("idle");
+  const [deviceError, setDeviceError] = useState<string | undefined>();
+
+  useEffect(() => {
+    if (!registerId) {
+      setDevices([]);
+      setSelectedDeviceId("");
+      setDeviceState("idle");
+      setDeviceError(undefined);
+      return;
+    }
+
+    const requestedRegisterId = registerId;
+    let cancelled = false;
+    setDeviceState("loading");
+    setDeviceError(undefined);
+
+    void fetchRegisterDevices(requestedRegisterId)
+      .then((result) => {
+        if (cancelled || requestedRegisterId !== registerId) return;
+        if (!result.ok) {
+          setDevices([]);
+          setSelectedDeviceId("");
+          setDeviceState("error");
+          setDeviceError("Available POS devices could not be confirmed. Try again.");
+          return;
+        }
+
+        const activeDevices = result.data;
+        const preferred = readLocalDeviceId();
+        const preferredIsAvailable = preferred
+          ? activeDevices.some((device) => device.id === preferred)
+          : false;
+        const nextDeviceId = preferredIsAvailable
+          ? preferred!
+          : activeDevices.length === 1
+            ? activeDevices[0]!.id
+            : "";
+
+        setDevices(activeDevices);
+        setSelectedDeviceId(nextDeviceId);
+        setDeviceState("ready");
+
+        if (nextDeviceId) {
+          rememberLocalDeviceId(nextDeviceId);
+        }
+
+        if (activeDevices.length === 0) {
+          setDeviceError("No active POS device is assigned to this location. Ask a manager to configure one.");
+        } else if (activeDevices.length > 1 && !nextDeviceId) {
+          setDeviceError("Select the POS device you are using before opening the register.");
+        } else {
+          setDeviceError(undefined);
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setDevices([]);
+        setSelectedDeviceId("");
+        setDeviceState("error");
+        setDeviceError("Available POS devices could not be confirmed. Try again.");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [registerId]);
+
   const ports = useMemo(
-    () => (registerId ? { register, registerId, deviceId, currency } : undefined),
-    [register, registerId, deviceId, currency],
+    () =>
+      registerId && selectedDeviceId
+        ? { register, registerId, deviceId: selectedDeviceId, currency }
+        : undefined,
+    [register, registerId, selectedDeviceId, currency],
   );
   const flow = useRegisterFlow(ports);
   const [closePresentation, setClosePresentation] = useState<{
@@ -151,6 +242,17 @@ export function RegisterRuntimeScreen({
     registers: choices,
     selectedRegisterId: registerId ?? "",
     onRegisterChange: onSelectRegister,
+    devices,
+    selectedDeviceId,
+    onDeviceChange: (deviceId: string) => {
+      setSelectedDeviceId(deviceId);
+      if (deviceId) {
+        rememberLocalDeviceId(deviceId);
+        setDeviceError(undefined);
+      }
+    },
+    devicesLoading: deviceState === "loading",
+    deviceErrorMessage: deviceError,
     online: typeof navigator === "undefined" ? true : navigator.onLine,
     errorMessage:
       flow.session.inputError ??
@@ -159,14 +261,15 @@ export function RegisterRuntimeScreen({
       flow.session.message !== "Opening the register."
         ? flow.session.message
         : undefined),
-    onSubmit: registerId
-      ? (input: { openingFloatMinor: number }) => {
-          void flow.controller?.open(input.openingFloatMinor);
-        }
-      : undefined,
+    onSubmit:
+      registerId && selectedDeviceId
+        ? (input: { openingFloatMinor: number }) => {
+            void flow.controller?.open(input.openingFloatMinor);
+          }
+        : undefined,
   };
 
-  if (!registerId) {
+  if (!registerId || !selectedDeviceId || deviceState !== "ready") {
     return <RegisterScreen openForm={openForm} session={idleShiftWorkspace()} inFlight={false} />;
   }
 
@@ -205,6 +308,20 @@ export function RegisterRuntimeScreen({
       ) : null}
     </>
   );
+}
+
+async function fetchRegisterDevices(registerId: string): Promise<RegisterDevicesResponse> {
+  const response = await fetch(
+    `/api/pos/v1/registers/${encodeURIComponent(registerId)}/devices`,
+    {
+      credentials: "include",
+      headers: {
+        accept: "application/json",
+        "x-correlation-id": crypto.randomUUID(),
+      },
+    },
+  );
+  return await response.json() as RegisterDevicesResponse;
 }
 
 export function createProductionRegisterRuntime(input: {
