@@ -78,7 +78,7 @@ describe("ADMIN-105 management topology", () => {
     expect(result.data[0]?.registers[0]).not.toHaveProperty("devices");
   });
 
-  test("operational manager sees only verified managed location", async () => {
+  test("operational manager scope follows current durable manager assignments", async () => {
     const { sessions, cookieHeader } = await cookieFor("manager_a", ["loc_a1"]);
     const result = await handleGetManagementTopology({
       correlationId: CORRELATION,
@@ -101,7 +101,7 @@ describe("ADMIN-105 management topology", () => {
     });
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("expected topology");
-    expect(result.data.map((row) => row.id)).toEqual(["loc_a1"]);
+    expect(result.data.map((row) => row.id)).toEqual(["loc_a1", "loc_a2"]);
   });
 
   test("support diagnostics role does not gain operational topology access", async () => {
