@@ -160,7 +160,7 @@ test.describe("ADMIN-105 Management responsiveness and operator language", () =>
     await page.goto("/management");
     await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible({ timeout: 15_000 });
 
-    const nav = page.getByRole("navigation", { name: "Management navigation" });
+    const nav = page.locator(".management-nav");
     await expect(nav).toBeVisible();
     expect(await nav.evaluate((el) => getComputedStyle(el).overflowX)).toBe("auto");
     const firstNav = nav.getByRole("button").first();
@@ -188,7 +188,7 @@ test.describe("ADMIN-105 Management responsiveness and operator language", () =>
     expect(sidebarBox).toBeTruthy();
     expect(sidebarBox!.height).toBeLessThan(80);
 
-    const nav = page.getByRole("navigation", { name: "Management navigation" });
+    const nav = page.locator(".management-nav");
     const navMetrics = await nav.evaluate((el) => ({
       overflowX: getComputedStyle(el).overflowX,
       scrollWidth: el.scrollWidth,

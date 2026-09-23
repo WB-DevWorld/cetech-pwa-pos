@@ -69,7 +69,7 @@ export function ReturnsApprovalsPanel({
       ) : null}
       <ul className="returns-attention-summary" aria-label="Returns and refund summary">
         <SummaryStat label="Needs attention" value={count(view.rows, "needs_attention")} tone="attention" />
-        <SummaryStat label="Awaiting reconciliation" value={count(view.rows, "awaiting_reconciliation")} tone="closing" />
+        <SummaryStat label="Waiting for confirmation" value={count(view.rows, "awaiting_reconciliation")} tone="closing" />
         <SummaryStat label="Pending" value={count(view.rows, "pending")} />
         <SummaryStat label="Completed" value={count(view.rows, "informational")} />
       </ul>

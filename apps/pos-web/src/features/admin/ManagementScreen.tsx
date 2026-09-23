@@ -317,7 +317,7 @@ export function ManagementScreen({
               <h2>{active.label}</h2>
               <p>{active.description}</p>
               <div className="banner warning" role="status">
-                Foundation screen only. Mutations stay disabled until the corresponding server-owned authorization and audit endpoint is implemented.
+                This management section is not available yet. Changes remain disabled.
               </div>
             </section>
           )}
