@@ -28,14 +28,14 @@ export function TopBar({
         <span className="context-pill">{registerName}</span>
         {cashierDisplayName ? <span className="context-pill secondary">{cashierDisplayName}</span> : null}
         {shiftOpen ? (
-          <span className="status-pill success">
+          <span className="status-pill success shift-status" aria-label="Shift open">
             <span className="dot" aria-hidden="true" />
-            Shift open
+            <span className="status-text">Shift open</span>
           </span>
         ) : (
-          <span className="status-pill warning">
+          <span className="status-pill warning shift-status" aria-label="No open shift">
             <span className="dot" aria-hidden="true" />
-            No open shift
+            <span className="status-text">No open shift</span>
           </span>
         )}
       </div>

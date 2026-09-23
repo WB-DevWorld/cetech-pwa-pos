@@ -123,7 +123,7 @@ export function ReturnFlow({
             </div>
             <div className="grid-3">
               <div className="field">
-                <label htmlFor={`return-qty-${line.orderLineId}`}>Return qty</label>
+                <label htmlFor={`return-qty-${line.orderLineId}`}>Quantity to return</label>
                 <input
                   id={`return-qty-${line.orderLineId}`}
                   className="input"
@@ -166,7 +166,7 @@ export function ReturnFlow({
                 {safety}
               </div>
             ) : (
-              <p className="muted">Stock action follows the reviewed return. A refund is not a stock update.</p>
+              <p className="muted">The refund and the stock action are confirmed separately.</p>
             )}
             {preview ? (
               <div
@@ -176,9 +176,9 @@ export function ReturnFlow({
                 data-intended-disposition={preview.intendedDisposition}
                 data-disposition-policy={preview.dispositionPolicy}
               >
-                <div>Remaining returnable: {preview.remainingReturnableQuantity}</div>
+                <div>Remaining returnable quantity: {preview.remainingReturnableQuantity}</div>
                 <div>Stock action: {dispositionLabel(preview.intendedDisposition)}</div>
-                <div>Stock action: {dispositionPolicyLabel(preview.dispositionPolicy)}</div>
+                <div>Stock rule: {dispositionPolicyLabel(preview.dispositionPolicy)}</div>
                 {preview.intendedDisposition === "no_automatic_restock" ? (
                   <div className="banner info" role="status">
                     No automatic restock.

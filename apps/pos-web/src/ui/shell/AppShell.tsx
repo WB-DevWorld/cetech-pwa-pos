@@ -40,6 +40,7 @@ export function AppShell({
           activeRoute={activeRoute}
           attentionCount={attentionCount}
           onNavigate={onNavigate}
+          includeSettings
         />
         <div className="sidebar-bottom">
           <button

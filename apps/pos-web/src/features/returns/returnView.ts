@@ -170,13 +170,13 @@ export function presentsAutomaticSellableRestock(
 
 export function conditionRestockNotice(condition: ReturnConditionView): string | undefined {
   if (condition === "damaged") {
-    return "Damaged goods are never automatically restocked as sellable. Refund is not restock.";
+    return "Damaged goods are not automatically returned to sellable stock. Refunding the customer does not change that.";
   }
   if (condition === "quarantine") {
-    return "Quarantine items are never automatically restocked as sellable. Refund is not restock.";
+    return "Quarantined items are not automatically returned to sellable stock. Refunding the customer does not change that.";
   }
   if (condition === "not_physically_returned") {
-    return "Items not physically returned are never automatically restocked as sellable. Refund is not restock.";
+    return "Items that were not physically returned cannot be put back into sellable stock.";
   }
   return undefined;
 }
