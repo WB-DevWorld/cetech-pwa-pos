@@ -83,7 +83,7 @@ export async function handleFinalizeSale(input: HandleFinalizeSaleInput): Promis
     store: input.checkoutStore,
     salesPort: input.salesPort,
     receiptSettings: input.receiptSettings ?? createMemoryReceiptSettingsStore(),
-    actor: guard.session,
+    actor: authorized.data.session,
     request: input.body,
     context: { idempotencyKey: guard.idempotencyKey, correlationId: guard.correlationId },
     now: input.now,
