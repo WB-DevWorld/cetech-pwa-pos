@@ -148,11 +148,16 @@ describe("ADMIN-105 management context", () => {
     expect(result.error.code).toBe("FORBIDDEN");
   });
 
-  test("manager role outside verified session locations is not authority", async () => {
-    const { store, cookieHeader } = await cookieFor("manager_b");
+  test("manager scope follows current durable assignments even when the session snapshot is stale", async () => {
+    const store = createEphemeralInMemoryStaffSessionStore();
+    const staleSession = {
+      ...session("manager_b"),
+      locationIds: [],
+    };
+    const id = await store.create(staleSession, "csrf", new Date("2026-09-22T13:30:00.000Z"));
     const result = await handleGetManagementContext({
       correlationId: CORRELATION,
-      cookieHeader,
+      cookieHeader: `cetech_pos_sid=${id}`,
       now: NOW,
       sessions: store,
       assignments: createMemoryAssignmentDirectory([
@@ -165,8 +170,9 @@ describe("ADMIN-105 management context", () => {
       ]),
       controlPlane: createMemoryControlPlaneDirectory([]),
     });
-    expect(result.ok).toBe(false);
-    if (result.ok) throw new Error("expected forbidden");
-    expect(result.error.code).toBe("FORBIDDEN");
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("expected management context");
+    expect(result.data.managerLocationIds).toEqual(["loc_a2"]);
+    expect(result.data.sections).toContain("shifts_cash");
   });
 });
