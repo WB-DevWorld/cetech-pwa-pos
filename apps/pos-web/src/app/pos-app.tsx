@@ -27,7 +27,6 @@ import { AppShell, POS_ROUTE_HREFS, type PosRoute } from "../ui/shell";
 import { returnSelectionHref } from "./pos-route";
 import { resolveBrowserCatalogSourcePolicy } from "../core/catalog/source-policy";
 import {
-  CASHIER_SEED_LOCATION_ID,
   CATALOG_REFRESH_MIN_INTERVAL_MS,
   createCartDraftStore,
   createLocalCatalogPort,
@@ -331,7 +330,12 @@ export function PosRuntime({
     ) => {
       const db = openPosLocalDatabase();
       const customers = createLocalCustomerPort({ db });
-      const locationId = current.register?.locationId ?? current.assignedLocationIds[0] ?? CASHIER_SEED_LOCATION_ID;
+      const locationId = current.register?.locationId ?? current.assignedLocationIds[0];
+      if (!locationId) {
+        setProjectionAvailability(availability);
+        setPorts(null);
+        return;
+      }
       const scope = checkoutScopeFromStaffAuthority(current);
       const checkout =
         scope && !current.presentationOnly
@@ -591,6 +595,10 @@ export function PosRuntime({
   const localTransactionRecoveryBlocked =
     !localRecoveryChecked || hasBlockingLocalTransactionRecovery(effectiveLocalAttention);
   const attentionCount = attentionItems.length;
+  const noOperationalLocation =
+    !authority.presentationOnly &&
+    !authority.register?.locationId &&
+    authority.assignedLocationIds.length === 0;
   const sellPorts =
     ports && localTransactionRecoveryBlocked
       ? { ...ports, checkout: undefined, payments: undefined, sales: undefined }
@@ -635,7 +643,14 @@ export function PosRuntime({
         </p>
       ) : null}
       {route === "sell" ? (
-        sellPorts ? (
+        noOperationalLocation ? (
+          <section className="card card-pad" data-no-operational-location="true">
+            <h1>Sell</h1>
+            <p className="banner warning">
+              No store location is assigned to this staff account. Ask a manager to assign a location and register.
+            </p>
+          </section>
+        ) : sellPorts ? (
           <>
             {projectionAvailability === "unavailable" ? (
               <p className="muted" role="status">
