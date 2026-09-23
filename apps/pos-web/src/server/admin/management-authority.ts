@@ -53,10 +53,7 @@ export async function loadManagementAuthority(input: {
   }
 
   const controlRole = membership?.status === "active" ? membership.controlRole : null;
-  const verifiedLocations = new Set(session.locationIds);
-  const locationRoles = assignmentResult.locationRoles.filter((row) =>
-    verifiedLocations.has(row.locationId),
-  );
+  const locationRoles = assignmentResult.locationRoles;
   const sections = resolveManagementSections({ controlRole, locationRoles });
   if (sections.length === 0) {
     return authFailure("FORBIDDEN", "staff is not authorized for management", input.correlationId);
