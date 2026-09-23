@@ -47,7 +47,7 @@ export async function handleListAttention(input: {
     const body = authFailure("INTEGRATION_UNAVAILABLE", "staff assignments are unavailable", guard.correlationId);
     return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
   }
-  const locationIds = [...new Set([...guard.session.locationIds, ...assigned.locationIds].filter(Boolean))];
+  const locationIds = [...new Set(assigned.locationIds.filter(Boolean))];
   const scope = { organizationId: guard.session.organizationId, locationIds, limit: 80 };
   const [payments, sales, shifts, operations] = await Promise.all([
     input.checkoutStore.listUncertainPayments(scope),
