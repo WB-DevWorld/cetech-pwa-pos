@@ -143,7 +143,7 @@ export function OrdersScreen({
       {state === "offline" ? (
         <div className="banner warning workspace-banner" role="status">
           <strong>Offline.</strong>
-          <span>Current order details require a connection. Recent saved records may still be available.</span>
+          <span>A connection is required to refresh order history and open order details.</span>
         </div>
       ) : null}
       {state === "degraded" ? (

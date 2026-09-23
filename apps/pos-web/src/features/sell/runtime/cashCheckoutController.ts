@@ -288,7 +288,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       if (!prepared) {
         patch({
           stage: "resolving_sale",
-          message: "Sale is prepared, but the total could not be recovered. Do not start another sale.",
+          message: "This sale is ready for payment, but the total could not be recovered. Do not start another sale.",
           transactionId: resolution.transactionId,
         });
         return;

@@ -134,7 +134,7 @@ export function ReturnsScreen({
         </label>
         {!lookup ? (
           <div className="banner warning" role="status">
-            Original sale lookup is not available yet. You can still review a return after a sale is selected.
+            Original sale lookup is unavailable. You can still review a return after a sale is selected.
           </div>
         ) : null}
         {locked ? (
