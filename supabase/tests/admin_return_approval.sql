@@ -1,7 +1,7 @@
 -- ADMIN-105 durable return approval binding, replay safety, scope validation, and audit.
 BEGIN;
 
-SELECT plan(14);
+SELECT plan(15);
 
 SET ROLE authenticated;
 SELECT throws_ok(
