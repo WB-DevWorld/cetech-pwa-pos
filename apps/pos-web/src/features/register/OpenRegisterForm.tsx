@@ -9,6 +9,11 @@ export type RegisterChoice = {
   readonly locationLabel?: string;
 };
 
+export type DeviceChoice = {
+  readonly id: string;
+  readonly label: string;
+};
+
 export type OpenRegisterSubmit = {
   readonly registerId: string;
   readonly openingFloatMinor: number;
@@ -18,6 +23,11 @@ export type OpenRegisterFormProps = {
   registers: readonly RegisterChoice[];
   selectedRegisterId?: string;
   onRegisterChange?: (registerId: string) => void;
+  devices?: readonly DeviceChoice[];
+  selectedDeviceId?: string;
+  onDeviceChange?: (deviceId: string) => void;
+  devicesLoading?: boolean;
+  deviceErrorMessage?: string;
   openingFloat?: string;
   onOpeningFloatChange?: (value: string) => void;
   currencyLabel?: string;
@@ -31,6 +41,11 @@ export function OpenRegisterForm({
   registers,
   selectedRegisterId,
   onRegisterChange,
+  devices,
+  selectedDeviceId,
+  onDeviceChange,
+  devicesLoading = false,
+  deviceErrorMessage,
   openingFloat,
   onOpeningFloatChange,
   currencyLabel = "Opening cash",
@@ -45,8 +60,17 @@ export function OpenRegisterForm({
 
   const floatValue = openingFloat ?? uncontrolledFloat;
   const registerId = selectedRegisterId !== undefined ? selectedRegisterId : uncontrolledRegister;
-  const canSubmit = online && !submitting && Boolean(registerId) && Boolean(onSubmit);
+  const deviceRequired = devices !== undefined;
+  const deviceId = selectedDeviceId ?? "";
+  const canSubmit =
+    online &&
+    !submitting &&
+    !devicesLoading &&
+    Boolean(registerId) &&
+    (!deviceRequired || Boolean(deviceId)) &&
+    Boolean(onSubmit);
   const needsExplicitChoice = registerId === "" && registers.length > 1;
+  const needsExplicitDeviceChoice = deviceRequired && deviceId === "" && (devices?.length ?? 0) > 1;
 
   function handleFloatChange(value: string) {
     setLocalError(null);
@@ -101,6 +125,34 @@ export function OpenRegisterForm({
               ))}
             </select>
           </div>
+
+          {deviceRequired ? (
+            <div className="field">
+              <label htmlFor="device-select">POS device</label>
+              <select
+                className="select"
+                id="device-select"
+                value={deviceId}
+                onChange={(event) => onDeviceChange?.(event.target.value)}
+                disabled={submitting || devicesLoading || (devices?.length ?? 0) === 0}
+              >
+                {devicesLoading ? <option value="">Checking devices…</option> : null}
+                {!devicesLoading && (devices?.length ?? 0) === 0 ? (
+                  <option value="">No active device available</option>
+                ) : null}
+                {needsExplicitDeviceChoice ? <option value="">Select a device</option> : null}
+                {(devices ?? []).map((device) => (
+                  <option key={device.id} value={device.id}>
+                    {device.label}
+                  </option>
+                ))}
+              </select>
+              <div className="muted">
+                Only active devices assigned to this register location can open a shift.
+              </div>
+            </div>
+          ) : null}
+
           <div className="field">
             <label htmlFor="opening-float">{currencyLabel}</label>
             <input
@@ -116,6 +168,12 @@ export function OpenRegisterForm({
               Recorded as the opening float for the shift.
             </div>
           </div>
+
+          {deviceErrorMessage ? (
+            <div className="banner warning" role="status">
+              {deviceErrorMessage}
+            </div>
+          ) : null}
           {(localError || errorMessage) ? (
             <div className="banner danger" role="alert">
               {localError || errorMessage}
