@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import type { Quote, QuoteRequest } from "../../../../docs/contracts/domain.generated";
 import { STAFF_CSRF_COOKIE, STAFF_SESSION_COOKIE } from "../config/auth";
 import { createEphemeralInMemoryStaffSessionStore } from "./auth/session-store";
+import { createMemoryAssignmentDirectory } from "./auth/assignments";
 import { handleQuote, type QuoteBridge } from "./quotes/handle-quote";
 import type { CatalogProjectionStore } from "./catalog/catalog-projection-store";
 
@@ -83,14 +84,14 @@ function quotingBridge(quote?: Quote): QuoteBridge {
   };
 }
 
-async function staffCookies() {
+async function staffCookies(locationIds: readonly string[] = ["loc_a1"]) {
   const store = createEphemeralInMemoryStaffSessionStore();
   const sessionId = await store.create(
     {
       actorId: "cashier_a",
       displayName: "Cashier A",
       organizationId: "org_a",
-      locationIds: ["loc_a1"],
+      locationIds: [...locationIds],
       capabilities: ["ui.hint.only"],
       expiresAt: "2026-09-13T22:00:00.000Z",
     },
@@ -121,6 +122,14 @@ function identityFor(
 }
 
 const DEFAULT_IDENTITY = identityFor([{ itemId: "p-hardener", sourceItemId: "101" }]);
+const DEFAULT_ASSIGNMENTS = createMemoryAssignmentDirectory([
+  {
+    actorId: "cashier_a",
+    organizationId: "org_a",
+    locationRoles: [{ locationId: "loc_a1", role: "cashier" }],
+    registerIds: ["reg_a"],
+  },
+]);
 
 async function postQuote(
   body: unknown,
@@ -137,6 +146,7 @@ async function postQuote(
     body,
     now: NOW,
     sessionStore: store,
+    assignments: DEFAULT_ASSIGNMENTS,
     allowedOrigins: [ORIGIN],
     bridge,
     catalogIdentity,
@@ -154,11 +164,32 @@ describe("R4 BFF whole-cart quote", () => {
       body: REQUEST,
       now: NOW,
       sessionStore: createEphemeralInMemoryStaffSessionStore(),
+      assignments: DEFAULT_ASSIGNMENTS,
       allowedOrigins: [ORIGIN],
     });
     expect(result.status).toBe(401);
     expect(result.body.ok).toBe(false);
     expect(result.headers["X-Correlation-ID"]).toBe(CORRELATION);
+  });
+
+  test("durable assignment authorizes quote when stored session location snapshot is empty", async () => {
+    const { store, cookieHeader } = await staffCookies([]);
+    const result = await handleQuote({
+      correlationIdHeader: CORRELATION,
+      origin: ORIGIN,
+      referer: null,
+      csrfHeader: CSRF,
+      cookieHeader,
+      body: REQUEST,
+      now: NOW,
+      sessionStore: store,
+      assignments: DEFAULT_ASSIGNMENTS,
+      allowedOrigins: [ORIGIN],
+      bridge: quotingBridge(),
+      catalogIdentity: DEFAULT_IDENTITY,
+    });
+    expect(result.status).toBe(200);
+    expect(result.body.ok).toBe(true);
   });
 
   test("missing bridge is INTEGRATION_UNAVAILABLE after auth", async () => {
