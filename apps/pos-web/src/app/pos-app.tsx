@@ -50,12 +50,11 @@ import {
   createLocalOfflineStaffPresentationStore,
   createStaffIdentityPort,
   createStaffRuntimeController,
-  readOrCreateLocalDeviceId,
   type StaffRuntimeAuthority,
   type StaffRuntimeController,
 } from "../core/identity";
 import type { AuthNoticeState } from "../features/auth";
-import { isUuidLike, toCashierError } from "../ui/cashier-language";
+import { toCashierError } from "../ui/cashier-language";
 import type { OperationJournal } from "../../../../docs/contracts/ports";
 import type { Shift } from "../../../../docs/contracts/domain.generated";
 import type { CustomerSummary } from "../../../../docs/contracts/domain.generated";
@@ -333,8 +332,7 @@ export function PosRuntime({
       const db = openPosLocalDatabase();
       const customers = createLocalCustomerPort({ db });
       const locationId = current.register?.locationId ?? current.assignedLocationIds[0] ?? CASHIER_SEED_LOCATION_ID;
-      const deviceId = current.shift?.deviceId ?? readOrCreateLocalDeviceId();
-      const scope = checkoutScopeFromStaffAuthority(current, deviceId);
+      const scope = checkoutScopeFromStaffAuthority(current);
       const checkout =
         scope && !current.presentationOnly
           ? createBrowserCashCheckoutPorts({
