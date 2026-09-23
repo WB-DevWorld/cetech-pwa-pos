@@ -586,7 +586,6 @@ export function PosRuntime({
   const managementAvailable =
     authoritativeActionsAllowed &&
     managementActorId === authority.session.actorId;
-  const deviceId = authority.shift?.deviceId ?? readOrCreateLocalDeviceId();
   const extras = clientAttentionExtras({ catalogAvailability: projectionAvailability, authority });
   const localRecoveryChecked = localRecoveryActorId === authority.session.actorId;
   const effectiveLocalAttention = localRecoveryChecked ? localAttention : [];
@@ -713,7 +712,6 @@ export function PosRuntime({
             })}
             registerName={authority.register?.name ?? authority.selectedRegisterId ?? "Register"}
             locationLabel={isUuidLike(authority.register?.locationId) ? undefined : authority.register?.locationId}
-            deviceId={deviceId}
             currency={authority.register?.currency ?? "GHS"}
             onSelectRegister={(id) => {
               void runtime.selectRegister(id);
