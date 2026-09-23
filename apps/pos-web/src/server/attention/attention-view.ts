@@ -51,9 +51,24 @@ export function classifyOperationRecovery(operation: PendingOperation["operation
 }
 
 function operationAttentionCopy(
+  operation: PendingOperation["operation"],
   recoverKind: AttentionItemView["recoverKind"],
   resolveAllowed: boolean,
 ): { readonly title: string; readonly summary: string; readonly typeLabel: string } {
+  if (operation === "shift.open") {
+    return {
+      title: "Register opening needs review",
+      typeLabel: "Shift",
+      summary: "The register-opening result was not confirmed. Do not open another shift until a manager checks the existing register state.",
+    };
+  }
+  if (operation === "cash.movement") {
+    return {
+      title: "Cash movement needs review",
+      typeLabel: "Shift",
+      summary: "This cash movement was not confirmed. Do not enter another movement until a manager checks the drawer history.",
+    };
+  }
   if (recoverKind === "payment") {
     return {
       title: "This payment needs checking",
@@ -144,15 +159,16 @@ export function attentionFromShift(shift: StoredShift): AttentionItemView {
 export function attentionFromOperation(scope: CommandScopeBinding): AttentionItemView {
   const classified = classifyOperationRecovery(scope.operation);
   const resolveAllowed = classified.resolveAllowed && Boolean(scope.transactionId);
-  const copy = operationAttentionCopy(classified.recoverKind, resolveAllowed);
+  const copy = operationAttentionCopy(scope.operation, classified.recoverKind, resolveAllowed);
+  const reference = scope.transactionId ?? scope.shiftId ?? scope.registerId ?? scope.locationId;
   return {
-    id: `operation:${scope.operation}:${scope.transactionId}`,
+    id: `operation:${scope.operation}:${reference}`,
     title: copy.title,
     summary: copy.summary,
     typeLabel: copy.typeLabel,
     severity: "critical",
-    transactionReference: scope.transactionId,
-    transactionId: scope.transactionId,
+    transactionReference: reference,
+    ...(scope.transactionId ? { transactionId: scope.transactionId } : {}),
     resolveAllowed,
     reviewAllowed: false,
     recoverKind: classified.recoverKind,
@@ -194,7 +210,7 @@ export function composeAttentionItems(input: {
     items.push(item);
   }
   for (const operation of input.operations) {
-    if (coveredTransactions.has(operation.transactionId)) continue;
+    if (operation.transactionId && coveredTransactions.has(operation.transactionId)) continue;
     const item = attentionFromOperation(operation);
     if (seen.has(item.id)) continue;
     seen.add(item.id);
