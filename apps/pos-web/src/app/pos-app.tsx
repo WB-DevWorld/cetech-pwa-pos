@@ -710,6 +710,7 @@ export function PosRuntime({
             })}
             registerName={authority.register?.name ?? authority.selectedRegisterId ?? "Register"}
             locationLabel={undefined}
+            registerStatus={authority.register?.status ?? "disabled"}
             currency={authority.register?.currency ?? "GHS"}
             onSelectRegister={(id) => {
               void runtime.selectRegister(id);
