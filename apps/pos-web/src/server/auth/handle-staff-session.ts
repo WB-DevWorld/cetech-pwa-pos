@@ -39,6 +39,7 @@ export type EstablishStaffSessionRequest = {
   readonly now: Date;
   readonly verifier: StaffIdentityVerifier;
   readonly accessControl?: StaffAccessControl;
+  readonly assignments: StaffAssignmentDirectory;
   readonly store: StaffSessionStore;
   readonly allowedOrigins: readonly string[];
   readonly secureCookies: boolean;
@@ -94,11 +95,29 @@ export async function handleEstablishStaffSession(
     if (!established.ok) {
       return fail(headers, established);
     }
+    const assignments = await input.assignments.lookup({
+      actorId: established.data.session.actorId,
+      organizationId: established.data.session.organizationId,
+    });
+    if (assignments === "unavailable") {
+      await input.store.revoke(established.data.sessionId);
+      return fail(
+        headers,
+        authFailure(
+          "INTEGRATION_UNAVAILABLE",
+          "staff assignment directory is unavailable",
+          correlation.correlationId,
+        ),
+      );
+    }
     return {
       status: 200,
       body: {
         ok: true,
-        data: established.data.session,
+        data: {
+          ...established.data.session,
+          locationIds: [...assignments.locationIds],
+        },
         correlationId: correlation.correlationId,
       },
       cookies: established.data.cookies,
@@ -212,7 +231,7 @@ export async function handleReadStaffSession(
     return fail(headers, authFailure("AUTH_REQUIRED", "staff session is expired or revoked", correlation.correlationId));
   }
 
-  let assignedLocationIds = stored.session.locationIds;
+  let assignedLocationIds: readonly string[] = [];
   let assignedRegisterIds: readonly string[] = [];
   try {
     const assignments = await input.assignments.lookup({
@@ -225,25 +244,8 @@ export async function handleReadStaffSession(
         authFailure("INTEGRATION_UNAVAILABLE", "staff assignment directory is unavailable", correlation.correlationId),
       );
     }
-    assignedLocationIds = intersectIds(stored.session.locationIds, assignments.locationIds);
-    if (assignments.registerAssignments) {
-      const permittedLocations = new Set(assignedLocationIds);
-      assignedRegisterIds = [
-        ...new Set(
-          assignments.registerAssignments
-            .filter((assignment) => permittedLocations.has(assignment.locationId))
-            .map((assignment) => assignment.registerId),
-        ),
-      ];
-    } else if (sameIdSet(assignedLocationIds, assignments.locationIds)) {
-      // Legacy/in-memory directories without register->location mapping are only
-      // safe when the verified session scope is identical to the durable
-      // assignment scope. If the session is narrower, register membership
-      // cannot be proven and must fail closed.
-      assignedRegisterIds = assignments.registerIds;
-    } else {
-      assignedRegisterIds = [];
-    }
+    assignedLocationIds = [...new Set(assignments.locationIds)];
+    assignedRegisterIds = [...new Set(assignments.registerIds)];
   } catch {
     return fail(
       headers,
@@ -256,7 +258,10 @@ export async function handleReadStaffSession(
     body: {
       ok: true,
       data: {
-        session: stored.session,
+        session: {
+          ...stored.session,
+          locationIds: [...assignedLocationIds],
+        },
         assignedLocationIds,
         assignedRegisterIds,
         mustChangePassword: stored.mustChangePassword === true,
@@ -267,20 +272,6 @@ export async function handleReadStaffSession(
     headers,
   };
 }
-
-function intersectIds(sessionIds: readonly string[], assignedIds: readonly string[]): readonly string[] {
-  const allowed = new Set(assignedIds);
-  return sessionIds.filter((id) => allowed.has(id));
-}
-
-function sameIdSet(left: readonly string[], right: readonly string[]): boolean {
-  if (left.length !== right.length) {
-    return false;
-  }
-  const rightSet = new Set(right);
-  return left.every((id) => rightSet.has(id));
-}
-
 
 function originAllowedForRead(
   origin: string | null,
