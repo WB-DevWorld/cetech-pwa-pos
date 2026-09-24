@@ -48,6 +48,7 @@ export async function openShift(input: {
       context.idempotencyKey,
       hash,
       register.locationId,
+      { registerId: request.registerId },
     );
     if (claim.kind === "conflict") {
       return apiFailure(

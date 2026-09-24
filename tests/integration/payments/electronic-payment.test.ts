@@ -12,6 +12,7 @@ import { handleResolvePayment } from "../../../apps/pos-web/src/server/sales/han
 import { createFakeElectronicPaymentProvider } from "../../../apps/pos-web/src/server/payments/fake-provider";
 import { readPaymentProviderConfig } from "../../../apps/pos-web/src/server/payments/config";
 import {
+  cashierAssignments,
   commandBase,
   confirmCash,
   createPay01Runtime,
@@ -93,6 +94,7 @@ describe("PAY-01 electronic initialize", () => {
       body: { transactionId: TX_A, tender: "card" },
       sessionStore: outsider.store,
       checkoutStore: runtime.checkoutStore,
+      assignments: cashierAssignments(["reg_b1"], "loc_a2"),
       provider: runtime.provider,
       appEnv: "local",
       sandboxPayerEmail: SANDBOX_EMAIL,

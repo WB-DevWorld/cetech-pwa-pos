@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { readSupabaseAuthEnv, staffAllowedOrigins } from "../../../../../config/env";
 import { composeStaffSessionStore } from "../../../../../server/auth/compose-session-store";
+import { composeStaffAccessControl } from "../../../../../server/auth/compose-staff-access-control";
 import {
   handleEstablishStaffSession,
   handleReadStaffSession,
@@ -38,7 +39,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const store = tryComposeStore();
   const verifier = tryComposeVerifier();
-  if (!store || !verifier) {
+  const accessControl = tryComposeAccessControl();
+  const assignments = tryComposeAssignments();
+  if (!store || !verifier || !accessControl || !assignments) {
     return unavailable(request);
   }
   const result = await handleEstablishStaffSession({
@@ -48,6 +51,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     authorizationHeader: request.headers.get("authorization") ?? undefined,
     now: new Date(),
     verifier,
+    accessControl,
+    assignments,
     store,
     allowedOrigins: staffAllowedOrigins(),
     secureCookies: staffCookieSecure(),
@@ -77,6 +82,14 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
 function tryComposeStore() {
   try {
     return composeStaffSessionStore(process.env, createServerRestFetch());
+  } catch {
+    return undefined;
+  }
+}
+
+function tryComposeAccessControl() {
+  try {
+    return composeStaffAccessControl(process.env);
   } catch {
     return undefined;
   }

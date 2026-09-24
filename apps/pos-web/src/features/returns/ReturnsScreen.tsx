@@ -117,7 +117,7 @@ export function ReturnsScreen({
       <div className="page-head">
         <div>
           <h1>Returns</h1>
-          <p>Returns keep refund, payment and physical stock disposition separate.</p>
+          <p>Review returned items, refund progress, and stock handling without mixing them together.</p>
         </div>
       </div>
       <form className="card card-pad returns-search" onSubmit={handleSearch}>
@@ -134,7 +134,7 @@ export function ReturnsScreen({
         </label>
         {!lookup ? (
           <div className="banner warning" role="status">
-            Original sale lookup is not available yet. You can still review a return after a sale is selected.
+            Original sale lookup is unavailable. You can still review a return after a sale is selected.
           </div>
         ) : null}
         {locked ? (

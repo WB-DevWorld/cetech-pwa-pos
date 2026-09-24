@@ -19,6 +19,7 @@ import { useCashCheckout, type CashCheckoutPorts } from "./useCashCheckout";
 import type { ReceiptViewModel } from "../state/checkoutSession";
 import type { CashCheckoutScope } from "./cashCheckoutController";
 import type { CartDraft } from "../../../../../../docs/contracts/domain.generated";
+import type { PaymentMethodCapabilities } from "../../../server/payments/method-capabilities";
 
 export type SellSessionPorts = {
   readonly catalog: CatalogPort;
@@ -43,7 +44,7 @@ export type SellSessionPorts = {
   readonly createCheckoutUuid?: () => string;
   readonly catalogAvailability?: CatalogAvailability;
   readonly catalogProjectionGeneration?: number;
-  readonly electronicPaymentsAvailable?: boolean;
+  readonly paymentMethods?: PaymentMethodCapabilities;
   readonly nextSaleCustomer?: CustomerSearchResultView | null;
   readonly onNextSaleCustomerApplied?: (customer: CustomerSearchResultView) => void;
   readonly customerSearch?: (query: string) => Promise<readonly CustomerSearchResultView[]>;
@@ -161,14 +162,15 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
   const electronic = useElectronicPayment(electronicPorts);
   const cashCheckoutRef = useRef(cashCheckout);
   const tenderAvailability = useMemo<TenderAvailabilityView>(() => {
-    const electronicReady = Boolean(ports.electronicPaymentsAvailable && ports.payments?.initialize);
+    const canStartElectronic = Boolean(ports.payments?.initialize);
+    const methods = ports.paymentMethods;
     return {
       cash: true,
-      mobileMoney: electronicReady,
-      card: electronicReady,
-      externalElectronic: electronicReady,
+      mobileMoney: canStartElectronic && methods?.mobileMoney === "configured",
+      card: canStartElectronic && methods?.card === "configured",
+      externalElectronic: canStartElectronic && methods?.externalTerminal === "configured",
     };
-  }, [ports.electronicPaymentsAvailable, ports.payments?.initialize]);
+  }, [ports.paymentMethods, ports.payments?.initialize]);
 
   useEffect(() => {
     cashCheckoutRef.current = cashCheckout;

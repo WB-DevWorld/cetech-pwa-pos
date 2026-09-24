@@ -91,7 +91,8 @@ export function mapReceiptSnapshot(snapshot: ReceiptSnapshot): ReceiptViewModel 
     cashierName: snapshot.cashierName,
     customerLabel: snapshot.customerLabel,
     lines: snapshot.lines.map((line) => ({
-      name: line.name,
+      name: line.displayName ?? line.name,
+      sku: line.sku,
       variationLabel: line.variationLabel,
       quantity: line.quantity,
       unitPrice: line.unitPrice,
@@ -287,7 +288,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       if (!prepared) {
         patch({
           stage: "resolving_sale",
-          message: "Sale is prepared, but the total could not be recovered. Do not start another sale.",
+          message: "This sale is ready for payment, but the total could not be recovered. Do not start another sale.",
           transactionId: resolution.transactionId,
         });
         return;

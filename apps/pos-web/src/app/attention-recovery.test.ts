@@ -20,11 +20,17 @@ import {
   hasActiveTender,
   openPosLocalDatabase,
 } from "../local";
-import { createBrowserCashCheckoutPorts, LOCAL_CHECKOUT_SCOPE } from "./checkout-client";
+import { createBrowserCashCheckoutPorts } from "./checkout-client";
+import { attentionFromOperation } from "../server/attention/attention-view";
 
 const TX = "11111111-1111-4111-8111-111111111077";
 const PAYMENT = "22222222-2222-4222-8222-222222222077";
 const CORRELATION = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const LOCAL_CHECKOUT_SCOPE = {
+  registerId: "reg-test",
+  shiftId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  deviceId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+} as const;
 
 const DBS: string[] = [];
 
@@ -98,6 +104,26 @@ const refundItem: AttentionItemView = {
   resolveAllowed: false,
   recoverKind: "return",
 };
+
+describe("server operation attention identity", () => {
+  test("uncertain shift open remains visible without a transaction id", () => {
+    const item = attentionFromOperation({
+      organizationId: "org_a",
+      locationId: "loc_a1",
+      registerId: "reg_a",
+      operation: "shift.open",
+    });
+    expect(item).toMatchObject({
+      id: "operation:shift.open:reg_a",
+      title: "Register opening needs review",
+      transactionReference: "reg_a",
+      recoverKind: "shift",
+      resolveAllowed: false,
+    });
+    expect(item.transactionId).toBeUndefined();
+    expect(item.summary).toContain("Do not open another shift");
+  });
+});
 
 describe("UX-04 attention recovery identity", () => {
   test("reload rediscovers an ambiguous prepare only from the durable journal and resolves before the gate opens", async () => {

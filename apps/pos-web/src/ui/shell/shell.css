@@ -35,6 +35,8 @@
   flex-direction: column;
   gap: 8px;
   width: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .nav-btn {
@@ -75,11 +77,8 @@
   font-weight: 800;
 }
 
-.sidebar-bottom {
+.nav-list .nav-btn[data-route="settings"] {
   margin-top: auto;
-  width: 100%;
-  display: grid;
-  gap: 8px;
 }
 
 .app-main {
@@ -193,20 +192,31 @@
     z-index: 50;
   }
 
-  .brand-mark,
-  .sidebar-bottom {
+  .brand-mark {
     display: none;
   }
 
   .nav-list {
     flex-direction: row;
-    justify-content: space-around;
+    justify-content: flex-start;
     gap: 2px;
     height: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+
+  .nav-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-list .nav-btn[data-route="settings"] {
+    margin-top: 0;
   }
 
   .nav-btn {
-    flex: 1;
+    flex: 1 0 54px;
+    min-width: 54px;
     min-height: 56px;
     padding: 3px;
   }
@@ -231,8 +241,21 @@
 }
 
 @media (max-width: 480px) {
-  .topbar-right .status-pill .status-text {
+  .topbar .status-pill .status-text {
     display: none;
+  }
+
+  .topbar {
+    gap: 8px;
+  }
+
+  .topbar-left,
+  .topbar-right {
+    gap: 6px;
+  }
+
+  .topbar .btn.small {
+    padding-inline: 9px;
   }
 
   .page-head {

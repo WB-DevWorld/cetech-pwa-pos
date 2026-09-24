@@ -52,12 +52,6 @@ function readCookie(name: string): string | null {
   return null;
 }
 
-export const LOCAL_CHECKOUT_SCOPE: CashCheckoutScope = {
-  registerId: "reg-front-1",
-  shiftId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-  deviceId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-};
-
 type BrowserCheckoutOptions = {
   readonly fetchImpl?: typeof fetch;
   readonly csrfCookie?: string;

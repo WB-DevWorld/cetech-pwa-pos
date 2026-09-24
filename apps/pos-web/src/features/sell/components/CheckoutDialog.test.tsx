@@ -139,8 +139,8 @@ describe("CheckoutDialog stages", () => {
     expect(html).toContain("GHS 10,000,334.00");
     expect(html).toContain('data-tender="cash"');
     expect(html).toContain('data-tender="mobile_money"');
-    expect(html).toContain("Not available in this environment");
-    expect(html).toContain("Cancel prepared sale");
+    expect(html).toContain("Not enabled on this POS");
+    expect(html).toContain("Cancel sale");
     expect(html).not.toContain("Confirm cash");
     expect(html).not.toContain("Demo controls");
     expect(html).not.toContain("Simulated");

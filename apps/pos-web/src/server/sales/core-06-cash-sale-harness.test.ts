@@ -98,14 +98,14 @@ function quoteFromRequest(request: QuoteRequest): Quote {
   };
 }
 
-async function staffCookies() {
+async function staffCookies(locationIds: readonly string[] = ["loc_a1"]) {
   const store = createEphemeralInMemoryStaffSessionStore();
   const sessionId = await store.create(
     {
       actorId: "cashier_a",
       displayName: "Cashier A",
       organizationId: "org_a",
-      locationIds: ["loc_a1"],
+      locationIds: [...locationIds],
       capabilities: ["ui.hint.only"],
       expiresAt: "2026-09-15T22:00:00.000Z",
     },
@@ -172,6 +172,7 @@ async function setupSale(customer: QuoteRequest["customer"] = { kind: "walkin" }
     body: quoteRequest(customer),
     now: NOW,
     sessionStore: opened.sessionStore,
+    assignments: cashierAssignments(),
     allowedOrigins: [ORIGIN],
     snapshots: checkoutStore,
     catalogIdentity: {
@@ -220,6 +221,137 @@ function headers(opened: { cookieHeader: string; sessionStore: Awaited<ReturnTyp
     receiptSettings,
   };
 }
+
+
+describe("CORE-06 current durable assignment authority", () => {
+  test("stale empty session scope can open, prepare and take cash when current durable assignment grants the register", async () => {
+    const checkoutStore = createInMemoryCheckoutStore();
+    await seedRegister(checkoutStore);
+    const openedSession = await staffCookies([]);
+    const assignments = cashierAssignments();
+
+    const opened = await handleOpenShift({
+      correlationIdHeader: CORRELATION,
+      origin: ORIGIN,
+      referer: null,
+      csrfHeader: CSRF,
+      cookieHeader: openedSession.cookieHeader,
+      idempotencyKeyHeader: OPEN_KEY,
+      body: { registerId: "reg_a1", deviceId: DEVICE_ID, openingFloat: ghs(10000) },
+      now: NOW,
+      sessionStore: openedSession.store,
+      allowedOrigins: [ORIGIN],
+      checkoutStore,
+      assignments,
+    });
+    expect(opened.body.ok).toBe(true);
+    if (!opened.body.ok) throw new Error("current assignment should open the shift");
+    const storedShift = await checkoutStore.getShift(opened.body.data.id);
+    expect(storedShift?.locationId).toBe("loc_a1");
+
+    const salesPort = createInstrumentedBridgeSalesPort();
+    const quoted = await handleQuote({
+      correlationIdHeader: CORRELATION,
+      origin: ORIGIN,
+      referer: null,
+      csrfHeader: CSRF,
+      cookieHeader: openedSession.cookieHeader,
+      body: quoteRequest({ kind: "walkin" }),
+      now: NOW,
+      sessionStore: openedSession.store,
+      assignments,
+      allowedOrigins: [ORIGIN],
+      snapshots: checkoutStore,
+      catalogIdentity: {
+        async loadByItemIds() {
+          return [{
+            itemId: "p-hardener",
+            sourceSystem: "woocommerce",
+            sourceItemId: "101",
+            tombstoned: false,
+          }];
+        },
+      },
+      bridge: {
+        async postQuote(request, correlationId) {
+          const quote = quoteFromRequest(request);
+          salesPort.quotes.set(quote.id, quote);
+          return { ok: true, data: quote, correlationId };
+        },
+      },
+    });
+    expect(quoted.body.ok).toBe(true);
+    if (!quoted.body.ok) throw new Error("current assignment should quote");
+
+    const env = {
+      correlationIdHeader: CORRELATION,
+      origin: ORIGIN,
+      referer: null as string | null,
+      csrfHeader: CSRF,
+      cookieHeader: openedSession.cookieHeader,
+      now: NOW,
+      sessionStore: openedSession.store,
+      allowedOrigins: [ORIGIN],
+      assignments,
+      catalogLookup: createMemoryCatalogPresentationLookup({
+        org_a: [{ id: "p-hardener", name: "Epoxy Hardener 1L", sku: "HDN-1L", kind: "simple" }],
+      }),
+      receiptSettings: createMemoryReceiptSettingsStore(),
+    };
+
+    const prepared = await handlePrepareSale({
+      ...env,
+      checkoutStore,
+      salesPort,
+      idempotencyKeyHeader: PREPARE_KEY,
+      body: {
+        transactionId: TX_A,
+        registerId: "reg_a1",
+        shiftId: opened.body.data.id,
+        deviceId: DEVICE_ID,
+        quoteId: quoted.body.data.id,
+        quoteFingerprint: quoted.body.data.fingerprint,
+      },
+    });
+    expect(prepared.body.ok).toBe(true);
+
+    const cash = await handleConfirmCash({
+      ...env,
+      checkoutStore,
+      idempotencyKeyHeader: CASH_KEY,
+      body: { transactionId: TX_A, cashReceived: ghs(2000) },
+    });
+    expect(cash.body.ok).toBe(true);
+  });
+
+  test("removing current durable assignment blocks open immediately even when stored session still contains the location", async () => {
+    const checkoutStore = createInMemoryCheckoutStore();
+    await seedRegister(checkoutStore);
+    const staleAllowedSession = await staffCookies(["loc_a1"]);
+    const noAssignments = createMemoryAssignmentDirectory([]);
+
+    const opened = await handleOpenShift({
+      correlationIdHeader: CORRELATION,
+      origin: ORIGIN,
+      referer: null,
+      csrfHeader: CSRF,
+      cookieHeader: staleAllowedSession.cookieHeader,
+      idempotencyKeyHeader: OPEN_KEY,
+      body: { registerId: "reg_a1", deviceId: DEVICE_ID, openingFloat: ghs(10000) },
+      now: NOW,
+      sessionStore: staleAllowedSession.store,
+      allowedOrigins: [ORIGIN],
+      checkoutStore,
+      assignments: noAssignments,
+    });
+
+    expect(opened.body.ok).toBe(false);
+    if (!opened.body.ok) {
+      expect(opened.body.error.code).toBe("FORBIDDEN");
+    }
+    expect(await checkoutStore.getActiveShift("reg_a1")).toBeUndefined();
+  });
+});
 
 describe("CORE-06 combined cash-sale harness", () => {
   test("retail walk-in quote/prepare/cash/finalize yields one order, tender, stock effect, receipt and POS transaction", async () => {

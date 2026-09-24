@@ -34,7 +34,7 @@ describe("OrdersScreen", () => {
   test("renders approved order search/table semantics", () => {
     const html = render();
     expect(html).toContain("Orders");
-    expect(html).toContain("Find sales, reprint receipts, and start returns.");
+    expect(html).toContain("Review recent POS sales, reprint receipts, and start returns.");
     expect(html).toContain("Search orders");
     expect(html).toContain("#1042");
     expect(html).toContain("POS-1042");
@@ -42,6 +42,8 @@ describe("OrdersScreen", () => {
     expect(html).toContain("Wholesale");
     expect(html).toContain("GHS 245.00");
     expect(html).toContain("Completed");
+    expect(html).not.toContain('value="refunded"');
+    expect(html).not.toContain('value="partially_refunded"');
   });
 
   test("matches company and canonical customer identity in the Orders search predicate", () => {
@@ -72,12 +74,19 @@ describe("OrdersScreen", () => {
     expect(html).toContain("Order detail");
     expect(html).toContain("Reference");
     expect(html).toContain("Cashier / register");
-    expect(html).toContain("Customer account ID");
+    expect(html).toContain("Customer account");
+    expect(html).not.toContain("Customer account ID");
     expect(html).toContain("cust-buildworks");
     expect(html).toContain("BuildWorks Ghana Ltd");
     expect(html).toContain("Reprint");
     expect(html).toContain("Return items");
     expect(html).toContain("LED Panel");
+  });
+
+  test("shows action feedback without hiding the order list", () => {
+    const html = render({ actionError: "Receipt could not be loaded." });
+    expect(html).toContain("Receipt could not be loaded.");
+    expect(html).toContain("#1042");
   });
 
   test("renders an explicit empty state", () => {

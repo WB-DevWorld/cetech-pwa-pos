@@ -3,8 +3,6 @@ import type { PosSaleRecord, StoredPayment } from "../../core/checkout/types";
 
 export type OrderHistoryStatus =
   | "completed"
-  | "refunded"
-  | "partially_refunded"
   | "payment_pending"
   | "needs_attention"
   | "cancelled";

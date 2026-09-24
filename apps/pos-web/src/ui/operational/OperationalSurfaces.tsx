@@ -3,7 +3,8 @@
 import { useEffect, useRef } from "react";
 import type { StoreHealth } from "../../../../../docs/contracts/domain.generated";
 import type { CatalogProjectionAvailability } from "../../local/catalog-sync";
-import { friendlyDeviceName, toCashierError, TechnicalDetails } from "../cashier-language";
+import type { PaymentMethodCapabilities } from "../../server/payments/method-capabilities";
+import { toCashierError } from "../cashier-language";
 import { presentHealthRows } from "./healthPresentation";
 
 export type OperationalLoadState = "ready" | "loading" | "error" | "offline" | "degraded";
@@ -30,17 +31,13 @@ export interface StoreHealthScreenProps {
   readonly health?: StoreHealth;
   readonly state?: OperationalLoadState;
   readonly errorMessage?: string;
-  readonly deviceName?: string;
-  readonly appVersion?: string;
-  readonly localSchemaVersion?: string;
   readonly online?: boolean;
   readonly catalogAvailability?: CatalogProjectionAvailability | null;
   readonly electronicPaymentsAvailable?: boolean;
+  readonly paymentMethods?: PaymentMethodCapabilities;
   readonly attentionCountOverride?: number;
   readonly onRetry?: () => void;
-  readonly onFixApp?: () => void;
   readonly onOpenAttention?: () => void;
-  readonly onRebuildCatalog?: () => void;
 }
 
 function healthRowTone(tone: "ok" | "degraded" | "unavailable" | "unverified"): string {
@@ -77,26 +74,22 @@ export function StoreHealthScreen({
   health,
   state = "ready",
   errorMessage,
-  deviceName,
-  appVersion,
-  localSchemaVersion,
   online = true,
   catalogAvailability,
   electronicPaymentsAvailable = false,
+  paymentMethods,
   attentionCountOverride,
   onRetry,
-  onFixApp,
   onOpenAttention,
-  onRebuildCatalog,
 }: StoreHealthScreenProps) {
   const pendingOperationCount = health?.pendingOperationCount ?? 0;
   const attentionCount = attentionCountOverride ?? health?.attentionCount ?? 0;
-  const buildValue = health?.buildId ?? appVersion ?? "Unverified";
   const rows = presentHealthRows({
     online,
     health,
     catalogAvailability,
     electronicPaymentsAvailable,
+    paymentMethods,
   });
 
   return (
@@ -104,13 +97,8 @@ export function StoreHealthScreen({
       <div className="page-head">
         <div>
           <h1 id="store-health-title">System status</h1>
-          <p>Operational status stays visible instead of hiding sync and recovery problems in Settings.</p>
+          <p>Check whether this device can reach the services needed to sell.</p>
         </div>
-        {onRebuildCatalog ? (
-          <button className="btn" type="button" onClick={onRebuildCatalog}>
-            Rebuild catalog
-          </button>
-        ) : null}
       </div>
 
       {state === "offline" ? <ConnectivityNotice state="offline" /> : null}
@@ -133,16 +121,12 @@ export function StoreHealthScreen({
 
       <div className="operational-metrics" aria-label="System status summary">
         <div className="card operational-metric">
-          <span className="eyebrow">Pending operations</span>
+          <span className="eyebrow">Pending work</span>
           <strong>{pendingOperationCount}</strong>
         </div>
         <div className="card operational-metric">
           <span className="eyebrow">Needs attention</span>
           <strong>{attentionCount}</strong>
-        </div>
-        <div className="card operational-metric">
-          <span className="eyebrow">Build</span>
-          <strong className="operational-build">{buildValue}</strong>
         </div>
       </div>
 
@@ -167,51 +151,13 @@ export function StoreHealthScreen({
         </div>
       ) : null}
 
-      <section className="card card-pad operational-version" aria-labelledby="version-recovery-title">
-        <h2 id="version-recovery-title">Version & recovery</h2>
-        <dl className="operational-version-grid">
-          <div>
-            <dt>Application</dt>
-            <dd>{buildValue}</dd>
-          </div>
-          <div>
-            <dt>API contract</dt>
-            <dd>{health?.contractVersion ?? "Unverified"}</dd>
-          </div>
-          <div>
-            <dt>Local schema</dt>
-            <dd>{localSchemaVersion ?? "Unverified"}</dd>
-          </div>
-          <div>
-            <dt>Device</dt>
-            <dd>{friendlyDeviceName(deviceName)}</dd>
-          </div>
-        </dl>
+      {onOpenAttention ? (
         <div className="operational-actions">
-          {onFixApp ? (
-            <button className="btn" type="button" onClick={onFixApp}>
-              Fix App
-            </button>
-          ) : null}
-          {onOpenAttention ? (
-            <button className="btn" type="button" onClick={onOpenAttention}>
-              View attention
-            </button>
-          ) : null}
+          <button className="btn" type="button" onClick={onOpenAttention}>
+            View attention
+          </button>
         </div>
-        <TechnicalDetails
-          rows={[
-            { label: "Build ID", value: buildValue },
-            { label: "API contract", value: health?.contractVersion ?? "Unverified" },
-            { label: "Local schema", value: localSchemaVersion ?? "Unverified" },
-            { label: "Device", value: friendlyDeviceName(deviceName) },
-            ...(health?.checks ?? []).map((check) => ({
-              label: `${check.id} checked`,
-              value: `${check.message} · ${new Date(check.checkedAt).toLocaleString()}`,
-            })),
-          ]}
-        />
-      </section>
+      ) : null}
     </section>
   );
 }
@@ -242,7 +188,7 @@ export function NeedsAttentionScreen({
       <div className="page-head">
         <div>
           <h1 id="attention-title">Needs attention</h1>
-          <p>Ambiguous financial and sync states are reviewed here rather than hidden behind generic errors.</p>
+          <p>Payments, sales, returns, or sync work that needs checking appears here.</p>
         </div>
       </div>
       {state === "offline" ? <ConnectivityNotice state="offline" /> : null}
@@ -346,7 +292,7 @@ export interface UpdateReadyDialogProps {
   readonly onApply: () => void;
 }
 
-export function UpdateReadyDialog({ open, safety, currentBuild, nextBuild, onLater, onApply }: UpdateReadyDialogProps) {
+export function UpdateReadyDialog({ open, safety, currentBuild: _currentBuild, nextBuild, onLater, onApply }: UpdateReadyDialogProps) {
   const dialogRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -378,7 +324,7 @@ export function UpdateReadyDialog({ open, safety, currentBuild, nextBuild, onLat
           {safety === "blocked_critical" ? <div className="banner danger" role="alert"><strong>Update blocked by active transaction.</strong><span>The new version must wait until payment or recovery reaches a safe point.</span></div> : null}
           {safety === "defer" ? <div className="banner warning" role="status"><strong>Update deferred.</strong><span>Finish or safely clear the current work before applying the update.</span></div> : null}
           {safety === "safe" ? <div className="banner success" role="status"><strong>Safe to update.</strong><span>No critical transaction state is reported by the update coordinator.</span></div> : null}
-          <dl className="operational-detail-list"><div><dt>Current build</dt><dd>{currentBuild}</dd></div>{nextBuild ? <div><dt>Ready build</dt><dd>{nextBuild}</dd></div> : null}<div><dt>Saved cart and pending work</dt><dd>Kept</dd></div><div><dt>Product list</dt><dd>Can be refreshed</dd></div></dl>
+          <dl className="operational-detail-list">{nextBuild ? <div><dt>Update</dt><dd>New version ready</dd></div> : null}<div><dt>Saved cart and pending work</dt><dd>Kept</dd></div><div><dt>Product list</dt><dd>Can be refreshed</dd></div></dl>
         </div>
         <div className="operational-dialog-actions"><button className="btn" type="button" onClick={onLater}>Update later</button><button className="btn primary" type="button" disabled={!safe} onClick={onApply}>Update now</button></div>
       </section>

@@ -94,8 +94,8 @@ export async function authorizeStaffAction(
   }
 
   const identity = input.verifyResult.identity;
-  if (isSpoofed(identity, input.client)) {
-    return authFailure("FORBIDDEN", "client-supplied actor or scope does not match verified identity", correlationId);
+  if (isIdentitySpoofed(identity, input.client)) {
+    return authFailure("FORBIDDEN", "client-supplied actor or organization does not match verified identity", correlationId);
   }
   if (input.client?.customerId) {
     return authFailure("FORBIDDEN", "buyer customer context is not staff identity", correlationId);
@@ -114,20 +114,44 @@ export async function authorizeStaffAction(
   }
 
   const locationId = input.required.locationId;
-  if (locationId) {
-    if (!identity.locationIds.includes(locationId) || !assignments.locationIds.includes(locationId)) {
-      return authFailure("FORBIDDEN", "location is out of staff scope", correlationId);
-    }
+  if (locationId && !assignments.locationIds.includes(locationId)) {
+    return authFailure("FORBIDDEN", "location is out of staff scope", correlationId);
+  }
+  if (
+    input.client?.locationId !== undefined &&
+    (!assignments.locationIds.includes(input.client.locationId) ||
+      (locationId !== undefined && input.client.locationId !== locationId))
+  ) {
+    return authFailure("FORBIDDEN", "client-supplied location is not staff assignment authority", correlationId);
   }
 
   const registerId = input.required.registerId;
-  if (registerId) {
-    if (identity.registerId && identity.registerId !== registerId) {
-      return authFailure("FORBIDDEN", "register is not assigned to this staff session", correlationId);
+  if (registerId && !assignments.registerIds.includes(registerId)) {
+    return authFailure("FORBIDDEN", "register is not assigned to this staff session", correlationId);
+  }
+  if (registerId && locationId) {
+    const registerLocationProven = assignments.registerAssignments
+      ? assignments.registerAssignments.some(
+          (assignment) =>
+            assignment.registerId === registerId &&
+            assignment.locationId === locationId,
+        )
+      : assignments.locationIds.length === 1 &&
+        assignments.locationIds[0] === locationId;
+    if (!registerLocationProven) {
+      return authFailure(
+        "FORBIDDEN",
+        "register is not assigned at this staff location",
+        correlationId,
+      );
     }
-    if (!assignments.registerIds.includes(registerId)) {
-      return authFailure("FORBIDDEN", "register is not assigned to this staff session", correlationId);
-    }
+  }
+  if (
+    input.client?.registerId !== undefined &&
+    (!assignments.registerIds.includes(input.client.registerId) ||
+      (registerId !== undefined && input.client.registerId !== registerId))
+  ) {
+    return authFailure("FORBIDDEN", "client-supplied register is not staff assignment authority", correlationId);
   }
 
   let assignmentRole: StaffAssignmentRole | undefined;
@@ -153,7 +177,10 @@ export async function authorizeStaffAction(
     }
   }
 
-  const session = toSession(identity);
+  const session = {
+    ...toSession(identity),
+    locationIds: [...assignments.locationIds],
+  };
   const success: ApiSuccess<AuthorizedStaffContext> = {
     ok: true,
     data: {
@@ -187,7 +214,10 @@ function identityFailure(
   }
 }
 
-function isSpoofed(identity: StaffIdentityClaims, client: ClientScopeClaim | undefined): boolean {
+function isIdentitySpoofed(
+  identity: StaffIdentityClaims,
+  client: ClientScopeClaim | undefined,
+): boolean {
   if (!client) {
     return false;
   }
@@ -195,16 +225,6 @@ function isSpoofed(identity: StaffIdentityClaims, client: ClientScopeClaim | und
     return true;
   }
   if (client.organizationId !== undefined && client.organizationId !== identity.organizationId) {
-    return true;
-  }
-  if (client.locationId !== undefined && !identity.locationIds.includes(client.locationId)) {
-    return true;
-  }
-  if (
-    client.registerId !== undefined &&
-    identity.registerId !== null &&
-    client.registerId !== identity.registerId
-  ) {
     return true;
   }
   return false;

@@ -12,6 +12,7 @@ import { isInitializePaymentRequest } from "../sales/schema";
 import { initializeElectronicPayment } from "./initialize-electronic";
 import type { ElectronicPaymentProvider } from "./provider";
 import { readPaymentProviderConfig } from "./config";
+import { capabilityForElectronicTender, resolvePaymentMethodCapabilities } from "./method-capabilities";
 
 export type HandleInitializePaymentInput = {
   readonly correlationIdHeader?: string;
@@ -75,6 +76,7 @@ export async function handleInitializePayment(input: HandleInitializePaymentInpu
     );
     return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
   }
+
   const provider = input.provider;
   if (!provider) {
     const body = apiFailure("INTEGRATION_UNAVAILABLE", "electronic payment provider is not configured", guard.correlationId);
@@ -100,15 +102,19 @@ export async function handleInitializePayment(input: HandleInitializePaymentInpu
     return { status: httpStatusFor(authorized.error.code), body: authorized, headers: guard.headers };
   }
 
+  const capabilities = resolvePaymentMethodCapabilities(input.env ?? {});
+  const methodCapability = capabilityForElectronicTender(capabilities, input.body.tender);
+
   const result = await initializeElectronicPayment({
     store: input.checkoutStore,
     provider,
-    actor: guard.session,
+    actor: authorized.data.session,
     request: input.body,
     context: { idempotencyKey: guard.idempotencyKey, correlationId: guard.correlationId },
     now: input.now,
     appEnv: input.appEnv ?? "local",
     sandboxPayerEmail: input.sandboxPayerEmail ?? (config.kind === "paystack_test" ? config.sandboxPayerEmail : undefined),
+    methodConfigured: methodCapability === "configured",
   });
   return { status: result.ok ? 200 : httpStatusFor(result.error.code), body: result, headers: guard.headers };
 }

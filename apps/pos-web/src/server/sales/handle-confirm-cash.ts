@@ -77,7 +77,7 @@ export async function handleConfirmCash(input: HandleConfirmCashInput): Promise<
   }
   const result = await confirmCash({
     store: input.checkoutStore,
-    actor: guard.session,
+    actor: authorized.data.session,
     request: input.body,
     context: { idempotencyKey: guard.idempotencyKey, correlationId: guard.correlationId },
     now: input.now,

@@ -91,7 +91,7 @@ export function CheckoutDialog({
           ? waitingTitle(electronicSession.status)
           : copy.title
       : confirmingCancel
-        ? "Cancel prepared sale?"
+        ? "Cancel this sale?"
         : copy.title;
 
   function requestClose() {
@@ -125,7 +125,7 @@ export function CheckoutDialog({
       titleId="checkout-dialog-title"
       onClose={requestClose}
       showClose
-      closeLabel={closeRequestsCancel ? "Cancel prepared sale" : "Close"}
+      closeLabel={closeRequestsCancel ? "Cancel sale" : "Close"}
       closeDisabled={closeDisabled && !dismissable}
       size="payment"
       focusKey={`${session.stage}:${heading}:${electronicSession?.status ?? ""}:${confirmingCancel ? "cancel" : ""}`}
@@ -270,7 +270,7 @@ export function CheckoutDialog({
           <>
             <div className="banner success">
               <strong>Sale complete.</strong>
-              <span>The official receipt was loaded from the receipt service.</span>
+              <span>Your receipt is ready.</span>
             </div>
             <ReceiptPaper receipt={session.receipt} />
             {session.printStatus === "dialog_opened" ? (

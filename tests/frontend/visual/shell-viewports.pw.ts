@@ -41,6 +41,7 @@ test.describe("FE-02 visual harness (shell, login, register)", () => {
     await page.keyboard.press("Tab");
     await expect(skipLink).toBeFocused();
     await expect(page.getByRole("button", { name: "Sell" })).toBeVisible();
+    await expect(page.locator('button.nav-btn[data-route="settings"]')).toHaveCount(1);
     await expect(page.getByRole("button", { name: "Settings" })).toBeVisible();
     await expect(page.getByText("CETECH POS")).toBeVisible();
     await expect(page.getByText("Demo controls")).toHaveCount(0);
@@ -62,6 +63,7 @@ test.describe("FE-02 visual harness (shell, login, register)", () => {
     const sidebar = page.locator(".sidebar");
     await expect(sidebar).toBeVisible();
     await expect(page.getByRole("button", { name: "Sell" })).toBeVisible();
+    await expect(page.locator('button.nav-btn[data-route="settings"]')).toHaveCount(1);
     await expect(page.getByRole("button", { name: "Settings" })).toBeVisible();
     await expect(page.locator(".context-pill.secondary")).toBeHidden();
 
@@ -75,20 +77,34 @@ test.describe("FE-02 visual harness (shell, login, register)", () => {
     });
   });
 
-  test("phone shell uses bottom navigation and hides Settings in the rail", async ({ page }) => {
+  test("phone shell uses bottom navigation and keeps Settings reachable", async ({ page }) => {
     await openHarness(page, readEvidence("shell-desktop.html"), { width: 390, height: 844 });
 
     const sidebar = page.locator(".sidebar");
     await expect(sidebar).toBeVisible();
     const sell = page.getByRole("button", { name: "Sell" });
     await expect(sell).toBeVisible();
-    await expect(page.getByRole("button", { name: "Settings" })).toBeHidden();
+    await expect(page.locator('button.nav-btn[data-route="settings"]')).toHaveCount(1);
+    const settings = page.getByRole("button", { name: "Settings" });
+    await expect(settings).toBeVisible();
     await expect(page.locator(".brand-mark")).toBeHidden();
     await expect(page.getByText("CETECH POS")).toBeHidden();
     await expect(page.locator('[data-online="true"]')).toHaveAccessibleName("Online");
     const sellBox = await sell.boundingBox();
     expect(sellBox).toBeTruthy();
     expect(sellBox!.height).toBeGreaterThanOrEqual(44);
+
+    const settingsBox = await settings.boundingBox();
+    expect(settingsBox).toBeTruthy();
+    expect(settingsBox!.height).toBeGreaterThanOrEqual(44);
+    const nav = page.getByRole("navigation", { name: "Primary navigation" });
+    const navMetrics = await nav.evaluate((el) => ({
+      overflowX: getComputedStyle(el).overflowX,
+      scrollWidth: el.scrollWidth,
+      clientWidth: el.clientWidth,
+    }));
+    expect(navMetrics.overflowX).toBe("auto");
+    expect(navMetrics.scrollWidth).toBeGreaterThan(navMetrics.clientWidth);
 
     const sidebarBox = await sidebar.boundingBox();
     const viewport = page.viewportSize();

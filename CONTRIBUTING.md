@@ -22,3 +22,15 @@ Keep scoped tests and handoff evidence with the related implementation commit. F
 Secrets stay in excluded local/runtime configuration. Synthetic/local tests may proceed under ADR-011; affected training/production writes retain operation-specific permissions. Audit requests authorize findings first. Git rollback does not reverse external commerce effects. CI and review do not approve production deployment.
 
 Owner unavailable is WAITING_FOR_OWNER, not takeover permission. Review fixes return to the task owner; only explicit senior reassignment recorded in CURRENT-WORK changes that. Record human owner, implementing human, source branch/SHA, imported SHA and tested combined SHA using [the handoff template](docs/ai/HANDOFF-TEMPLATE.md). Per-contribution independent review remains necessary even with a neutral PR author.
+
+
+## Staff documentation impact
+
+Staff-facing documentation is part of Definition of Done. Read [the staff documentation maintenance policy](docs/staff/DOCUMENTATION-MAINTENANCE.md).
+
+Every PR must select exactly one Staff documentation impact declaration in the PR template:
+
+- **Staff documentation updated** — when confirmed behavior affects what staff see, do, are permitted to do, are warned about, or must test. Update the relevant `docs/staff/*.md` file in the same PR.
+- **No staff documentation impact** — only when behavior described by the staff guides/workbook is genuinely unchanged. Explain why.
+
+The Linux required CI gate validates this declaration. Reviewers must reject an incorrect no-impact declaration. Build-specific URLs/SHAs belong in a dated Test Brief, not in the permanent Training Guide.

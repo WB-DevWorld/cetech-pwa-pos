@@ -10,6 +10,7 @@ import {
   staffCookies,
 } from "../returns/helpers";
 import { createInMemoryCheckoutStore } from "../../../apps/pos-web/src/core/checkout/in-memory-store";
+import { createMemoryOperationalPolicyStore } from "../../../apps/pos-web/src/server/admin/operational-policy-store";
 
 const ZERO_KEY = "bbbbbbb1-bbbb-4bbb-8bbb-bbbbbbbbbbb1";
 const ZERO_REPLAY_KEY = "bbbbbbb1-bbbb-4bbb-8bbb-bbbbbbbbbbb1";
@@ -24,7 +25,8 @@ async function createOpenShiftRuntime() {
   await seedRegister(checkoutStore);
   const shiftId = await openRegister(checkoutStore);
   const manager = await staffCookies({ actorId: "manager_a", displayName: "Manager A" });
-  return { checkoutStore, shiftId, manager };
+  const policies = createMemoryOperationalPolicyStore();
+  return { checkoutStore, shiftId, manager, policies };
 }
 
 async function close(
@@ -37,6 +39,7 @@ async function close(
     ...commandBase(runtime.manager.cookieHeader),
     sessionStore: runtime.manager.store,
     checkoutStore: runtime.checkoutStore,
+    policies: runtime.policies,
     idempotencyKeyHeader: key,
     body: {
       shiftId: runtime.shiftId,

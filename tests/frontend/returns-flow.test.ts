@@ -226,11 +226,24 @@ describe("FE-06 returns", () => {
 
   test("11 approval-required does not fabricate approval", async () => {
     const previewFn = vi.fn(async () => success(preview({ approvalRequired: true })));
-    const { controller } = await readyPreview(previewFn);
+    const { controller, execute } = await readyPreview(previewFn);
     expect(controller.getSession().approvalRequired).toBe(true);
     expect(controller.getSession().approvalId).toBeUndefined();
     expect(controller.getSession().stage).toBe("approval_required");
+    execute.mockResolvedValue({
+      ok: false,
+      correlationId: CORRELATION,
+      error: {
+        code: "FORBIDDEN",
+        message: "manager approval is required",
+        retryable: false,
+        nextAction: "contact_manager",
+      },
+    });
     await controller.execute();
+    expect(execute).toHaveBeenCalled();
+    expect(execute.mock.calls[0]?.[0]).toMatchObject({ returnId: RETURN_ID, fingerprint: FINGERPRINT });
+    expect(execute.mock.calls[0]?.[0].approvalId).toBeUndefined();
     expect(controller.getSession().stage).toBe("approval_required");
     expect(controller.getSession().approvalId).toBeUndefined();
     const html = renderToStaticMarkup(
@@ -244,6 +257,9 @@ describe("FE-06 returns", () => {
       }),
     );
     expect(html).toContain("Manager approval is required before you can continue.");
+    expect(html).toContain("Check approval");
+    expect(html).not.toContain("Approval ID");
+    expect(html).not.toContain("Technical details");
     expect(html).toContain('data-approval-id=""');
   });
 
@@ -278,7 +294,7 @@ describe("FE-06 returns", () => {
       }),
     );
     expect(html).toContain('data-automatic-sellable="false"');
-    expect(html).toContain("never automatically restocked as sellable");
+    expect(html).toContain("not automatically returned to sellable stock");
   });
 
   test("13 quarantine never displays automatic sellable restock", async () => {
@@ -399,6 +415,32 @@ describe("FE-06 returns", () => {
     expect(html).not.toContain("data-return-complete-banner");
     expect(html).toContain("data-return-unresolved");
     expect(html).toContain("Payment refund");
+  });
+
+  test("18b mixed return state clearly warns that cash is already refunded", async () => {
+    const previewFn = vi.fn(async () => success(preview()));
+    const { controller, execute } = await readyPreview(previewFn);
+    execute.mockResolvedValue(
+      success({
+        returnId: RETURN_ID,
+        status: "requires_attention",
+        providerRefund: settled("not_required"),
+        cashRefund: settled("completed", REFUND_2),
+        commercialRefund: openEffect("requires_attention", COMMERCIAL_ID),
+        stockDisposition: openEffect("pending", STOCK_ID),
+      }),
+    );
+    await controller.execute();
+    const html = renderFlow(controller.getSession());
+    expect(html).toContain('data-cash-refund-complete-warning');
+    expect(html).toContain("Cash refund already completed.");
+    expect(html).toContain("Do not refund the customer again");
+    expect(html).toContain('data-order-refund-review');
+    expect(html).toContain("Do not create another Woo order refund");
+    expect(html).toContain('data-stock-update-review');
+    expect(html).toContain("Do not adjust stock manually");
+    expect(html).toContain("return-effect-row");
+    expect(html).toContain("Order refund needs review");
   });
 
   test("19 completed aggregate is presented only from authoritative completed resolution", async () => {

@@ -265,7 +265,7 @@ describe("offline cold-start presentation continuity", () => {
       register: { id: "reg_a" },
       shift: { id: SHIFT_A.id },
     });
-    expect(checkoutScopeFromStaffAuthority(offline, "fallback-device")).toBeUndefined();
+    expect(checkoutScopeFromStaffAuthority(offline)).toBeUndefined();
 
     online = true;
     sessionResult = ok({
@@ -280,7 +280,7 @@ describe("offline cold-start presentation continuity", () => {
     expect(restored.presentationOnly).not.toBe(true);
     expect(restored.register?.id).toBe("reg_a");
     expect(restored.shift?.id).toBe(SHIFT_A.id);
-    expect(checkoutScopeFromStaffAuthority(restored, "fallback-device")).toEqual({
+    expect(checkoutScopeFromStaffAuthority(restored)).toEqual({
       registerId: "reg_a",
       shiftId: SHIFT_A.id,
       deviceId: SHIFT_A.deviceId,
@@ -343,7 +343,7 @@ describe("offline cold-start presentation continuity", () => {
       shift: { id: SHIFT_A.id },
     });
     expect(degraded.errorMessage).toContain("Connection unavailable");
-    expect(checkoutScopeFromStaffAuthority(degraded, "fallback-device")).toBeUndefined();
+    expect(checkoutScopeFromStaffAuthority(degraded)).toBeUndefined();
   });
 
   test("explicit sign-out clears the offline presentation cache", async () => {
@@ -540,7 +540,7 @@ describe("assigned register selection", () => {
     const { runtime } = controller(stubRegisters(), ["reg_a", "reg_b"]);
     await runtime.restore();
     await runtime.selectRegister("reg_b");
-    const scope = checkoutScopeFromStaffAuthority(runtime.getState(), "fallback-device");
+    const scope = checkoutScopeFromStaffAuthority(runtime.getState());
     expect(scope).toEqual({
       registerId: "reg_b",
       shiftId: SHIFT_B.id,
@@ -564,7 +564,6 @@ describe("assigned register selection", () => {
           shift: null,
           shiftOpen: false,
         },
-        "fallback-device",
       ),
     ).toBeUndefined();
   });
@@ -583,7 +582,6 @@ describe("assigned register selection", () => {
           shift: SHIFT_A,
           shiftOpen: true,
         },
-        "fallback-device",
       ),
     ).toBeUndefined();
   });

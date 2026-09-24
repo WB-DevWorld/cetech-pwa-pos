@@ -11,7 +11,6 @@ export const POS_ROUTES = [
 
 export type PosRoute = (typeof POS_ROUTES)[number];
 
-/** Planned WS3 App Router hrefs. FE-02 does not own `src/app` routes. */
 export const POS_ROUTE_HREFS: Record<PosRoute, string> = {
   sell: "/sell",
   orders: "/orders",
@@ -35,7 +34,6 @@ export const PRIMARY_NAV_ITEMS: readonly NavItem[] = [
   { route: "customers", label: "Customers", icon: "♙" },
   { route: "returns", label: "Returns", icon: "↩" },
   { route: "register", label: "Register", icon: "▣" },
-  { route: "health", label: "Health", icon: "●" },
   { route: "attention", label: "Attention", icon: "!" },
 ];
 

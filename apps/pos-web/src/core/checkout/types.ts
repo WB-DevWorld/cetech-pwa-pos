@@ -157,7 +157,7 @@ export type CommandScopeBinding = {
   readonly locationId: Id;
   readonly registerId?: Id;
   readonly shiftId?: Uuid;
-  readonly transactionId: Uuid;
+  readonly transactionId?: Uuid;
   readonly operation: PendingOperation["operation"];
 };
 

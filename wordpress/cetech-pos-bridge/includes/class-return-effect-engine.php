@@ -297,7 +297,7 @@ final class Cetech_Pos_Bridge_Return_Effect_Engine {
 					return $done;
 				}
 			}
-			$binding = $this->bind_completed_sale( $raw );
+			$binding = $this->bind_completed_sale( $raw, true );
 			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $binding ) ) {
 				return $binding;
 			}
@@ -412,7 +412,7 @@ final class Cetech_Pos_Bridge_Return_Effect_Engine {
 	 * @param array<string,mixed> $raw
 	 * @return array<string,mixed>|WP_Error
 	 */
-	private function bind_completed_sale( array $raw ) {
+	private function bind_completed_sale( array $raw, $allow_cetech_refunded = false ) {
 		$prepare = $this->prepare_claims->get_by_transaction( $raw['transactionId'] );
 		if ( ! is_array( $prepare ) ) {
 			return $this->not_found_sale();
@@ -445,7 +445,20 @@ final class Cetech_Pos_Bridge_Return_Effect_Engine {
 		if ( (string) $snap['saleId'] !== (string) $raw['saleId'] ) {
 			return $this->invalid_request( 'saleId', 'saleId' );
 		}
-		if ( ! empty( $snap['cancelled'] ) || empty( $snap['paid'] ) ) {
+		$refunded_by_exact_cetech_refund = false;
+		if (
+			$allow_cetech_refunded &&
+			isset( $snap['status'] ) &&
+			(string) $snap['status'] === 'refunded' &&
+			empty( $snap['paid'] )
+		) {
+			$proof = $this->prove_exact_cetech_commercial_refund( $raw, $order_id );
+			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $proof ) ) {
+				return $proof;
+			}
+			$refunded_by_exact_cetech_refund = true;
+		}
+		if ( ! empty( $snap['cancelled'] ) || ( empty( $snap['paid'] ) && ! $refunded_by_exact_cetech_refund ) ) {
 			return $this->invalid_request( 'transactionId', 'transactionId' );
 		}
 		if ( isset( $raw['amount']['currency'] ) && strtoupper( (string) $raw['amount']['currency'] ) !== strtoupper( (string) $snap['currency'] ) ) {
@@ -465,6 +478,113 @@ final class Cetech_Pos_Bridge_Return_Effect_Engine {
 			'snap'     => $snap,
 			'quote'    => $quote,
 		);
+	}
+
+	/**
+	 * A refunded, unpaid original order may bind a later stock disposition only
+	 * when the exact CETECH commercial refund for this return exists in Woo.
+	 *
+	 * woo_effect_entered is set before wc_create_refund and means only that the
+	 * operation crossed the external-effect boundary. It is not proof.
+	 *
+	 * Proof reuses find_commercial_refunds(), which reads:
+	 * _cetech_pos_commercial_refund_id, _cetech_pos_commercial_refund_tx, and
+	 * _cetech_pos_commercial_refund_hash. Those values must be the claim's
+	 * commercialRefundId, transaction, and canonical request hash.
+	 *
+	 * @param array<string,mixed> $raw
+	 * @param string              $order_id
+	 * @return true|WP_Error
+	 */
+	private function prove_exact_cetech_commercial_refund( array $raw, $order_id ) {
+		$claims = $this->effects->list_by_transaction_operation(
+			$raw['transactionId'],
+			Cetech_Pos_Bridge_Constants::OPERATION_COMMERCIAL_REFUND
+		);
+		$proven = 0;
+		foreach ( $claims as $claim ) {
+			if ( ! is_array( $claim ) || ! $this->commercial_claim_identifies_return( $claim, $raw, $order_id ) ) {
+				continue;
+			}
+			$found = $this->runtime->find_commercial_refunds( $order_id, $claim['effect_id'] );
+			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $found ) ) {
+				return $this->attention( 'Exact CETECH native Woo refund could not be verified. Stock disposition will not restock.' );
+			}
+			if ( ! is_array( $found ) || count( $found ) !== 1 ) {
+				continue;
+			}
+			if ( $this->native_refund_matches_claim( $found[0], $claim, $raw, $order_id ) ) {
+				++$proven;
+			}
+		}
+		if ( $proven === 1 ) {
+			return true;
+		}
+		return $this->attention( 'Refunded Woo order is not proven to be this CETECH commercial refund. Stock disposition will not restock.' );
+	}
+
+	/**
+	 * Durable claim identity for the intended commercial refund. Status and
+	 * woo_effect_entered are intentionally not accepted here.
+	 *
+	 * @param array<string,mixed> $claim
+	 * @param array<string,mixed> $raw
+	 * @param string              $order_id
+	 * @return bool
+	 */
+	private function commercial_claim_identifies_return( array $claim, array $raw, $order_id ) {
+		foreach ( array( 'effect_id', 'return_request_id', 'sale_id', 'transaction_id', 'request_hash' ) as $field ) {
+			if ( ! isset( $claim[ $field ] ) || ! is_string( $claim[ $field ] ) || $claim[ $field ] === '' ) {
+				return false;
+			}
+		}
+		if ( ! Cetech_Pos_Bridge_Quote_Request::is_uuid( $claim['effect_id'] ) ) {
+			return false;
+		}
+		if ( (string) $claim['return_request_id'] !== (string) $raw['returnId'] ) {
+			return false;
+		}
+		if ( (string) $claim['sale_id'] !== (string) $raw['saleId'] ) {
+			return false;
+		}
+		if ( (string) $claim['transaction_id'] !== (string) $raw['transactionId'] ) {
+			return false;
+		}
+		if ( isset( $claim['order_reference'] ) && (string) $claim['order_reference'] !== '' && (string) $claim['order_reference'] !== (string) $order_id ) {
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * @param array<string,mixed> $refund described native refund
+	 * @param array<string,mixed> $claim
+	 * @param array<string,mixed> $raw
+	 * @param string              $order_id
+	 * @return bool
+	 */
+	private function native_refund_matches_claim( array $refund, array $claim, array $raw, $order_id ) {
+		foreach ( array( 'parentOrderId', 'commercialRefundId', 'transactionId', 'requestHash' ) as $field ) {
+			if ( ! isset( $refund[ $field ] ) || (string) $refund[ $field ] === '' ) {
+				return false;
+			}
+		}
+		if ( (string) $refund['parentOrderId'] !== (string) $order_id ) {
+			return false;
+		}
+		if ( (string) $refund['commercialRefundId'] !== (string) $claim['effect_id'] ) {
+			return false;
+		}
+		if ( (string) $refund['transactionId'] !== (string) $claim['transaction_id'] ) {
+			return false;
+		}
+		if ( (string) $refund['transactionId'] !== (string) $raw['transactionId'] ) {
+			return false;
+		}
+		if ( (string) $refund['requestHash'] !== (string) $claim['request_hash'] ) {
+			return false;
+		}
+		return true;
 	}
 
 	/**

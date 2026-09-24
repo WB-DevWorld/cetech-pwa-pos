@@ -79,7 +79,7 @@ export async function handleCancelSale(input: HandleCancelSaleInput): Promise<Ha
   const result = await cancelSale({
     store: input.checkoutStore,
     salesPort: input.salesPort,
-    actor: guard.session,
+    actor: authorized.data.session,
     request: input.body,
     context: { idempotencyKey: guard.idempotencyKey, correlationId: guard.correlationId },
   });

@@ -42,7 +42,7 @@ export function BarcodeCollisionDialog({
         {matches.map((item) => (
           <button key={item.id} type="button" className="btn block collision-candidate" onClick={() => onSelect(item)}>
             <span className="dialog-choice">
-              <strong>{item.name}</strong>
+              <strong className="compact-product-name">{item.name}</strong>
               <span className="muted">{candidateDetail(item)}</span>
             </span>
           </button>

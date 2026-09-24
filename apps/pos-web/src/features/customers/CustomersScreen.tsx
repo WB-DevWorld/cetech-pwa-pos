@@ -49,7 +49,7 @@ export function CustomersScreen({
       <div className="page-head">
         <div>
           <h1 id="customers-title">Customers</h1>
-          <p>Retail and wholesale customer context.</p>
+          <p>Search for a customer to use on the next sale.</p>
         </div>
       </div>
 

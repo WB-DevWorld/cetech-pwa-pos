@@ -21,12 +21,12 @@ import {
 import { RegisterRuntimeScreen } from "./register-runtime";
 import { ReturnsRuntimeScreen, createBrowserHistoricReturnSaleLookup } from "./returns-runtime";
 import { StaffAuthGate } from "./staff-auth-gate";
+import { PasswordChangeScreen } from "../features/auth/PasswordChangeScreen";
 import { ApprovedWorkspaceScreens, clientAttentionExtras } from "./workspace-runtime";
 import { AppShell, POS_ROUTE_HREFS, type PosRoute } from "../ui/shell";
 import { returnSelectionHref } from "./pos-route";
 import { resolveBrowserCatalogSourcePolicy } from "../core/catalog/source-policy";
 import {
-  CASHIER_SEED_LOCATION_ID,
   CATALOG_REFRESH_MIN_INTERVAL_MS,
   createCartDraftStore,
   createLocalCatalogPort,
@@ -49,12 +49,11 @@ import {
   createLocalOfflineStaffPresentationStore,
   createStaffIdentityPort,
   createStaffRuntimeController,
-  readOrCreateLocalDeviceId,
   type StaffRuntimeAuthority,
   type StaffRuntimeController,
 } from "../core/identity";
 import type { AuthNoticeState } from "../features/auth";
-import { isUuidLike, toCashierError } from "../ui/cashier-language";
+import { toCashierError } from "../ui/cashier-language";
 import type { OperationJournal } from "../../../../docs/contracts/ports";
 import type { Shift } from "../../../../docs/contracts/domain.generated";
 import type { CustomerSummary } from "../../../../docs/contracts/domain.generated";
@@ -64,7 +63,9 @@ import type { AttentionItemView, OperationalLoadState } from "../ui/operational"
 import { applyAppearance, readStoredAppearance, type AppearancePreference } from "../features/settings/appearance";
 import { loadCustomerSearchPresentation } from "../features/customers/loadCustomerSearch";
 import { customerViewFromSummary } from "../features/sell/runtime/mapCartDraft";
-import { fetchAttentionInbox, fetchCustomerDirectory, fetchStoreHealth } from "./operational-client";
+import { fetchAttentionInbox, fetchCustomerDirectory, fetchPaymentMethodCapabilities } from "./operational-client";
+import { STAFF_CSRF_COOKIE, STAFF_CSRF_HEADER } from "../config/auth";
+import { fetchManagementContext } from "./management-client";
 
 function bumpCatalogProjectionGeneration(
   generationRef: { current: number },
@@ -96,6 +97,7 @@ export function PosApp({
       fetchImpl={fetchImpl}
       initialReturnSaleId={initialReturnSaleId}
       onNavigate={(next) => router.push(POS_ROUTE_HREFS[next])}
+      onOpenManagement={() => router.push("/management")}
       onReturnSaleSelected={(saleId) => router.push(returnSelectionHref(saleId))}
     />
   );
@@ -105,17 +107,21 @@ export function PosRuntime({
   route,
   fetchImpl,
   onNavigate,
+  onOpenManagement,
   initialReturnSaleId,
   onReturnSaleSelected,
 }: {
   readonly route: PosRoute;
   readonly fetchImpl?: typeof fetch;
   readonly onNavigate: (route: PosRoute) => void;
+  readonly onOpenManagement?: () => void;
   readonly initialReturnSaleId?: string | null;
   readonly onReturnSaleSelected?: (saleId: string) => void;
 }) {
   const [online, setOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
   const [ports, setPorts] = useState<SellSessionPorts | null>(null);
+  const [passwordChangeBusy, setPasswordChangeBusy] = useState(false);
+  const [passwordChangeError, setPasswordChangeError] = useState<string | undefined>();
   const [projectionAvailability, setProjectionAvailability] = useState<CatalogProjectionAvailability | null>(null);
   const refreshInFlight = useRef(false);
   const catalogProjectionGenerationRef = useRef(0);
@@ -136,7 +142,6 @@ export function PosRuntime({
   const [appearance, setAppearance] = useState<AppearancePreference>("system");
   const [toast, setToast] = useState<AppToastView | null>(null);
   const toastTimer = useRef<number | null>(null);
-  const [buildId, setBuildId] = useState<string | undefined>();
   const [serverAttention, setServerAttention] = useState<readonly AttentionItemView[]>([]);
   const [localAttention, setLocalAttention] = useState<readonly AttentionItemView[]>([]);
   const [localRecoveryActorId, setLocalRecoveryActorId] = useState<string | null>(null);
@@ -145,6 +150,7 @@ export function PosRuntime({
   const [pendingReturnSaleId, setPendingReturnSaleId] = useState<string | null>(
     initialReturnSaleId ?? null,
   );
+  const [managementActorId, setManagementActorId] = useState<string | null>(null);
   const readOnline = useCallback(() => online, [online]);
 
   const policy = useMemo(
@@ -272,14 +278,25 @@ export function PosRuntime({
     }
     const timer = window.setTimeout(() => {
       void loadAttention();
-      void fetchStoreHealth(fetchImpl).then((result) => {
-        if (result.ok) {
-          setBuildId(result.data.buildId);
-        }
-      });
     }, 0);
     return () => window.clearTimeout(timer);
   }, [authority.session, authority.status, fetchImpl, loadAttention]);
+
+  useEffect(() => {
+    if (authority.status !== "ready" || !authority.session || authority.presentationOnly) {
+      return;
+    }
+    const actorId = authority.session.actorId;
+    let cancelled = false;
+    void fetchManagementContext(fetchImpl ?? fetch).then((result) => {
+      if (!cancelled) {
+        setManagementActorId(result.ok ? actorId : null);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [authority.presentationOnly, authority.session, authority.status, fetchImpl]);
 
   useEffect(() => {
     function sync() {
@@ -313,9 +330,13 @@ export function PosRuntime({
     ) => {
       const db = openPosLocalDatabase();
       const customers = createLocalCustomerPort({ db });
-      const locationId = current.register?.locationId ?? current.assignedLocationIds[0] ?? CASHIER_SEED_LOCATION_ID;
-      const deviceId = current.shift?.deviceId ?? readOrCreateLocalDeviceId();
-      const scope = checkoutScopeFromStaffAuthority(current, deviceId);
+      const locationId = current.register?.locationId ?? current.assignedLocationIds[0];
+      if (!locationId) {
+        setProjectionAvailability(availability);
+        setPorts(null);
+        return;
+      }
+      const scope = checkoutScopeFromStaffAuthority(current);
       const checkout =
         scope && !current.presentationOnly
           ? createBrowserCashCheckoutPorts({
@@ -325,6 +346,7 @@ export function PosRuntime({
               tenderActivity: createTenderActivityPort(db),
             })
           : null;
+      const capabilities = await fetchPaymentMethodCapabilities(fetchImpl);
       setProjectionAvailability(availability);
       setPorts({
         catalog: createLocalCatalogPort({ db }),
@@ -352,6 +374,7 @@ export function PosRuntime({
         checkoutScope: checkout?.scope,
         catalogAvailability: availability,
         catalogProjectionGeneration,
+        ...(capabilities.ok ? { paymentMethods: capabilities.data } : {}),
       });
     },
     [fetchImpl],
@@ -530,8 +553,41 @@ export function PosRuntime({
     );
   }
 
+  if (authority.mustChangePassword) {
+    return (
+      <PosRuntimeOwner
+        ownerRef={ownerNodeRef}
+        restoreCountRef={restoreCountRef}
+        catalogBootstrapCountRef={catalogBootstrapCountRef}
+        status={authority.status}
+      >
+        <PasswordChangeScreen
+          busy={passwordChangeBusy}
+          errorMessage={passwordChangeError}
+          onSignOut={() => {
+            void runtime.signOut();
+          }}
+          onSubmit={(password) => {
+            setPasswordChangeBusy(true);
+            setPasswordChangeError(undefined);
+            void changeRequiredPassword(password, fetchImpl ?? fetch).then(async (result) => {
+              setPasswordChangeBusy(false);
+              if (!result.ok) {
+                setPasswordChangeError("The new password could not be saved. Try again.");
+                return;
+              }
+              await runtime.signOut();
+            });
+          }}
+        />
+      </PosRuntimeOwner>
+    );
+  }
+
   const authoritativeActionsAllowed = hasFreshStaffActionAuthority(authority);
-  const deviceId = authority.shift?.deviceId ?? readOrCreateLocalDeviceId();
+  const managementAvailable =
+    authoritativeActionsAllowed &&
+    managementActorId === authority.session.actorId;
   const extras = clientAttentionExtras({ catalogAvailability: projectionAvailability, authority });
   const localRecoveryChecked = localRecoveryActorId === authority.session.actorId;
   const effectiveLocalAttention = localRecoveryChecked ? localAttention : [];
@@ -539,6 +595,10 @@ export function PosRuntime({
   const localTransactionRecoveryBlocked =
     !localRecoveryChecked || hasBlockingLocalTransactionRecovery(effectiveLocalAttention);
   const attentionCount = attentionItems.length;
+  const noOperationalLocation =
+    !authority.presentationOnly &&
+    !authority.register?.locationId &&
+    authority.assignedLocationIds.length === 0;
   const sellPorts =
     ports && localTransactionRecoveryBlocked
       ? { ...ports, checkout: undefined, payments: undefined, sales: undefined }
@@ -561,6 +621,7 @@ export function PosRuntime({
       attentionCount={attentionCount}
       toast={toast}
       onNavigate={onNavigate}
+      onOpenManagement={managementAvailable ? onOpenManagement : undefined}
       onLock={() => {
         void (async () => {
           await identity.signOut();
@@ -582,7 +643,14 @@ export function PosRuntime({
         </p>
       ) : null}
       {route === "sell" ? (
-        sellPorts ? (
+        noOperationalLocation ? (
+          <section className="card card-pad" data-no-operational-location="true">
+            <h1>Sell</h1>
+            <p className="banner warning">
+              No store location is assigned to this staff account. Ask a manager to assign a location and register.
+            </p>
+          </section>
+        ) : sellPorts ? (
           <>
             {projectionAvailability === "unavailable" ? (
               <p className="muted" role="status">
@@ -652,12 +720,12 @@ export function PosRuntime({
               return {
                 id,
                 name: record?.name ?? id,
-                locationLabel: record && !isUuidLike(record.locationId) ? record.locationId : undefined,
+                locationLabel: undefined,
               };
             })}
             registerName={authority.register?.name ?? authority.selectedRegisterId ?? "Register"}
-            locationLabel={isUuidLike(authority.register?.locationId) ? undefined : authority.register?.locationId}
-            deviceId={deviceId}
+            locationLabel={undefined}
+            registerStatus={authority.register?.status ?? "disabled"}
             currency={authority.register?.currency ?? "GHS"}
             onSelectRegister={(id) => {
               void runtime.selectRegister(id);
@@ -683,7 +751,6 @@ export function PosRuntime({
           catalogAvailability={projectionAvailability}
           fetchImpl={fetchImpl}
           appearance={appearance}
-          buildId={buildId}
           attentionItems={attentionItems}
           attentionCount={attentionCount}
           attentionState={attentionState}
@@ -700,8 +767,8 @@ export function PosRuntime({
           }}
           onRebuildSuccess={() => {
             showToast({
-              title: "Rebuildable catalog projection refreshed.",
-              detail: "Durable cart was preserved.",
+              title: "Products refreshed.",
+              detail: "Your current sale was kept.",
             });
           }}
           onRetryAttention={() => {
@@ -789,4 +856,37 @@ function PosRuntimeOwner({
       {children}
     </div>
   );
+}
+
+function readCookie(name: string): string {
+  if (typeof document === "undefined") return "";
+  const parts = document.cookie.split(";");
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (trimmed.startsWith(`${name}=`)) return decodeURIComponent(trimmed.slice(name.length + 1));
+  }
+  return "";
+}
+
+async function changeRequiredPassword(
+  password: string,
+  fetchImpl: typeof fetch,
+): Promise<{ readonly ok: boolean }> {
+  try {
+    const response = await fetchImpl("/api/pos/v1/session/password", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        "x-correlation-id": crypto.randomUUID(),
+        [STAFF_CSRF_HEADER]: readCookie(STAFF_CSRF_COOKIE),
+      },
+      body: JSON.stringify({ password }),
+    });
+    const body = await response.json() as { ok?: boolean };
+    return { ok: body.ok === true };
+  } catch {
+    return { ok: false };
+  }
 }

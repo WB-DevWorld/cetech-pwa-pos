@@ -24,15 +24,24 @@ const health: StoreHealth = {
 };
 
 describe("operational recovery surfaces", () => {
-  test("System status renders contract health without overstating degraded/unavailable checks", () => {
-    const html = renderToStaticMarkup(<StoreHealthScreen health={health} deviceName="POS tablet" appVersion="R8" />);
+  test("cashier System status stays operational and hides support diagnostics", () => {
+    const html = renderToStaticMarkup(<StoreHealthScreen health={health} onOpenAttention={() => undefined} />);
     expect(html).toContain("System status");
-    expect(html).toContain("Pending operations");
+    expect(html).toContain("Pending work");
     expect(html).toContain("Needs attention");
-    expect(html).toContain("Commerce runtime");
+    expect(html).toContain("Store connection");
+    expect(html).toContain("Prices");
+    expect(html).toContain("View attention");
     expect(html).toContain("Degraded");
     expect(html).toContain("Unverified");
-    expect(html).toContain("1.0.0");
+    expect(html).not.toContain("1.0.0");
+    expect(html).not.toContain("r8-staging");
+    expect(html).not.toContain("API contract");
+    expect(html).not.toContain("Local schema");
+    expect(html).not.toContain("Version &amp; recovery");
+    expect(html).not.toContain("Technical details");
+    expect(html).not.toContain("Fix App");
+    expect(html).not.toContain("Rebuild catalog");
   });
 
   test("System status loading, offline, degraded and error states remain explicit", () => {
@@ -74,7 +83,8 @@ describe("operational recovery surfaces", () => {
     expect(blocked).toContain("disabled");
     const safe = renderToStaticMarkup(<UpdateReadyDialog open safety="safe" currentBuild="r8" nextBuild="r8.1" onLater={() => undefined} onApply={() => undefined} />);
     expect(safe).toContain("Safe to update.");
-    expect(safe).toContain("r8.1");
+    expect(safe).toContain("New version ready");
+    expect(safe).not.toContain("r8.1");
   });
 
   test("connectivity, passive-tab, migration and Troubleshoot copy preserve critical local state", () => {

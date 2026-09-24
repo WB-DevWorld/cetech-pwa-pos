@@ -1,7 +1,7 @@
 "use client";
 
 import { formatMoneyDisplay } from "../sell/state/quotePresentation";
-import { orderStatusLabel, TechnicalDetails } from "../../ui/cashier-language";
+import { orderStatusLabel } from "../../ui/cashier-language";
 import {
   canPresentReturnComplete,
   conditionLabel,
@@ -24,6 +24,21 @@ const CONDITIONS: readonly ReturnConditionView[] = [
   "not_physically_returned",
 ];
 
+function friendlyPending(label: string): string {
+  switch (label) {
+    case "payment refund":
+      return "Payment refund pending";
+    case "cash refund":
+      return "Cash refund pending";
+    case "order refund":
+      return "Order refund needs review";
+    case "stock update":
+      return "Stock update needs attention";
+    default:
+      return label;
+  }
+}
+
 function EffectRow({
   label,
   effect,
@@ -36,16 +51,26 @@ function EffectRow({
   if (!effect) {
     return null;
   }
+  const tone =
+    effect.status === "completed"
+      ? "success"
+      : effect.status === "not_required"
+        ? "info"
+        : effect.status === "requires_attention"
+          ? "danger"
+          : "warning";
   return (
     <div
-      className="r-row"
+      className="r-row return-effect-row"
       data-effect-name={label}
       data-effect-status={effect.status}
       data-effect-id={effect.effectId ?? ""}
       data-refund-identity={refundIdentity ? effect.effectId ?? "" : undefined}
     >
-      <span>{label}</span>
-      <span>{orderStatusLabel(effect.status)}</span>
+      <span className="return-effect-label">{label}</span>
+      <span className={`workspace-badge ${tone} return-effect-status`}>
+        {orderStatusLabel(effect.status)}
+      </span>
     </div>
   );
 }
@@ -102,13 +127,13 @@ export function ReturnFlow({
           <article key={line.orderLineId} className="card card-pad return-line" data-order-line-id={line.orderLineId}>
             <div className="row between">
               <div>
-                <strong>{line.name}</strong>
+                <strong className="compact-product-name">{line.name}</strong>
                 <div className="muted">Sold {line.originalSoldQuantity}</div>
               </div>
             </div>
             <div className="grid-3">
               <div className="field">
-                <label htmlFor={`return-qty-${line.orderLineId}`}>Return qty</label>
+                <label htmlFor={`return-qty-${line.orderLineId}`}>Quantity to return</label>
                 <input
                   id={`return-qty-${line.orderLineId}`}
                   className="input"
@@ -151,7 +176,7 @@ export function ReturnFlow({
                 {safety}
               </div>
             ) : (
-              <p className="muted">Stock action follows the reviewed return. A refund is not a stock update.</p>
+              <p className="muted">The refund and the stock action are confirmed separately.</p>
             )}
             {preview ? (
               <div
@@ -161,9 +186,9 @@ export function ReturnFlow({
                 data-intended-disposition={preview.intendedDisposition}
                 data-disposition-policy={preview.dispositionPolicy}
               >
-                <div>Remaining returnable: {preview.remainingReturnableQuantity}</div>
+                <div>Remaining returnable quantity: {preview.remainingReturnableQuantity}</div>
                 <div>Stock action: {dispositionLabel(preview.intendedDisposition)}</div>
-                <div>Stock action: {dispositionPolicyLabel(preview.dispositionPolicy)}</div>
+                <div>Stock rule: {dispositionPolicyLabel(preview.dispositionPolicy)}</div>
                 {preview.intendedDisposition === "no_automatic_restock" ? (
                   <div className="banner info" role="status">
                     No automatic restock.
@@ -188,28 +213,46 @@ export function ReturnFlow({
         </div>
       ) : null}
       {session.approvalId ? (
-        <div data-bound-approval={session.approvalId}>
-          <TechnicalDetails rows={[{ label: "Approval ID", value: session.approvalId }]} />
+        <div className="banner success" role="status" data-bound-approval="">
+          Manager approval recorded.
         </div>
       ) : null}
       {session.providerRefund || session.cashRefund || session.commercialRefund || session.stockDisposition ? (
-        <div className="card card-pad" data-return-effects="">
+        <div className="card card-pad return-effect-card" data-return-effects="">
           <strong>Return progress</strong>
+          <div className="return-effect-list">
           <EffectRow label="Payment refund" effect={session.providerRefund} refundIdentity />
           <EffectRow label="Cash refund" effect={session.cashRefund} refundIdentity />
           <EffectRow label="Order refund" effect={session.commercialRefund} />
           <EffectRow label="Stock update" effect={session.stockDisposition} />
+          </div>
+          {session.cashRefund?.status === "completed" && !complete ? (
+            <div className="banner info return-effect-safety" role="status" data-cash-refund-complete-warning="">
+              <strong>Cash refund already completed.</strong>
+              <span>Do not refund the customer again while the order refund or stock update is being checked.</span>
+            </div>
+          ) : null}
+          {session.commercialRefund?.status === "requires_attention" ? (
+            <div className="banner warning return-effect-safety" role="alert" data-order-refund-review="">
+              <strong>Order refund needs review.</strong>
+              <span>Do not create another Woo order refund. A manager or support person must check the existing refund first.</span>
+            </div>
+          ) : null}
+          {(session.stockDisposition?.status === "pending" ||
+            session.stockDisposition?.status === "requires_attention") ? (
+            <div className="banner warning return-effect-safety" role="status" data-stock-update-review="">
+              <strong>Stock update is not settled yet.</strong>
+              <span>Do not adjust stock manually until this return has been checked.</span>
+            </div>
+          ) : null}
         </div>
-      ) : null}
-      {session.refundIdentities.length > 0 ? (
-        <TechnicalDetails
-          rows={session.refundIdentities.map((id, index) => ({ label: `Refund ${index + 1}`, value: id }))}
-        />
       ) : null}
       {!complete && unresolved.length > 0 ? (
         <div className="banner warning" role="alert" data-return-unresolved="">
           {"This return isn't finished yet. Some refund or stock updates are still pending."}
-          <TechnicalDetails rows={unresolved.map((label) => ({ label: "Pending", value: label }))} />
+          <ul>
+            {unresolved.map((label) => <li key={label}>{friendlyPending(label)}</li>)}
+          </ul>
         </div>
       ) : null}
       {complete ? (
@@ -223,9 +266,9 @@ export function ReturnFlow({
             Review return
           </button>
         ) : null}
-        {!locked && (session.stage === "previewed" || (session.stage === "approval_required" && session.approvalId)) && session.returnId ? (
+        {!locked && (session.stage === "previewed" || session.stage === "approval_required") && session.returnId ? (
           <button type="button" className="btn primary" disabled={inFlight} onClick={onExecute}>
-            Complete return
+            {session.stage === "approval_required" && !session.approvalId ? "Check approval" : "Complete return"}
           </button>
         ) : null}
         {locked || session.stage === "resolving" || session.stage === "in_progress" || session.stage === "refund_pending" || session.stage === "requires_attention" ? (

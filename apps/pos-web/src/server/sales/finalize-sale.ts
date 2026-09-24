@@ -41,6 +41,11 @@ export async function finalizeSale(input: {
       context.idempotencyKey,
       hash,
       saleForClaim?.locationId ?? actor.locationIds[0],
+      {
+        registerId: saleForClaim?.registerId,
+        shiftId: saleForClaim?.shiftId,
+        transactionId: request.transactionId,
+      },
     );
     if (claim.kind === "conflict") {
       return apiFailure(

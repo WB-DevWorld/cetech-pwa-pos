@@ -18,6 +18,7 @@ export type PreparedSaleView = {
 
 export type ReceiptLineView = {
   readonly name: string;
+  readonly sku?: string;
   readonly variationLabel?: string;
   readonly quantity: string;
   readonly unitPrice: CheckoutMoneyView;
@@ -192,7 +193,7 @@ export function describeCheckoutStage(stage: CheckoutStageView): {
     case "cancelling":
       return { title: "Cancelling sale", status: "Checking sale status…" };
     case "cancel_failed":
-      return { title: "Sale could not be cancelled", status: "The prepared sale is still held. Do not start another sale." };
+      return { title: "Sale could not be cancelled", status: "This sale is still active. Do not start another sale." };
     case "confirming_cash":
       return { title: "Confirming cash", status: "Confirming cash payment. Do not start another payment." };
     case "cash_failed":

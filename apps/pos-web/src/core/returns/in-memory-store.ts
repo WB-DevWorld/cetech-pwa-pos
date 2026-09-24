@@ -115,6 +115,13 @@ export function createInMemoryReturnStore(): ReturnStore {
       return row ? { ...row } : undefined;
     },
 
+    async getApprovalForReturn(returnId, fingerprint) {
+      return [...approvals.values()]
+        .filter((row) => row.returnId === returnId && row.fingerprint === fingerprint)
+        .sort((left, right) => Date.parse(right.expiresAt) - Date.parse(left.expiresAt))
+        .map((row) => ({ ...row }))[0];
+    },
+
     async insertTenderRefund(row) {
       if (tenderRefunds.has(row.refundId)) {
         return "duplicate";

@@ -25,7 +25,7 @@ export function createSupabaseStaffSessionStore(
   const headers = infrastructureHeaders(options.serviceRoleKey);
 
   return {
-    async create(session, csrfToken, expiresAt) {
+    async create(session, csrfToken, expiresAt, flags) {
       const sessionId = crypto.randomUUID();
       const response = await options.fetchImpl(base, {
         method: "POST",
@@ -35,7 +35,11 @@ export function createSupabaseStaffSessionStore(
           organization_id: session.organizationId,
           actor_id: session.actorId,
           csrf_token: csrfToken,
-          session_payload: session,
+          session_payload: {
+            ...session,
+            ...(flags?.mustChangePassword === true ? { mustChangePassword: true } : {}),
+            ...(flags?.authUserId ? { authUserId: flags.authUserId } : {}),
+          },
           expires_at: expiresAt.toISOString(),
         }),
         signal: AbortSignal.timeout(timeoutMs),
@@ -69,6 +73,23 @@ export function createSupabaseStaffSessionStore(
         return;
       }
       const url = `${base}?id=eq.${encodeURIComponent(sessionId)}`;
+      const response = await options.fetchImpl(url, {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({ revoked_at: new Date().toISOString() }),
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      if (response.status === 401 || response.status === 403) {
+        throw new Error("staff session store denied infrastructure access");
+      }
+      if (!response.ok && response.status !== 404) {
+        throw new Error("staff session store is unavailable");
+      }
+    },
+    async revokeActorSessions(input) {
+      const url =
+        `${base}?organization_id=eq.${encodeURIComponent(input.organizationId)}` +
+        `&actor_id=eq.${encodeURIComponent(input.actorId)}&revoked_at=is.null`;
       const response = await options.fetchImpl(url, {
         method: "PATCH",
         headers,
@@ -118,11 +139,18 @@ function parseStoredRow(rows: unknown, now: Date): StoredStaffSession | null {
   if (!session) {
     return null;
   }
+  const payload = data.session_payload;
+  const payloadRecord =
+    payload !== null && typeof payload === "object" && !Array.isArray(payload)
+      ? payload as Record<string, unknown>
+      : {};
+  const mustChangePassword = payloadRecord.mustChangePassword === true;
+  const authUserId = typeof payloadRecord.authUserId === "string" ? payloadRecord.authUserId : null;
   if (session.organizationId !== data.organization_id || session.actorId !== data.actor_id) {
     return null;
   }
   if (typeof data.csrf_token !== "string" || data.csrf_token.length < 1) {
     return null;
   }
-  return { session, csrfToken: data.csrf_token, expiresAt };
+  return { session, csrfToken: data.csrf_token, expiresAt, mustChangePassword, authUserId };
 }

@@ -275,6 +275,36 @@
                 }
             ]
         },
+        "CustomerSummary": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "$ref": "#/$defs/Id"
+                },
+                "kind": {
+                    "type": "string",
+                    "enum": [
+                        "retail",
+                        "b2b"
+                    ]
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "company": {
+                    "type": "string"
+                },
+                "phoneMasked": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "id",
+                "kind",
+                "displayName"
+            ],
+            "additionalProperties": false
+        },
         "Id": {
             "type": "string",
             "minLength": 1,
@@ -341,6 +371,9 @@
                     "type": "string",
                     "minLength": 32,
                     "maxLength": 128
+                },
+                "customerSnapshot": {
+                    "$ref": "#/$defs/CustomerSummary"
                 }
             },
             "required": [
