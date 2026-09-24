@@ -15,11 +15,11 @@ You do **not** need to understand how the software was built. Use the POS as a n
 
 ## The POS to use today
 
-> This is the **current approved staff-test version** for 24 September 2026. A newer candidate completed all required gates before staff testing began, so it replaces the earlier morning freeze. Staff should use only the version below for this test session.
+> This is the **current POS test version** for 24 September 2026. Its source, automated checks, independent review, and exact Preview have passed. Some live return/refund/stock behavior in the training environment is still part of what this test session must help verify. Use only the version below for this test session.
 
 **Open the POS here:** **https://cetech-pos-staging-euh0w6ano-wbdevworlds-projects.vercel.app**
 
-**Version being tested:** **CETECH POS approved staff-test build `d0480d33`**
+**Version being tested:** **CETECH POS test build `d0480d33`**
 
 Please use only the link above during this test session.
 
@@ -215,6 +215,7 @@ This section is kept only so every result can be tied to the exact software vers
 - Preview/workflow reference: **Exact SHA Preview** run #17, run id `35970288357` — **SUCCESS**; Vercel deployment `dpl_FFZKnbXiKNCzD7SrsQhJWw8mVQMx`
 - Qualification evidence: PR CI #1378 / run `35938935088` — **SUCCESS**; push CI #1377 / run `35938929010` — **SUCCESS**; independent exact-head review — **APPROVED** by `Ben-001-sys`
 - Supersedes the earlier morning freeze to `7292cf2844c5d6724a36f71f8ef2474cdc30e7bb`; no staff testing had started when this replacement was issued.
+- Current environment note: source review and Exact-SHA Preview are complete. Training-bridge/runtime acceptance for the newest return/refund/stock repair is still being verified during the test period; do not treat an uncertain return/refund/stock result as permission to repeat the effect.
 - Session start:
 
 If the test version changes during the session, record the new version separately. Do not mix results from different versions.
