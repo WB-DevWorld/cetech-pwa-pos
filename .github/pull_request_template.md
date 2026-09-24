@@ -27,3 +27,13 @@ Name; final head to review; approval pending/recorded; independent review covera
 
 ## Release limitations and handoff
 Assumptions/remaining risks/next action; external effects and recovery references; capability flags/rollback. Code implemented != CI green != reviewed != staging accepted != production approved.
+
+
+## Staff documentation impact
+Choose **exactly one**. See `docs/staff/DOCUMENTATION-MAINTENANCE.md`.
+
+- [ ] Staff documentation updated
+- [ ] No staff documentation impact
+
+Affected staff docs / no-impact reason:
+<!-- If updated, list the docs/staff/*.md files. If no impact, explain why staff-visible behavior, roles, workflows, warnings and acceptance tests are unchanged. -->
