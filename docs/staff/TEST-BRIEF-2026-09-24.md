@@ -15,11 +15,11 @@ You do **not** need to understand how the software was built. Use the POS as a n
 
 ## The POS to use today
 
-> This is the **approved staff-test version** for 24 September 2026. It is the latest candidate that completed all required gates: successful required CI, independent exact-version approval, and a successful immutable Exact-SHA Preview. Newer source may exist, but staff must not switch to another build unless a new approved test version is explicitly issued.
+> This is the **current approved staff-test version** for 24 September 2026. A newer candidate completed all required gates before staff testing began, so it replaces the earlier morning freeze. Staff should use only the version below for this test session.
 
-**Open the POS here:** **https://cetech-pos-staging-fh710pi6e-wbdevworlds-projects.vercel.app**
+**Open the POS here:** **https://cetech-pos-staging-euh0w6ano-wbdevworlds-projects.vercel.app**
 
-**Version being tested:** **CETECH POS approved staff-test build `7292cf28`**
+**Version being tested:** **CETECH POS approved staff-test build `d0480d33`**
 
 Please use only the link above during this test session.
 
@@ -209,11 +209,12 @@ A problem without a screenshot can still be reported. Just describe clearly what
 
 This section is kept only so every result can be tied to the exact software version that was tested.
 
-- Exact Git SHA/build: `7292cf2844c5d6724a36f71f8ef2474cdc30e7bb`
-- Source PR/candidate: PR #109 / #105 candidate at exact head `7292cf2844c5d6724a36f71f8ef2474cdc30e7bb`
-- Immutable Preview/test URL: `https://cetech-pos-staging-fh710pi6e-wbdevworlds-projects.vercel.app`
-- Preview/workflow reference: **Exact SHA Preview** run #16, run id `35931224828` — **SUCCESS**; Vercel deployment `dpl_B4KeeTNMpFEBFDfmEotRAEnVgq1P`
-- Qualification evidence: PR CI #1330 / run `35930030295` — **SUCCESS**; independent exact-head review — **APPROVED** by `Ben-001-sys`
+- Exact Git SHA/build: `d0480d331c037a62edffb8845adc67524d2cabb8`
+- Source PR/candidate: PR #109 / #105 candidate at exact head `d0480d331c037a62edffb8845adc67524d2cabb8`
+- Immutable Preview/test URL: `https://cetech-pos-staging-euh0w6ano-wbdevworlds-projects.vercel.app`
+- Preview/workflow reference: **Exact SHA Preview** run #17, run id `35970288357` — **SUCCESS**; Vercel deployment `dpl_FFZKnbXiKNCzD7SrsQhJWw8mVQMx`
+- Qualification evidence: PR CI #1378 / run `35938935088` — **SUCCESS**; push CI #1377 / run `35938929010` — **SUCCESS**; independent exact-head review — **APPROVED** by `Ben-001-sys`
+- Supersedes the earlier morning freeze to `7292cf2844c5d6724a36f71f8ef2474cdc30e7bb`; no staff testing had started when this replacement was issued.
 - Session start:
 
 If the test version changes during the session, record the new version separately. Do not mix results from different versions.
