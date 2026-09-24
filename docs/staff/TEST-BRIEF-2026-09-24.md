@@ -15,11 +15,11 @@ You do **not** need to understand how the software was built. Use the POS as a n
 
 ## The POS to use today
 
-> This section will be updated with the **latest approved test version as of 7:00 AM on 24 September 2026**.
+> This is the **approved staff-test version** for 24 September 2026. It is the latest candidate that completed all required gates: successful required CI, independent exact-version approval, and a successful immutable Exact-SHA Preview. Newer source may exist, but staff must not switch to another build unless a new approved test version is explicitly issued.
 
-**Open the POS here:** **TO BE UPDATED AT 7:00 AM**
+**Open the POS here:** **https://cetech-pos-staging-fh710pi6e-wbdevworlds-projects.vercel.app**
 
-**Version being tested:** **TO BE UPDATED AT 7:00 AM**
+**Version being tested:** **CETECH POS approved staff-test build `7292cf28`**
 
 Please use only the link above during this test session.
 
@@ -209,10 +209,11 @@ A problem without a screenshot can still be reported. Just describe clearly what
 
 This section is kept only so every result can be tied to the exact software version that was tested.
 
-- Exact Git SHA/build: **TO BE UPDATED AT 7:00 AM**
-- Source PR/candidate: **TO BE UPDATED AT 7:00 AM**
-- Immutable Preview/test URL: **TO BE UPDATED AT 7:00 AM**
-- Preview/workflow reference: **TO BE UPDATED AT 7:00 AM**
+- Exact Git SHA/build: `7292cf2844c5d6724a36f71f8ef2474cdc30e7bb`
+- Source PR/candidate: PR #109 / #105 candidate at exact head `7292cf2844c5d6724a36f71f8ef2474cdc30e7bb`
+- Immutable Preview/test URL: `https://cetech-pos-staging-fh710pi6e-wbdevworlds-projects.vercel.app`
+- Preview/workflow reference: **Exact SHA Preview** run #16, run id `35931224828` — **SUCCESS**; Vercel deployment `dpl_B4KeeTNMpFEBFDfmEotRAEnVgq1P`
+- Qualification evidence: PR CI #1330 / run `35930030295` — **SUCCESS**; independent exact-head review — **APPROVED** by `Ben-001-sys`
 - Session start:
 
 If the test version changes during the session, record the new version separately. Do not mix results from different versions.
