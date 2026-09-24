@@ -369,21 +369,10 @@ export function createStaffRuntimeController(input: {
       });
     },
     async refreshRegister() {
-      if (!state.session || state.presentationOnly) {
-        await applyContext(await input.gateway.readContext());
-        return;
-      }
-      const current = state.session;
-      setState(
-        await loadRegister(
-          {
-            session: current,
-            assignedLocationIds: state.assignedLocationIds,
-            assignedRegisterIds: state.assignedRegisterIds,
-          },
-          state,
-        ),
-      );
+      // Refresh the server-owned assignment list as well as the selected
+      // register. A role or register change must not require a new browser
+      // session to appear, and stale choices must not remain authoritative.
+      await applyContext(await input.gateway.readContext());
     },
     async selectRegister(registerId) {
       if (!state.session || state.presentationOnly) {

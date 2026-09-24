@@ -238,6 +238,46 @@ Do not mark a blocked test as PASS.
 
 ---
 
+## T13 — Cashier register access without organization Admin
+
+**Do:** With a test account assigned Cashier at a location and assigned at least one register, sign in on a desktop and a phone. Confirm the account has no organization Owner/Admin/Support role. Open Register without opening a shift.
+
+**Expected:**
+- the assigned register choices appear on both devices;
+- no organization Admin role is needed;
+- registers outside the account's assignments are absent;
+- record the exact test URL/build on each device.
+
+### Your result
+
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
+**What actually happened:**  
+**Anything confusing:**  
+**Screenshot/photo:** embedded image or exact filename/path  
+**Other notes:**  
+
+---
+
+## T14 — Register assignment changes during a session
+
+**Do:** In a controlled staging test, have an authorized manager add or remove a test register assignment for the signed-in cashier. Record the visible register choices before the change. Return to the POS tab or reconnect, then open Register and record the choices afterward. Do not open a shift for this check.
+
+**Expected:**
+- the list reflects the current assignment without granting an organization Admin role;
+- a removed register can no longer be selected;
+- if the session or assignment check fails, the POS asks for recovery instead of saying the cashier has no assigned register;
+- no saved cart or pending work is cleared.
+
+### Your result
+
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
+**What actually happened:**  
+**Anything confusing:**  
+**Screenshot/photo:** embedded image or exact filename/path  
+**Other notes:**  
+
+---
+
 # C. PRODUCTS / CART
 
 ## T20 — Search product by name

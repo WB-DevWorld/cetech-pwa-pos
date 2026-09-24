@@ -123,6 +123,25 @@ describe("STG-06 staff runtime register authority", () => {
     });
   });
 
+  test("refresh picks up a cashier register assignment and later revocation", async () => {
+    let assigned: readonly string[] = [];
+    const { runtime } = controller(stubRegisters(), () => assigned);
+    await runtime.restore();
+    expect(runtime.getState().assignedRegisterIds).toEqual([]);
+    expect(runtime.getState().register).toBeNull();
+
+    assigned = ["reg_a"];
+    await runtime.refreshRegister();
+    expect(runtime.getState().assignedRegisterIds).toEqual(["reg_a"]);
+    expect(runtime.getState().register?.id).toBe("reg_a");
+
+    assigned = [];
+    await runtime.refreshRegister();
+    expect(runtime.getState().assignedRegisterIds).toEqual([]);
+    expect(runtime.getState().register).toBeNull();
+    expect(runtime.getState().shiftOpen).toBe(false);
+  });
+
   test("transient register GET failure preserves previously verified authority", async () => {
     const registers = stubRegisters();
     const { runtime } = controller(registers);
