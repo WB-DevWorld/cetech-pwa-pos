@@ -153,21 +153,6 @@ Do not rename or delete a screenshot after referencing it in the document.
 
 ---
 
-## Suggested order for the session
-
-1. Short guided training.
-2. Normal cashier selling.
-3. Customers and Orders.
-4. Returns.
-5. Receipts and printing.
-6. Offline and reconnect testing.
-7. Manager/Admin testing.
-8. Register/shift testing.
-9. Phone/tablet/desktop and hardware testing.
-10. Final staff feedback.
-
----
-
 ## What you must submit
 
 At the end of testing, submit:
