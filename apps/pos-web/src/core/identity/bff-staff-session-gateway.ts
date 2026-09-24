@@ -111,8 +111,10 @@ export function createBffStaffSessionGateway(
       if (!posted.ok) {
         return posted;
       }
-      const recovered = await request("GET");
-      return recovered.ok ? recovered : posted;
+      // A successful POST only establishes the cookie. Its Session payload has
+      // no server-owned register assignments, so a failed GET cannot become
+      // cashier authority with an empty register list.
+      return request("GET");
     },
     async readContext() {
       return request("GET");
