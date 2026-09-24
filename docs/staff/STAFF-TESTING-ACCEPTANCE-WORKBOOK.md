@@ -260,7 +260,7 @@ Do not mark a blocked test as PASS.
 
 ## T14 — Register assignment changes during a session
 
-**Do:** In a controlled staging test, have an authorized manager add or remove a test register assignment for the signed-in cashier. Return to the POS tab or reconnect, then open Register. Do not open a shift for this check.
+**Do:** In a controlled staging test, have an authorized manager add or remove a test register assignment for the signed-in cashier. Record the visible register choices before the change. Return to the POS tab or reconnect, then open Register and record the choices afterward. Do not open a shift for this check.
 
 **Expected:**
 - the list reflects the current assignment without granting an organization Admin role;
