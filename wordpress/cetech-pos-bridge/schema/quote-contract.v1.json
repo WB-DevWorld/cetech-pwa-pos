@@ -349,6 +349,43 @@
                 "external_electronic"
             ]
         },
+        "PrepareSaleRequest": {
+            "type": "object",
+            "properties": {
+                "transactionId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "registerId": {
+                    "$ref": "#/$defs/Id"
+                },
+                "shiftId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "deviceId": {
+                    "$ref": "#/$defs/Uuid"
+                },
+                "quoteId": {
+                    "$ref": "#/$defs/Id"
+                },
+                "quoteFingerprint": {
+                    "type": "string",
+                    "minLength": 32,
+                    "maxLength": 128
+                },
+                "customerSnapshot": {
+                    "$ref": "#/$defs/CustomerSummary"
+                }
+            },
+            "required": [
+                "transactionId",
+                "registerId",
+                "shiftId",
+                "deviceId",
+                "quoteId",
+                "quoteFingerprint"
+            ],
+            "additionalProperties": false
+        },
         "PreparedSale": {
             "type": "object",
             "properties": {
@@ -394,43 +431,6 @@
                 "stockCommitment",
                 "preparedAt",
                 "expiresAt"
-            ],
-            "additionalProperties": false
-        },
-        "PrepareSaleRequest": {
-            "type": "object",
-            "properties": {
-                "transactionId": {
-                    "$ref": "#/$defs/Uuid"
-                },
-                "registerId": {
-                    "$ref": "#/$defs/Id"
-                },
-                "shiftId": {
-                    "$ref": "#/$defs/Uuid"
-                },
-                "deviceId": {
-                    "$ref": "#/$defs/Uuid"
-                },
-                "quoteId": {
-                    "$ref": "#/$defs/Id"
-                },
-                "quoteFingerprint": {
-                    "type": "string",
-                    "minLength": 32,
-                    "maxLength": 128
-                },
-                "customerSnapshot": {
-                    "$ref": "#/$defs/CustomerSummary"
-                }
-            },
-            "required": [
-                "transactionId",
-                "registerId",
-                "shiftId",
-                "deviceId",
-                "quoteId",
-                "quoteFingerprint"
             ],
             "additionalProperties": false
         },
