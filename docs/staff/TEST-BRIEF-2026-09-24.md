@@ -215,7 +215,11 @@ This section is kept only so every result can be tied to the exact software vers
 - Preview/workflow reference: **Exact SHA Preview** run #17, run id `35970288357` — **SUCCESS**; Vercel deployment `dpl_FFZKnbXiKNCzD7SrsQhJWw8mVQMx`
 - Qualification evidence: PR CI #1378 / run `35938935088` — **SUCCESS**; push CI #1377 / run `35938929010` — **SUCCESS**; independent exact-head review — **APPROVED** by `Ben-001-sys`
 - Supersedes the earlier morning freeze to `7292cf2844c5d6724a36f71f8ef2474cdc30e7bb`; no staff testing had started when this replacement was issued.
-- Current environment note: source review and Exact-SHA Preview are complete. Training-bridge/runtime acceptance for the newest return/refund/stock repair is still being verified during the test period; do not treat an uncertain return/refund/stock result as permission to repeat the effect.
+- Training bridge status: exact reviewed `d0480d33` bridge source is installed on `training.cetechbpa.com`; health/route registration and auth-closure checks passed.
+- Training bridge package SHA-256: `970d7893504ffea816477f3c8778f623631f0d27cd9e8ce1aee6d11253135af2`.
+- No Woo refund, stock change, database change, Supabase change, production action, or mutation of the existing ambiguous return was performed during bridge installation.
+- Remaining environment acceptance: a **new safe authenticated staging sale/return** must verify the refund + stock path end to end. This is part of the controlled testing period and is not pre-marked PASS.
+- Safety boundary: if any return/refund/stock result is uncertain, record it and do not repeat the financial or stock effect.
 - Session start:
 
 If the test version changes during the session, record the new version separately. Do not mix results from different versions.
