@@ -195,12 +195,54 @@ function br08_crashed( $callable, $message ) {
 	br01_assert( $crashed, $message . ' seam fired' );
 }
 
+function br08_mark_refunded_unpaid( Cetech_Pos_Bridge_Fake_Woo_Runtime $runtime, $order_id ) {
+	$found = false;
+	foreach ( $runtime->orders as $index => $order ) {
+		if ( (string) $order['id'] === (string) $order_id ) {
+			$order['status']           = 'refunded';
+			$order['paid']             = false;
+			$runtime->orders[ $index ] = $order;
+			$found                     = true;
+			break;
+		}
+	}
+	br01_assert( $found, 'order exists to mark refunded' );
+}
+
+function br08_inject_native_refund( Cetech_Pos_Bridge_Fake_Woo_Runtime $runtime, $order_id, $commercial_refund_id, $transaction_id, $request_hash, $amount_minor ) {
+	$runtime->refunds[] = array(
+		'id'                   => (string) $runtime->next_refund_id,
+		'parent'               => (string) $order_id,
+		'amount_minor'         => (int) $amount_minor,
+		'commercial_refund_id' => (string) $commercial_refund_id,
+		'transaction_id'       => (string) $transaction_id,
+		'request_hash'         => (string) $request_hash,
+		'refund_payment'       => false,
+		'restock_items'        => false,
+	);
+	++$runtime->next_refund_id;
+}
+
+function br08_commercial_claim( Cetech_Pos_Bridge_Plugin $plugin, $commercial_refund_id ) {
+	return $plugin->get_return_effect_engine()->get_store()->get_by_effect_id(
+		Cetech_Pos_Bridge_Constants::OPERATION_COMMERCIAL_REFUND,
+		$commercial_refund_id
+	);
+}
+
 $woo_src    = file_get_contents( dirname( __DIR__, 2 ) . '/wordpress/cetech-pos-bridge/includes/class-woo-runtime.php' );
 $engine_src = file_get_contents( dirname( __DIR__, 2 ) . '/wordpress/cetech-pos-bridge/includes/class-return-effect-engine.php' );
 br01_assert( strpos( $woo_src, 'wc_create_refund' ) !== false, 'production commercial refund uses wc_create_refund' );
 br01_assert( strpos( $woo_src, "'refund_payment' => false" ) !== false, 'production refund_payment=false' );
 br01_assert( strpos( $woo_src, "'restock_items'  => false" ) !== false || strpos( $woo_src, "'restock_items' => false" ) !== false, 'production restock_items=false' );
 br01_assert( strpos( $woo_src, 'woocommerce_before_order_refund_object_save' ) !== false, 'production binds commercialRefundId on the WC_Order_Refund pre-save hook' );
+br01_assert( strpos( $engine_src, 'prove_exact_cetech_commercial_refund' ) !== false, 'refunded-order stock binding proves the exact native CETECH refund' );
+$proof_body = '';
+if ( preg_match( '/private function prove_exact_cetech_commercial_refund\( array \$raw, \$order_id \) \{.*?\n\t\}/s', $engine_src, $proof_match ) ) {
+	$proof_body = $proof_match[0];
+}
+br01_assert( $proof_body !== '' && strpos( $proof_body, 'woo_effect_entered' ) === false, 'exact CETECH refund proof does not accept woo_effect_entered' );
+br01_assert( strpos( $proof_body, 'find_commercial_refunds' ) !== false, 'exact CETECH refund proof reuses the native refund lookup' );
 br01_assert( strpos( $woo_src, 'wc_update_product_stock' ) !== false, 'production stock uses wc_update_product_stock' );
 br01_assert( strpos( $woo_src, "'increase'" ) !== false, 'production stock increase uses official Woo operator' );
 br01_assert( strpos( $engine_src, 'calculate_totals' ) === false, 'return-effect engine does not invoke calculate_totals' );
@@ -751,8 +793,126 @@ $ind2_stock_body = br08_stock_body(
 	'restock_sellable',
 	array( 'returnId' => $ind2_return )
 );
-$ind2_stock  = br08_dispatch_stock( $ind2_plugin, $ind2_stock_body, br08_headers( br06_next_uuid() ) );
+$ind2_stock_key = br06_next_uuid();
+$ind2_stock     = br08_dispatch_stock( $ind2_plugin, $ind2_stock_body, br08_headers( $ind2_stock_key ) );
 br01_assert_eq( 'completed', br08_code( $ind2_stock ), 'independence restock_sellable after CETECH full refund' );
 br01_assert_eq( $ind2_before + 1, $ind2_runtime->stock['101'], 'independence one intended stock increment' );
 br01_assert_eq( 1, $ind2_runtime->commercial_refund_creates, 'independence still one commercial refund' );
 br01_assert_eq( 1, $ind2_runtime->stock_increase_calls, 'independence one stock increment' );
+$ind2_claim  = br08_commercial_claim( $ind2_plugin, $ind2_refund_body['commercialRefundId'] );
+$ind2_native = $ind2_runtime->find_commercial_refunds( $ind2_sale['order_id'], $ind2_refund_body['commercialRefundId'] );
+br01_assert( is_array( $ind2_claim ), 'case 1 commercial claim identifies the CETECH refund' );
+br01_assert_eq( 1, count( $ind2_native ), 'case 1 one native CETECH refund' );
+br01_assert_eq( (string) $ind2_claim['effect_id'], (string) $ind2_native[0]['commercialRefundId'], 'case 1 native commercialRefundId matches the claim' );
+br01_assert_eq( (string) $ind2_claim['transaction_id'], (string) $ind2_native[0]['transactionId'], 'case 1 native transaction matches the claim' );
+br01_assert_eq( (string) $ind2_claim['request_hash'], (string) $ind2_native[0]['requestHash'], 'case 1 native request hash matches the claim' );
+$ind2_replay = br08_dispatch_stock( $ind2_plugin, $ind2_stock_body, br08_headers( $ind2_stock_key ) );
+br01_assert_eq( 'completed', br08_code( $ind2_replay ), 'case 1 repeated stock command stays completed' );
+br01_assert_eq( 1, $ind2_runtime->commercial_refund_creates, 'case 1 commercial refund remains exactly one' );
+br01_assert_eq( 1, $ind2_runtime->stock_increase_calls, 'case 1 stock increment remains exactly one' );
+br01_assert_eq( $ind2_before + 1, $ind2_runtime->stock['101'], 'case 1 replay does not increment again' );
+
+$fx_runtime = br06_runtime();
+$fx_plugin  = br08_plugin( $fx_runtime );
+$fx_sale    = br08_completed_sale( $fx_plugin, $fx_runtime );
+$fx_return  = br06_next_uuid();
+$fx_body    = br08_refund_body( $fx_sale, array( 'returnId' => $fx_return ) );
+$fx_runtime->fail_commercial_refund_before_native = true;
+$fx_refund  = br08_dispatch_refund( $fx_plugin, $fx_body, br08_headers( br06_next_uuid() ) );
+br01_assert_eq( 'INTEGRATION_UNAVAILABLE', br08_code( $fx_refund ), 'case 2 native Woo refund creation fails before a refund exists' );
+$fx_claim = br08_commercial_claim( $fx_plugin, $fx_body['commercialRefundId'] );
+br01_assert( is_array( $fx_claim ), 'case 2 commercial claim remains' );
+br01_assert_eq( 'terminal_failure', $fx_claim['internal_status'], 'case 2 claim is a failed attempt' );
+br01_assert_eq( 1, (int) $fx_claim['woo_effect_entered'], 'case 2 uncertainty flag is set without a native refund' );
+br01_assert_eq( 0, $fx_runtime->native_refund_count_for( $fx_body['commercialRefundId'] ), 'case 2 no CETECH native refund' );
+br01_assert_eq( 0, $fx_runtime->commercial_refund_creates, 'case 2 failed attempt did not persist a native refund' );
+br08_inject_native_refund(
+	$fx_runtime,
+	$fx_sale['order_id'],
+	br06_next_uuid(),
+	br06_next_uuid(),
+	hash( 'sha256', 'foreign-manual-refund' ),
+	(int) $fx_sale['quote']['total']['minor']
+);
+br08_mark_refunded_unpaid( $fx_runtime, $fx_sale['order_id'] );
+$fx_before  = $fx_runtime->stock['101'];
+$fx_refunds = count( $fx_runtime->refunds );
+$fx_stock   = br08_dispatch_stock(
+	$fx_plugin,
+	br08_stock_body( $fx_sale, 'restock_sellable', array( 'returnId' => $fx_return ) ),
+	br08_headers( br06_next_uuid() )
+);
+br01_assert_eq( 'REQUIRES_ATTENTION', br08_code( $fx_stock ), 'case 2 foreign refund does not prove the CETECH refund' );
+br01_assert_eq( $fx_before, $fx_runtime->stock['101'], 'case 2 stock unchanged' );
+br01_assert_eq( 0, $fx_runtime->stock_increase_calls, 'case 2 stock mutation count remains zero' );
+br01_assert_eq( 0, $fx_runtime->commercial_refund_creates, 'case 2 stock path creates no refund' );
+br01_assert_eq( $fx_refunds, count( $fx_runtime->refunds ), 'case 2 no second refund row' );
+br01_assert_eq( 0, $fx_runtime->native_refund_count_for( $fx_body['commercialRefundId'] ), 'case 2 CETECH native refund still absent' );
+
+$id_runtime = br06_runtime();
+$id_plugin  = br08_plugin( $id_runtime );
+$id_sale    = br08_completed_sale( $id_plugin, $id_runtime );
+$id_return  = br06_next_uuid();
+$id_body    = br08_refund_body( $id_sale, array( 'returnId' => $id_return ) );
+br08_dispatch_refund( $id_plugin, $id_body, br08_headers( br06_next_uuid() ) );
+foreach ( $id_runtime->refunds as $id_index => $id_refund ) {
+	if ( (string) $id_refund['commercial_refund_id'] === (string) $id_body['commercialRefundId'] ) {
+		$id_runtime->refunds[ $id_index ]['transaction_id'] = br06_next_uuid();
+		$id_runtime->refunds[ $id_index ]['request_hash']   = hash( 'sha256', 'different-cetech-request' );
+	}
+}
+br08_mark_refunded_unpaid( $id_runtime, $id_sale['order_id'] );
+$id_before = $id_runtime->stock['101'];
+$id_creates = $id_runtime->commercial_refund_creates;
+$id_stock   = br08_dispatch_stock(
+	$id_plugin,
+	br08_stock_body( $id_sale, 'restock_sellable', array( 'returnId' => $id_return ) ),
+	br08_headers( br06_next_uuid() )
+);
+br01_assert_eq( 'REQUIRES_ATTENTION', br08_code( $id_stock ), 'case 3 wrong transaction and request hash do not prove the CETECH refund' );
+br01_assert_eq( $id_before, $id_runtime->stock['101'], 'case 3 stock unchanged' );
+br01_assert_eq( 0, $id_runtime->stock_increase_calls, 'case 3 no stock mutation' );
+br01_assert_eq( $id_creates, $id_runtime->commercial_refund_creates, 'case 3 no additional refund' );
+
+$oid_runtime = br06_runtime();
+$oid_plugin  = br08_plugin( $oid_runtime );
+$oid_sale    = br08_completed_sale( $oid_plugin, $oid_runtime );
+$oid_return  = br06_next_uuid();
+$oid_body    = br08_refund_body( $oid_sale, array( 'returnId' => $oid_return ) );
+br08_dispatch_refund( $oid_plugin, $oid_body, br08_headers( br06_next_uuid() ) );
+foreach ( $oid_runtime->refunds as $oid_index => $oid_refund ) {
+	if ( (string) $oid_refund['commercial_refund_id'] === (string) $oid_body['commercialRefundId'] ) {
+		$oid_runtime->refunds[ $oid_index ]['commercial_refund_id'] = br06_next_uuid();
+	}
+}
+br08_mark_refunded_unpaid( $oid_runtime, $oid_sale['order_id'] );
+$oid_before = $oid_runtime->stock['101'];
+$oid_stock  = br08_dispatch_stock(
+	$oid_plugin,
+	br08_stock_body( $oid_sale, 'restock_sellable', array( 'returnId' => $oid_return ) ),
+	br08_headers( br06_next_uuid() )
+);
+br01_assert_eq( 'REQUIRES_ATTENTION', br08_code( $oid_stock ), 'case 3 different commercialRefundId does not prove the CETECH refund' );
+br01_assert_eq( $oid_before, $oid_runtime->stock['101'], 'case 3 different identity leaves stock unchanged' );
+br01_assert_eq( 0, $oid_runtime->stock_increase_calls, 'case 3 different identity does not restock' );
+
+$man_runtime = br06_runtime();
+$man_plugin  = br08_plugin( $man_runtime );
+$man_sale    = br08_completed_sale( $man_plugin, $man_runtime );
+br08_inject_native_refund( $man_runtime, $man_sale['order_id'], '', '', '', (int) $man_sale['quote']['total']['minor'] );
+br08_mark_refunded_unpaid( $man_runtime, $man_sale['order_id'] );
+$man_before = $man_runtime->stock['101'];
+$man_stock  = br08_dispatch_stock( $man_plugin, br08_stock_body( $man_sale, 'restock_sellable' ), br08_headers( br06_next_uuid() ) );
+br01_assert_eq( 'REQUIRES_ATTENTION', br08_code( $man_stock ), 'case 4 manual refund without CETECH identity fails closed' );
+br01_assert_eq( $man_before, $man_runtime->stock['101'], 'case 4 stock unchanged' );
+br01_assert_eq( 0, $man_runtime->stock_increase_calls, 'case 4 no stock mutation' );
+br01_assert_eq( 0, $man_runtime->commercial_refund_creates, 'case 4 creates no CETECH refund' );
+
+$paid_runtime = br06_runtime();
+$paid_plugin  = br08_plugin( $paid_runtime );
+$paid_sale    = br08_completed_sale( $paid_plugin, $paid_runtime );
+$paid_before  = $paid_runtime->stock['101'];
+$paid_stock   = br08_dispatch_stock( $paid_plugin, br08_stock_body( $paid_sale, 'restock_sellable' ), br08_headers( br06_next_uuid() ) );
+br01_assert_eq( 'completed', br08_code( $paid_stock ), 'case 5 ordinary paid completed sale still restocks' );
+br01_assert_eq( $paid_before + 1, $paid_runtime->stock['101'], 'case 5 one stock increment without a commercial refund' );
+br01_assert_eq( 0, $paid_runtime->commercial_refund_creates, 'case 5 does not require commercial-refund proof' );

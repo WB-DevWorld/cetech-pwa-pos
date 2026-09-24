@@ -55,6 +55,13 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 	public $duplicate_refund_on_create = false;
 	/** @var bool */
 	public $throw_after_refund_create = false;
+	/**
+	 * Fail inside wc_create_refund after the claim has crossed the uncertainty
+	 * boundary and before any native refund row exists.
+	 *
+	 * @var bool
+	 */
+	public $fail_commercial_refund_before_native = false;
 	/** @var int|null throw after this many official stock increases */
 	public $throw_on_stock_increase_n = null;
 	/** @var array<string,int> last wc_create_refund flags */
@@ -1514,6 +1521,11 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 			'amountMinor'        => (int) $amount_minor,
 		);
 		$this->fire_seam( $this->before_refund_create );
+		if ( $this->fail_commercial_refund_before_native ) {
+			$this->fail_commercial_refund_before_native = false;
+			$this->armed_commercial_refund = null;
+			return $this->unavailable( 'Native Woo refund was not created.' );
+		}
 		++$this->commercial_refund_creates;
 		$this->last_refund_flags = array(
 			'refund_payment' => false,
