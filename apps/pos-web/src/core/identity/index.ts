@@ -18,12 +18,19 @@ export {
 } from "./selected-register-preference";
 export { readOrCreateLocalDeviceId } from "./local-device";
 export {
+  buildStoredOfflineStaffPresentation,
   createLocalOfflineStaffPresentationStore,
   createMemoryOfflineStaffPresentationStore,
   formatOfflineVerifiedAt,
   offlinePresentationBanner,
   OFFLINE_GRACE_EXPIRED_MESSAGE,
   OFFLINE_STAFF_PRESENTATION_MAX_AGE_MS,
+  OFFLINE_STAFF_PRESENTATION_STORAGE_KEY,
+  serializeStoredOfflineStaffPresentation,
+  STORED_OFFLINE_REGISTER_PRESENTATION_KEYS,
+  STORED_OFFLINE_SHIFT_PRESENTATION_KEYS,
+  STORED_OFFLINE_STAFF_PRESENTATION_KEYS,
   type OfflinePresentationEvaluation,
   type OfflineStaffPresentationStore,
+  type StoredOfflineStaffPresentationV1,
 } from "./offline-staff-presentation";
