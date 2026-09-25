@@ -107,7 +107,11 @@ describe("UX-04 attention recovery identity", () => {
   test("reload rediscovers an ambiguous prepare only from the durable journal and resolves before the gate opens", async () => {
     const name = uniqueDbName();
     const firstDb = openPosLocalDatabase(name);
-    const firstJournal = createOperationJournal(firstDb);
+    const firstJournal = createOperationJournal(firstDb, {
+      createdByActorId: "cashier_a",
+      organizationId: "org_a",
+      registerId: LOCAL_CHECKOUT_SCOPE.registerId,
+    });
     const firstTenderActivity = createTenderActivityPort(firstDb);
 
     const firstPorts = createBrowserCashCheckoutPorts({
@@ -140,7 +144,12 @@ describe("UX-04 attention recovery identity", () => {
     const reloadedDb = openPosLocalDatabase(name);
     const reloadedJournal = createOperationJournal(reloadedDb);
     const reloadedTenderActivity = createTenderActivityPort(reloadedDb);
-    const recoveredItems = await loadLocalJournalAttentionItems(reloadedJournal);
+    const sameOrgViewer = {
+      actorId: "cashier_a",
+      registerId: LOCAL_CHECKOUT_SCOPE.registerId,
+      organizationId: "org_a",
+    };
+    const recoveredItems = await loadLocalJournalAttentionItems(reloadedJournal, sameOrgViewer, reloadedDb);
 
     expect(recoveredItems).toHaveLength(1);
     expect(recoveredItems[0]).toMatchObject({
@@ -177,7 +186,7 @@ describe("UX-04 attention recovery identity", () => {
       lock: createAttentionRecoveryLock(),
       ports: { payments: recoveryPorts.payments, sales: recoveryPorts.sales },
       reload: async () => {
-        afterRecoveryItems = await loadLocalJournalAttentionItems(reloadedJournal);
+        afterRecoveryItems = await loadLocalJournalAttentionItems(reloadedJournal, sameOrgViewer, reloadedDb);
       },
     });
 
@@ -202,7 +211,11 @@ describe("UX-04 attention recovery identity", () => {
   test("reload recovery keeps both the journal gate and tender lease for nonterminal prepared sale", async () => {
     const name = uniqueDbName();
     const firstDb = openPosLocalDatabase(name);
-    const firstJournal = createOperationJournal(firstDb);
+    const firstJournal = createOperationJournal(firstDb, {
+      createdByActorId: "cashier_a",
+      organizationId: "org_a",
+      registerId: LOCAL_CHECKOUT_SCOPE.registerId,
+    });
     const firstTenderActivity = createTenderActivityPort(firstDb);
 
     const firstPorts = createBrowserCashCheckoutPorts({
@@ -232,7 +245,12 @@ describe("UX-04 attention recovery identity", () => {
     const reloadedDb = openPosLocalDatabase(name);
     const reloadedJournal = createOperationJournal(reloadedDb);
     const reloadedTenderActivity = createTenderActivityPort(reloadedDb);
-    const recoveredItems = await loadLocalJournalAttentionItems(reloadedJournal);
+    const sameOrgViewer = {
+      actorId: "cashier_a",
+      registerId: LOCAL_CHECKOUT_SCOPE.registerId,
+      organizationId: "org_a",
+    };
+    const recoveredItems = await loadLocalJournalAttentionItems(reloadedJournal, sameOrgViewer, reloadedDb);
     expect(recoveredItems).toHaveLength(1);
 
     const recoveryPorts = createBrowserCashCheckoutPorts({
@@ -261,7 +279,7 @@ describe("UX-04 attention recovery identity", () => {
       lock: createAttentionRecoveryLock(),
       ports: { payments: recoveryPorts.payments, sales: recoveryPorts.sales },
       reload: async () => {
-        afterRecoveryItems = await loadLocalJournalAttentionItems(reloadedJournal);
+        afterRecoveryItems = await loadLocalJournalAttentionItems(reloadedJournal, sameOrgViewer, reloadedDb);
       },
     });
 
@@ -618,7 +636,7 @@ describe("CAN-01 local recovery scope", () => {
     expect(acknowledged?.status).toBe("acknowledged");
   });
 
-  test("legacy rows with no recorded cashier stay visible and block when register safety is unknown", async () => {
+  test("legacy rows with unknown organization stay stored and are not shown to a known organization", async () => {
     const name = uniqueDbName();
     const db = openPosLocalDatabase(name);
     const payload = JSON.stringify({ kind: "sale.prepare", note: "historic" });
@@ -642,13 +660,109 @@ describe("CAN-01 local recovery scope", () => {
       { actorId: CASHIER_B, registerId: REGISTER_B, organizationId: "org_a" },
       db,
     );
-    expect(items).toHaveLength(1);
-    expect(items[0]?.localRecoveryOwner).toBe("unknown");
-    expect(items[0]?.summary).toContain("original cashier was not recorded");
-    expect(items[0]?.summary).not.toContain(CASHIER_B);
-    expect(hasBlockingLocalTransactionRecovery(items)).toBe(true);
+    expect(items).toEqual([]);
+    expect(hasBlockingLocalTransactionRecovery(items)).toBe(false);
+    expect(localRecoverySellBanner(true, items)).toBeNull();
     const stored = await listUnresolvedJournalRecords(db);
+    expect(stored).toHaveLength(1);
     expect(stored[0]?.scope.createdByActorId).toBeUndefined();
+    expect(stored[0]?.scope.organizationId).toBeUndefined();
+    expect(stored[0]?.pending.status).toBe("response_unknown");
     expect(stored[0]?.pending.idempotencyKey).toBe(PREPARE_KEY);
+    const raw = await db.journal.get(PREPARE_KEY);
+    expect(raw?.recoveryScope?.organizationId).toBeUndefined();
+  });
+
+  test("a known different organization does not see or block on the other organization's unresolved sale", async () => {
+    const name = uniqueDbName();
+    const db = openPosLocalDatabase(name);
+    const journal = createOperationJournal(db, {
+      createdByActorId: CASHIER_A,
+      organizationId: "org_a",
+      locationId: "loc_a1",
+      registerId: REGISTER_A,
+      deviceId: LOCAL_CHECKOUT_SCOPE.deviceId,
+    });
+    await createBrowserCashCheckoutPorts({
+      fetchImpl: async () => {
+        throw new TypeError("simulated lost prepare response");
+      },
+      scope: { ...LOCAL_CHECKOUT_SCOPE, registerId: REGISTER_A },
+      journal,
+      tenderActivity: createTenderActivityPort(db),
+    }).checkout.prepare(
+      {
+        transactionId: TX,
+        registerId: REGISTER_A,
+        shiftId: LOCAL_CHECKOUT_SCOPE.shiftId,
+        deviceId: LOCAL_CHECKOUT_SCOPE.deviceId,
+        quoteId: "quote-org-boundary",
+        quoteFingerprint: "0123456789abcdef0123456789abcdef",
+      },
+      { idempotencyKey: PREPARE_KEY, correlationId: CORRELATION },
+    );
+
+    const orgB = await loadLocalJournalAttentionItems(journal, {
+      actorId: CASHIER_B,
+      registerId: REGISTER_A,
+      organizationId: "org_b",
+    }, db);
+    expect(orgB).toEqual([]);
+    expect(hasBlockingLocalTransactionRecovery(orgB)).toBe(false);
+    expect(localRecoverySellBanner(true, orgB)).toBeNull();
+
+    const collidingRegister = await loadLocalJournalAttentionItems(journal, {
+      actorId: CASHIER_B,
+      registerId: REGISTER_A,
+      organizationId: "org_b",
+    }, db);
+    expect(collidingRegister).toEqual([]);
+
+    const runtime = createStaffRuntimeController({
+      gateway: {
+        async establish() {
+          throw new Error("unused");
+        },
+        async readContext() {
+          throw new Error("unused");
+        },
+        async read() {
+          return null;
+        },
+        async clear() {
+          return;
+        },
+      },
+      auth: {
+        async signIn() {
+          return { accessToken: "token" };
+        },
+        async signOut() {
+          return;
+        },
+      },
+      registers: {} as RegisterPort,
+    });
+    await runtime.signOut();
+
+    const persisted = await db.journal.get(PREPARE_KEY);
+    expect(persisted?.status).toBe("response_unknown");
+    expect(persisted?.idempotencyKey).toBe(PREPARE_KEY);
+    expect(persisted?.recoveryScope?.organizationId).toBe("org_a");
+    expect(persisted?.recoveryScope?.createdByActorId).toBe(CASHIER_A);
+
+    const orgA = await loadLocalJournalAttentionItems(journal, {
+      actorId: CASHIER_A,
+      registerId: REGISTER_A,
+      organizationId: "org_a",
+    }, db);
+    expect(orgA).toHaveLength(1);
+    expect(orgA[0]?.localRecoveryOwner).toBe("viewer");
+    expect(orgA[0]?.summary).not.toContain(CASHIER_B);
+    expect(hasBlockingLocalTransactionRecovery(orgA)).toBe(true);
+    const afterReturn = await db.journal.get(PREPARE_KEY);
+    expect(afterReturn?.idempotencyKey).toBe(PREPARE_KEY);
+    expect(afterReturn?.recoveryScope?.organizationId).toBe("org_a");
+    expect(afterReturn?.status).toBe("response_unknown");
   });
 });

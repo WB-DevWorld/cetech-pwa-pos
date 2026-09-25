@@ -88,8 +88,10 @@ describe("CAN-01 journal recovery classification", () => {
     expect(row?.recoveryScope?.registerId).toBe("reg_a");
     expect(row?.recoveryScope?.deviceId).toBe("device-a");
     expect(row?.recoveryScope?.createdByActorId).toBeUndefined();
+    expect(row?.recoveryScope?.organizationId).toBeUndefined();
     const unresolved = await listUnresolvedJournalRecords(upgraded);
     expect(unresolved[0]?.scope.createdByActorId).toBeUndefined();
+    expect(unresolved[0]?.scope.organizationId).toBeUndefined();
     expect(unresolved[0]?.scope.registerId).toBe("reg_a");
     const meta = await upgraded.schemaMeta.get("schema");
     expect(meta?.localSchema).toBe(5);

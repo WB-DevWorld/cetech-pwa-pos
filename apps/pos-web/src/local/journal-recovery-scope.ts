@@ -116,6 +116,38 @@ export function deriveRecoveryScopeFromPayload(payload: string | undefined): Jou
   }
 }
 
+/**
+ * A local row is applicable only when its stored organization and the
+ * viewer's session organization are both present and equal. Same-organization
+ * register, actor, and device rules then apply unchanged.
+ *
+ * A known different organization is withheld from Attention and does not block
+ * checkout. The row is not deleted, acknowledged, or rewritten, so the
+ * original organization can see it again.
+ *
+ * Unknown organization is not applicable to a viewer with a known
+ * organization. Historic rows often have none, because the journaled command
+ * did not carry one, and migration must not copy the signed-in organization
+ * onto them. Register ids are opaque and can collide across organizations, so
+ * showing or blocking from register match alone would disclose another
+ * organization's unfinished sale. The row stays stored with its original
+ * status and idempotency key. This does not assign an owner.
+ */
+export type JournalOrganizationApplicability =
+  | "same_organization"
+  | "different_organization"
+  | "unknown_organization";
+
+export function journalOrganizationApplicability(
+  rowOrganizationId: string | undefined,
+  viewerOrganizationId: string | null | undefined,
+): JournalOrganizationApplicability {
+  const rowOrganization = nonEmpty(rowOrganizationId);
+  const viewerOrganization = nonEmpty(viewerOrganizationId);
+  if (!rowOrganization || !viewerOrganization) return "unknown_organization";
+  return rowOrganization === viewerOrganization ? "same_organization" : "different_organization";
+}
+
 export function mergeRecoveryScope(
   stored: JournalRecoveryScope | undefined,
   derived: JournalRecoveryScope,
@@ -142,15 +174,30 @@ export function presentLocalRecovery(input: {
   readonly row: ScopedJournalRow;
   readonly viewer?: LocalRecoveryViewer;
 }): {
+  readonly applicable: boolean;
   readonly blocksCheckout: boolean;
   readonly title: string;
   readonly summary: string;
   readonly authoredByViewer: boolean;
   readonly actorKnown: boolean;
 } {
-  const classification = classifyJournalOperation(input.row.operation);
   const actorId = input.row.scope.createdByActorId;
   const actorKnown = Boolean(actorId);
+  const applicability = journalOrganizationApplicability(
+    input.row.scope.organizationId,
+    input.viewer?.organizationId,
+  );
+  if (applicability !== "same_organization") {
+    return {
+      applicable: false,
+      blocksCheckout: false,
+      title: "",
+      summary: "",
+      authoredByViewer: false,
+      actorKnown,
+    };
+  }
+  const classification = classifyJournalOperation(input.row.operation);
   const authoredByViewer = Boolean(actorId && input.viewer?.actorId && actorId === input.viewer.actorId);
   const registerId = input.row.scope.registerId;
   const viewerRegister = input.viewer?.registerId ?? null;
@@ -183,5 +230,5 @@ export function presentLocalRecovery(input: {
       ? `An earlier sign-in on this device left this ${subject} unfinished. The original cashier was not recorded. Check that transaction before taking a payment on this register.`
       : `An earlier sign-in on this device left this ${subject} unfinished on a different register. The original cashier was not recorded. You can keep selling here. Do not start that ${subject} again.`;
   }
-  return { blocksCheckout, title, summary, authoredByViewer, actorKnown };
+  return { applicable: true, blocksCheckout, title, summary, authoredByViewer, actorKnown };
 }

@@ -56,6 +56,7 @@ export async function loadLocalJournalAttentionItems(
       },
       viewer,
     });
+    if (!presented.applicable) return [];
     const recoverKind = localJournalRecoveryKind(record.pending.operation);
     const uncertain = record.pending.status === "response_unknown" || record.pending.status === "requires_attention";
     return [{
@@ -93,6 +94,7 @@ function presentPendingWithoutDatabase(
     },
     viewer,
   });
+  if (!presented.applicable) return [];
   return [{
     id: `local-journal:${row.id}`,
     title: presented.title,
