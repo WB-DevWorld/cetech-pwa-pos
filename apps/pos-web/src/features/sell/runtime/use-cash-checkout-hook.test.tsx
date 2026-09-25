@@ -34,7 +34,12 @@ function quote(): Quote {
   };
 }
 
-function ports(prepare: CashCheckoutPorts["checkout"]["prepare"], registerId: string, sequenceStart: number): CashCheckoutPorts {
+function ports(
+  prepare: CashCheckoutPorts["checkout"]["prepare"],
+  registerId: string,
+  sequenceStart: number,
+  scope: Partial<CashCheckoutPorts["scope"]> = {},
+): CashCheckoutPorts {
   let n = sequenceStart;
   const next = () => {
     n += 1;
@@ -46,7 +51,7 @@ function ports(prepare: CashCheckoutPorts["checkout"]["prepare"], registerId: st
     sales: { resolve: vi.fn(), cancel: vi.fn() },
     receipts: { getByTransaction: vi.fn() },
     printer: { print: vi.fn() },
-    scope: { registerId, shiftId: "shift-1", deviceId: "device-1" },
+    scope: { registerId, shiftId: "shift-1", deviceId: "device-1", ...scope },
     createUuid: next,
   };
 }
@@ -246,9 +251,11 @@ function installTestDocument(): void {
 function CheckoutHost({
   initial,
   sinkRef,
+  onLayout,
 }: {
   initial: CashCheckoutPorts;
   sinkRef: { current: CheckoutApi | null; replace: (next: CashCheckoutPorts) => void };
+  onLayout?: (checkout: CheckoutApi) => void;
 }) {
   const [currentPorts, setCurrentPorts] = useState(initial);
   const checkout = useCashCheckout(currentPorts);
@@ -257,6 +264,7 @@ function CheckoutHost({
     sinkRef.replace = (next) => {
       setCurrentPorts(next);
     };
+    onLayout?.(checkout);
   });
   return createElement("p", null, checkout.ready ? "ready" : "gated");
 }
@@ -271,7 +279,10 @@ async function finishHydration(sink: { current: CheckoutApi | null }): Promise<v
   });
 }
 
-function renderCheckout(initial: CashCheckoutPorts): { root: Root; sink: { current: CheckoutApi | null; replace: (next: CashCheckoutPorts) => void } } {
+function renderCheckout(
+  initial: CashCheckoutPorts,
+  onLayout?: (checkout: CheckoutApi) => void,
+): { root: Root; sink: { current: CheckoutApi | null; replace: (next: CashCheckoutPorts) => void } } {
   installTestDocument();
   const container = document.createElement("div");
   document.body.appendChild(container as unknown as HTMLElement);
@@ -281,7 +292,7 @@ function renderCheckout(initial: CashCheckoutPorts): { root: Root; sink: { curre
     replace: () => undefined,
   };
   flushSync(() => {
-    root.render(createElement(StrictMode, null, createElement(CheckoutHost, { initial, sinkRef })));
+    root.render(createElement(StrictMode, null, createElement(CheckoutHost, { initial, sinkRef, onLayout })));
   });
   return { root, sink: sinkRef };
 }
@@ -313,6 +324,11 @@ describe("useCashCheckout runtime identity", () => {
     expect(sink.current?.ready).toBe(true);
     await act(async () => {
       void sink.current?.startPrepare(quote());
+      await vi.waitFor(() => {
+        if ((prepare as { mock: { calls: ReadonlyArray<unknown> } }).mock.calls.length < 1) {
+          throw new Error("prepare has not been sent");
+        }
+      });
     });
     expect(prepare).toHaveBeenCalledTimes(1);
     const sent = sentPrepare(prepare);
@@ -338,6 +354,11 @@ describe("useCashCheckout runtime identity", () => {
     await finishHydration(first.sink);
     await act(async () => {
       void first.sink.current?.startPrepare(quote());
+      await vi.waitFor(() => {
+        if ((prepare as { mock: { calls: ReadonlyArray<unknown> } }).mock.calls.length < 1) {
+          throw new Error("prepare has not been sent");
+        }
+      });
     });
     const transactionId = sentPrepare(prepare).transactionId;
     await vi.waitFor(async () => {
@@ -368,6 +389,11 @@ describe("useCashCheckout runtime identity", () => {
     await finishHydration(sink);
     await act(async () => {
       void sink.current?.startPrepare(quote());
+      await vi.waitFor(() => {
+        if ((prepare as { mock: { calls: ReadonlyArray<unknown> } }).mock.calls.length < 1) {
+          throw new Error("prepare has not been sent");
+        }
+      });
     });
     const transactionId = sentPrepare(prepare).transactionId;
     const other = hangingPrepare();
@@ -390,7 +416,7 @@ describe("useCashCheckout runtime identity", () => {
   test("pay stays closed until attempt hydration finishes, then restores the stored attempt", async () => {
     const db = openPosLocalDatabase();
     const seeded = "00000000-0000-4000-8000-000000000777";
-    createCheckoutAttemptStore(db).write({
+    await createCheckoutAttemptStore(db).write({
       transactionId: seeded,
       quoteId: "quote-live-1",
       quoteFingerprint: "fp-live-1",
@@ -425,6 +451,77 @@ describe("useCashCheckout runtime identity", () => {
     expect(prepare).not.toHaveBeenCalled();
     await act(async () => {
       root.unmount();
+    });
+  });
+
+  test("same-scope port replacement stays ready", async () => {
+    const commits: CheckoutApi[] = [];
+    const prepare = hangingPrepare();
+    const { root, sink } = renderCheckout(ports(prepare, "reg_a", 0), (checkout) => {
+      commits.push(checkout);
+    });
+    await finishHydration(sink);
+    await act(async () => {
+      void sink.current?.startPrepare(quote());
+      await vi.waitFor(() => {
+        if ((prepare as { mock: { calls: ReadonlyArray<unknown> } }).mock.calls.length < 1) {
+          throw new Error("prepare has not been sent");
+        }
+      });
+    });
+    expect(prepare).toHaveBeenCalledTimes(1);
+    commits.length = 0;
+    const refreshed = hangingPrepare();
+    await act(async () => {
+      sink.replace(ports(refreshed, "reg_a", 100));
+    });
+    expect(commits[0]?.ready).toBe(true);
+    expect(sink.current?.ready).toBe(true);
+    await act(async () => {
+      void sink.current?.startPrepare(quote());
+    });
+    expect(prepare).toHaveBeenCalledTimes(1);
+    expect(refreshed).not.toHaveBeenCalled();
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  test.each([
+    { registerId: "reg_b", shiftId: "shift-1", deviceId: "device-1" },
+    { registerId: "reg_a", shiftId: "shift-2", deviceId: "device-1" },
+    { registerId: "reg_a", shiftId: "shift-1", deviceId: "device-2" },
+  ])("scope %j is closed until the snapshot matches", async (nextScope) => {
+    const commits: CheckoutApi[] = [];
+    const prepareA = hangingPrepare();
+    const initial = ports(prepareA, "reg_a", 0);
+    const mounted = renderCheckout(initial, (checkout) => {
+      commits.push(checkout);
+    });
+    await finishHydration(mounted.sink);
+    expect(mounted.sink.current?.ready).toBe(true);
+    commits.length = 0;
+    const prepareB = hangingPrepare();
+    const next = ports(prepareB, nextScope.registerId, 100, nextScope);
+    await act(async () => {
+      mounted.sink.replace(next);
+    });
+    const gap = commits[0];
+    expect(gap?.ready).toBe(false);
+    await act(async () => {
+      void gap?.startPrepare(quote());
+      void gap?.confirmCash("20.00");
+      void gap?.retryFinalize();
+    });
+    expect(prepareA).not.toHaveBeenCalled();
+    expect(prepareB).not.toHaveBeenCalled();
+    expect(initial.payments.confirmCash).not.toHaveBeenCalled();
+    expect(next.payments.confirmCash).not.toHaveBeenCalled();
+    expect(initial.checkout.finalize).not.toHaveBeenCalled();
+    expect(next.checkout.finalize).not.toHaveBeenCalled();
+    expect(commits[commits.length - 1]?.ready).toBe(true);
+    await act(async () => {
+      mounted.root.unmount();
     });
   });
 });

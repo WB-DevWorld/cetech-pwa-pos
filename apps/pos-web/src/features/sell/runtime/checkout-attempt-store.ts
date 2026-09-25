@@ -32,7 +32,8 @@ const memory = new Map<string, CheckoutAttemptRecord | null>();
 export type CheckoutAttemptStore = {
   readonly readSync: () => CheckoutAttemptRecord | null;
   readonly hydrate: () => Promise<CheckoutAttemptRecord | null>;
-  readonly write: (record: CheckoutAttemptRecord) => void;
+  /** Resolves only after IndexedDB accepts the record. The memory cache is not durability. */
+  readonly write: (record: CheckoutAttemptRecord) => Promise<void>;
   readonly clear: () => void;
 };
 
@@ -65,9 +66,9 @@ export function createCheckoutAttemptStore(db: PosLocalDatabase): CheckoutAttemp
         return null;
       }
     },
-    write(record) {
+    async write(record) {
       memory.set(memoryKey, record);
-      void db.kv.put({ key: STORAGE_KEY, value: JSON.stringify(record) });
+      await db.kv.put({ key: STORAGE_KEY, value: JSON.stringify(record) });
     },
     clear() {
       memory.set(memoryKey, null);

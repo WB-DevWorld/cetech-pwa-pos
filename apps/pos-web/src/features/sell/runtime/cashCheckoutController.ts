@@ -178,11 +178,11 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
     );
   }
 
-  function persistAttempt(): void {
-    if (!currentPorts.attemptStore || !identities) {
-      return;
+  function attemptRecord(): CheckoutAttemptRecord | null {
+    if (!identities) {
+      return null;
     }
-    currentPorts.attemptStore.write({
+    return {
       transactionId: identities.transactionId,
       quoteId: identities.quoteId,
       quoteFingerprint: identities.quoteFingerprint,
@@ -204,7 +204,23 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       stage: session.stage,
       saleCompleted: session.saleCompleted,
       message: session.message,
-    });
+    };
+  }
+
+  function persistAttempt(): void {
+    const record = attemptRecord();
+    if (!currentPorts.attemptStore || !record) {
+      return;
+    }
+    void currentPorts.attemptStore.write(record).catch(() => undefined);
+  }
+
+  async function persistAttemptDurable(): Promise<void> {
+    const record = attemptRecord();
+    if (!currentPorts.attemptStore || !record) {
+      return;
+    }
+    await currentPorts.attemptStore.write(record);
   }
 
   function restoreAttempt(record: CheckoutAttemptRecord): void {
@@ -292,7 +308,6 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
     };
     paymentId = undefined;
     printAttempted = false;
-    persistAttempt();
     return identities;
   }
 
@@ -688,6 +703,17 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
         saleCompleted: false,
       });
       try {
+        try {
+          await persistAttemptDurable();
+        } catch {
+          patch({
+            stage: "prepare_failed",
+            message: "This sale could not be saved on this device. Retry before taking payment.",
+            transactionId: attempt.transactionId,
+            saleCompleted: false,
+          });
+          return;
+        }
         const outcome = await settle(() =>
           currentPorts.checkout.prepare(
             {

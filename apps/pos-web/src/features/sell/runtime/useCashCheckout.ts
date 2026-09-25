@@ -19,6 +19,7 @@ function checkoutScopeKey(ports: CashCheckoutPorts): string {
 type CheckoutRuntimeSnapshot = {
   readonly hydrated: boolean;
   readonly controller: CashCheckoutController | null;
+  readonly controllerScopeKey: string;
   readonly session: CheckoutSessionView;
   readonly inFlight: boolean;
 };
@@ -40,6 +41,7 @@ function createCheckoutRuntime(attemptStore: CheckoutAttemptStore) {
     return {
       hydrated,
       controller,
+      controllerScopeKey: scopeKey,
       session,
       inFlight: Boolean(controller?.isLocked()) || checkoutCommandInFlight(session.stage),
     };
@@ -145,10 +147,12 @@ export function useCashCheckout(ports: CashCheckoutPorts | undefined): {
     runtime.setPorts(ports);
   }, [ports, runtime]);
 
-  const controller = snapshot.hydrated ? snapshot.controller : null;
+  const currentScopeKey = ports ? checkoutScopeKey(ports) : "";
+  const controller =
+    snapshot.hydrated && snapshot.controllerScopeKey === currentScopeKey ? snapshot.controller : null;
 
   return {
-    ready: snapshot.hydrated && isCashCheckoutReady(ports),
+    ready: Boolean(controller) && isCashCheckoutReady(ports),
     session: snapshot.session,
     inFlight: snapshot.inFlight,
     startPrepare: (quote, customerSnapshot) => controller?.startPrepare(quote, customerSnapshot) ?? Promise.resolve(),

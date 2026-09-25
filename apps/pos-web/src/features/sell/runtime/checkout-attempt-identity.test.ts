@@ -15,6 +15,7 @@ import {
 import {
   createCheckoutAttemptStore,
   discardCheckoutAttemptMemory,
+  type CheckoutAttemptRecord,
   type CheckoutAttemptStore,
 } from "./checkout-attempt-store";
 
@@ -38,6 +39,15 @@ function quote(fingerprint = "fp-live-1"): Quote {
     expiresAt: "2099-01-01T00:00:00.000Z",
     purchasable: true,
   };
+}
+
+async function whenPrepareCalled(mock: object, times = 1): Promise<void> {
+  await vi.waitFor(() => {
+    const calls = (mock as { mock: { calls: ReadonlyArray<unknown> } }).mock.calls.length;
+    if (calls < times) {
+      throw new Error("prepare has not been sent");
+    }
+  });
 }
 
 function prepareArgs(mock: object, index = 0): { transactionId: string; quoteFingerprint: string; idempotencyKey: string } {
@@ -104,6 +114,7 @@ describe("CAN-02 checkout business-attempt identity", () => {
     const secondPorts = ports(prepare as CashCheckoutPorts["checkout"]["prepare"], 100, store);
     const second = createCashCheckoutController(secondPorts);
     void second.startPrepare(quote());
+    await whenPrepareCalled(prepare);
     const sent = prepareArgs(prepare);
     expect(prepare).toHaveBeenCalledTimes(1);
     expect(sent.transactionId).not.toBe("");
@@ -124,6 +135,7 @@ describe("CAN-02 checkout business-attempt identity", () => {
     );
     void controller.startPrepare(quote());
     void controller.startPrepare(quote());
+    await whenPrepareCalled(prepare);
     const refreshed = vi.fn(() => new Promise<ApiResult<{ transactionId: string }>>(() => undefined));
     controller.replacePorts({
       ...ports(refreshed as CashCheckoutPorts["checkout"]["prepare"], 50, store),
@@ -143,7 +155,7 @@ describe("CAN-02 checkout business-attempt identity", () => {
     expect(remounted.getSession().transactionId).toBe(sent.transactionId);
   });
 
-  test("another register cannot start a second attempt while the first is unresolved", () => {
+  test("another register cannot start a second attempt while the first is unresolved", async () => {
     const prepare = vi.fn(() => new Promise<ApiResult<{ transactionId: string }>>(() => undefined));
     const db = openPosLocalDatabase(`cetech-pos-local-${crypto.randomUUID()}`);
     const store = createCheckoutAttemptStore(db);
@@ -157,6 +169,7 @@ describe("CAN-02 checkout business-attempt identity", () => {
       scope: { ...otherRegister.scope, registerId: "reg_b" },
     });
     void second.startPrepare(quote());
+    await whenPrepareCalled(prepare);
     expect(prepare).toHaveBeenCalledTimes(1);
   });
 
@@ -168,6 +181,7 @@ describe("CAN-02 checkout business-attempt identity", () => {
       ports(prepare as CashCheckoutPorts["checkout"]["prepare"], 0, store),
     );
     void first.startPrepare(quote());
+    await whenPrepareCalled(prepare);
     const transactionId = prepareArgs(prepare).transactionId;
     await vi.waitFor(async () => {
       expect(await db.kv.get("checkout.active-business-attempt")).toBeTruthy();
@@ -325,5 +339,118 @@ describe("CAN-02 checkout business-attempt identity", () => {
     });
     await controller.startPrepare(quote());
     expect(prepareArgs(nextPrepare).transactionId).not.toBe(firstId);
+  });
+
+  test("sale.prepare waits until the attempt is durably stored", async () => {
+    const db = openPosLocalDatabase(`cetech-pos-local-${crypto.randomUUID()}`);
+    const inner = createCheckoutAttemptStore(db);
+    const staged: CheckoutAttemptRecord[] = [];
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const store: CheckoutAttemptStore = {
+      readSync: () => inner.readSync(),
+      hydrate: () => inner.hydrate(),
+      async write(record) {
+        staged.push(record);
+        await gate;
+        await inner.write(record);
+      },
+      clear: () => inner.clear(),
+    };
+    const prepare = vi.fn(() => new Promise<ApiResult<{ transactionId: string }>>(() => undefined));
+    const built = ports(prepare as CashCheckoutPorts["checkout"]["prepare"], 0, store);
+    const controller = createCashCheckoutController(built);
+    void controller.startPrepare(quote());
+    expect(prepare).not.toHaveBeenCalled();
+    expect(built.payments.confirmCash).not.toHaveBeenCalled();
+    expect(built.checkout.finalize).not.toHaveBeenCalled();
+    expect(staged.length).toBeGreaterThan(0);
+    expect(new Set(staged.map((record) => record.transactionId)).size).toBe(1);
+    expect(new Set(staged.map((record) => record.prepareKey)).size).toBe(1);
+    expect(controller.isLocked()).toBe(true);
+    const transactionId = staged[0]?.transactionId ?? "";
+    const prepareKey = staged[0]?.prepareKey ?? "";
+    void controller.startPrepare(quote());
+    expect(new Set(staged.map((record) => record.transactionId)).size).toBe(1);
+    release();
+    await whenPrepareCalled(prepare);
+    expect(prepare).toHaveBeenCalledTimes(1);
+    expect(prepareArgs(prepare).transactionId).toBe(transactionId);
+    expect(prepareArgs(prepare).idempotencyKey).toBe(prepareKey);
+    expect(built.payments.confirmCash).not.toHaveBeenCalled();
+    expect(built.checkout.finalize).not.toHaveBeenCalled();
+  });
+
+  test("a rejected durable write does not send prepare and a retry keeps the same identity", async () => {
+    const db = openPosLocalDatabase(`cetech-pos-local-${crypto.randomUUID()}`);
+    const inner = createCheckoutAttemptStore(db);
+    const staged: CheckoutAttemptRecord[] = [];
+    let fail = true;
+    const store: CheckoutAttemptStore = {
+      readSync: () => inner.readSync(),
+      hydrate: () => inner.hydrate(),
+      async write(record) {
+        staged.push(record);
+        if (fail) {
+          throw new Error("durable write failed");
+        }
+        await inner.write(record);
+      },
+      clear: () => inner.clear(),
+    };
+    const prepare = vi.fn(() => new Promise<ApiResult<{ transactionId: string }>>(() => undefined));
+    const built = ports(prepare as CashCheckoutPorts["checkout"]["prepare"], 0, store);
+    const controller = createCashCheckoutController(built);
+    await controller.startPrepare(quote());
+    expect(prepare).not.toHaveBeenCalled();
+    expect(built.payments.confirmCash).not.toHaveBeenCalled();
+    expect(built.checkout.finalize).not.toHaveBeenCalled();
+    expect(controller.getSession().stage).toBe("prepare_failed");
+    const transactionId = staged[0]?.transactionId ?? "";
+    const prepareKey = staged[0]?.prepareKey ?? "";
+    expect(transactionId).not.toBe("");
+    await controller.startPrepare(quote());
+    expect(prepare).not.toHaveBeenCalled();
+    expect(staged.every((record) => record.transactionId === transactionId && record.prepareKey === prepareKey)).toBe(true);
+    fail = false;
+    void controller.startPrepare(quote());
+    await whenPrepareCalled(prepare);
+    expect(prepare).toHaveBeenCalledTimes(1);
+    expect(prepareArgs(prepare).transactionId).toBe(transactionId);
+    expect(prepareArgs(prepare).idempotencyKey).toBe(prepareKey);
+    expect(inner.readSync()?.transactionId).toBe(transactionId);
+    expect(inner.readSync()?.prepareKey).toBe(prepareKey);
+  });
+
+  test("a reloaded controller restores the identity committed before prepare", async () => {
+    const db = openPosLocalDatabase(`cetech-pos-local-${crypto.randomUUID()}`);
+    const store = createCheckoutAttemptStore(db);
+    const prepare = vi.fn(async (body: { transactionId: string }, context: { idempotencyKey: string }) => {
+      const row = await db.kv.get("checkout.active-business-attempt");
+      const stored = JSON.parse(row?.value ?? "{}") as CheckoutAttemptRecord;
+      expect(stored.transactionId).toBe(body.transactionId);
+      expect(stored.prepareKey).toBe(context.idempotencyKey);
+      return new Promise<ApiResult<{ transactionId: string }>>(() => undefined);
+    });
+    const controller = createCashCheckoutController(
+      ports(prepare as CashCheckoutPorts["checkout"]["prepare"], 0, store),
+    );
+    void controller.startPrepare(quote());
+    await whenPrepareCalled(prepare);
+    const sent = prepareArgs(prepare);
+    discardCheckoutAttemptMemory(db.name);
+    const reloaded = createCheckoutAttemptStore(db);
+    await reloaded.hydrate();
+    expect(reloaded.readSync()?.transactionId).toBe(sent.transactionId);
+    expect(reloaded.readSync()?.prepareKey).toBe(sent.idempotencyKey);
+    const again = vi.fn(() => new Promise<ApiResult<{ transactionId: string }>>(() => undefined));
+    const second = createCashCheckoutController(
+      ports(again as CashCheckoutPorts["checkout"]["prepare"], 100, reloaded),
+    );
+    void second.startPrepare(quote());
+    expect(again).not.toHaveBeenCalled();
+    expect(second.getSession().transactionId).toBe(sent.transactionId);
   });
 });
