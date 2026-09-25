@@ -112,7 +112,9 @@ export function createBffStaffSessionGateway(
         return posted;
       }
       const recovered = await request("GET");
-      return recovered.ok ? recovered : posted;
+      // A failed assignment read must not fall back to the establish payload,
+      // which has no register list and would look like zero assignments.
+      return recovered;
     },
     async readContext() {
       return request("GET");

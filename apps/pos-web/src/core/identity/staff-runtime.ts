@@ -1,7 +1,8 @@
 import type { ApiResult, RegisterPort } from "../../../../../docs/contracts/ports";
 import type { Register, Session, Shift } from "../../../../../docs/contracts/domain.generated";
-import type { StaffAuthProvider, StaffSignInRequest } from "./staff-auth-provider";
+import type { StaffAuthFailureKind, StaffAuthProvider, StaffSignInRequest } from "./staff-auth-provider";
 import { StaffAuthError } from "./staff-auth-provider";
+import type { StaffPresentationNotice } from "./staff-presentation-notice";
 import type { StaffSessionBffGateway } from "./bff-staff-session-gateway";
 import type { StaffSessionContext } from "./staff-session-context";
 import {
@@ -35,6 +36,8 @@ export type StaffRuntimeAuthority = {
   readonly shift: Shift | null;
   readonly shiftOpen: boolean;
   readonly errorMessage?: string;
+  /** Classified cashier notice. UI renders this instead of errorMessage. */
+  readonly presentationNotice?: StaffPresentationNotice;
   readonly presentationOnly?: boolean;
   /** ISO time of the last server verification. Present only for cached offline presentation. */
   readonly lastVerifiedAt?: string;
@@ -74,16 +77,55 @@ function shiftIsOpen(shift: Shift | null): boolean {
 
 function noticeFromFailure(result: ApiResult<unknown>): StaffRuntimeStatus {
   if (!result.ok && result.error.code === "AUTH_REQUIRED") {
-    const message = result.error.message.toLowerCase();
-    if (message.includes("expired") || message.includes("revoked")) {
-      return "expired";
-    }
-    return "signed_out";
+    return sessionEnded(result) ? "expired" : "signed_out";
   }
   if (!result.ok && result.error.code === "FORBIDDEN") {
     return "unauthorized";
   }
   return "unavailable";
+}
+
+function sessionEnded(result: ApiResult<unknown>): boolean {
+  if (result.ok) return false;
+  if (result.error.details?.field === "session") return true;
+  const message = result.error.message.toLowerCase();
+  return message.includes("expired") || message.includes("revoked");
+}
+
+function presentationNoticeForFailure(result: ApiResult<unknown>): StaffPresentationNotice | undefined {
+  if (result.ok) return undefined;
+  const field = result.error.details?.field;
+  if (result.error.code === "INTEGRATION_UNAVAILABLE" && field === "assignments") {
+    return "assignments_unavailable";
+  }
+  if (result.error.code === "FORBIDDEN" && field === "pos_access") {
+    return "access_disabled";
+  }
+  if (result.error.code === "AUTH_REQUIRED") {
+    return sessionEnded(result) ? "session_expired" : undefined;
+  }
+  if (result.error.code === "INTEGRATION_UNAVAILABLE") {
+    return "provider_unavailable";
+  }
+  if (result.error.code === "FORBIDDEN") {
+    return undefined;
+  }
+  return "provider_unavailable";
+}
+
+function noticeForAuthFailure(kind: StaffAuthFailureKind): StaffPresentationNotice {
+  switch (kind) {
+    case "invalid_credentials":
+      return "invalid_credentials";
+    case "credentials_required":
+      return "credentials_required";
+    case "access_disabled":
+      return "access_disabled";
+    case "offline":
+      return "offline_sign_in";
+    case "provider_unavailable":
+      return "provider_unavailable";
+  }
 }
 
 function isAuthClosed(status: StaffRuntimeStatus): boolean {
@@ -98,6 +140,7 @@ function authClosedAuthority(
     ...idle,
     status,
     errorMessage,
+    presentationNotice: status === "expired" || status === "signed_out" ? "session_expired" : undefined,
   };
 }
 
@@ -304,9 +347,12 @@ export function createStaffRuntimeController(input: {
       if (registerResult.error.code === "FORBIDDEN") {
         const message = "This register is not permitted for the current staff session. Choose another assigned register.";
         if (mode === "explicit_switch" && previous.status === "ready" && previous.session) {
-          return hydrated({ ...previous, errorMessage: message }, { kind: "keep" });
+          return hydrated({ ...previous, errorMessage: message, presentationNotice: "register_forbidden" }, { kind: "keep" });
         }
-        return hydrated(readyWithoutRegister(context, assignedRegisters, null, message), { kind: "clear" });
+        return hydrated(
+          { ...readyWithoutRegister(context, assignedRegisters, null, message), presentationNotice: "register_forbidden" },
+          { kind: "clear" },
+        );
       }
       const notice = noticeFromFailure(registerResult);
       if (isAuthClosed(notice)) {
@@ -351,9 +397,12 @@ export function createStaffRuntimeController(input: {
       if (shiftResult.error.code === "FORBIDDEN") {
         const message = "This register is not permitted for the current staff session. Choose another assigned register.";
         if (mode === "explicit_switch" && previous.status === "ready" && previous.session) {
-          return hydrated({ ...previous, errorMessage: message }, { kind: "keep" });
+          return hydrated({ ...previous, errorMessage: message, presentationNotice: "register_forbidden" }, { kind: "keep" });
         }
-        return hydrated(readyWithoutRegister(context, assignedRegisters, null, message), { kind: "clear" });
+        return hydrated(
+          { ...readyWithoutRegister(context, assignedRegisters, null, message), presentationNotice: "register_forbidden" },
+          { kind: "clear" },
+        );
       }
       const notice = noticeFromFailure(shiftResult);
       if (isAuthClosed(notice)) {
@@ -454,6 +503,7 @@ export function createStaffRuntimeController(input: {
             ...idle,
             status: "expired",
             errorMessage: OFFLINE_GRACE_EXPIRED_MESSAGE,
+            presentationNotice: "offline_grace_expired",
           });
           return;
         }
@@ -462,6 +512,7 @@ export function createStaffRuntimeController(input: {
         ...idle,
         status: noticeFromFailure(result),
         errorMessage: result.error.message,
+        presentationNotice: presentationNoticeForFailure(result),
       });
       return;
     }
@@ -483,6 +534,8 @@ export function createStaffRuntimeController(input: {
       ...idle,
       status: "signed_out",
       errorMessage,
+      presentationNotice:
+        errorMessage === REMOTE_SIGN_OUT_UNCONFIRMED_MESSAGE ? "remote_sign_out_unconfirmed" : undefined,
     };
   }
 
@@ -519,20 +572,32 @@ export function createStaffRuntimeController(input: {
       return tracked;
     },
     async signIn(request) {
+      if (!isOnline()) {
+        if (state.presentationOnly && state.status === "ready") {
+          return;
+        }
+        authorityEpoch += 1;
+        setState({
+          ...idle,
+          status: "signed_out",
+          presentationNotice: "offline_sign_in",
+        });
+        return;
+      }
       const epochAtStart = ++authorityEpoch;
-      setState({ ...state, status: "restoring", errorMessage: undefined });
+      setState({ ...state, status: "restoring", errorMessage: undefined, presentationNotice: undefined });
       try {
         const signedIn = await input.auth.signIn(request);
         const established = await input.gateway.establish(signedIn.accessToken);
         await applyContext(established, epochAtStart);
       } catch (error) {
         if (epochAtStart !== authorityEpoch) return;
+        const kind = error instanceof StaffAuthError ? error.kind : "provider_unavailable";
         setState({
           ...idle,
-          status: "signed_out",
-          errorMessage: error instanceof StaffAuthError || error instanceof Error
-            ? error.message
-            : "staff identity could not be verified",
+          status: kind === "access_disabled" ? "unauthorized" : "signed_out",
+          errorMessage: error instanceof Error ? error.message : "staff identity could not be verified",
+          presentationNotice: noticeForAuthFailure(kind),
         });
       }
     },

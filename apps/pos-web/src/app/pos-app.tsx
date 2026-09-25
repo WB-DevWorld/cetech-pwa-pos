@@ -63,6 +63,7 @@ import {
   type StaffRuntimeController,
 } from "../core/identity";
 import type { AuthNoticeState } from "../features/auth";
+import { staffPresentationCopy } from "../core/identity/staff-presentation-notice";
 import { isUuidLike, toCashierError } from "../ui/cashier-language";
 import type { OperationJournal } from "../../../../docs/contracts/ports";
 import type { Shift } from "../../../../docs/contracts/domain.generated";
@@ -83,6 +84,32 @@ function bumpCatalogProjectionGeneration(
     generationRef.current += 1;
   }
   return generationRef.current;
+}
+
+function authNoticeFor(authority: StaffRuntimeAuthority): AuthNoticeState {
+  switch (authority.presentationNotice) {
+    case "invalid_credentials":
+    case "credentials_required":
+    case "access_disabled":
+    case "assignments_unavailable":
+    case "provider_unavailable":
+    case "offline_sign_in":
+      return authority.presentationNotice;
+    case "session_expired":
+      return "expired";
+    case "offline_grace_expired":
+      return "offline_expired";
+    case "remote_sign_out_unconfirmed":
+      return "remote_sign_out_unconfirmed";
+    default:
+      break;
+  }
+  if (authority.errorMessage === OFFLINE_GRACE_EXPIRED_MESSAGE) return "offline_expired";
+  if (authority.errorMessage === REMOTE_SIGN_OUT_UNCONFIRMED_MESSAGE) return "remote_sign_out_unconfirmed";
+  if (authority.status === "expired") return "expired";
+  if (authority.status === "unauthorized") return "unauthorized";
+  if (authority.status === "restoring") return "loading";
+  return "signed_out";
 }
 
 export function hasFreshStaffActionAuthority(authority: StaffRuntimeAuthority): boolean {
@@ -535,25 +562,15 @@ export function PosRuntime({
     [runtime],
   );
 
-  const cashierAuthorityError = authority.errorMessage
-    ? toCashierError({
-        message: authority.errorMessage,
-        domain: authority.status === "ready" ? "register" : "auth",
-      }).message
-    : undefined;
+  const cashierAuthorityError = authority.presentationNotice
+    ? staffPresentationCopy(authority.presentationNotice)
+    : authority.errorMessage
+      ? toCashierError({
+          domain: authority.status === "ready" ? "register" : "auth",
+        }).message
+      : undefined;
 
-  const authNotice: AuthNoticeState =
-    authority.errorMessage === OFFLINE_GRACE_EXPIRED_MESSAGE
-      ? "offline_expired"
-      : authority.errorMessage === REMOTE_SIGN_OUT_UNCONFIRMED_MESSAGE
-        ? "remote_sign_out_unconfirmed"
-        : authority.status === "expired"
-        ? "expired"
-        : authority.status === "unauthorized"
-          ? "unauthorized"
-          : authority.status === "restoring"
-            ? "loading"
-            : "signed_out";
+  const authNotice: AuthNoticeState = authNoticeFor(authority);
 
   if (authority.status !== "ready" || !authority.session) {
     return (
@@ -566,12 +583,7 @@ export function PosRuntime({
         <StaffAuthGate
           noticeState={authNotice}
           busy={authority.status === "restoring"}
-          errorMessage={
-            authority.errorMessage === OFFLINE_GRACE_EXPIRED_MESSAGE ||
-            authority.errorMessage === REMOTE_SIGN_OUT_UNCONFIRMED_MESSAGE
-              ? undefined
-              : authority.errorMessage
-          }
+          errorMessage={undefined}
           onSignIn={(request) => {
             void runtime.signIn(request);
           }}
