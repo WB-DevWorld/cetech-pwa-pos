@@ -12,11 +12,15 @@ import {
   createBrowserSalesResolvePort,
 } from "./checkout-client";
 import {
+  checkoutBlockedByLocalRecovery,
   createAttentionRecoveryLock,
-  hasBlockingLocalTransactionRecovery,
+  createRecoveryScanGate,
+  isLocalRecoveryContextCurrent,
   loadLocalJournalAttentionItems,
+  localRecoverySellBanner,
   mergeAttentionItems,
   runAttentionRecovery,
+  type LocalRecoveryContext,
 } from "./attention-recovery";
 import { RegisterRuntimeScreen } from "./register-runtime";
 import { ReturnsRuntimeScreen, createBrowserHistoricReturnSaleLookup } from "./returns-runtime";
@@ -139,7 +143,8 @@ export function PosRuntime({
   const [buildId, setBuildId] = useState<string | undefined>();
   const [serverAttention, setServerAttention] = useState<readonly AttentionItemView[]>([]);
   const [localAttention, setLocalAttention] = useState<readonly AttentionItemView[]>([]);
-  const [localRecoveryActorId, setLocalRecoveryActorId] = useState<string | null>(null);
+  const [scannedRecoveryContext, setScannedRecoveryContext] = useState<LocalRecoveryContext | null>(null);
+  const recoveryScanGate = useRef(createRecoveryScanGate());
   const [attentionState, setAttentionState] = useState<OperationalLoadState>("loading");
   const [nextSaleCustomer, setNextSaleCustomer] = useState<CustomerSearchResultView | null>(null);
   const [pendingReturnSaleId, setPendingReturnSaleId] = useState<string | null>(
@@ -238,23 +243,45 @@ export function PosRuntime({
     }, 4500);
   }, []);
 
+  const recoveryDeviceId = authority.shift?.deviceId || (typeof window === "undefined" ? "" : readOrCreateLocalDeviceId());
+  const currentRecoveryContext = useMemo<LocalRecoveryContext>(() => ({
+    organizationId: authority.session?.organizationId ?? "",
+    actorId: authority.session?.actorId ?? "",
+    registerId: authority.selectedRegisterId ?? "",
+    deviceId: recoveryDeviceId,
+  }), [
+    authority.selectedRegisterId,
+    authority.session?.actorId,
+    authority.session?.organizationId,
+    recoveryDeviceId,
+  ]);
+
   const loadAttention = useCallback(async (mode: "full" | "refresh" = "full") => {
     if (mode === "full") {
       setAttentionState("loading");
     }
+    const scannedContext = currentRecoveryContext;
+    const token = recoveryScanGate.current.start();
     const [result, localResult] = await Promise.all([
       fetchAttentionInbox(fetchImpl),
-      loadLocalJournalAttentionItems(recoveryJournal)
+      loadLocalJournalAttentionItems(recoveryJournal, {
+        actorId: scannedContext.actorId,
+        registerId: scannedContext.registerId || null,
+        organizationId: scannedContext.organizationId,
+      }, openPosLocalDatabase())
         .then((items) => ({ ok: true as const, items }))
         .catch(() => ({ ok: false as const, items: [] as readonly AttentionItemView[] })),
     ]);
+    if (!recoveryScanGate.current.isCurrent(token)) {
+      return;
+    }
 
     if (localResult.ok) {
       setLocalAttention(localResult.items);
-      setLocalRecoveryActorId(authority.session?.actorId ?? null);
+      setScannedRecoveryContext(scannedContext);
     } else {
       setLocalAttention([]);
-      setLocalRecoveryActorId(null);
+      setScannedRecoveryContext(null);
     }
 
     if (!result.ok) {
@@ -264,7 +291,7 @@ export function PosRuntime({
     }
     setServerAttention(result.data.items);
     setAttentionState(localResult.ok ? "ready" : "degraded");
-  }, [authority.session?.actorId, fetchImpl, recoveryJournal]);
+  }, [currentRecoveryContext, fetchImpl, recoveryJournal]);
 
   useEffect(() => {
     if (authority.status !== "ready" || !authority.session) {
@@ -321,7 +348,13 @@ export function PosRuntime({
           ? createBrowserCashCheckoutPorts({
               fetchImpl,
               scope,
-              journal: createOperationJournal(db),
+              journal: createOperationJournal(db, {
+                createdByActorId: current.session?.actorId,
+                organizationId: current.session?.organizationId,
+                locationId: current.register?.locationId ?? current.assignedLocationIds[0],
+                registerId: scope.registerId,
+                deviceId: scope.deviceId,
+              }),
               tenderActivity: createTenderActivityPort(db),
             })
           : null;
@@ -531,13 +564,17 @@ export function PosRuntime({
   }
 
   const authoritativeActionsAllowed = hasFreshStaffActionAuthority(authority);
-  const deviceId = authority.shift?.deviceId ?? readOrCreateLocalDeviceId();
+  const deviceId = recoveryDeviceId || readOrCreateLocalDeviceId();
   const extras = clientAttentionExtras({ catalogAvailability: projectionAvailability, authority });
-  const localRecoveryChecked = localRecoveryActorId === authority.session.actorId;
+  const localRecoveryChecked = isLocalRecoveryContextCurrent(scannedRecoveryContext, currentRecoveryContext);
   const effectiveLocalAttention = localRecoveryChecked ? localAttention : [];
   const attentionItems = mergeAttentionItems(serverAttention, effectiveLocalAttention, extras);
-  const localTransactionRecoveryBlocked =
-    !localRecoveryChecked || hasBlockingLocalTransactionRecovery(effectiveLocalAttention);
+  const localTransactionRecoveryBlocked = checkoutBlockedByLocalRecovery({
+    scanned: scannedRecoveryContext,
+    current: currentRecoveryContext,
+    items: localAttention,
+  });
+  const recoveryBanner = localRecoverySellBanner(localRecoveryChecked, effectiveLocalAttention);
   const attentionCount = attentionItems.length;
   const sellPorts =
     ports && localTransactionRecoveryBlocked
@@ -591,14 +628,8 @@ export function PosRuntime({
             ) : null}
             {localTransactionRecoveryBlocked ? (
               <div className="banner warning" role="alert" data-local-recovery-blocked="true">
-                <strong>
-                  {localRecoveryChecked ? "Previous transaction needs a status check." : "Checking saved transaction work…"}
-                </strong>
-                <span>
-                  {localRecoveryChecked
-                    ? "Open Needs attention and check the existing transaction before taking another payment."
-                    : "Checkout will stay unavailable until saved transaction work has been checked."}
-                </span>
+                <strong>{recoveryBanner?.title}</strong>
+                <span>{recoveryBanner?.detail}</span>
                 {localRecoveryChecked ? (
                   <button className="btn small" type="button" onClick={() => onNavigate("attention")}>
                     View issues
