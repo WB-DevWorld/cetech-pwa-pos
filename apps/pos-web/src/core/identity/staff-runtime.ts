@@ -4,7 +4,11 @@ import type { StaffAuthProvider, StaffSignInRequest } from "./staff-auth-provide
 import { StaffAuthError } from "./staff-auth-provider";
 import type { StaffSessionBffGateway } from "./bff-staff-session-gateway";
 import type { StaffSessionContext } from "./staff-session-context";
-import type { OfflineStaffPresentationStore } from "./offline-staff-presentation";
+import {
+  formatOfflineVerifiedAt,
+  OFFLINE_GRACE_EXPIRED_MESSAGE,
+  type OfflineStaffPresentationStore,
+} from "./offline-staff-presentation";
 import {
   createLocalSelectedRegisterStore,
   resolveSelectedRegisterId,
@@ -31,6 +35,8 @@ export type StaffRuntimeAuthority = {
   readonly shiftOpen: boolean;
   readonly errorMessage?: string;
   readonly presentationOnly?: boolean;
+  /** ISO time of the last server verification. Present only for cached offline presentation. */
+  readonly lastVerifiedAt?: string;
 };
 
 export type StaffRuntimeController = {
@@ -39,10 +45,15 @@ export type StaffRuntimeController = {
   restore(): Promise<void>;
   signIn(request?: StaffSignInRequest): Promise<void>;
   signOut(): Promise<void>;
+  /** Records that remote sign-out could not be confirmed. Never restores a session. */
+  reportUnconfirmedRemoteSignOut(): void;
   refreshRegister(): Promise<void>;
   selectRegister(registerId: string): Promise<boolean>;
   applyShift(shift: Shift | null): void;
 };
+
+export const REMOTE_SIGN_OUT_UNCONFIRMED_MESSAGE =
+  "Signed out on this device. Remote sign-out could not be confirmed.";
 
 const idle: StaffRuntimeAuthority = {
   status: "restoring",
@@ -194,6 +205,7 @@ export function createStaffRuntimeController(input: {
       }
       const notice = noticeFromFailure(registerResult);
       if (isAuthClosed(notice)) {
+        offlinePresentationStore?.clear();
         return authClosedAuthority(notice, registerResult.error.message);
       }
       if (registerResult.error.code === "NOT_FOUND") {
@@ -228,6 +240,7 @@ export function createStaffRuntimeController(input: {
       }
       const notice = noticeFromFailure(shiftResult);
       if (isAuthClosed(notice)) {
+        offlinePresentationStore?.clear();
         return authClosedAuthority(notice, shiftResult.error.message);
       }
       const sameRegister = previous.register?.id === registerResult.data.id;
@@ -284,18 +297,34 @@ export function createStaffRuntimeController(input: {
 
   async function applyContext(result: ApiResult<StaffSessionContext>): Promise<void> {
     if (!result.ok) {
+      if (result.error.code === "AUTH_REQUIRED" || result.error.code === "FORBIDDEN") {
+        offlinePresentationStore?.clear();
+      }
       if (result.error.code === "INTEGRATION_UNAVAILABLE") {
-        const cached = offlinePresentationStore?.read(now()) ?? null;
-        if (cached) {
+        const evaluation = offlinePresentationStore?.evaluate(now());
+        if (evaluation?.outcome === "available") {
+          const cached = evaluation.authority;
+          const verifiedAt = cached.lastVerifiedAt
+            ? formatOfflineVerifiedAt(cached.lastVerifiedAt)
+            : null;
           setState(
             isOnline()
               ? {
                   ...cached,
-                  errorMessage:
-                    "Connection unavailable. Showing the last verified cashier and register. Selling and register changes stay blocked until service recovers.",
+                  errorMessage: verifiedAt
+                    ? `Connection unavailable. Offline — staff access last verified at ${verifiedAt}. Selling and register changes stay blocked until the service recovers.`
+                    : "Connection unavailable. Showing the last verified cashier and register. Selling and register changes stay blocked until the service recovers.",
                 }
               : cached,
           );
+          return;
+        }
+        if (evaluation?.outcome === "grace_expired") {
+          setState({
+            ...idle,
+            status: "expired",
+            errorMessage: OFFLINE_GRACE_EXPIRED_MESSAGE,
+          });
           return;
         }
       }
@@ -311,6 +340,23 @@ export function createStaffRuntimeController(input: {
     if (next.status === "ready" && next.session && !next.presentationOnly) {
       offlinePresentationStore?.write(next, now());
     }
+  }
+
+  function signedOutState(errorMessage?: string): StaffRuntimeAuthority {
+    return {
+      ...idle,
+      status: "signed_out",
+      errorMessage,
+    };
+  }
+
+  function retireLocalStaffAuthority(): void {
+    try {
+      offlinePresentationStore?.clear();
+    } catch {
+      // A storage failure must not leave the previous cashier on screen.
+    }
+    setState(signedOutState());
   }
 
   return {
@@ -344,13 +390,27 @@ export function createStaffRuntimeController(input: {
       }
     },
     async signOut() {
-      await input.gateway.clear();
-      await input.auth.signOut();
-      offlinePresentationStore?.clear();
-      setState({
-        ...idle,
-        status: "signed_out",
-      });
+      retireLocalStaffAuthority();
+      let remoteFailed = false;
+      try {
+        await input.gateway.clear();
+      } catch {
+        remoteFailed = true;
+      }
+      try {
+        await input.auth.signOut();
+      } catch {
+        remoteFailed = true;
+      }
+      if (remoteFailed) {
+        setState(signedOutState(REMOTE_SIGN_OUT_UNCONFIRMED_MESSAGE));
+      }
+    },
+    reportUnconfirmedRemoteSignOut() {
+      if (state.session || state.status === "ready" || state.presentationOnly) {
+        retireLocalStaffAuthority();
+      }
+      setState(signedOutState(REMOTE_SIGN_OUT_UNCONFIRMED_MESSAGE));
     },
     async refreshRegister() {
       if (!state.session || state.presentationOnly) {

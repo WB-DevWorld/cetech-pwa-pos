@@ -51,9 +51,13 @@ import {
   createBffStaffSessionGateway,
   createPublicSupabaseStaffAuthProvider,
   createLocalOfflineStaffPresentationStore,
+  offlinePresentationBanner,
+  OFFLINE_GRACE_EXPIRED_MESSAGE,
   createStaffIdentityPort,
   createStaffRuntimeController,
+  lockStaffSession,
   readOrCreateLocalDeviceId,
+  REMOTE_SIGN_OUT_UNCONFIRMED_MESSAGE,
   type StaffRuntimeAuthority,
   type StaffRuntimeController,
 } from "../core/identity";
@@ -535,13 +539,17 @@ export function PosRuntime({
     : undefined;
 
   const authNotice: AuthNoticeState =
-    authority.status === "expired"
-      ? "expired"
-      : authority.status === "unauthorized"
-        ? "unauthorized"
-        : authority.status === "restoring"
-          ? "loading"
-          : "signed_out";
+    authority.errorMessage === OFFLINE_GRACE_EXPIRED_MESSAGE
+      ? "offline_expired"
+      : authority.errorMessage === REMOTE_SIGN_OUT_UNCONFIRMED_MESSAGE
+        ? "remote_sign_out_unconfirmed"
+        : authority.status === "expired"
+        ? "expired"
+        : authority.status === "unauthorized"
+          ? "unauthorized"
+          : authority.status === "restoring"
+            ? "loading"
+            : "signed_out";
 
   if (authority.status !== "ready" || !authority.session) {
     return (
@@ -554,7 +562,12 @@ export function PosRuntime({
         <StaffAuthGate
           noticeState={authNotice}
           busy={authority.status === "restoring"}
-          errorMessage={authority.errorMessage}
+          errorMessage={
+            authority.errorMessage === OFFLINE_GRACE_EXPIRED_MESSAGE ||
+            authority.errorMessage === REMOTE_SIGN_OUT_UNCONFIRMED_MESSAGE
+              ? undefined
+              : authority.errorMessage
+          }
           onSignIn={(request) => {
             void runtime.signIn(request);
           }}
@@ -580,6 +593,9 @@ export function PosRuntime({
     ports && localTransactionRecoveryBlocked
       ? { ...ports, checkout: undefined, payments: undefined, sales: undefined }
       : ports;
+  const offlineBanner = authority.presentationOnly
+    ? offlinePresentationBanner({ online, lastVerifiedAt: authority.lastVerifiedAt })
+    : null;
 
   return (
     <PosRuntimeOwner
@@ -599,19 +615,13 @@ export function PosRuntime({
       toast={toast}
       onNavigate={onNavigate}
       onLock={() => {
-        void (async () => {
-          await identity.signOut();
-          await runtime.signOut();
-        })();
+        void lockStaffSession({ identity, runtime });
       }}
     >
-      {authority.presentationOnly ? (
+      {offlineBanner ? (
         <div className="banner warning" role="status" data-offline-presentation-only="true">
-          <strong>{online ? "Connection unavailable." : "Offline mode."}</strong>
-          <span>
-            Showing the last verified cashier, register, saved products and cart. Payments, authoritative pricing,
-            returns and register changes stay unavailable until {online ? "the service recovers." : "reconnect."}
-          </span>
+          <strong>{offlineBanner.title}</strong>
+          <span>{offlineBanner.detail}</span>
         </div>
       ) : cashierAuthorityError ? (
         <p className="banner danger" role="status" data-register-authority-degraded="">

@@ -1,11 +1,19 @@
 import { describe, expect, test } from "vitest";
 import type { ApiResult, RegisterPort } from "../../../../../docs/contracts/ports";
 import type { Register, Session, Shift } from "../../../../../docs/contracts/domain.generated";
+import { AppShell } from "../../ui/shell";
 import { createBffStaffSessionGateway } from "./bff-staff-session-gateway";
 import { checkoutScopeFromStaffAuthority } from "./checkout-scope";
+import { createStaffIdentityPort } from "./staff-identity-port";
 import { createMemorySelectedRegisterStore, selectedRegisterStorageKey } from "./selected-register-preference";
-import { createMemoryOfflineStaffPresentationStore } from "./offline-staff-presentation";
-import { createStaffRuntimeController } from "./staff-runtime";
+import {
+  createMemoryOfflineStaffPresentationStore,
+  OFFLINE_GRACE_EXPIRED_MESSAGE,
+  OFFLINE_STAFF_PRESENTATION_MAX_AGE_MS,
+} from "./offline-staff-presentation";
+import { lockStaffSession } from "./staff-lock";
+import { createPublicSupabaseStaffAuthProvider } from "./staff-auth-provider";
+import { createStaffRuntimeController, REMOTE_SIGN_OUT_UNCONFIRMED_MESSAGE } from "./staff-runtime";
 
 const CORRELATION = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const SESSION: Session = {
@@ -366,6 +374,415 @@ describe("offline cold-start presentation continuity", () => {
     await runtime.signOut();
     expect(offlineStore.read(new Date("2026-09-21T11:01:00.000Z"))).toBeNull();
   });
+
+  test("offline cold start after online session expiry still presents the cashier inside grace", async () => {
+    const offlineStore = createMemoryOfflineStaffPresentationStore();
+    const verifiedAt = new Date("2026-09-21T10:00:00.000Z");
+    offlineStore.write(
+      {
+        status: "ready",
+        session: { ...SESSION, expiresAt: "2026-09-21T12:00:00.000Z" },
+        assignedLocationIds: ["loc_a1"],
+        assignedRegisterIds: ["reg_a"],
+        assignedRegisters: [REGISTER_A],
+        selectedRegisterId: "reg_a",
+        register: REGISTER_A,
+        shift: SHIFT_A,
+        shiftOpen: true,
+      },
+      verifiedAt,
+    );
+    const runtime = createStaffRuntimeController({
+      gateway: {
+        async establish() {
+          return fail("INTEGRATION_UNAVAILABLE", "staff session transport failed");
+        },
+        async readContext() {
+          return fail("INTEGRATION_UNAVAILABLE", "staff session transport failed");
+        },
+        async read() {
+          return null;
+        },
+        async clear() {
+          return;
+        },
+      },
+      auth: authStub(),
+      registers: stubRegisters(),
+      offlinePresentationStore: offlineStore,
+      isOnline: () => false,
+      now: () => new Date("2026-09-21T13:00:00.000Z"),
+    });
+
+    await runtime.restore();
+    const state = runtime.getState();
+    expect(state).toMatchObject({
+      status: "ready",
+      presentationOnly: true,
+      session: { actorId: "cashier_a", organizationId: "org_a" },
+      register: { id: "reg_a" },
+      lastVerifiedAt: "2026-09-21T10:00:00.000Z",
+    });
+    expect(state.errorMessage).toContain("Offline — staff access last verified at");
+    expect(state.errorMessage).not.toContain("Signed in");
+    expect(checkoutScopeFromStaffAuthority(state, "fallback-device")).toBeUndefined();
+    expect(await runtime.selectRegister("reg_a")).toBe(false);
+    runtime.applyShift(SHIFT_A);
+    expect(runtime.getState().presentationOnly).toBe(true);
+  });
+
+  test("elapsed offline grace requires sign-in and does not revive after the clock moves backward", async () => {
+    const offlineStore = createMemoryOfflineStaffPresentationStore();
+    const verifiedAt = new Date("2026-09-21T10:00:00.000Z");
+    offlineStore.write(
+      {
+        status: "ready",
+        session: SESSION,
+        assignedLocationIds: ["loc_a1"],
+        assignedRegisterIds: ["reg_a"],
+        assignedRegisters: [REGISTER_A],
+        selectedRegisterId: "reg_a",
+        register: REGISTER_A,
+        shift: SHIFT_A,
+        shiftOpen: true,
+      },
+      verifiedAt,
+    );
+    const runtime = createStaffRuntimeController({
+      gateway: {
+        async establish() {
+          return fail("INTEGRATION_UNAVAILABLE", "staff session transport failed");
+        },
+        async readContext() {
+          return fail("INTEGRATION_UNAVAILABLE", "staff session transport failed");
+        },
+        async read() {
+          return null;
+        },
+        async clear() {
+          return;
+        },
+      },
+      auth: authStub(),
+      registers: stubRegisters(),
+      offlinePresentationStore: offlineStore,
+      isOnline: () => false,
+      now: () => new Date(verifiedAt.getTime() + OFFLINE_STAFF_PRESENTATION_MAX_AGE_MS + 1),
+    });
+
+    await runtime.restore();
+    expect(runtime.getState()).toMatchObject({
+      status: "expired",
+      session: null,
+      errorMessage: OFFLINE_GRACE_EXPIRED_MESSAGE,
+    });
+    expect(offlineStore.read(new Date(verifiedAt.getTime() + 60_000))).toBeNull();
+  });
+
+  test("authoritative session denial retires the cached presentation", async () => {
+    const offlineStore = createMemoryOfflineStaffPresentationStore();
+    offlineStore.write(
+      {
+        status: "ready",
+        session: SESSION,
+        assignedLocationIds: ["loc_a1"],
+        assignedRegisterIds: ["reg_a"],
+        assignedRegisters: [REGISTER_A],
+        selectedRegisterId: "reg_a",
+        register: REGISTER_A,
+        shift: SHIFT_A,
+        shiftOpen: true,
+      },
+      new Date("2026-09-21T10:00:00.000Z"),
+    );
+    const runtime = createStaffRuntimeController({
+      gateway: {
+        async establish() {
+          return fail("AUTH_REQUIRED", "staff session is expired or revoked");
+        },
+        async readContext() {
+          return fail("FORBIDDEN", "staff access is disabled");
+        },
+        async read() {
+          return null;
+        },
+        async clear() {
+          return;
+        },
+      },
+      auth: authStub(),
+      registers: stubRegisters(),
+      offlinePresentationStore: offlineStore,
+      isOnline: () => true,
+      now: () => new Date("2026-09-21T13:00:00.000Z"),
+    });
+
+    await runtime.restore();
+    expect(runtime.getState()).toMatchObject({
+      status: "unauthorized",
+      session: null,
+    });
+    expect(offlineStore.read(new Date("2026-09-21T13:00:00.000Z"))).toBeNull();
+  });
+
+  test("expired register authority retires the cached presentation", async () => {
+    const offlineStore = createMemoryOfflineStaffPresentationStore();
+    const registers = stubRegisters();
+    const runtime = createStaffRuntimeController({
+      gateway: createBffStaffSessionGateway({
+        fetchImpl: sessionFetch(() => ["reg_a"]),
+        correlationId: () => CORRELATION,
+      }),
+      auth: authStub(),
+      registers,
+      offlinePresentationStore: offlineStore,
+      now: () => new Date("2026-09-21T11:00:00.000Z"),
+    });
+
+    await runtime.restore();
+    expect(offlineStore.read(new Date("2026-09-21T11:00:00.000Z"))?.session?.actorId).toBe("cashier_a");
+    registers.getImpl = async () => fail("AUTH_REQUIRED", "staff session is expired or revoked");
+    await runtime.refreshRegister();
+    expect(runtime.getState().status).toBe("expired");
+    expect(offlineStore.read(new Date("2026-09-21T11:00:00.000Z"))).toBeNull();
+  });
+
+  test("successful verification of cashier B replaces cashier A's cached presentation", async () => {
+    const offlineStore = createMemoryOfflineStaffPresentationStore();
+    offlineStore.write(
+      {
+        status: "ready",
+        session: SESSION,
+        assignedLocationIds: ["loc_a1"],
+        assignedRegisterIds: ["reg_a"],
+        assignedRegisters: [REGISTER_A],
+        selectedRegisterId: "reg_a",
+        register: REGISTER_A,
+        shift: SHIFT_A,
+        shiftOpen: true,
+      },
+      new Date("2026-09-21T10:00:00.000Z"),
+    );
+    const sessionB: Session = { ...SESSION, actorId: "cashier_b", displayName: "Cashier B" };
+    const runtime = createStaffRuntimeController({
+      gateway: {
+        async establish() {
+          return ok({
+            session: sessionB,
+            assignedLocationIds: ["loc_a1"],
+            assignedRegisterIds: ["reg_a"],
+          });
+        },
+        async readContext() {
+          return ok({
+            session: sessionB,
+            assignedLocationIds: ["loc_a1"],
+            assignedRegisterIds: ["reg_a"],
+          });
+        },
+        async read() {
+          return sessionB;
+        },
+        async clear() {
+          return;
+        },
+      },
+      auth: authStub(),
+      registers: stubRegisters(),
+      offlinePresentationStore: offlineStore,
+      isOnline: () => true,
+      now: () => new Date("2026-09-21T12:00:00.000Z"),
+    });
+
+    await runtime.restore();
+    expect(runtime.getState().session?.actorId).toBe("cashier_b");
+    expect(runtime.getState().presentationOnly).not.toBe(true);
+    const cached = offlineStore.read(new Date("2026-09-21T12:30:00.000Z"));
+    expect(cached?.session?.actorId).toBe("cashier_b");
+    expect(cached?.session?.displayName).toBe("Cashier B");
+    expect(cached?.presentationOnly).toBe(true);
+  });
+});
+
+describe("explicit sign-out retires local authority before remote logout", () => {
+  const verifiedAt = new Date("2026-09-21T10:00:00.000Z");
+  const later = new Date("2026-09-21T11:00:00.000Z");
+
+  function commercialEvidence() {
+    return {
+      drafts: [{ cartId: "11111111-1111-4111-8111-111111111111" }],
+      journal: [{ id: "22222222-2222-4222-8222-222222222222", status: "pending" }],
+      checkoutAttempt: { transactionId: "tx-1", idempotencyKey: "idem-1" },
+    };
+  }
+
+  function seedPresentation(store: ReturnType<typeof createMemoryOfflineStaffPresentationStore>) {
+    store.write(
+      {
+        status: "ready",
+        session: SESSION,
+        assignedLocationIds: ["loc_a1"],
+        assignedRegisterIds: ["reg_a"],
+        assignedRegisters: [REGISTER_A],
+        selectedRegisterId: "reg_a",
+        register: REGISTER_A,
+        shift: SHIFT_A,
+        shiftOpen: true,
+      },
+      verifiedAt,
+    );
+  }
+
+  function unavailableGateway(clear: () => Promise<void>) {
+    return {
+      async establish() {
+        return fail("INTEGRATION_UNAVAILABLE", "staff session transport failed");
+      },
+      async readContext() {
+        return fail("INTEGRATION_UNAVAILABLE", "staff session transport failed");
+      },
+      async read() {
+        return null;
+      },
+      clear,
+    };
+  }
+
+  test("gateway clear rejection still retires local presentation and keeps commercial evidence", async () => {
+    const offlineStore = createMemoryOfflineStaffPresentationStore();
+    const evidence = commercialEvidence();
+    seedPresentation(offlineStore);
+    const runtime = createStaffRuntimeController({
+      gateway: unavailableGateway(async () => {
+        throw new Error("session gateway unreachable");
+      }),
+      auth: authStub(),
+      registers: stubRegisters(),
+      offlinePresentationStore: offlineStore,
+      isOnline: () => false,
+      now: () => later,
+    });
+
+    await runtime.signOut();
+    expect(runtime.getState()).toMatchObject({
+      status: "signed_out",
+      session: null,
+      errorMessage: REMOTE_SIGN_OUT_UNCONFIRMED_MESSAGE,
+    });
+    expect(offlineStore.read(later)).toBeNull();
+    await runtime.restore();
+    expect(runtime.getState().session).toBeNull();
+    expect(runtime.getState().status).not.toBe("ready");
+    expect(evidence).toEqual(commercialEvidence());
+
+    await runtime.signOut();
+    expect(runtime.getState().session).toBeNull();
+    expect(offlineStore.read(later)).toBeNull();
+    expect(evidence).toEqual(commercialEvidence());
+  });
+
+  test("auth provider sign-out rejection still retires local presentation", async () => {
+    // The production Supabase adapter's signOut() returns without a network call,
+    // so that adapter cannot reject. StaffAuthProvider.signOut() can reject, and
+    // this is the runtime boundary that must stay local-first.
+    await expect(createPublicSupabaseStaffAuthProvider().signOut()).resolves.toBeUndefined();
+
+    const offlineStore = createMemoryOfflineStaffPresentationStore();
+    const evidence = commercialEvidence();
+    seedPresentation(offlineStore);
+    const runtime = createStaffRuntimeController({
+      gateway: unavailableGateway(async () => undefined),
+      auth: {
+        async signIn() {
+          return { accessToken: "staff-access-token" };
+        },
+        async signOut() {
+          expect(offlineStore.read(later)).toBeNull();
+          expect(runtime.getState().status).toBe("signed_out");
+          expect(runtime.getState().session).toBeNull();
+          throw new Error("provider sign-out failed");
+        },
+      },
+      registers: stubRegisters(),
+      offlinePresentationStore: offlineStore,
+      isOnline: () => false,
+      now: () => later,
+    });
+
+    await runtime.signOut();
+    expect(runtime.getState()).toMatchObject({
+      status: "signed_out",
+      session: null,
+      errorMessage: REMOTE_SIGN_OUT_UNCONFIRMED_MESSAGE,
+    });
+    expect(offlineStore.read(later)).toBeNull();
+    await runtime.restore();
+    expect(runtime.getState().session).toBeNull();
+    expect(runtime.getState().presentationOnly).not.toBe(true);
+    expect(evidence).toEqual(commercialEvidence());
+  });
+
+  test("AppShell lock still retires local authority when identity sign-out rejects", async () => {
+    const offlineStore = createMemoryOfflineStaffPresentationStore();
+    const evidence = commercialEvidence();
+    seedPresentation(offlineStore);
+    const runtime = createStaffRuntimeController({
+      gateway: unavailableGateway(async () => {
+        throw new Error("runtime gateway unreachable");
+      }),
+      auth: authStub(),
+      registers: stubRegisters(),
+      offlinePresentationStore: offlineStore,
+      isOnline: () => false,
+      now: () => later,
+    });
+    const identity = createStaffIdentityPort({
+      gateway: {
+        async read() {
+          return null;
+        },
+        async clear() {
+          expect(offlineStore.read(later)).toBeNull();
+          expect(runtime.getState().status).toBe("signed_out");
+          expect(runtime.getState().session).toBeNull();
+          throw new Error("identity session clear failed");
+        },
+      },
+      correlationId: () => CORRELATION,
+      localWork: { drafts: evidence.drafts, journal: evidence.journal },
+    });
+
+    let locked = Promise.resolve();
+    const onLock = () => {
+      locked = lockStaffSession({ identity, runtime });
+    };
+    const click = findLockClick(renderElement(AppShell({
+      activeRoute: "sell",
+      cashierDisplayName: "Cashier A",
+      onLock,
+      children: "Sell",
+    })));
+    expect(click).toBeTypeOf("function");
+    click?.();
+    await locked;
+
+    expect(runtime.getState()).toMatchObject({
+      status: "signed_out",
+      session: null,
+      errorMessage: REMOTE_SIGN_OUT_UNCONFIRMED_MESSAGE,
+    });
+    expect(offlineStore.read(later)).toBeNull();
+    await runtime.restore();
+    expect(runtime.getState().session).toBeNull();
+    expect(runtime.getState().status).not.toBe("ready");
+    expect(evidence).toEqual(commercialEvidence());
+
+    const again = lockStaffSession({ identity, runtime });
+    await expect(again).resolves.toBeUndefined();
+    expect(runtime.getState().session).toBeNull();
+    expect(offlineStore.read(later)).toBeNull();
+    expect(evidence).toEqual(commercialEvidence());
+  });
 });
 
 describe("assigned register selection", () => {
@@ -588,6 +1005,48 @@ describe("assigned register selection", () => {
     ).toBeUndefined();
   });
 });
+
+type RenderedNode = {
+  type?: unknown;
+  props?: {
+    onClick?: () => void;
+    "aria-label"?: string;
+    children?: unknown;
+  };
+};
+
+function renderElement(node: unknown): unknown {
+  if (Array.isArray(node)) return node.map((child) => renderElement(child));
+  if (!node || typeof node !== "object") return node;
+  const element = node as RenderedNode;
+  if (typeof element.type === "function") {
+    return renderElement((element.type as (props: unknown) => unknown)(element.props));
+  }
+  if (!element.props?.children) return element;
+  return {
+    type: element.type,
+    props: {
+      ...element.props,
+      children: renderElement(element.props.children),
+    },
+  };
+}
+
+function findLockClick(node: unknown): (() => void) | undefined {
+  if (Array.isArray(node)) {
+    for (const child of node) {
+      const found = findLockClick(child);
+      if (found) return found;
+    }
+    return undefined;
+  }
+  if (!node || typeof node !== "object") return undefined;
+  const element = node as RenderedNode;
+  if (element.props?.["aria-label"] === "Lock register" && element.props.onClick) {
+    return element.props.onClick;
+  }
+  return findLockClick(element.props?.children);
+}
 
 function stubRegisters(): RegisterPort & {
   got: string[];
