@@ -155,6 +155,23 @@ PAYMENT_PROVIDER=disabled
 
 During the generated-URL phase, **do not set `APP_ORIGIN` or `ALLOWED_ORIGINS` merely to a guessed Vercel URL**. The application will use the exact runtime `VERCEL_URL`. If a stable custom domain is added later, set `APP_ORIGIN=https://<hostname>` and optionally add other explicitly trusted origins through `ALLOWED_ORIGINS`.
 
+Staff invitation emails are different. They must not use `VERCEL_URL` or `http://localhost:3000`. `POST /api/pos/v1/staff/invitations` builds `redirectTo` only from explicit `APP_ORIGIN` (or `NEXT_PUBLIC_APP_ORIGIN`) when `APP_ENV` is `staging` or `production`, or when `VERCEL_ENV` is `preview` or `production`. If that origin is missing, malformed, not HTTPS, or a loopback host, the invitation fails before Supabase is called. Local development (`APP_ENV=local`, and no deployed `VERCEL_ENV`) may use `http://localhost:<port>`.
+
+A manager invitation does not create a POS assignment or role. The invited person sets a password at `/auth/invite`, then signs in through the existing POS session flow. Cashiers cannot call the invitation route.
+
+### Supabase Auth URL and invite email (dashboard)
+
+The repository does not control the hosted project's Site URL, redirect allow list, SMTP sender, or hosted email template. Configure the staging project in the Supabase dashboard:
+
+- Site URL: `https://<stable-staging-host>` (not `localhost`, not a `*.vercel.app` deployment hash)
+- Redirect URLs: `https://<stable-staging-host>` and `https://<stable-staging-host>/auth/invite`
+- Production uses the same pair with the production host
+- Invite email subject: `You're invited to CETECH POS`
+- Sender name: `CETECH POS`
+- Template must use the confirmation link (`{{ .ConfirmationURL }}`) and must not mention localhost
+
+If `redirectTo` is omitted or is not on that allow list, Supabase falls back to the Site URL. A Site URL left at the local default (`http://127.0.0.1:3000` in `supabase/config.toml`) is why an Accept invitation link opens localhost. Local `supabase/config.toml` stays on loopback for the CLI and allow-lists `http://localhost:3000/auth/invite`. Its invite template at `supabase/templates/invite.html` applies to the local CLI only.
+
 Do not configure a live Paystack key for CD-01. R7 retains its own sandbox/runtime acceptance gate. If a later milestone authorizes sandbox payment testing, that is a separate explicit change to the staging environment and must not silently become production authority.
 
 The current app rejects public exposure of server-only configuration names. Keep privileged variables out of `NEXT_PUBLIC_*`.

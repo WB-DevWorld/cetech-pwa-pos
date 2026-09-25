@@ -28,6 +28,7 @@ export const STAFF_PERMISSIONS = [
   "return.execute",
   "return.resolve",
   "return.approve",
+  "staff.invite",
 ] as const;
 export type StaffPermission = (typeof STAFF_PERMISSIONS)[number];
 
@@ -55,6 +56,7 @@ const MANAGER_PERMISSIONS: ReadonlySet<StaffPermission> = new Set([
   "cash.correction",
   "refund.resolve",
   "return.approve",
+  "staff.invite",
 ]);
 
 export function isStaffAssignmentRole(value: unknown): value is StaffAssignmentRole {
