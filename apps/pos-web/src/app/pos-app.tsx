@@ -29,6 +29,7 @@ import { ApprovedWorkspaceScreens, clientAttentionExtras } from "./workspace-run
 import { AppShell, POS_ROUTE_HREFS, type PosRoute } from "../ui/shell";
 import { returnSelectionHref } from "./pos-route";
 import { resolveBrowserCatalogSourcePolicy } from "../core/catalog/source-policy";
+import { createBurstRefresh } from "../core/identity/authority-refresh";
 import {
   CASHIER_SEED_LOCATION_ID,
   CATALOG_REFRESH_MIN_INTERVAL_MS,
@@ -313,23 +314,26 @@ export function PosRuntime({
   }, [authority.session, authority.status, fetchImpl, loadAttention]);
 
   useEffect(() => {
+    const burst = createBurstRefresh(async () => {
+      await runtime.refreshRegister();
+      await loadAttention("refresh");
+    });
     function sync() {
       setOnline(navigator.onLine);
       if (navigator.onLine) {
-        void runtime.refreshRegister();
-        void loadAttention("refresh");
+        burst.schedule();
       }
     }
     function onVisible() {
       if (document.visibilityState === "visible") {
-        void runtime.refreshRegister();
-        void loadAttention("refresh");
+        burst.schedule();
       }
     }
     window.addEventListener("online", sync);
     window.addEventListener("offline", sync);
     document.addEventListener("visibilitychange", onVisible);
     return () => {
+      burst.cancel();
       window.removeEventListener("online", sync);
       window.removeEventListener("offline", sync);
       document.removeEventListener("visibilitychange", onVisible);
