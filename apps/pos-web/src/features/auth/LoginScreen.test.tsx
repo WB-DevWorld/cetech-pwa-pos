@@ -38,6 +38,12 @@ describe("LoginScreen", () => {
       createElement(LoginScreen, { noticeState: "offline_expired", onSignIn: () => undefined }),
     );
     expect(offlineExpired).toContain("Offline access expired.");
+
+    const remoteUnconfirmed = renderToStaticMarkup(
+      createElement(LoginScreen, { noticeState: "remote_sign_out_unconfirmed", onSignIn: () => undefined }),
+    );
+    expect(remoteUnconfirmed).toContain("Signed out on this device.");
+    expect(remoteUnconfirmed).toContain("Remote sign-out could not be confirmed.");
     expect(offlineExpired).toContain("Your saved cart and transaction checks stay on this device.");
     expect(offlineExpired).not.toContain("Signed in and verified");
   });

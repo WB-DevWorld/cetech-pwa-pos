@@ -8,7 +8,13 @@ export {
   type StaffAuthProvider,
   type StaffSignInRequest,
 } from "./staff-auth-provider";
-export { createStaffRuntimeController, type StaffRuntimeAuthority, type StaffRuntimeController } from "./staff-runtime";
+export {
+  createStaffRuntimeController,
+  REMOTE_SIGN_OUT_UNCONFIRMED_MESSAGE,
+  type StaffRuntimeAuthority,
+  type StaffRuntimeController,
+} from "./staff-runtime";
+export { lockStaffSession } from "./staff-lock";
 export { checkoutScopeFromStaffAuthority } from "./checkout-scope";
 export {
   createLocalSelectedRegisterStore,

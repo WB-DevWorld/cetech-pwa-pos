@@ -55,7 +55,9 @@ import {
   OFFLINE_GRACE_EXPIRED_MESSAGE,
   createStaffIdentityPort,
   createStaffRuntimeController,
+  lockStaffSession,
   readOrCreateLocalDeviceId,
+  REMOTE_SIGN_OUT_UNCONFIRMED_MESSAGE,
   type StaffRuntimeAuthority,
   type StaffRuntimeController,
 } from "../core/identity";
@@ -539,7 +541,9 @@ export function PosRuntime({
   const authNotice: AuthNoticeState =
     authority.errorMessage === OFFLINE_GRACE_EXPIRED_MESSAGE
       ? "offline_expired"
-      : authority.status === "expired"
+      : authority.errorMessage === REMOTE_SIGN_OUT_UNCONFIRMED_MESSAGE
+        ? "remote_sign_out_unconfirmed"
+        : authority.status === "expired"
         ? "expired"
         : authority.status === "unauthorized"
           ? "unauthorized"
@@ -559,7 +563,10 @@ export function PosRuntime({
           noticeState={authNotice}
           busy={authority.status === "restoring"}
           errorMessage={
-            authority.errorMessage === OFFLINE_GRACE_EXPIRED_MESSAGE ? undefined : authority.errorMessage
+            authority.errorMessage === OFFLINE_GRACE_EXPIRED_MESSAGE ||
+            authority.errorMessage === REMOTE_SIGN_OUT_UNCONFIRMED_MESSAGE
+              ? undefined
+              : authority.errorMessage
           }
           onSignIn={(request) => {
             void runtime.signIn(request);
@@ -608,10 +615,7 @@ export function PosRuntime({
       toast={toast}
       onNavigate={onNavigate}
       onLock={() => {
-        void (async () => {
-          await identity.signOut();
-          await runtime.signOut();
-        })();
+        void lockStaffSession({ identity, runtime });
       }}
     >
       {offlineBanner ? (

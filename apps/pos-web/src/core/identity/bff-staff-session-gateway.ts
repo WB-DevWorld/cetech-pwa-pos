@@ -122,7 +122,10 @@ export function createBffStaffSessionGateway(
       return result.ok ? result.data.session : null;
     },
     async clear() {
-      await request("DELETE", { csrf: true });
+      const result = await request("DELETE", { csrf: true });
+      if (!result.ok && result.error.code === "INTEGRATION_UNAVAILABLE") {
+        throw new Error("staff session could not be cleared");
+      }
     },
   };
 }

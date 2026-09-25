@@ -45,10 +45,15 @@ export type StaffRuntimeController = {
   restore(): Promise<void>;
   signIn(request?: StaffSignInRequest): Promise<void>;
   signOut(): Promise<void>;
+  /** Records that remote sign-out could not be confirmed. Never restores a session. */
+  reportUnconfirmedRemoteSignOut(): void;
   refreshRegister(): Promise<void>;
   selectRegister(registerId: string): Promise<boolean>;
   applyShift(shift: Shift | null): void;
 };
+
+export const REMOTE_SIGN_OUT_UNCONFIRMED_MESSAGE =
+  "Signed out on this device. Remote sign-out could not be confirmed.";
 
 const idle: StaffRuntimeAuthority = {
   status: "restoring",
@@ -337,6 +342,23 @@ export function createStaffRuntimeController(input: {
     }
   }
 
+  function signedOutState(errorMessage?: string): StaffRuntimeAuthority {
+    return {
+      ...idle,
+      status: "signed_out",
+      errorMessage,
+    };
+  }
+
+  function retireLocalStaffAuthority(): void {
+    try {
+      offlinePresentationStore?.clear();
+    } catch {
+      // A storage failure must not leave the previous cashier on screen.
+    }
+    setState(signedOutState());
+  }
+
   return {
     getState() {
       return state;
@@ -368,13 +390,27 @@ export function createStaffRuntimeController(input: {
       }
     },
     async signOut() {
-      await input.gateway.clear();
-      await input.auth.signOut();
-      offlinePresentationStore?.clear();
-      setState({
-        ...idle,
-        status: "signed_out",
-      });
+      retireLocalStaffAuthority();
+      let remoteFailed = false;
+      try {
+        await input.gateway.clear();
+      } catch {
+        remoteFailed = true;
+      }
+      try {
+        await input.auth.signOut();
+      } catch {
+        remoteFailed = true;
+      }
+      if (remoteFailed) {
+        setState(signedOutState(REMOTE_SIGN_OUT_UNCONFIRMED_MESSAGE));
+      }
+    },
+    reportUnconfirmedRemoteSignOut() {
+      if (state.session || state.status === "ready" || state.presentationOnly) {
+        retireLocalStaffAuthority();
+      }
+      setState(signedOutState(REMOTE_SIGN_OUT_UNCONFIRMED_MESSAGE));
     },
     async refreshRegister() {
       if (!state.session || state.presentationOnly) {
