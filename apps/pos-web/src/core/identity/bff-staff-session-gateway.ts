@@ -111,10 +111,10 @@ export function createBffStaffSessionGateway(
       if (!posted.ok) {
         return posted;
       }
-      // A successful POST only establishes the cookie. Its Session payload has
-      // no server-owned register assignments, so a failed GET cannot become
-      // cashier authority with an empty register list.
-      return request("GET");
+      const recovered = await request("GET");
+      // POST only establishes the cookie. Its Session has no register list, so
+      // a failed assignment read stays a failure instead of zero assignments.
+      return recovered;
     },
     async readContext() {
       return request("GET");
@@ -124,7 +124,10 @@ export function createBffStaffSessionGateway(
       return result.ok ? result.data.session : null;
     },
     async clear() {
-      await request("DELETE", { csrf: true });
+      const result = await request("DELETE", { csrf: true });
+      if (!result.ok && result.error.code === "INTEGRATION_UNAVAILABLE") {
+        throw new Error("staff session could not be cleared");
+      }
     },
   };
 }

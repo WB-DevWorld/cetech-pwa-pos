@@ -1,8 +1,22 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { STAFF_PRESENTATION_COPY } from "../../core/identity/staff-presentation-notice";
 
-export type AuthNoticeState = "signed_out" | "expired" | "unauthorized" | "locked" | "loading";
+export type AuthNoticeState =
+  | "signed_out"
+  | "expired"
+  | "unauthorized"
+  | "locked"
+  | "loading"
+  | "offline_expired"
+  | "remote_sign_out_unconfirmed"
+  | "invalid_credentials"
+  | "credentials_required"
+  | "access_disabled"
+  | "assignments_unavailable"
+  | "provider_unavailable"
+  | "offline_sign_in";
 
 export type LoginCredentials = {
   readonly email: string;
@@ -19,18 +33,58 @@ export type LoginScreenProps = {
 const NOTICES: Record<Exclude<AuthNoticeState, "signed_out" | "loading">, { tone: "warning" | "danger" | "info"; title: string; body: string }> = {
   expired: {
     tone: "warning",
-    title: "Session expired.",
-    body: "Sign in again to continue. Your local cart has been kept.",
+    title: "Session ended.",
+    body: `${STAFF_PRESENTATION_COPY.session_expired} Your local cart has been kept.`,
   },
   unauthorized: {
     tone: "danger",
     title: "Access denied.",
-    body: "This account is not authorized to operate this register.",
+    body: "You don't have permission to sign in here.",
+  },
+  invalid_credentials: {
+    tone: "danger",
+    title: "Sign-in failed.",
+    body: STAFF_PRESENTATION_COPY.invalid_credentials,
+  },
+  credentials_required: {
+    tone: "warning",
+    title: "Sign-in failed.",
+    body: STAFF_PRESENTATION_COPY.credentials_required,
+  },
+  access_disabled: {
+    tone: "danger",
+    title: "POS access disabled.",
+    body: STAFF_PRESENTATION_COPY.access_disabled,
+  },
+  assignments_unavailable: {
+    tone: "warning",
+    title: "Registers unavailable.",
+    body: STAFF_PRESENTATION_COPY.assignments_unavailable,
+  },
+  provider_unavailable: {
+    tone: "warning",
+    title: "Sign-in unavailable.",
+    body: STAFF_PRESENTATION_COPY.provider_unavailable,
+  },
+  offline_sign_in: {
+    tone: "warning",
+    title: "No internet connection.",
+    body: STAFF_PRESENTATION_COPY.offline_sign_in,
   },
   locked: {
     tone: "info",
     title: "Register locked.",
     body: "Sign in to unlock the current shift.",
+  },
+  offline_expired: {
+    tone: "warning",
+    title: "Offline access expired.",
+    body: "Sign in again when you are online. Your saved cart and transaction checks stay on this device.",
+  },
+  remote_sign_out_unconfirmed: {
+    tone: "warning",
+    title: "Signed out on this device.",
+    body: "Remote sign-out could not be confirmed.",
   },
 };
 
@@ -41,9 +95,20 @@ export function LoginScreen({
   onSignIn,
 }: LoginScreenProps) {
   const loading = busy || noticeState === "loading";
-  const notice = noticeState === "expired" || noticeState === "unauthorized" || noticeState === "locked"
-    ? NOTICES[noticeState]
-    : null;
+  const notice =
+    noticeState === "expired" ||
+    noticeState === "unauthorized" ||
+    noticeState === "locked" ||
+    noticeState === "offline_expired" ||
+    noticeState === "remote_sign_out_unconfirmed" ||
+    noticeState === "invalid_credentials" ||
+    noticeState === "credentials_required" ||
+    noticeState === "access_disabled" ||
+    noticeState === "assignments_unavailable" ||
+    noticeState === "provider_unavailable" ||
+    noticeState === "offline_sign_in"
+      ? NOTICES[noticeState]
+      : null;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 

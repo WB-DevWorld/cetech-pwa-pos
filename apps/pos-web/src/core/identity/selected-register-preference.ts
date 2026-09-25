@@ -82,25 +82,42 @@ export function createLocalSelectedRegisterStore(): SelectedRegisterStore {
   };
 }
 
+export type SelectedRegisterDecision = {
+  readonly selectedRegisterId: string | null;
+  /** Persistence to apply only after the caller proves this resolution is still current. */
+  readonly persist: "keep" | "clear" | "write";
+};
+
+/** Pure assignment-list decision. Does not read or write the preference store. */
+export function decideSelectedRegisterId(input: {
+  readonly assignedRegisterIds: readonly string[];
+  readonly storedRegisterId: string | null;
+}): SelectedRegisterDecision {
+  const assigned = input.assignedRegisterIds;
+  const stored = input.storedRegisterId;
+  if (stored && assigned.includes(stored)) {
+    return { selectedRegisterId: stored, persist: "keep" };
+  }
+  if (assigned.length === 1) {
+    return { selectedRegisterId: assigned[0]!, persist: "write" };
+  }
+  return { selectedRegisterId: null, persist: stored ? "clear" : "keep" };
+}
+
 export function resolveSelectedRegisterId(input: {
   readonly assignedRegisterIds: readonly string[];
   readonly organizationId: string;
   readonly actorId: string;
   readonly store: SelectedRegisterStore;
 }): string | null {
-  const assigned = input.assignedRegisterIds;
-  const stored = input.store.read(input.organizationId, input.actorId);
-  if (stored && !assigned.includes(stored)) {
+  const decision = decideSelectedRegisterId({
+    assignedRegisterIds: input.assignedRegisterIds,
+    storedRegisterId: input.store.read(input.organizationId, input.actorId),
+  });
+  if (decision.persist === "clear") {
     input.store.clear(input.organizationId, input.actorId);
+  } else if (decision.persist === "write" && decision.selectedRegisterId) {
+    input.store.write(input.organizationId, input.actorId, decision.selectedRegisterId);
   }
-  const validStored = stored && assigned.includes(stored) ? stored : null;
-  if (validStored) {
-    return validStored;
-  }
-  if (assigned.length === 1) {
-    const only = assigned[0]!;
-    input.store.write(input.organizationId, input.actorId, only);
-    return only;
-  }
-  return null;
+  return decision.selectedRegisterId;
 }

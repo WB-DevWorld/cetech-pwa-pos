@@ -20,7 +20,11 @@ export function StaffAuthGate({
       <LoginScreen
         noticeState={noticeState}
         busy={busy}
-        errorMessage={errorMessage ? toCashierError({ message: errorMessage, domain: "auth" }).message : undefined}
+        errorMessage={
+          errorMessage
+            ? toCashierError({ message: errorMessage, domain: "auth" }).message
+            : undefined
+        }
         onSignIn={onSignIn}
       />
     </div>

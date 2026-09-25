@@ -5,6 +5,7 @@ export type IdentityVerifyFailureReason =
   | "expired"
   | "revoked"
   | "malformed"
+  | "access_disabled"
   | "timeout"
   | "unavailable";
 
