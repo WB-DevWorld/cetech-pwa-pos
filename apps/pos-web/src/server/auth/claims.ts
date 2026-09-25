@@ -15,6 +15,22 @@ export type StaffIdentityClaims = {
  * Map a verified Supabase Auth user/JWT-shaped payload onto staff claims.
  * Buyer/customer fields never become staff identity.
  */
+/** Explicit staff disablement. Absent means unchanged current access rules. */
+export function isExplicitPosAccessDisabled(payload: unknown): boolean {
+  if (payload === null || typeof payload !== "object") {
+    return false;
+  }
+  const root = payload as Record<string, unknown>;
+  const appMetadata =
+    root.app_metadata !== null && typeof root.app_metadata === "object"
+      ? (root.app_metadata as Record<string, unknown>)
+      : null;
+  if (!appMetadata) {
+    return false;
+  }
+  return appMetadata.pos_access === false || appMetadata.staff_access === "disabled";
+}
+
 export function parseStaffIdentityClaims(payload: unknown): StaffIdentityClaims | null {
   if (payload === null || typeof payload !== "object") {
     return null;

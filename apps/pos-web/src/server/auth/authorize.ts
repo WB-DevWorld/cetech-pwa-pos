@@ -110,7 +110,9 @@ export async function authorizeStaffAction(
     organizationId: identity.organizationId,
   });
   if (assignments === "unavailable") {
-    return authFailure("INTEGRATION_UNAVAILABLE", "staff assignment directory is unavailable", correlationId);
+    return authFailure("INTEGRATION_UNAVAILABLE", "staff assignment directory is unavailable", correlationId, {
+      field: "assignments",
+    });
   }
 
   const locationId = input.required.locationId;
@@ -176,9 +178,11 @@ function identityFailure(
     case "anonymous":
       return authFailure("AUTH_REQUIRED", "anonymous requests are denied", correlationId);
     case "expired":
-      return authFailure("AUTH_REQUIRED", "session is expired", correlationId);
+      return authFailure("AUTH_REQUIRED", "session is expired", correlationId, { field: "session" });
     case "revoked":
-      return authFailure("AUTH_REQUIRED", "identity verification was revoked", correlationId);
+      return authFailure("AUTH_REQUIRED", "identity verification was revoked", correlationId, { field: "session" });
+    case "access_disabled":
+      return authFailure("FORBIDDEN", "staff pos access is disabled", correlationId, { field: "pos_access" });
     case "malformed":
       return authFailure("AUTH_REQUIRED", "identity claims are malformed", correlationId);
     case "timeout":

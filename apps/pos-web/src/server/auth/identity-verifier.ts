@@ -1,10 +1,11 @@
-import { parseStaffIdentityClaims, type StaffIdentityClaims } from "./claims";
+import { isExplicitPosAccessDisabled, parseStaffIdentityClaims, type StaffIdentityClaims } from "./claims";
 
 export type IdentityVerifyFailureReason =
   | "anonymous"
   | "expired"
   | "revoked"
   | "malformed"
+  | "access_disabled"
   | "timeout"
   | "unavailable";
 
@@ -37,6 +38,9 @@ export function createStaffIdentityVerifier(introspector: TokenIntrospector): St
       const introspection = await introspector.introspect(accessToken, now);
       if (introspection.status !== "active") {
         return { ok: false, reason: introspection.status };
+      }
+      if (isExplicitPosAccessDisabled(introspection.payload)) {
+        return { ok: false, reason: "access_disabled" };
       }
       const claims = parseStaffIdentityClaims(introspection.payload);
       if (!claims) {
