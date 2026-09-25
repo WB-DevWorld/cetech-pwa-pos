@@ -1,8 +1,13 @@
 /**
- * Collapses a burst of visibility/online signals into one authority refresh.
- * A signal that arrives while that refresh is running schedules one trailing
- * refresh so the latest result still lands. This does not cache authority
- * and does not retry mutations.
+ * Collapses visibility/online signals into one authority refresh.
+ *
+ * Before a run starts, signals in the debounce window share one timer.
+ * While a run is in flight, every signal sets a single trailing bit and
+ * does not schedule another timer. When that run finishes, the bit starts
+ * exactly one trailing run. Signals that arrived before the first run
+ * finished cannot start a third run.
+ *
+ * This does not cache authority and does not retry mutations.
  */
 export const AUTHORITY_REFRESH_BURST_MS = 50;
 
@@ -42,7 +47,12 @@ export function createBurstRefresh(
 
   return {
     schedule() {
-      if (disposed || timerPending) return;
+      if (disposed) return;
+      if (inflight) {
+        again = true;
+        return;
+      }
+      if (timerPending) return;
       timerPending = true;
       schedule(() => {
         timerPending = false;
@@ -51,6 +61,7 @@ export function createBurstRefresh(
     },
     cancel() {
       disposed = true;
+      again = false;
     },
   };
 }

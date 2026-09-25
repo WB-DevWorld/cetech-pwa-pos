@@ -517,6 +517,8 @@ export function createStaffRuntimeController(input: {
         assignedLocationIds: state.assignedLocationIds,
         assignedRegisterIds: state.assignedRegisterIds,
       };
+      authorityEpoch += 1;
+      const captured = captureRefresh();
       const next = await hydrateSelectedRegister(
         context,
         state,
@@ -524,8 +526,11 @@ export function createStaffRuntimeController(input: {
         state.assignedRegisters,
         "explicit_switch",
       );
+      if (!refreshStillCurrent(captured) || !state.session || !captured.organizationId || !captured.actorId) {
+        return false;
+      }
       if (next.register?.id === registerId && next.selectedRegisterId === registerId) {
-        selectedRegisterStore.write(state.session.organizationId, state.session.actorId, registerId);
+        selectedRegisterStore.write(captured.organizationId, captured.actorId, registerId);
       }
       setState(next);
       return next.selectedRegisterId === registerId && next.register?.id === registerId;

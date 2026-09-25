@@ -101,6 +101,56 @@ function authStub() {
   };
 }
 
+function watchRegisterPreference(initialRegisterId?: string) {
+  const writes: Array<{ organizationId: string; actorId: string; registerId: string }> = [];
+  const inner = createMemorySelectedRegisterStore(
+    initialRegisterId
+      ? { [selectedRegisterStorageKey("org_a", "cashier_a")]: initialRegisterId }
+      : {},
+  );
+  return {
+    writes,
+    store: {
+      read(organizationId: string, actorId: string) {
+        return inner.read(organizationId, actorId);
+      },
+      write(organizationId: string, actorId: string, registerId: string) {
+        writes.push({ organizationId, actorId, registerId });
+        inner.write(organizationId, actorId, registerId);
+      },
+      clear(organizationId: string, actorId: string) {
+        inner.clear(organizationId, actorId);
+      },
+    },
+  };
+}
+
+function holdRegisterSwitch(
+  registers: ReturnType<typeof stubRegisters>,
+  outcome: "forbidden" | "timeout" | "success",
+) {
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const original = registers.getImpl;
+  let armed = true;
+  registers.getImpl = async (id) => {
+    if (armed && id === "reg_b") {
+      armed = false;
+      await gate;
+      if (outcome === "forbidden") {
+        return fail("FORBIDDEN", "register is out of staff scope");
+      }
+      if (outcome === "timeout") {
+        return fail("INTEGRATION_UNAVAILABLE", "Warp server error: Thread killed by timeout manager");
+      }
+    }
+    return original(id);
+  };
+  return { release };
+}
+
 function controller(
   registers: RegisterPort,
   assigned: readonly string[] | (() => readonly string[]) = ["reg_a"],
@@ -328,6 +378,157 @@ describe("STG-06 staff runtime register authority", () => {
     expect(runtime.getState().shift?.id).toBe(replacement.id);
     expect(runtime.getState().register?.id).toBe("reg_a");
     expect(runtime.getState().shiftOpen).toBe(true);
+  });
+
+  test("CAN-05 A slow register switch plus sign-out drops a forbidden hydration", async () => {
+    const watched = watchRegisterPreference("reg_a");
+    const registers = stubRegisters();
+    const { runtime } = controller(registers, ["reg_a", "reg_b"], watched.store);
+    await runtime.restore();
+    const held = holdRegisterSwitch(registers, "forbidden");
+    const pending = runtime.selectRegister("reg_b");
+    await runtime.signOut();
+    held.release();
+    await expect(pending).resolves.toBe(false);
+    expect(runtime.getState()).toMatchObject({
+      status: "signed_out",
+      session: null,
+      register: null,
+      selectedRegisterId: null,
+    });
+    expect(watched.writes).toEqual([]);
+    expect(watched.store.read("org_a", "cashier_a")).toBe("reg_a");
+  });
+
+  test("CAN-05 B slow register switch plus sign-out drops a timeout hydration", async () => {
+    const watched = watchRegisterPreference("reg_a");
+    const registers = stubRegisters();
+    const { runtime } = controller(registers, ["reg_a", "reg_b"], watched.store);
+    await runtime.restore();
+    const held = holdRegisterSwitch(registers, "timeout");
+    const pending = runtime.selectRegister("reg_b");
+    await runtime.signOut();
+    held.release();
+    await expect(pending).resolves.toBe(false);
+    expect(runtime.getState()).toMatchObject({
+      status: "signed_out",
+      session: null,
+      register: null,
+    });
+    expect(watched.writes).toEqual([]);
+    expect(watched.store.read("org_a", "cashier_a")).toBe("reg_a");
+  });
+
+  test("CAN-05 C slow register switch plus sign-out drops a successful hydration", async () => {
+    const watched = watchRegisterPreference("reg_a");
+    const registers = stubRegisters();
+    const { runtime } = controller(registers, ["reg_a", "reg_b"], watched.store);
+    await runtime.restore();
+    const held = holdRegisterSwitch(registers, "success");
+    const pending = runtime.selectRegister("reg_b");
+    await runtime.signOut();
+    held.release();
+    await expect(pending).resolves.toBe(false);
+    expect(runtime.getState()).toMatchObject({
+      status: "signed_out",
+      session: null,
+      register: null,
+      selectedRegisterId: null,
+    });
+    expect(watched.writes).toEqual([]);
+    expect(watched.store.read("org_a", "cashier_a")).toBe("reg_a");
+  });
+
+  test("CAN-05 D slow register switch does not publish over a newer sign-in", async () => {
+    const watched = watchRegisterPreference("reg_a");
+    const registers = stubRegisters();
+    const sessionB: Session = {
+      actorId: "cashier_b",
+      displayName: "Cashier B",
+      organizationId: "org_b",
+      locationIds: ["loc_b1"],
+      capabilities: ["ui.hint.only"],
+      expiresAt: "2099-01-01T00:00:00.000Z",
+    };
+    let active = ok({
+      session: SESSION,
+      assignedLocationIds: ["loc_a1"],
+      assignedRegisterIds: ["reg_a", "reg_b"],
+    });
+    const runtime = createStaffRuntimeController({
+      gateway: {
+        async establish() {
+          active = ok({
+            session: sessionB,
+            assignedLocationIds: ["loc_b1"],
+            assignedRegisterIds: ["reg_a", "reg_b"],
+          });
+          return active;
+        },
+        async readContext() {
+          return active;
+        },
+        async read() {
+          return active.ok ? active.data.session : null;
+        },
+        async clear() {
+          return;
+        },
+      },
+      auth: authStub(),
+      registers,
+      selectedRegisterStore: watched.store,
+    });
+    await runtime.restore();
+    expect(runtime.getState()).toMatchObject({
+      session: { actorId: "cashier_a", organizationId: "org_a" },
+      selectedRegisterId: "reg_a",
+    });
+    const held = holdRegisterSwitch(registers, "success");
+    const pending = runtime.selectRegister("reg_b");
+    await runtime.signIn();
+    expect(runtime.getState()).toMatchObject({
+      status: "ready",
+      session: { actorId: "cashier_b", organizationId: "org_b" },
+      selectedRegisterId: null,
+      register: null,
+    });
+    held.release();
+    await expect(pending).resolves.toBe(false);
+    expect(runtime.getState()).toMatchObject({
+      status: "ready",
+      session: { actorId: "cashier_b", organizationId: "org_b" },
+      register: null,
+      selectedRegisterId: null,
+    });
+    expect(watched.writes).toEqual([]);
+    expect(watched.store.read("org_a", "cashier_a")).toBe("reg_a");
+    expect(watched.store.read("org_b", "cashier_b")).toBeNull();
+    expect(watched.store.read("org_a", "cashier_b")).toBeNull();
+    expect(watched.store.read("org_b", "cashier_a")).toBeNull();
+  });
+
+  test("CAN-05 E current-session register switch still persists", async () => {
+    const watched = watchRegisterPreference();
+    const registers = stubRegisters();
+    const { runtime } = controller(registers, ["reg_a", "reg_b"], watched.store);
+    await runtime.restore();
+    await runtime.selectRegister("reg_a");
+    watched.writes.length = 0;
+    const accepted = await runtime.selectRegister("reg_b");
+    expect(accepted).toBe(true);
+    expect(runtime.getState()).toMatchObject({
+      status: "ready",
+      session: { actorId: "cashier_a", organizationId: "org_a" },
+      selectedRegisterId: "reg_b",
+      register: { id: "reg_b" },
+      shift: { id: SHIFT_B.id },
+      shiftOpen: true,
+    });
+    expect(watched.writes).toEqual([
+      { organizationId: "org_a", actorId: "cashier_a", registerId: "reg_b" },
+    ]);
+    expect(watched.store.read("org_a", "cashier_a")).toBe("reg_b");
   });
 
   test("successful register and open shift become ready authority", async () => {
