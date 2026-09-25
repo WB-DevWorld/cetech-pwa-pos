@@ -128,6 +128,136 @@ function watchRegisterPreference(initialRegisterId?: string) {
   };
 }
 
+function holdAuthClosedLookup(
+  registers: ReturnType<typeof stubRegisters>,
+  target: "register" | "shift",
+  registerId: string,
+  skip = 0,
+) {
+  let release!: () => void;
+  let entered!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const started = new Promise<void>((resolve) => {
+    entered = resolve;
+  });
+  const originalGet = registers.getImpl;
+  const originalShift = registers.shiftImpl;
+  let armed = true;
+  let remainingSkips = skip;
+  const respond = async () => {
+    entered();
+    await gate;
+    return fail("AUTH_REQUIRED", "staff session is expired or revoked");
+  };
+  const claim = (id: string) => {
+    if (!armed || id !== registerId) return false;
+    if (remainingSkips > 0) {
+      remainingSkips -= 1;
+      return false;
+    }
+    armed = false;
+    return true;
+  };
+  if (target === "register") {
+    registers.getImpl = async (id) => (claim(id) ? respond() : originalGet(id));
+  } else {
+    registers.shiftImpl = async (id) => (claim(id) ? respond() : originalShift(id));
+  }
+  return { release, started };
+}
+
+function cashierRuntime(options: {
+  registers: ReturnType<typeof stubRegisters>;
+  assigned: readonly string[];
+  store: ReturnType<typeof watchRegisterPreference>["store"];
+  offlineStore: ReturnType<typeof createMemoryOfflineStaffPresentationStore>;
+  onEstablish?: (current: Session) => Session;
+  isOnline?: () => boolean;
+  now?: () => Date;
+}) {
+  let active = ok({
+    session: SESSION,
+    assignedLocationIds: ["loc_a1"],
+    assignedRegisterIds: options.assigned,
+  });
+  const runtime = createStaffRuntimeController({
+    gateway: {
+      async establish() {
+        const session = options.onEstablish ? options.onEstablish(active.ok ? active.data.session : SESSION) : SESSION;
+        active = ok({
+          session,
+          assignedLocationIds: ["loc_a1"],
+          assignedRegisterIds: options.assigned,
+        });
+        return active;
+      },
+      async readContext() {
+        return active;
+      },
+      async read() {
+        return active.ok ? active.data.session : null;
+      },
+      async clear() {
+        return;
+      },
+    },
+    auth: authStub(),
+    registers: options.registers,
+    selectedRegisterStore: options.store,
+    offlinePresentationStore: options.offlineStore,
+    isOnline: options.isOnline,
+    now: options.now,
+  });
+  return {
+    runtime,
+    denyTransport() {
+      active = fail("INTEGRATION_UNAVAILABLE", "staff session transport failed");
+    },
+  };
+}
+
+async function expectCurrentAuthClosed(target: "register" | "shift") {
+  const watched = watchRegisterPreference("reg_a");
+  const offlineStore = createMemoryOfflineStaffPresentationStore();
+  const registers = stubRegisters();
+  let online = true;
+  const harness = cashierRuntime({
+    registers,
+    assigned: ["reg_a"],
+    store: watched.store,
+    offlineStore,
+    isOnline: () => online,
+    now: () => new Date("2026-09-21T11:00:00.000Z"),
+  });
+  await harness.runtime.restore();
+  expect(offlineStore.serializedSnapshot()).toContain(SESSION.expiresAt);
+  expect(watched.store.read("org_a", "cashier_a")).toBe("reg_a");
+  if (target === "register") {
+    registers.getImpl = async () => fail("AUTH_REQUIRED", "staff session is expired or revoked");
+  } else {
+    registers.shiftImpl = async () => fail("AUTH_REQUIRED", "staff session is expired or revoked");
+  }
+  await harness.runtime.refreshRegister();
+  expect(harness.runtime.getState()).toMatchObject({
+    status: "expired",
+    session: null,
+    register: null,
+    shift: null,
+    shiftOpen: false,
+  });
+  expect(offlineStore.serializedSnapshot()).toBeNull();
+  expect(watched.store.read("org_a", "cashier_a")).toBe("reg_a");
+  harness.denyTransport();
+  online = false;
+  await harness.runtime.restore();
+  expect(harness.runtime.getState().session).toBeNull();
+  expect(harness.runtime.getState().presentationOnly).not.toBe(true);
+  expect(harness.runtime.getState().status).toBe("unavailable");
+  expect(offlineStore.read(new Date("2026-09-21T12:00:00.000Z"))).toBeNull();
+}
+
 function holdRegisterSwitch(
   registers: ReturnType<typeof stubRegisters>,
   outcome: "forbidden" | "timeout" | "success" | "missing",
@@ -659,6 +789,142 @@ describe("STG-06 staff runtime register authority", () => {
       shift: null,
     });
     expect(store.read("org_a", "cashier_a")).toBeNull();
+  });
+
+  test("CAN-05 stale explicit switch AUTH_REQUIRED keeps the newer offline snapshot", async () => {
+    const watched = watchRegisterPreference("reg_a");
+    const offlineStore = createMemoryOfflineStaffPresentationStore();
+    const registers = stubRegisters();
+    const renewed: Session = { ...SESSION, expiresAt: "2099-06-01T00:00:00.000Z" };
+    const { runtime } = cashierRuntime({
+      registers,
+      assigned: ["reg_a", "reg_b"],
+      store: watched.store,
+      offlineStore,
+      onEstablish: () => renewed,
+    });
+    await runtime.restore();
+    const held = holdAuthClosedLookup(registers, "register", "reg_b");
+    const pending = runtime.selectRegister("reg_b");
+    await held.started;
+    await runtime.signIn();
+    const snapshot = offlineStore.serializedSnapshot();
+    const writesAfterRenewal = watched.writes.length;
+    const clearsAfterRenewal = watched.clears.length;
+    expect(snapshot).toContain(renewed.expiresAt);
+    held.release();
+    await expect(pending).resolves.toBe(false);
+    expect(runtime.getState()).toMatchObject({
+      status: "ready",
+      session: { actorId: "cashier_a", organizationId: "org_a", expiresAt: renewed.expiresAt },
+      selectedRegisterId: "reg_a",
+      register: { id: "reg_a" },
+    });
+    expect(offlineStore.serializedSnapshot()).toBe(snapshot);
+    expect(watched.writes).toHaveLength(writesAfterRenewal);
+    expect(watched.clears).toHaveLength(clearsAfterRenewal);
+    expect(watched.store.read("org_a", "cashier_a")).toBe("reg_a");
+  });
+
+  test("CAN-05 stale active-shift AUTH_REQUIRED keeps the newer offline snapshot", async () => {
+    const watched = watchRegisterPreference("reg_a");
+    const offlineStore = createMemoryOfflineStaffPresentationStore();
+    const registers = stubRegisters();
+    const renewed: Session = { ...SESSION, expiresAt: "2099-07-01T00:00:00.000Z" };
+    const { runtime } = cashierRuntime({
+      registers,
+      assigned: ["reg_a", "reg_b"],
+      store: watched.store,
+      offlineStore,
+      onEstablish: () => renewed,
+    });
+    await runtime.restore();
+    const held = holdAuthClosedLookup(registers, "shift", "reg_b");
+    const pending = runtime.selectRegister("reg_b");
+    await held.started;
+    await runtime.signIn();
+    const snapshot = offlineStore.serializedSnapshot();
+    expect(snapshot).toContain(renewed.expiresAt);
+    expect(runtime.getState()).toMatchObject({
+      status: "ready",
+      session: { actorId: "cashier_a", expiresAt: renewed.expiresAt },
+      selectedRegisterId: "reg_a",
+    });
+    held.release();
+    await expect(pending).resolves.toBe(false);
+    expect(runtime.getState()).toMatchObject({
+      status: "ready",
+      session: { actorId: "cashier_a", organizationId: "org_a", expiresAt: renewed.expiresAt },
+      selectedRegisterId: "reg_a",
+      register: { id: "reg_a" },
+    });
+    expect(offlineStore.serializedSnapshot()).toBe(snapshot);
+    expect(watched.store.read("org_a", "cashier_a")).toBe("reg_a");
+  });
+
+  test("CAN-05 stale live refresh AUTH_REQUIRED keeps the newer offline snapshot", async () => {
+    const watched = watchRegisterPreference("reg_a");
+    const offlineStore = createMemoryOfflineStaffPresentationStore();
+    const registers = stubRegisters();
+    const renewed: Session = { ...SESSION, expiresAt: "2099-08-01T00:00:00.000Z" };
+    const { runtime } = cashierRuntime({
+      registers,
+      assigned: ["reg_a", "reg_b"],
+      store: watched.store,
+      offlineStore,
+      onEstablish: () => renewed,
+    });
+    await runtime.restore();
+    const held = holdAuthClosedLookup(registers, "register", "reg_a", 1);
+    const pending = runtime.refreshRegister();
+    await held.started;
+    await runtime.signIn();
+    const snapshot = offlineStore.serializedSnapshot();
+    expect(snapshot).toContain(renewed.expiresAt);
+    held.release();
+    await pending;
+    expect(runtime.getState()).toMatchObject({
+      status: "ready",
+      session: { actorId: "cashier_a", organizationId: "org_a", expiresAt: renewed.expiresAt },
+      selectedRegisterId: "reg_a",
+      register: { id: "reg_a" },
+    });
+    expect(offlineStore.serializedSnapshot()).toBe(snapshot);
+    expect(watched.store.read("org_a", "cashier_a")).toBe("reg_a");
+  });
+
+  test("CAN-05 current register GET AUTH_REQUIRED retires offline presentation", async () => {
+    await expectCurrentAuthClosed("register");
+  });
+
+  test("CAN-05 current active-shift AUTH_REQUIRED retires offline presentation", async () => {
+    await expectCurrentAuthClosed("shift");
+  });
+
+  test("CAN-05 stale restore does not apply a selected-register decision", async () => {
+    const watched = watchRegisterPreference();
+    const offlineStore = createMemoryOfflineStaffPresentationStore();
+    const registers = stubRegisters();
+    const held = holdAuthClosedLookup(registers, "register", "reg_a");
+    const { runtime } = cashierRuntime({
+      registers,
+      assigned: ["reg_a"],
+      store: watched.store,
+      offlineStore,
+    });
+    const pending = runtime.restore();
+    await held.started;
+    await runtime.signOut();
+    held.release();
+    await pending;
+    expect(runtime.getState()).toMatchObject({
+      status: "signed_out",
+      session: null,
+    });
+    expect(watched.writes).toEqual([]);
+    expect(watched.clears).toEqual([]);
+    expect(watched.store.read("org_a", "cashier_a")).toBeNull();
+    expect(offlineStore.serializedSnapshot()).toBeNull();
   });
 
   test("successful register and open shift become ready authority", async () => {

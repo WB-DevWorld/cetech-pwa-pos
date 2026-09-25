@@ -11,7 +11,8 @@ import {
 } from "./offline-staff-presentation";
 import {
   createLocalSelectedRegisterStore,
-  resolveSelectedRegisterId,
+  decideSelectedRegisterId,
+  type SelectedRegisterDecision,
   type SelectedRegisterStore,
 } from "./selected-register-preference";
 
@@ -235,16 +236,35 @@ export function createStaffRuntimeController(input: {
     | { readonly kind: "clear" }
     | { readonly kind: "write"; readonly registerId: string };
 
+  type OfflinePresentationIntent = "keep" | "clear";
+
   type HydratedRegister = {
     readonly authority: StaffRuntimeAuthority;
     readonly preference: RegisterPreferenceIntent;
+    readonly offlinePresentation: OfflinePresentationIntent;
   };
 
   function hydrated(
     authority: StaffRuntimeAuthority,
     preference: RegisterPreferenceIntent,
+    offlinePresentation: OfflinePresentationIntent = "keep",
   ): HydratedRegister {
-    return { authority, preference };
+    return { authority, preference, offlinePresentation };
+  }
+
+  function preferenceFromDecision(decision: SelectedRegisterDecision): RegisterPreferenceIntent {
+    if (decision.persist === "write" && decision.selectedRegisterId) {
+      return { kind: "write", registerId: decision.selectedRegisterId };
+    }
+    if (decision.persist === "clear") return { kind: "clear" };
+    return { kind: "keep" };
+  }
+
+  function mergePreference(
+    planned: RegisterPreferenceIntent,
+    fromHydration: RegisterPreferenceIntent,
+  ): RegisterPreferenceIntent {
+    return fromHydration.kind === "keep" ? planned : fromHydration;
   }
 
   function applyRegisterPreference(
@@ -259,6 +279,17 @@ export function createStaffRuntimeController(input: {
     if (preference.kind === "write") {
       selectedRegisterStore.write(organizationId, actorId, preference.registerId);
     }
+  }
+
+  function applyHydratedEffects(
+    loaded: HydratedRegister,
+    organizationId: string,
+    actorId: string,
+  ): void {
+    if (loaded.offlinePresentation === "clear") {
+      offlinePresentationStore?.clear();
+    }
+    applyRegisterPreference(loaded.preference, organizationId, actorId);
   }
 
   async function hydrateSelectedRegister(
@@ -279,8 +310,7 @@ export function createStaffRuntimeController(input: {
       }
       const notice = noticeFromFailure(registerResult);
       if (isAuthClosed(notice)) {
-        offlinePresentationStore?.clear();
-        return hydrated(authClosedAuthority(notice, registerResult.error.message), { kind: "keep" });
+        return hydrated(authClosedAuthority(notice, registerResult.error.message), { kind: "keep" }, "clear");
       }
       if (registerResult.error.code === "NOT_FOUND") {
         // An explicit switch to a register that was never selected must not
@@ -327,8 +357,7 @@ export function createStaffRuntimeController(input: {
       }
       const notice = noticeFromFailure(shiftResult);
       if (isAuthClosed(notice)) {
-        offlinePresentationStore?.clear();
-        return hydrated(authClosedAuthority(notice, shiftResult.error.message), { kind: "keep" });
+        return hydrated(authClosedAuthority(notice, shiftResult.error.message), { kind: "keep" }, "clear");
       }
       const sameRegister = previous.register?.id === registerResult.data.id;
       const preserveShift =
@@ -374,16 +403,25 @@ export function createStaffRuntimeController(input: {
     previous: StaffRuntimeAuthority,
   ): Promise<HydratedRegister> {
     const assignedRegisters = await loadAssignedRegisters(context.assignedRegisterIds);
-    const selectedRegisterId = resolveSelectedRegisterId({
+    const decision = decideSelectedRegisterId({
       assignedRegisterIds: context.assignedRegisterIds,
-      organizationId: context.session.organizationId,
-      actorId: context.session.actorId,
-      store: selectedRegisterStore,
+      storedRegisterId: selectedRegisterStore.read(context.session.organizationId, context.session.actorId),
     });
-    if (!selectedRegisterId) {
-      return hydrated(readyWithoutRegister(context, assignedRegisters, null), { kind: "keep" });
+    const planned = preferenceFromDecision(decision);
+    if (!decision.selectedRegisterId) {
+      return hydrated(readyWithoutRegister(context, assignedRegisters, null), planned);
     }
-    return hydrateSelectedRegister(context, previous, selectedRegisterId, assignedRegisters);
+    const loaded = await hydrateSelectedRegister(
+      context,
+      previous,
+      decision.selectedRegisterId,
+      assignedRegisters,
+    );
+    return hydrated(
+      loaded.authority,
+      mergePreference(planned, loaded.preference),
+      loaded.offlinePresentation,
+    );
   }
 
   async function applyContext(result: ApiResult<StaffSessionContext>, epochAtStart: number): Promise<void> {
@@ -429,8 +467,8 @@ export function createStaffRuntimeController(input: {
     }
     const loaded = await loadRegister(result.data, state);
     if (epochAtStart !== authorityEpoch) return;
-    applyRegisterPreference(
-      loaded.preference,
+    applyHydratedEffects(
+      loaded,
       result.data.session.organizationId,
       result.data.session.actorId,
     );
@@ -549,7 +587,7 @@ export function createStaffRuntimeController(input: {
           state,
         );
         if (!refreshStillCurrent(captured)) return;
-        applyRegisterPreference(loaded.preference, current.organizationId, current.actorId);
+        applyHydratedEffects(loaded, current.organizationId, current.actorId);
         setState(loaded.authority);
       })();
       const tracked = run.finally(() => {
@@ -582,7 +620,7 @@ export function createStaffRuntimeController(input: {
       if (!refreshStillCurrent(captured) || !state.session || !captured.organizationId || !captured.actorId) {
         return false;
       }
-      applyRegisterPreference(loaded.preference, captured.organizationId, captured.actorId);
+      applyHydratedEffects(loaded, captured.organizationId, captured.actorId);
       setState(loaded.authority);
       return loaded.authority.selectedRegisterId === registerId && loaded.authority.register?.id === registerId;
     },
