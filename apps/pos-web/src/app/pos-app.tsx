@@ -15,6 +15,7 @@ import {
   createAttentionRecoveryLock,
   hasBlockingLocalTransactionRecovery,
   loadLocalJournalAttentionItems,
+  localRecoverySellBanner,
   mergeAttentionItems,
   runAttentionRecovery,
 } from "./attention-recovery";
@@ -244,7 +245,11 @@ export function PosRuntime({
     }
     const [result, localResult] = await Promise.all([
       fetchAttentionInbox(fetchImpl),
-      loadLocalJournalAttentionItems(recoveryJournal)
+      loadLocalJournalAttentionItems(recoveryJournal, {
+        actorId: authority.session?.actorId ?? "",
+        registerId: authority.selectedRegisterId,
+        organizationId: authority.session?.organizationId,
+      }, openPosLocalDatabase())
         .then((items) => ({ ok: true as const, items }))
         .catch(() => ({ ok: false as const, items: [] as readonly AttentionItemView[] })),
     ]);
@@ -264,7 +269,7 @@ export function PosRuntime({
     }
     setServerAttention(result.data.items);
     setAttentionState(localResult.ok ? "ready" : "degraded");
-  }, [authority.session?.actorId, fetchImpl, recoveryJournal]);
+  }, [authority.selectedRegisterId, authority.session?.actorId, authority.session?.organizationId, fetchImpl, recoveryJournal]);
 
   useEffect(() => {
     if (authority.status !== "ready" || !authority.session) {
@@ -321,7 +326,13 @@ export function PosRuntime({
           ? createBrowserCashCheckoutPorts({
               fetchImpl,
               scope,
-              journal: createOperationJournal(db),
+              journal: createOperationJournal(db, {
+                createdByActorId: current.session?.actorId,
+                organizationId: current.session?.organizationId,
+                locationId: current.register?.locationId ?? current.assignedLocationIds[0],
+                registerId: scope.registerId,
+                deviceId: scope.deviceId,
+              }),
               tenderActivity: createTenderActivityPort(db),
             })
           : null;
@@ -538,6 +549,7 @@ export function PosRuntime({
   const attentionItems = mergeAttentionItems(serverAttention, effectiveLocalAttention, extras);
   const localTransactionRecoveryBlocked =
     !localRecoveryChecked || hasBlockingLocalTransactionRecovery(effectiveLocalAttention);
+  const recoveryBanner = localRecoverySellBanner(localRecoveryChecked, effectiveLocalAttention);
   const attentionCount = attentionItems.length;
   const sellPorts =
     ports && localTransactionRecoveryBlocked
@@ -591,14 +603,8 @@ export function PosRuntime({
             ) : null}
             {localTransactionRecoveryBlocked ? (
               <div className="banner warning" role="alert" data-local-recovery-blocked="true">
-                <strong>
-                  {localRecoveryChecked ? "Previous transaction needs a status check." : "Checking saved transaction work…"}
-                </strong>
-                <span>
-                  {localRecoveryChecked
-                    ? "Open Needs attention and check the existing transaction before taking another payment."
-                    : "Checkout will stay unavailable until saved transaction work has been checked."}
-                </span>
+                <strong>{recoveryBanner?.title}</strong>
+                <span>{recoveryBanner?.detail}</span>
                 {localRecoveryChecked ? (
                   <button className="btn small" type="button" onClick={() => onNavigate("attention")}>
                     View issues

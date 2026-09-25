@@ -6,6 +6,7 @@ const surfaceSource = readFileSync(new URL("../../apps/pos-web/src/ui/operationa
 const settingsSource = readFileSync(new URL("../../apps/pos-web/src/features/settings/SettingsScreen.tsx", import.meta.url), "utf8");
 const posAppSource = readFileSync(new URL("../../apps/pos-web/src/app/pos-app.tsx", import.meta.url), "utf8");
 const attentionRecoverySource = readFileSync(new URL("../../apps/pos-web/src/app/attention-recovery.ts", import.meta.url), "utf8");
+const recoveryScopeSource = readFileSync(new URL("../../apps/pos-web/src/local/journal-recovery-scope.ts", import.meta.url), "utf8");
 
 describe("R9 recovery on the accepted STG-01 operational surface", () => {
   test("System status remains the cashier surface and includes non-destructive recovery", () => {
@@ -21,7 +22,8 @@ describe("R9 recovery on the accepted STG-01 operational surface", () => {
   });
 
   test("mounted runtime discovers local journal recovery after reload and blocks new checkout until resolved", () => {
-    expect(posAppSource).toContain("loadLocalJournalAttentionItems(recoveryJournal)");
+    expect(posAppSource).toContain("loadLocalJournalAttentionItems(recoveryJournal,");
+    expect(posAppSource).toContain("openPosLocalDatabase()");
     expect(posAppSource).toContain("mergeAttentionItems(serverAttention, effectiveLocalAttention, extras)");
     expect(posAppSource).toContain("hasBlockingLocalTransactionRecovery(effectiveLocalAttention)");
     expect(posAppSource).toContain("checkout: undefined, payments: undefined, sales: undefined");
@@ -31,7 +33,8 @@ describe("R9 recovery on the accepted STG-01 operational surface", () => {
     expect(posAppSource).toContain('void loadAttention("refresh")');
     expect(attentionRecoverySource).toContain('id: `local-journal:${row.id}`');
     expect(attentionRecoverySource).toContain("transactionId: row.transactionId");
-    expect(attentionRecoverySource).toContain('recoverKind === "payment" ? "Payment needs a status check" : "Sale needs a status check"');
+    expect(recoveryScopeSource).toContain("Payment needs a status check");
+    expect(recoveryScopeSource).toContain("Sale needs a status check");
   });
 
   test("R9 lifecycle augments rather than replaces STG-01 workspaces", () => {

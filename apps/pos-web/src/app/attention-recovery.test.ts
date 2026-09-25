@@ -7,6 +7,7 @@ import {
   createAttentionRecoveryLock,
   hasBlockingLocalTransactionRecovery,
   loadLocalJournalAttentionItems,
+  localRecoverySellBanner,
   mergeAttentionItems,
   recoverAttentionItem,
   runAttentionRecovery,
@@ -18,8 +19,11 @@ import {
   createTenderActivityPort,
   deletePosLocalDatabase,
   hasActiveTender,
+  listUnresolvedJournalRecords,
   openPosLocalDatabase,
 } from "../local";
+import { createStaffRuntimeController } from "../core/identity/staff-runtime";
+import type { RegisterPort } from "../../../../docs/contracts/ports";
 import { createBrowserCashCheckoutPorts, LOCAL_CHECKOUT_SCOPE } from "./checkout-client";
 
 const TX = "11111111-1111-4111-8111-111111111077";
@@ -410,5 +414,241 @@ describe("UX-04 attention recovery identity", () => {
     await first;
     expect(resolve).toHaveBeenCalledTimes(1);
     expect(reload).toHaveBeenCalledTimes(1);
+  });
+});
+
+const CASHIER_A = "cashier_a";
+const CASHIER_B = "cashier_b";
+const REGISTER_A = "reg_a";
+const REGISTER_B = "reg_b";
+const PREPARE_KEY = "44444444-4444-4444-8444-444444444444";
+
+describe("CAN-01 local recovery scope", () => {
+  test("cashier B keeps A's unresolved sale, without inheriting authorship, and is blocked only on that register", async () => {
+    const name = uniqueDbName();
+    const db = openPosLocalDatabase(name);
+    const journal = createOperationJournal(db, {
+      createdByActorId: CASHIER_A,
+      organizationId: "org_a",
+      locationId: "loc_a1",
+      registerId: REGISTER_A,
+      deviceId: LOCAL_CHECKOUT_SCOPE.deviceId,
+    });
+    await createBrowserCashCheckoutPorts({
+      fetchImpl: async () => {
+        throw new TypeError("simulated lost prepare response");
+      },
+      scope: { ...LOCAL_CHECKOUT_SCOPE, registerId: REGISTER_A },
+      journal,
+      tenderActivity: createTenderActivityPort(db),
+    }).checkout.prepare(
+      {
+        transactionId: TX,
+        registerId: REGISTER_A,
+        shiftId: LOCAL_CHECKOUT_SCOPE.shiftId,
+        deviceId: LOCAL_CHECKOUT_SCOPE.deviceId,
+        quoteId: "quote-can-01",
+        quoteFingerprint: "0123456789abcdef0123456789abcdef",
+      },
+      { idempotencyKey: PREPARE_KEY, correlationId: CORRELATION },
+    );
+
+    const stored = await listUnresolvedJournalRecords(db);
+    expect(stored).toHaveLength(1);
+    expect(stored[0]?.pending.status).toBe("response_unknown");
+    expect(stored[0]?.pending.idempotencyKey).toBe(PREPARE_KEY);
+    expect(stored[0]?.scope.createdByActorId).toBe(CASHIER_A);
+
+    const sameRegister = await loadLocalJournalAttentionItems(journal, {
+      actorId: CASHIER_B,
+      registerId: REGISTER_A,
+      organizationId: "org_a",
+    }, db);
+    expect(sameRegister).toHaveLength(1);
+    expect(sameRegister[0]?.localRecoveryOwner).toBe("other");
+    expect(localRecoverySellBanner(true, sameRegister)?.title).toBe("This register needs a status check.");
+    expect(sameRegister[0]?.summary).toContain("Another cashier");
+    expect(sameRegister[0]?.summary).toContain("not started in your current sign-in");
+    expect(sameRegister[0]?.summary).not.toContain(CASHIER_B);
+    expect(sameRegister[0]?.summary).not.toMatch(/OperationJournal|IndexedDB|request hash|sale\.prepare/i);
+    expect(hasBlockingLocalTransactionRecovery(sameRegister)).toBe(true);
+
+    const otherRegister = await loadLocalJournalAttentionItems(journal, {
+      actorId: CASHIER_B,
+      registerId: REGISTER_B,
+      organizationId: "org_a",
+    }, db);
+    expect(otherRegister[0]?.summary).toContain("different register");
+    expect(localRecoverySellBanner(true, otherRegister)).toBeNull();
+    expect(hasBlockingLocalTransactionRecovery(otherRegister)).toBe(false);
+
+    const ownReload = await loadLocalJournalAttentionItems(journal, {
+      actorId: CASHIER_A,
+      registerId: REGISTER_A,
+      organizationId: "org_a",
+    }, db);
+    expect(ownReload[0]?.localRecoveryOwner).toBe("viewer");
+    expect(ownReload[0]?.summary).toContain("This sale needs a status check");
+    expect(localRecoverySellBanner(true, ownReload)?.title).toBe("Previous transaction needs a status check.");
+    expect(hasBlockingLocalTransactionRecovery(ownReload)).toBe(true);
+
+    const requested: string[] = [];
+    const recovery = createBrowserCashCheckoutPorts({
+      fetchImpl: async (input) => {
+        requested.push(String(input));
+        return new Response(JSON.stringify({
+          ok: true,
+          correlationId: CORRELATION,
+          data: { transactionId: TX, status: "not_found" },
+        }), { status: 200, headers: { "content-type": "application/json" } });
+      },
+      scope: { ...LOCAL_CHECKOUT_SCOPE, registerId: REGISTER_A },
+      journal,
+      tenderActivity: createTenderActivityPort(db),
+    });
+    await runAttentionRecovery({
+      item: sameRegister[0]!,
+      lock: createAttentionRecoveryLock(),
+      ports: { payments: recovery.payments, sales: recovery.sales },
+      reload: async () => undefined,
+    });
+    expect(requested.some((url) => url.includes("/sales/prepare"))).toBe(false);
+    expect(requested.some((url) => url.includes(`/sales/${TX}`))).toBe(true);
+    const after = await db.journal.get(PREPARE_KEY);
+    expect(after?.status).toBe("acknowledged");
+    expect(after?.idempotencyKey).toBe(PREPARE_KEY);
+  });
+
+  test("a second device database does not invent the first device's local evidence", async () => {
+    const firstName = uniqueDbName();
+    const secondName = uniqueDbName();
+    const first = openPosLocalDatabase(firstName);
+    const journal = createOperationJournal(first, { createdByActorId: CASHIER_A, registerId: REGISTER_A });
+    await journal.appendBeforeSend(
+      {
+        id: PREPARE_KEY,
+        transactionId: TX,
+        operation: "sale.prepare",
+        idempotencyKey: PREPARE_KEY,
+        requestHash: await (async () => {
+          const payload = {
+            payloadVersion: "1.0.0",
+            operation: "sale.prepare",
+            transactionId: TX,
+            request: { transactionId: TX, registerId: REGISTER_A },
+          };
+          const { sha256Hex, canonicalJson } = await import("../local/canonical");
+          return sha256Hex(canonicalJson(payload));
+        })(),
+        payloadVersion: "1.0.0",
+        status: "response_unknown",
+        attempts: 1,
+        createdAt: "2026-09-25T09:00:00.000Z",
+      },
+      JSON.stringify({
+        payloadVersion: "1.0.0",
+        operation: "sale.prepare",
+        transactionId: TX,
+        request: { transactionId: TX, registerId: REGISTER_A },
+      }),
+    );
+    const second = openPosLocalDatabase(secondName);
+    const secondItems = await loadLocalJournalAttentionItems(
+      createOperationJournal(second),
+      { actorId: CASHIER_B, registerId: REGISTER_A },
+      second,
+    );
+    expect(secondItems).toEqual([]);
+    expect(await second.journal.count()).toBe(0);
+    expect(await first.journal.count()).toBe(1);
+  });
+
+  test("sign-out does not delete unresolved evidence or rotate its idempotency key", async () => {
+    const name = uniqueDbName();
+    const db = openPosLocalDatabase(name);
+    const journal = createOperationJournal(db, { createdByActorId: CASHIER_A, registerId: REGISTER_A });
+    const payload = { payloadVersion: "1.0.0", operation: "sale.prepare", transactionId: TX, request: { registerId: REGISTER_A } };
+    const { sha256Hex, canonicalJson } = await import("../local/canonical");
+    const requestHash = await sha256Hex(canonicalJson(payload));
+    await journal.appendBeforeSend({
+      id: PREPARE_KEY,
+      transactionId: TX,
+      operation: "sale.prepare",
+      idempotencyKey: PREPARE_KEY,
+      requestHash,
+      payloadVersion: "1.0.0",
+      status: "response_unknown",
+      attempts: 1,
+      createdAt: "2026-09-25T09:00:00.000Z",
+    }, JSON.stringify(payload));
+    const runtime = createStaffRuntimeController({
+      gateway: {
+        async establish() {
+          throw new Error("unused");
+        },
+        async readContext() {
+          throw new Error("unused");
+        },
+        async read() {
+          return null;
+        },
+        async clear() {
+          return;
+        },
+      },
+      auth: {
+        async signIn() {
+          return { accessToken: "token" };
+        },
+        async signOut() {
+          return;
+        },
+      },
+      registers: {} as RegisterPort,
+    });
+    await runtime.signOut();
+    const row = await db.journal.get(PREPARE_KEY);
+    expect(row?.status).toBe("response_unknown");
+    expect(row?.idempotencyKey).toBe(PREPARE_KEY);
+    expect(await db.journal.count()).toBe(1);
+    await journal.markAcknowledged(PREPARE_KEY);
+    await journal.markAcknowledged(PREPARE_KEY);
+    const acknowledged = await db.journal.get(PREPARE_KEY);
+    expect(acknowledged?.idempotencyKey).toBe(PREPARE_KEY);
+    expect(acknowledged?.status).toBe("acknowledged");
+  });
+
+  test("legacy rows with no recorded cashier stay visible and block when register safety is unknown", async () => {
+    const name = uniqueDbName();
+    const db = openPosLocalDatabase(name);
+    const payload = JSON.stringify({ kind: "sale.prepare", note: "historic" });
+    const { sha256Hex, canonicalJson } = await import("../local/canonical");
+    const requestHash = await sha256Hex(canonicalJson(JSON.parse(payload)));
+    await db.journal.add({
+      id: PREPARE_KEY,
+      transactionId: TX,
+      operation: "sale.prepare",
+      idempotencyKey: PREPARE_KEY,
+      requestHash,
+      payloadVersion: "1.0.0",
+      status: "response_unknown",
+      attempts: 1,
+      createdAt: "2026-09-20T22:10:14.444Z",
+      payload,
+      attemptHistory: [{ at: "2026-09-20T22:10:14.444Z", status: "response_unknown" }],
+    });
+    const items = await loadLocalJournalAttentionItems(
+      createOperationJournal(db),
+      { actorId: CASHIER_B, registerId: REGISTER_B, organizationId: "org_a" },
+      db,
+    );
+    expect(items).toHaveLength(1);
+    expect(items[0]?.localRecoveryOwner).toBe("unknown");
+    expect(items[0]?.summary).toContain("original cashier was not recorded");
+    expect(items[0]?.summary).not.toContain(CASHIER_B);
+    expect(hasBlockingLocalTransactionRecovery(items)).toBe(true);
+    const stored = await listUnresolvedJournalRecords(db);
+    expect(stored[0]?.scope.createdByActorId).toBeUndefined();
+    expect(stored[0]?.pending.idempotencyKey).toBe(PREPARE_KEY);
   });
 });

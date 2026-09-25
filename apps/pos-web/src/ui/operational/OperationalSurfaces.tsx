@@ -24,6 +24,10 @@ export type AttentionItemView = {
   readonly resolveAllowed?: boolean;
   readonly reviewAllowed?: boolean;
   readonly recoverKind?: "payment" | "sale" | "return" | "shift" | "catalog" | "register";
+  /** When false, the item stays visible but does not stop selling on the current register. */
+  readonly blocksCheckout?: boolean;
+  /** Who started the saved local work. Absent on server-owned attention items. */
+  readonly localRecoveryOwner?: "viewer" | "other" | "unknown";
 };
 
 export interface StoreHealthScreenProps {
