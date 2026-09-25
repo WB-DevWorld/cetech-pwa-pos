@@ -163,6 +163,50 @@ export function createStaffRuntimeController(input: {
   const offlinePresentationStore = input.offlinePresentationStore;
   const isOnline = input.isOnline ?? (() => true);
   const now = input.now ?? (() => new Date());
+  let authorityEpoch = 0;
+  let inflightRestore: Promise<void> | null = null;
+  let inflightRefresh: { readonly key: string; readonly epoch: number; readonly promise: Promise<void> } | null = null;
+
+  type RefreshCapture = {
+    readonly epoch: number;
+    readonly actorId: string | null;
+    readonly organizationId: string | null;
+    readonly presentationOnly: boolean;
+    readonly selectedRegisterId: string | null;
+    readonly shiftId: string | null;
+    readonly shiftStatus: string | null;
+    readonly shiftOpen: boolean;
+  };
+
+  function refreshKey(): string {
+    if (!state.session) return "session";
+    const mode = state.presentationOnly ? "revalidate" : "register";
+    return `${state.session.organizationId}\u001f${state.session.actorId}\u001f${mode}`;
+  }
+
+  function captureRefresh(): RefreshCapture {
+    return {
+      epoch: authorityEpoch,
+      actorId: state.session?.actorId ?? null,
+      organizationId: state.session?.organizationId ?? null,
+      presentationOnly: state.presentationOnly === true,
+      selectedRegisterId: state.selectedRegisterId,
+      shiftId: state.shift?.id ?? null,
+      shiftStatus: state.shift?.status ?? null,
+      shiftOpen: state.shiftOpen,
+    };
+  }
+
+  function refreshStillCurrent(captured: RefreshCapture): boolean {
+    if (captured.epoch !== authorityEpoch) return false;
+    if ((state.session?.actorId ?? null) !== captured.actorId) return false;
+    if ((state.session?.organizationId ?? null) !== captured.organizationId) return false;
+    if ((state.presentationOnly === true) !== captured.presentationOnly) return false;
+    if (state.selectedRegisterId !== captured.selectedRegisterId) return false;
+    if ((state.shift?.id ?? null) !== captured.shiftId) return false;
+    if ((state.shift?.status ?? null) !== captured.shiftStatus) return false;
+    return state.shiftOpen === captured.shiftOpen;
+  }
 
   function notify(): void {
     for (const listener of listeners) {
@@ -295,7 +339,8 @@ export function createStaffRuntimeController(input: {
     return hydrateSelectedRegister(context, previous, selectedRegisterId, assignedRegisters);
   }
 
-  async function applyContext(result: ApiResult<StaffSessionContext>): Promise<void> {
+  async function applyContext(result: ApiResult<StaffSessionContext>, epochAtStart: number): Promise<void> {
+    if (epochAtStart !== authorityEpoch) return;
     if (!result.ok) {
       if (result.error.code === "AUTH_REQUIRED" || result.error.code === "FORBIDDEN") {
         offlinePresentationStore?.clear();
@@ -336,6 +381,7 @@ export function createStaffRuntimeController(input: {
       return;
     }
     const next = await loadRegister(result.data, state);
+    if (epochAtStart !== authorityEpoch) return;
     setState(next);
     if (next.status === "ready" && next.session && !next.presentationOnly) {
       offlinePresentationStore?.write(next, now());
@@ -370,16 +416,27 @@ export function createStaffRuntimeController(input: {
       };
     },
     async restore() {
+      if (inflightRestore) return inflightRestore;
+      const epochAtStart = ++authorityEpoch;
       setState({ ...idle, status: "restoring" });
-      await applyContext(await input.gateway.readContext());
+      const run = (async () => {
+        await applyContext(await input.gateway.readContext(), epochAtStart);
+      })();
+      const tracked = run.finally(() => {
+        if (inflightRestore === tracked) inflightRestore = null;
+      });
+      inflightRestore = tracked;
+      return tracked;
     },
     async signIn(request) {
+      const epochAtStart = ++authorityEpoch;
       setState({ ...state, status: "restoring", errorMessage: undefined });
       try {
         const signedIn = await input.auth.signIn(request);
         const established = await input.gateway.establish(signedIn.accessToken);
-        await applyContext(established);
+        await applyContext(established, epochAtStart);
       } catch (error) {
+        if (epochAtStart !== authorityEpoch) return;
         setState({
           ...idle,
           status: "signed_out",
@@ -390,6 +447,7 @@ export function createStaffRuntimeController(input: {
       }
     },
     async signOut() {
+      authorityEpoch += 1;
       retireLocalStaffAuthority();
       let remoteFailed = false;
       try {
@@ -407,27 +465,45 @@ export function createStaffRuntimeController(input: {
       }
     },
     reportUnconfirmedRemoteSignOut() {
+      authorityEpoch += 1;
       if (state.session || state.status === "ready" || state.presentationOnly) {
         retireLocalStaffAuthority();
       }
       setState(signedOutState(REMOTE_SIGN_OUT_UNCONFIRMED_MESSAGE));
     },
     async refreshRegister() {
-      if (!state.session || state.presentationOnly) {
-        await applyContext(await input.gateway.readContext());
-        return;
+      if (inflightRestore && state.status === "restoring") {
+        return inflightRestore;
       }
-      const current = state.session;
-      setState(
-        await loadRegister(
+      const key = refreshKey();
+      if (inflightRefresh?.key === key && inflightRefresh.epoch === authorityEpoch) {
+        return inflightRefresh.promise;
+      }
+      const captured = captureRefresh();
+      const run = (async () => {
+        if (!state.session || state.presentationOnly) {
+          const result = await input.gateway.readContext();
+          if (!refreshStillCurrent(captured)) return;
+          await applyContext(result, captured.epoch);
+          return;
+        }
+        const current = state.session;
+        const next = await loadRegister(
           {
             session: current,
             assignedLocationIds: state.assignedLocationIds,
             assignedRegisterIds: state.assignedRegisterIds,
           },
           state,
-        ),
-      );
+        );
+        if (!refreshStillCurrent(captured)) return;
+        setState(next);
+      })();
+      const tracked = run.finally(() => {
+        if (inflightRefresh?.promise === tracked) inflightRefresh = null;
+      });
+      inflightRefresh = { key, epoch: captured.epoch, promise: tracked };
+      return tracked;
     },
     async selectRegister(registerId) {
       if (!state.session || state.presentationOnly) {

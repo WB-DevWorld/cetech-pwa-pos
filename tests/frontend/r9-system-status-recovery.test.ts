@@ -31,7 +31,8 @@ describe("R9 recovery on the accepted STG-01 operational surface", () => {
     expect(posAppSource).toContain("const recoveryTenderActivity = useMemo");
     expect(posAppSource).toContain("tenderActivity: recoveryTenderActivity");
     expect(posAppSource).toContain('data-local-recovery-blocked="true"');
-    expect(posAppSource).toContain('void loadAttention("refresh")');
+    expect(posAppSource).toContain("createBurstRefresh");
+    expect(posAppSource).toContain('loadAttention("refresh")');
     expect(attentionRecoverySource).toContain('id: `local-journal:${row.id}`');
     expect(attentionRecoverySource).toContain("transactionId: row.transactionId");
     expect(recoveryScopeSource).toContain("Payment needs a status check");

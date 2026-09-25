@@ -119,6 +119,217 @@ function controller(
 }
 
 describe("STG-06 staff runtime register authority", () => {
+  test("CAN-05 concurrent refreshRegister calls share one register hydration", async () => {
+    const registers = stubRegisters();
+    const { runtime } = controller(registers);
+    await runtime.restore();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const originalGet = registers.getImpl;
+    const originalShift = registers.shiftImpl;
+    registers.getImpl = async (id) => {
+      await gate;
+      return originalGet(id);
+    };
+    registers.shiftImpl = async (id) => {
+      await gate;
+      return originalShift(id);
+    };
+    registers.got.length = 0;
+    registers.shifted.length = 0;
+    const burst = Promise.all(Array.from({ length: 8 }, () => runtime.refreshRegister()));
+    release();
+    await burst;
+    expect(registers.got).toEqual(["reg_a", "reg_a"]);
+    expect(registers.shifted).toEqual(["reg_a"]);
+    expect(runtime.getState()).toMatchObject({
+      status: "ready",
+      register: { id: "reg_a" },
+      shiftOpen: true,
+    });
+  });
+
+  test("CAN-05 in-flight refresh does not restore authority after sign-out", async () => {
+    const registers = stubRegisters();
+    const { runtime } = controller(registers);
+    await runtime.restore();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const originalGet = registers.getImpl;
+    registers.getImpl = async (id) => {
+      await gate;
+      return originalGet(id);
+    };
+    const pending = runtime.refreshRegister();
+    await runtime.signOut();
+    release();
+    await pending;
+    expect(runtime.getState().status).toBe("signed_out");
+    expect(runtime.getState().session).toBeNull();
+    expect(runtime.getState().register).toBeNull();
+  });
+
+  test("CAN-05 concurrent offline revalidation shares one session read", async () => {
+    const offlineStore = createMemoryOfflineStaffPresentationStore();
+    offlineStore.write(
+      {
+        status: "ready",
+        session: SESSION,
+        assignedLocationIds: ["loc_a1"],
+        assignedRegisterIds: ["reg_a"],
+        assignedRegisters: [REGISTER_A],
+        selectedRegisterId: "reg_a",
+        register: REGISTER_A,
+        shift: SHIFT_A,
+        shiftOpen: true,
+      },
+      new Date("2026-09-21T10:00:00.000Z"),
+    );
+    let reads = 0;
+    let holdReads = false;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const unavailable = fail("INTEGRATION_UNAVAILABLE", "staff session transport failed");
+    const runtime = createStaffRuntimeController({
+      gateway: {
+        async establish() {
+          return unavailable;
+        },
+        async readContext() {
+          reads += 1;
+          if (holdReads) {
+            await gate;
+          }
+          return unavailable;
+        },
+        async read() {
+          return null;
+        },
+        async clear() {
+          return;
+        },
+      },
+      auth: authStub(),
+      registers: stubRegisters(),
+      offlinePresentationStore: offlineStore,
+      isOnline: () => false,
+      now: () => new Date("2026-09-21T11:00:00.000Z"),
+    });
+    await runtime.restore();
+    reads = 0;
+    holdReads = true;
+    const burst = Promise.all(Array.from({ length: 8 }, () => runtime.refreshRegister()));
+    release();
+    await burst;
+    expect(reads).toBe(1);
+    expect(runtime.getState().presentationOnly).toBe(true);
+    expect(runtime.getState().assignedRegisterIds).toEqual(["reg_a"]);
+  });
+
+  test("CAN-05 register timeout stays unavailable authority, not zero assignments or sign-out", async () => {
+    const registers = stubRegisters();
+    const { runtime } = controller(registers);
+    await runtime.restore();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    registers.getImpl = async () => {
+      await gate;
+      return fail("INTEGRATION_UNAVAILABLE", "Warp server error: Thread killed by timeout manager");
+    };
+    registers.got.length = 0;
+    const burst = Promise.all(Array.from({ length: 8 }, () => runtime.refreshRegister()));
+    release();
+    await burst;
+    const state = runtime.getState();
+    expect(registers.got).toEqual(["reg_a", "reg_a"]);
+    expect(state.status).toBe("ready");
+    expect(state.session?.actorId).toBe("cashier_a");
+    expect(state.assignedRegisterIds).toEqual(["reg_a"]);
+    expect(state.register?.id).toBe("reg_a");
+    expect(state.shiftOpen).toBe(true);
+    expect(state.errorMessage).toContain("timeout manager");
+  });
+
+  test("CAN-05 repeated restore shares one session read", async () => {
+    let reads = 0;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const sessionResult = ok({
+      session: SESSION,
+      assignedLocationIds: ["loc_a1"],
+      assignedRegisterIds: ["reg_a"],
+    });
+    const runtime = createStaffRuntimeController({
+      gateway: {
+        async establish() {
+          return sessionResult;
+        },
+        async readContext() {
+          reads += 1;
+          await gate;
+          return sessionResult;
+        },
+        async read() {
+          return SESSION;
+        },
+        async clear() {
+          return;
+        },
+      },
+      auth: authStub(),
+      registers: stubRegisters(),
+    });
+    const burst = Promise.all([runtime.restore(), runtime.restore(), runtime.restore()]);
+    release();
+    await burst;
+    expect(reads).toBe(1);
+    expect(runtime.getState()).toMatchObject({
+      status: "ready",
+      register: { id: "reg_a" },
+      shiftOpen: true,
+    });
+  });
+
+  test("CAN-05 an older refresh does not overwrite a newer shift", async () => {
+    const registers = stubRegisters();
+    const { runtime } = controller(registers);
+    await runtime.restore();
+    let calls = 0;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const originalGet = registers.getImpl;
+    registers.getImpl = async (id) => {
+      calls += 1;
+      if (calls >= 2) {
+        await gate;
+      }
+      return originalGet(id);
+    };
+    const pending = runtime.refreshRegister();
+    const replacement: Shift = {
+      ...SHIFT_A,
+      id: "80c80173-ce30-4ab7-9461-697ee625ceb5",
+    };
+    runtime.applyShift(replacement);
+    release();
+    await pending;
+    expect(runtime.getState().shift?.id).toBe(replacement.id);
+    expect(runtime.getState().register?.id).toBe("reg_a");
+    expect(runtime.getState().shiftOpen).toBe(true);
+  });
+
   test("successful register and open shift become ready authority", async () => {
     const { runtime } = controller(stubRegisters());
     await runtime.restore();
