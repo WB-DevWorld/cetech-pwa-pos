@@ -135,6 +135,8 @@ export function createSupabaseStaffIdentityAdminStore(input: {
 
   return {
     async invite(value) {
+      // CAN-07 redirect belongs here: pass server-owned redirect_to for
+      // /auth/invite. Do not add a second invite client.
       const invited = await request(
         `${base}/auth/v1/invite`,
         "POST",

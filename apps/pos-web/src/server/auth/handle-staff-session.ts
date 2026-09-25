@@ -228,7 +228,10 @@ export async function handleReadStaffSession(
     );
   }
   if (!stored) {
-    return fail(headers, authFailure("AUTH_REQUIRED", "staff session is expired or revoked", correlation.correlationId));
+    return fail(
+      headers,
+      authFailure("AUTH_REQUIRED", "staff session is expired or revoked", correlation.correlationId, { field: "session" }),
+    );
   }
 
   let assignedLocationIds: readonly string[] = [];
@@ -241,7 +244,9 @@ export async function handleReadStaffSession(
     if (assignments === "unavailable") {
       return fail(
         headers,
-        authFailure("INTEGRATION_UNAVAILABLE", "staff assignment directory is unavailable", correlation.correlationId),
+        authFailure("INTEGRATION_UNAVAILABLE", "staff assignment directory is unavailable", correlation.correlationId, {
+          field: "assignments",
+        }),
       );
     }
     assignedLocationIds = [...new Set(assignments.locationIds)];
@@ -249,7 +254,9 @@ export async function handleReadStaffSession(
   } catch {
     return fail(
       headers,
-      authFailure("INTEGRATION_UNAVAILABLE", "staff assignment directory is unavailable", correlation.correlationId),
+      authFailure("INTEGRATION_UNAVAILABLE", "staff assignment directory is unavailable", correlation.correlationId, {
+        field: "assignments",
+      }),
     );
   }
 

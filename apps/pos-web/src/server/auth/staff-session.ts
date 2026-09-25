@@ -49,11 +49,19 @@ export async function establishStaffSession(
     if (verifyResult.reason === "timeout" || verifyResult.reason === "unavailable") {
       return authFailure("INTEGRATION_UNAVAILABLE", "identity provider is unavailable", input.correlationId);
     }
+    if (verifyResult.reason === "access_disabled") {
+      return authFailure("FORBIDDEN", "staff pos access is disabled", input.correlationId, { field: "pos_access" });
+    }
     if (verifyResult.reason === "anonymous") {
       return authFailure("AUTH_REQUIRED", "anonymous requests are denied", input.correlationId);
     }
+    if (verifyResult.reason === "expired" || verifyResult.reason === "revoked") {
+      return authFailure("AUTH_REQUIRED", "staff session is expired or revoked", input.correlationId, { field: "session" });
+    }
     return authFailure("AUTH_REQUIRED", "staff session could not be established", input.correlationId);
   }
+  // Canonical disablement is pos_staff_access_controls. Auth metadata only
+  // carries provisioning flags such as must_change_password.
   if (input.accessControl) {
     const access = await input.accessControl.status({
       organizationId: verifyResult.identity.organizationId,
@@ -67,11 +75,7 @@ export async function establishStaffSession(
       );
     }
     if (access === "disabled") {
-      return authFailure(
-        "FORBIDDEN",
-        "staff access is disabled",
-        input.correlationId,
-      );
+      return authFailure("FORBIDDEN", "staff access is disabled", input.correlationId, { field: "pos_access" });
     }
   }
 

@@ -1,17 +1,52 @@
 import type { OperationJournal } from "../../../../docs/contracts/ports";
 import type { PendingOperation, Uuid } from "../../../../docs/contracts/domain.generated";
 import { canonicalJson, sha256Hex } from "./canonical";
+import {
+  deriveRecoveryScopeFromPayload,
+  mergeRecoveryScope,
+  type JournalRecoveryScope,
+} from "./journal-recovery-scope";
 import { openPosLocalDatabase, type JournalRecord, type PosLocalDatabase } from "./pos-local-db";
 import { assertJournalPayloadHasNoSecrets } from "./secrets-guard";
 
 function toPending(record: JournalRecord): PendingOperation {
-  const { payload, attemptHistory, ...pending } = record;
+  const { payload, attemptHistory, recoveryScope, ...pending } = record;
   void payload;
   void attemptHistory;
+  void recoveryScope;
   return pending;
 }
 
-export function createOperationJournal(db: PosLocalDatabase = openPosLocalDatabase()): OperationJournal {
+export type JournalRecoveryRecord = {
+  readonly pending: PendingOperation;
+  readonly scope: JournalRecoveryScope;
+  readonly payload: string;
+};
+
+export async function listUnresolvedJournalRecords(db: PosLocalDatabase): Promise<readonly JournalRecoveryRecord[]> {
+  const rows = await db.journal.toArray();
+  const unresolved = rows.filter((row) => row.status !== "acknowledged");
+  const registerByTransaction = new Map<string, string>();
+  const derived = unresolved.map((row) => {
+    const scope = mergeRecoveryScope(row.recoveryScope, deriveRecoveryScopeFromPayload(row.payload));
+    if (row.transactionId && scope.registerId) {
+      registerByTransaction.set(row.transactionId, scope.registerId);
+    }
+    return { row, scope };
+  });
+  return derived.map(({ row, scope }) => {
+    const inheritedRegister = row.transactionId ? registerByTransaction.get(row.transactionId) : undefined;
+    const resolved = inheritedRegister && !scope.registerId
+      ? { ...scope, registerId: inheritedRegister }
+      : scope;
+    return { pending: toPending(row), scope: resolved, payload: row.payload };
+  });
+}
+
+export function createOperationJournal(
+  db: PosLocalDatabase = openPosLocalDatabase(),
+  recoveryScope?: JournalRecoveryScope,
+): OperationJournal {
   return {
     async appendBeforeSend(operation: PendingOperation, versionedCommandPayload: string): Promise<void> {
       assertJournalPayloadHasNoSecrets(versionedCommandPayload);
@@ -30,10 +65,15 @@ export function createOperationJournal(db: PosLocalDatabase = openPosLocalDataba
           }
           return;
         }
+        const derived = deriveRecoveryScopeFromPayload(versionedCommandPayload);
+        const scope = mergeRecoveryScope(recoveryScope, derived);
         const record: JournalRecord = {
           ...operation,
           payload: versionedCommandPayload,
           attemptHistory: [{ at: operation.createdAt, status: operation.status }],
+          ...(Object.values(scope).some((value) => typeof value === "string" && value.length > 0)
+            ? { recoveryScope: scope }
+            : {}),
         };
         await db.journal.add(record);
       });

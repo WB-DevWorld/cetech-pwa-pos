@@ -1,5 +1,13 @@
 import type { OperationJournal, PaymentPort, SalesPort } from "../../../../docs/contracts/ports";
 import type { PendingOperation } from "../../../../docs/contracts/domain.generated";
+import { listUnresolvedJournalRecords } from "../local/operation-journal";
+import {
+  presentLocalRecovery,
+  recoveryKindForOperation,
+  UNKNOWN_ORGANIZATION_RECOVERY_COPY,
+  type LocalRecoveryViewer,
+} from "../local/journal-recovery-scope";
+import type { PosLocalDatabase } from "../local/pos-local-db";
 import type { AttentionItemView } from "../ui/operational";
 
 
@@ -15,6 +23,52 @@ const PAYMENT_RECOVERY_OPERATIONS = new Set<PendingOperation["operation"]>([
   "payment.resolve",
 ]);
 
+/** A local recovery scan is valid only for the context that produced it. */
+export type LocalRecoveryContext = {
+  readonly organizationId: string;
+  readonly actorId: string;
+  readonly registerId: string;
+  readonly deviceId: string;
+};
+
+export function localRecoveryContextKey(context: LocalRecoveryContext): string {
+  return [context.organizationId, context.actorId, context.registerId, context.deviceId].join("\u001f");
+}
+
+export function isLocalRecoveryContextCurrent(
+  scanned: LocalRecoveryContext | null,
+  current: LocalRecoveryContext,
+): boolean {
+  if (!scanned) return false;
+  return localRecoveryContextKey(scanned) === localRecoveryContextKey(current);
+}
+
+export function checkoutBlockedByLocalRecovery(input: {
+  readonly scanned: LocalRecoveryContext | null;
+  readonly current: LocalRecoveryContext;
+  readonly items: readonly AttentionItemView[];
+}): boolean {
+  if (!isLocalRecoveryContextCurrent(input.scanned, input.current)) return true;
+  return hasBlockingLocalTransactionRecovery(input.items);
+}
+
+/** Invalidates an in-flight scan when organization, actor, register, or device changes. */
+export function createRecoveryScanGate(): {
+  readonly start: () => number;
+  readonly isCurrent: (token: number) => boolean;
+} {
+  let generation = 0;
+  return {
+    start() {
+      generation += 1;
+      return generation;
+    },
+    isCurrent(token) {
+      return token === generation;
+    },
+  };
+}
+
 export function localJournalRecoveryKind(
   operation: PendingOperation["operation"],
 ): "sale" | "payment" | null {
@@ -25,29 +79,154 @@ export function localJournalRecoveryKind(
 
 export async function loadLocalJournalAttentionItems(
   journal: OperationJournal | undefined,
+  viewer?: LocalRecoveryViewer,
+  db?: PosLocalDatabase,
 ): Promise<readonly AttentionItemView[]> {
-  if (!journal) return [];
-  const pending = await journal.pending();
-  return pending.flatMap((row): AttentionItemView[] => {
-    if (!row.transactionId) return [];
-    const recoverKind = localJournalRecoveryKind(row.operation);
-    if (!recoverKind) return [];
-    const uncertain = row.status === "response_unknown" || row.status === "requires_attention";
+  if (!db && !journal) return [];
+  const records = db ? await listUnresolvedJournalRecords(db) : [];
+  if (!db) {
+    const pending = await journal!.pending();
+    return pending.flatMap((row) => presentPendingWithoutDatabase(row, viewer));
+  }
+  return records.flatMap((record): AttentionItemView[] => {
+    if (!record.pending.transactionId && recoveryKindForOperation(record.pending.operation)) {
+      return [];
+    }
+    const presented = presentLocalRecovery({
+      row: {
+        id: record.pending.id,
+        operation: record.pending.operation,
+        status: record.pending.status,
+        transactionId: record.pending.transactionId,
+        idempotencyKey: record.pending.idempotencyKey,
+        scope: record.scope,
+      },
+      viewer,
+    });
+    if (presented.quarantine) {
+      return [{
+        id: `local-journal:${record.pending.id}`,
+        title: presented.title,
+        summary: presented.summary,
+        typeLabel: "Saved work",
+        severity: "critical",
+        resolveAllowed: false,
+        retryAllowed: false,
+        reviewAllowed: false,
+        blocksCheckout: true,
+        localRecoveryOwner: "unknown",
+        quarantine: true,
+      }];
+    }
+    if (!presented.applicable) return [];
+    const recoverKind = localJournalRecoveryKind(record.pending.operation);
+    const uncertain = record.pending.status === "response_unknown" || record.pending.status === "requires_attention";
     return [{
-      id: `local-journal:${row.id}`,
-      title: recoverKind === "payment" ? "Payment needs a status check" : "Sale needs a status check",
-      summary: uncertain
-        ? "The result was not confirmed. Check the existing transaction before starting another attempt."
-        : "Saved transaction work was interrupted. Check its status before starting another attempt.",
-      typeLabel: recoverKind === "payment" ? "Payment recovery" : "Sale recovery",
-      severity: uncertain ? "critical" : "medium",
-      transactionId: row.transactionId,
-      resolveAllowed: true,
+      id: `local-journal:${record.pending.id}`,
+      title: presented.title,
+      summary: presented.summary,
+      typeLabel: recoverKind === "payment" ? "Payment recovery" : recoverKind === "sale" ? "Sale recovery" : "Saved work",
+      severity: uncertain || presented.blocksCheckout ? "critical" : "medium",
+      transactionId: record.pending.transactionId,
+      resolveAllowed: recoverKind !== null,
       retryAllowed: false,
       reviewAllowed: false,
-      recoverKind,
+      recoverKind: recoverKind ?? undefined,
+      blocksCheckout: presented.blocksCheckout,
+      localRecoveryOwner: presented.authoredByViewer ? "viewer" : presented.actorKnown ? "other" : "unknown",
     }];
   });
+}
+
+function presentPendingWithoutDatabase(
+  row: PendingOperation,
+  viewer: LocalRecoveryViewer | undefined,
+): AttentionItemView[] {
+  if (!row.transactionId) return [];
+  const recoverKind = localJournalRecoveryKind(row.operation);
+  if (!recoverKind) return [];
+  const presented = presentLocalRecovery({
+    row: {
+      id: row.id,
+      operation: row.operation,
+      status: row.status,
+      transactionId: row.transactionId,
+      idempotencyKey: row.idempotencyKey,
+      scope: {},
+    },
+    viewer,
+  });
+  if (presented.quarantine) {
+    return [{
+      id: `local-journal:${row.id}`,
+      title: presented.title,
+      summary: presented.summary,
+      typeLabel: "Saved work",
+      severity: "critical",
+      resolveAllowed: false,
+      retryAllowed: false,
+      reviewAllowed: false,
+      blocksCheckout: true,
+      localRecoveryOwner: "unknown",
+      quarantine: true,
+    }];
+  }
+  if (!presented.applicable) return [];
+  return [{
+    id: `local-journal:${row.id}`,
+    title: presented.title,
+    summary: presented.summary,
+    typeLabel: recoverKind === "payment" ? "Payment recovery" : "Sale recovery",
+    severity: "critical",
+    transactionId: row.transactionId,
+    resolveAllowed: true,
+    retryAllowed: false,
+    reviewAllowed: false,
+    recoverKind,
+    blocksCheckout: true,
+    localRecoveryOwner: "unknown",
+  }];
+}
+
+export function localRecoverySellBanner(
+  checked: boolean,
+  items: readonly AttentionItemView[],
+): { readonly title: string; readonly detail: string } | null {
+  if (!checked) {
+    return {
+      title: "Checking saved transaction work…",
+      detail: "Checkout will stay unavailable until saved transaction work has been checked.",
+    };
+  }
+  if (!hasBlockingLocalTransactionRecovery(items)) {
+    return null;
+  }
+  const quarantine = items.some(
+    (item) => item.id.startsWith("local-journal:") && item.blocksCheckout !== false && item.quarantine,
+  );
+  if (quarantine) {
+    return {
+      title: "Saved work needs a status check.",
+      detail: UNKNOWN_ORGANIZATION_RECOVERY_COPY,
+    };
+  }
+  const anotherSignIn = items.some(
+    (item) =>
+      item.id.startsWith("local-journal:") &&
+      item.blocksCheckout !== false &&
+      item.localRecoveryOwner !== "viewer",
+  );
+  if (anotherSignIn) {
+    return {
+      title: "This register needs a status check.",
+      detail:
+        "Unfinished work from another sign-in is still on this register. Open Needs attention and check that transaction before taking a payment. Do not start it again.",
+    };
+  }
+  return {
+    title: "Previous transaction needs a status check.",
+    detail: "Open Needs attention and check the existing transaction before taking another payment.",
+  };
 }
 
 export function hasBlockingLocalTransactionRecovery(
@@ -56,8 +235,8 @@ export function hasBlockingLocalTransactionRecovery(
   return items.some(
     (item) =>
       item.id.startsWith("local-journal:") &&
-      item.resolveAllowed &&
-      (item.recoverKind === "sale" || item.recoverKind === "payment"),
+      item.blocksCheckout !== false &&
+      (item.recoverKind === "sale" || item.recoverKind === "payment" || item.recoverKind === undefined),
   );
 }
 
