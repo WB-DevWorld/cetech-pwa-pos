@@ -4,10 +4,13 @@ import type { ApiResult, PaymentPort, SalesPort } from "../../../../docs/contrac
 import type { PaymentState, SaleResolution } from "../../../../docs/contracts/domain.generated";
 import type { AttentionItemView } from "../ui/operational";
 import {
+  checkoutBlockedByLocalRecovery,
   createAttentionRecoveryLock,
+  createRecoveryScanGate,
   hasBlockingLocalTransactionRecovery,
   loadLocalJournalAttentionItems,
   localRecoverySellBanner,
+  type LocalRecoveryContext,
   mergeAttentionItems,
   recoverAttentionItem,
   runAttentionRecovery,
@@ -25,6 +28,7 @@ import {
 import { createStaffRuntimeController } from "../core/identity/staff-runtime";
 import type { RegisterPort } from "../../../../docs/contracts/ports";
 import { createBrowserCashCheckoutPorts, LOCAL_CHECKOUT_SCOPE } from "./checkout-client";
+import { UNKNOWN_ORGANIZATION_RECOVERY_COPY } from "../local/journal-recovery-scope";
 
 const TX = "11111111-1111-4111-8111-111111111077";
 const PAYMENT = "22222222-2222-4222-8222-222222222077";
@@ -660,9 +664,18 @@ describe("CAN-01 local recovery scope", () => {
       { actorId: CASHIER_B, registerId: REGISTER_B, organizationId: "org_a" },
       db,
     );
-    expect(items).toEqual([]);
-    expect(hasBlockingLocalTransactionRecovery(items)).toBe(false);
-    expect(localRecoverySellBanner(true, items)).toBeNull();
+    expect(items).toHaveLength(1);
+    expect(items[0]?.quarantine).toBe(true);
+    expect(items[0]?.summary).toBe(UNKNOWN_ORGANIZATION_RECOVERY_COPY);
+    expect(items[0]?.transactionId).toBeUndefined();
+    expect(items[0]?.resolveAllowed).toBe(false);
+    expect(items[0]?.summary).not.toContain(CASHIER_B);
+    expect(items[0]?.summary).not.toContain(TX);
+    expect(items[0]?.summary).not.toContain(PREPARE_KEY);
+    expect(items[0]?.summary).not.toContain("org_a");
+    expect(items[0]?.summary).not.toMatch(/sale\.prepare|IndexedDB|OperationJournal/i);
+    expect(hasBlockingLocalTransactionRecovery(items)).toBe(true);
+    expect(localRecoverySellBanner(true, items)?.detail).toBe(UNKNOWN_ORGANIZATION_RECOVERY_COPY);
     const stored = await listUnresolvedJournalRecords(db);
     expect(stored).toHaveLength(1);
     expect(stored[0]?.scope.createdByActorId).toBeUndefined();
@@ -671,6 +684,7 @@ describe("CAN-01 local recovery scope", () => {
     expect(stored[0]?.pending.idempotencyKey).toBe(PREPARE_KEY);
     const raw = await db.journal.get(PREPARE_KEY);
     expect(raw?.recoveryScope?.organizationId).toBeUndefined();
+    expect(raw?.status).toBe("response_unknown");
   });
 
   test("a known different organization does not see or block on the other organization's unresolved sale", async () => {
@@ -764,5 +778,99 @@ describe("CAN-01 local recovery scope", () => {
     expect(afterReturn?.idempotencyKey).toBe(PREPARE_KEY);
     expect(afterReturn?.recoveryScope?.organizationId).toBe("org_a");
     expect(afterReturn?.status).toBe("response_unknown");
+  });
+
+  test("a register change invalidates the previous recovery scan before the next scan resolves", async () => {
+    const name = uniqueDbName();
+    const db = openPosLocalDatabase(name);
+    const deviceId = LOCAL_CHECKOUT_SCOPE.deviceId;
+    const journal = createOperationJournal(db, {
+      createdByActorId: CASHIER_A,
+      organizationId: "org_a",
+      registerId: REGISTER_A,
+      deviceId,
+    });
+    const prepareCalls: string[] = [];
+    await createBrowserCashCheckoutPorts({
+      fetchImpl: async (input) => {
+        prepareCalls.push(String(input));
+        throw new TypeError("simulated lost prepare response");
+      },
+      scope: { ...LOCAL_CHECKOUT_SCOPE, registerId: REGISTER_A },
+      journal,
+      tenderActivity: createTenderActivityPort(db),
+    }).checkout.prepare(
+      {
+        transactionId: TX,
+        registerId: REGISTER_A,
+        shiftId: LOCAL_CHECKOUT_SCOPE.shiftId,
+        deviceId,
+        quoteId: "quote-register-switch",
+        quoteFingerprint: "0123456789abcdef0123456789abcdef",
+      },
+      { idempotencyKey: PREPARE_KEY, correlationId: CORRELATION },
+    );
+    prepareCalls.length = 0;
+
+    const context = (registerId: string): LocalRecoveryContext => ({
+      organizationId: "org_a",
+      actorId: CASHIER_B,
+      registerId,
+      deviceId,
+    });
+    const viewer = (registerId: string) => ({
+      actorId: CASHIER_B,
+      organizationId: "org_a",
+      registerId,
+    });
+    const registerBItems = await loadLocalJournalAttentionItems(journal, viewer(REGISTER_B), db);
+    expect(hasBlockingLocalTransactionRecovery(registerBItems)).toBe(false);
+    const scannedRegisterB = context(REGISTER_B);
+    expect(checkoutBlockedByLocalRecovery({
+      scanned: scannedRegisterB,
+      current: context(REGISTER_A),
+      items: registerBItems,
+    })).toBe(true);
+
+    let releaseRegisterA: (items: readonly AttentionItemView[]) => void = () => undefined;
+    const registerAScan = new Promise<readonly AttentionItemView[]>((resolve) => {
+      releaseRegisterA = resolve;
+    });
+    const gate = createRecoveryScanGate();
+    const registerBToken = gate.start();
+    const registerAToken = gate.start();
+    expect(gate.isCurrent(registerBToken)).toBe(false);
+    expect(checkoutBlockedByLocalRecovery({
+      scanned: scannedRegisterB,
+      current: context(REGISTER_A),
+      items: registerBItems,
+    })).toBe(true);
+
+    const registerAItems = await loadLocalJournalAttentionItems(journal, viewer(REGISTER_A), db);
+    releaseRegisterA(registerAItems);
+    const appliedRegisterA = await registerAScan;
+    expect(gate.isCurrent(registerAToken)).toBe(true);
+    expect(hasBlockingLocalTransactionRecovery(appliedRegisterA)).toBe(true);
+    expect(appliedRegisterA[0]?.resolveAllowed).toBe(true);
+    expect(checkoutBlockedByLocalRecovery({
+      scanned: context(REGISTER_A),
+      current: context(REGISTER_A),
+      items: appliedRegisterA,
+    })).toBe(true);
+    expect(checkoutBlockedByLocalRecovery({
+      scanned: context(REGISTER_A),
+      current: context(REGISTER_B),
+      items: appliedRegisterA,
+    })).toBe(true);
+    expect(checkoutBlockedByLocalRecovery({
+      scanned: scannedRegisterB,
+      current: context(REGISTER_B),
+      items: registerBItems,
+    })).toBe(false);
+    expect(prepareCalls).toEqual([]);
+    const row = await db.journal.get(PREPARE_KEY);
+    expect(row?.status).toBe("response_unknown");
+    expect(row?.idempotencyKey).toBe(PREPARE_KEY);
+    expect(row?.recoveryScope?.organizationId).toBe("org_a");
   });
 });

@@ -4,6 +4,7 @@ import { listUnresolvedJournalRecords } from "../local/operation-journal";
 import {
   presentLocalRecovery,
   recoveryKindForOperation,
+  UNKNOWN_ORGANIZATION_RECOVERY_COPY,
   type LocalRecoveryViewer,
 } from "../local/journal-recovery-scope";
 import type { PosLocalDatabase } from "../local/pos-local-db";
@@ -21,6 +22,52 @@ const PAYMENT_RECOVERY_OPERATIONS = new Set<PendingOperation["operation"]>([
   "payment.cash",
   "payment.resolve",
 ]);
+
+/** A local recovery scan is valid only for the context that produced it. */
+export type LocalRecoveryContext = {
+  readonly organizationId: string;
+  readonly actorId: string;
+  readonly registerId: string;
+  readonly deviceId: string;
+};
+
+export function localRecoveryContextKey(context: LocalRecoveryContext): string {
+  return [context.organizationId, context.actorId, context.registerId, context.deviceId].join("\u001f");
+}
+
+export function isLocalRecoveryContextCurrent(
+  scanned: LocalRecoveryContext | null,
+  current: LocalRecoveryContext,
+): boolean {
+  if (!scanned) return false;
+  return localRecoveryContextKey(scanned) === localRecoveryContextKey(current);
+}
+
+export function checkoutBlockedByLocalRecovery(input: {
+  readonly scanned: LocalRecoveryContext | null;
+  readonly current: LocalRecoveryContext;
+  readonly items: readonly AttentionItemView[];
+}): boolean {
+  if (!isLocalRecoveryContextCurrent(input.scanned, input.current)) return true;
+  return hasBlockingLocalTransactionRecovery(input.items);
+}
+
+/** Invalidates an in-flight scan when organization, actor, register, or device changes. */
+export function createRecoveryScanGate(): {
+  readonly start: () => number;
+  readonly isCurrent: (token: number) => boolean;
+} {
+  let generation = 0;
+  return {
+    start() {
+      generation += 1;
+      return generation;
+    },
+    isCurrent(token) {
+      return token === generation;
+    },
+  };
+}
 
 export function localJournalRecoveryKind(
   operation: PendingOperation["operation"],
@@ -56,6 +103,21 @@ export async function loadLocalJournalAttentionItems(
       },
       viewer,
     });
+    if (presented.quarantine) {
+      return [{
+        id: `local-journal:${record.pending.id}`,
+        title: presented.title,
+        summary: presented.summary,
+        typeLabel: "Saved work",
+        severity: "critical",
+        resolveAllowed: false,
+        retryAllowed: false,
+        reviewAllowed: false,
+        blocksCheckout: true,
+        localRecoveryOwner: "unknown",
+        quarantine: true,
+      }];
+    }
     if (!presented.applicable) return [];
     const recoverKind = localJournalRecoveryKind(record.pending.operation);
     const uncertain = record.pending.status === "response_unknown" || record.pending.status === "requires_attention";
@@ -94,6 +156,21 @@ function presentPendingWithoutDatabase(
     },
     viewer,
   });
+  if (presented.quarantine) {
+    return [{
+      id: `local-journal:${row.id}`,
+      title: presented.title,
+      summary: presented.summary,
+      typeLabel: "Saved work",
+      severity: "critical",
+      resolveAllowed: false,
+      retryAllowed: false,
+      reviewAllowed: false,
+      blocksCheckout: true,
+      localRecoveryOwner: "unknown",
+      quarantine: true,
+    }];
+  }
   if (!presented.applicable) return [];
   return [{
     id: `local-journal:${row.id}`,
@@ -123,6 +200,15 @@ export function localRecoverySellBanner(
   }
   if (!hasBlockingLocalTransactionRecovery(items)) {
     return null;
+  }
+  const quarantine = items.some(
+    (item) => item.id.startsWith("local-journal:") && item.blocksCheckout !== false && item.quarantine,
+  );
+  if (quarantine) {
+    return {
+      title: "Saved work needs a status check.",
+      detail: UNKNOWN_ORGANIZATION_RECOVERY_COPY,
+    };
   }
   const anotherSignIn = items.some(
     (item) =>

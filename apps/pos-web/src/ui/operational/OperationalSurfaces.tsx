@@ -28,6 +28,8 @@ export type AttentionItemView = {
   readonly blocksCheckout?: boolean;
   /** Who started the saved local work. Absent on server-owned attention items. */
   readonly localRecoveryOwner?: "viewer" | "other" | "unknown";
+  /** Generic device gate for financial work whose organization was not recorded. */
+  readonly quarantine?: boolean;
 };
 
 export interface StoreHealthScreenProps {

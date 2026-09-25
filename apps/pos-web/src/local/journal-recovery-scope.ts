@@ -117,21 +117,17 @@ export function deriveRecoveryScopeFromPayload(payload: string | undefined): Jou
 }
 
 /**
- * A local row is applicable only when its stored organization and the
- * viewer's session organization are both present and equal. Same-organization
- * register, actor, and device rules then apply unchanged.
- *
- * A known different organization is withheld from Attention and does not block
- * checkout. The row is not deleted, acknowledged, or rewritten, so the
- * original organization can see it again.
- *
- * Unknown organization is not applicable to a viewer with a known
- * organization. Historic rows often have none, because the journaled command
- * did not carry one, and migration must not copy the signed-in organization
- * onto them. Register ids are opaque and can collide across organizations, so
- * showing or blocking from register match alone would disclose another
- * organization's unfinished sale. The row stays stored with its original
- * status and idempotency key. This does not assign an owner.
+ * Cashier-facing copy for an unresolved financial row whose organization was
+ * never recorded. It must not name a cashier, organization, transaction, or id.
+ */
+export const UNKNOWN_ORGANIZATION_RECOVERY_COPY =
+  "Saved transaction work on this device needs checking before another payment can be taken.";
+
+/**
+ * Same organization: register, actor, and device rules apply unchanged.
+ * Known different organization: withhold the row and do not block.
+ * Unknown organization: keep a device-level checkout gate with generic copy.
+ * The signed-in organization is never written onto the row.
  */
 export type JournalOrganizationApplicability =
   | "same_organization"
@@ -175,6 +171,7 @@ export function presentLocalRecovery(input: {
   readonly viewer?: LocalRecoveryViewer;
 }): {
   readonly applicable: boolean;
+  readonly quarantine: boolean;
   readonly blocksCheckout: boolean;
   readonly title: string;
   readonly summary: string;
@@ -187,14 +184,28 @@ export function presentLocalRecovery(input: {
     input.row.scope.organizationId,
     input.viewer?.organizationId,
   );
-  if (applicability !== "same_organization") {
+  if (applicability === "different_organization") {
     return {
       applicable: false,
+      quarantine: false,
       blocksCheckout: false,
       title: "",
       summary: "",
       authoredByViewer: false,
-      actorKnown,
+      actorKnown: false,
+    };
+  }
+  if (applicability === "unknown_organization") {
+    const classification = classifyJournalOperation(input.row.operation);
+    const blocksCheckout = classification.financialRisk;
+    return {
+      applicable: blocksCheckout,
+      quarantine: blocksCheckout,
+      blocksCheckout,
+      title: blocksCheckout ? "Saved work needs a status check" : "",
+      summary: blocksCheckout ? UNKNOWN_ORGANIZATION_RECOVERY_COPY : "",
+      authoredByViewer: false,
+      actorKnown: false,
     };
   }
   const classification = classifyJournalOperation(input.row.operation);
@@ -230,5 +241,5 @@ export function presentLocalRecovery(input: {
       ? `An earlier sign-in on this device left this ${subject} unfinished. The original cashier was not recorded. Check that transaction before taking a payment on this register.`
       : `An earlier sign-in on this device left this ${subject} unfinished on a different register. The original cashier was not recorded. You can keep selling here. Do not start that ${subject} again.`;
   }
-  return { applicable: true, blocksCheckout, title, summary, authoredByViewer, actorKnown };
+  return { applicable: true, quarantine: false, blocksCheckout, title, summary, authoredByViewer, actorKnown };
 }

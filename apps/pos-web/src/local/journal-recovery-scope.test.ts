@@ -2,7 +2,11 @@ import "fake-indexeddb/auto";
 import Dexie from "dexie";
 import { afterEach, describe, expect, test } from "vitest";
 import type { PendingOperation } from "../../../../docs/contracts/domain.generated";
-import { JOURNAL_OPERATION_RECOVERY } from "./journal-recovery-scope";
+import { JOURNAL_OPERATION_RECOVERY, UNKNOWN_ORGANIZATION_RECOVERY_COPY } from "./journal-recovery-scope";
+import {
+  hasBlockingLocalTransactionRecovery,
+  loadLocalJournalAttentionItems,
+} from "../app/attention-recovery";
 import {
   POS_LOCAL_SCHEMA_V4,
   closePosLocalDatabase,
@@ -95,5 +99,25 @@ describe("CAN-01 journal recovery classification", () => {
     expect(unresolved[0]?.scope.registerId).toBe("reg_a");
     const meta = await upgraded.schemaMeta.get("schema");
     expect(meta?.localSchema).toBe(5);
+    const gate = await loadLocalJournalAttentionItems(
+      undefined,
+      { actorId: "cashier_now", registerId: "reg_other", organizationId: "org_signed_in" },
+      upgraded,
+    );
+    expect(gate).toHaveLength(1);
+    expect(gate[0]?.quarantine).toBe(true);
+    expect(gate[0]?.summary).toBe(UNKNOWN_ORGANIZATION_RECOVERY_COPY);
+    expect(gate[0]?.transactionId).toBeUndefined();
+    expect(gate[0]?.resolveAllowed).toBe(false);
+    expect(gate[0]?.summary).not.toContain("55555555-5555-4555-8555-555555555555");
+    expect(gate[0]?.summary).not.toContain("reg_a");
+    expect(gate[0]?.summary).not.toContain("device-a");
+    expect(gate[0]?.summary).not.toContain("org_signed_in");
+    expect(gate[0]?.summary).not.toMatch(/sale\.prepare/i);
+    expect(hasBlockingLocalTransactionRecovery(gate)).toBe(true);
+    const afterGate = await upgraded.journal.get("44444444-4444-4444-8444-444444444444");
+    expect(afterGate?.status).toBe("response_unknown");
+    expect(afterGate?.idempotencyKey).toBe("44444444-4444-4444-8444-444444444444");
+    expect(afterGate?.recoveryScope?.organizationId).toBeUndefined();
   });
 });
