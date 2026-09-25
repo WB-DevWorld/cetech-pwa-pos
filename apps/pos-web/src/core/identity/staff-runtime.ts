@@ -230,34 +230,75 @@ export function createStaffRuntimeController(input: {
     return registers;
   }
 
+  type RegisterPreferenceIntent =
+    | { readonly kind: "keep" }
+    | { readonly kind: "clear" }
+    | { readonly kind: "write"; readonly registerId: string };
+
+  type HydratedRegister = {
+    readonly authority: StaffRuntimeAuthority;
+    readonly preference: RegisterPreferenceIntent;
+  };
+
+  function hydrated(
+    authority: StaffRuntimeAuthority,
+    preference: RegisterPreferenceIntent,
+  ): HydratedRegister {
+    return { authority, preference };
+  }
+
+  function applyRegisterPreference(
+    preference: RegisterPreferenceIntent,
+    organizationId: string,
+    actorId: string,
+  ): void {
+    if (preference.kind === "clear") {
+      selectedRegisterStore.clear(organizationId, actorId);
+      return;
+    }
+    if (preference.kind === "write") {
+      selectedRegisterStore.write(organizationId, actorId, preference.registerId);
+    }
+  }
+
   async function hydrateSelectedRegister(
     context: StaffSessionContext,
     previous: StaffRuntimeAuthority,
     selectedRegisterId: string,
     assignedRegisters: readonly Register[],
     mode: "restore" | "explicit_switch" = "restore",
-  ): Promise<StaffRuntimeAuthority> {
+  ): Promise<HydratedRegister> {
     const registerResult = await input.registers.get(selectedRegisterId);
     if (!registerResult.ok) {
       if (registerResult.error.code === "FORBIDDEN") {
         const message = "This register is not permitted for the current staff session. Choose another assigned register.";
         if (mode === "explicit_switch" && previous.status === "ready" && previous.session) {
-          return { ...previous, errorMessage: message };
+          return hydrated({ ...previous, errorMessage: message }, { kind: "keep" });
         }
-        selectedRegisterStore.clear(context.session.organizationId, context.session.actorId);
-        return readyWithoutRegister(context, assignedRegisters, null, message);
+        return hydrated(readyWithoutRegister(context, assignedRegisters, null, message), { kind: "clear" });
       }
       const notice = noticeFromFailure(registerResult);
       if (isAuthClosed(notice)) {
         offlinePresentationStore?.clear();
-        return authClosedAuthority(notice, registerResult.error.message);
+        return hydrated(authClosedAuthority(notice, registerResult.error.message), { kind: "keep" });
       }
       if (registerResult.error.code === "NOT_FOUND") {
-        selectedRegisterStore.clear(context.session.organizationId, context.session.actorId);
-        return readyWithoutRegister(context, assignedRegisters, null, registerResult.error.message);
+        // An explicit switch to a register that was never selected must not
+        // erase the current preference. Restore still asks the caller to clear
+        // a stored register the server no longer has.
+        if (mode === "explicit_switch" && previous.status === "ready" && previous.session) {
+          return hydrated(
+            { ...previous, errorMessage: registerResult.error.message },
+            { kind: "keep" },
+          );
+        }
+        return hydrated(
+          readyWithoutRegister(context, assignedRegisters, null, registerResult.error.message),
+          { kind: "clear" },
+        );
       }
       if (isRetryableRegisterFailure(registerResult) && canPreserveRegister(previous, context, selectedRegisterId)) {
-        return {
+        return hydrated({
           status: "ready",
           session: context.session,
           assignedLocationIds: context.assignedLocationIds,
@@ -268,24 +309,26 @@ export function createStaffRuntimeController(input: {
           shift: previous.shift,
           shiftOpen: previous.shiftOpen,
           errorMessage: registerResult.error.message,
-        };
+        }, { kind: "keep" });
       }
-      return readyWithoutRegister(context, assignedRegisters, selectedRegisterId, registerResult.error.message);
+      return hydrated(
+        readyWithoutRegister(context, assignedRegisters, selectedRegisterId, registerResult.error.message),
+        { kind: "keep" },
+      );
     }
     const shiftResult = await input.registers.activeShift(selectedRegisterId);
     if (!shiftResult.ok) {
       if (shiftResult.error.code === "FORBIDDEN") {
         const message = "This register is not permitted for the current staff session. Choose another assigned register.";
         if (mode === "explicit_switch" && previous.status === "ready" && previous.session) {
-          return { ...previous, errorMessage: message };
+          return hydrated({ ...previous, errorMessage: message }, { kind: "keep" });
         }
-        selectedRegisterStore.clear(context.session.organizationId, context.session.actorId);
-        return readyWithoutRegister(context, assignedRegisters, null, message);
+        return hydrated(readyWithoutRegister(context, assignedRegisters, null, message), { kind: "clear" });
       }
       const notice = noticeFromFailure(shiftResult);
       if (isAuthClosed(notice)) {
         offlinePresentationStore?.clear();
-        return authClosedAuthority(notice, shiftResult.error.message);
+        return hydrated(authClosedAuthority(notice, shiftResult.error.message), { kind: "keep" });
       }
       const sameRegister = previous.register?.id === registerResult.data.id;
       const preserveShift =
@@ -294,7 +337,7 @@ export function createStaffRuntimeController(input: {
         previous.shift !== null &&
         previous.shift.registerId === selectedRegisterId &&
         previous.session?.actorId === context.session.actorId;
-      return {
+      return hydrated({
         status: "ready",
         session: context.session,
         assignedLocationIds: context.assignedLocationIds,
@@ -305,11 +348,11 @@ export function createStaffRuntimeController(input: {
         shift: preserveShift ? previous.shift : null,
         shiftOpen: preserveShift ? previous.shiftOpen : false,
         errorMessage: shiftResult.error.message,
-      };
+      }, { kind: "keep" });
     }
     const shift =
       shiftResult.data && shiftResult.data.registerId !== selectedRegisterId ? null : shiftResult.data;
-    return {
+    const authority: StaffRuntimeAuthority = {
       status: "ready",
       session: context.session,
       assignedLocationIds: context.assignedLocationIds,
@@ -320,12 +363,16 @@ export function createStaffRuntimeController(input: {
       shift,
       shiftOpen: shiftIsOpen(shift),
     };
+    return hydrated(
+      authority,
+      mode === "explicit_switch" ? { kind: "write", registerId: selectedRegisterId } : { kind: "keep" },
+    );
   }
 
   async function loadRegister(
     context: StaffSessionContext,
     previous: StaffRuntimeAuthority,
-  ): Promise<StaffRuntimeAuthority> {
+  ): Promise<HydratedRegister> {
     const assignedRegisters = await loadAssignedRegisters(context.assignedRegisterIds);
     const selectedRegisterId = resolveSelectedRegisterId({
       assignedRegisterIds: context.assignedRegisterIds,
@@ -334,7 +381,7 @@ export function createStaffRuntimeController(input: {
       store: selectedRegisterStore,
     });
     if (!selectedRegisterId) {
-      return readyWithoutRegister(context, assignedRegisters, null);
+      return hydrated(readyWithoutRegister(context, assignedRegisters, null), { kind: "keep" });
     }
     return hydrateSelectedRegister(context, previous, selectedRegisterId, assignedRegisters);
   }
@@ -380,11 +427,16 @@ export function createStaffRuntimeController(input: {
       });
       return;
     }
-    const next = await loadRegister(result.data, state);
+    const loaded = await loadRegister(result.data, state);
     if (epochAtStart !== authorityEpoch) return;
-    setState(next);
-    if (next.status === "ready" && next.session && !next.presentationOnly) {
-      offlinePresentationStore?.write(next, now());
+    applyRegisterPreference(
+      loaded.preference,
+      result.data.session.organizationId,
+      result.data.session.actorId,
+    );
+    setState(loaded.authority);
+    if (loaded.authority.status === "ready" && loaded.authority.session && !loaded.authority.presentationOnly) {
+      offlinePresentationStore?.write(loaded.authority, now());
     }
   }
 
@@ -488,7 +540,7 @@ export function createStaffRuntimeController(input: {
           return;
         }
         const current = state.session;
-        const next = await loadRegister(
+        const loaded = await loadRegister(
           {
             session: current,
             assignedLocationIds: state.assignedLocationIds,
@@ -497,7 +549,8 @@ export function createStaffRuntimeController(input: {
           state,
         );
         if (!refreshStillCurrent(captured)) return;
-        setState(next);
+        applyRegisterPreference(loaded.preference, current.organizationId, current.actorId);
+        setState(loaded.authority);
       })();
       const tracked = run.finally(() => {
         if (inflightRefresh?.promise === tracked) inflightRefresh = null;
@@ -519,7 +572,7 @@ export function createStaffRuntimeController(input: {
       };
       authorityEpoch += 1;
       const captured = captureRefresh();
-      const next = await hydrateSelectedRegister(
+      const loaded = await hydrateSelectedRegister(
         context,
         state,
         registerId,
@@ -529,11 +582,9 @@ export function createStaffRuntimeController(input: {
       if (!refreshStillCurrent(captured) || !state.session || !captured.organizationId || !captured.actorId) {
         return false;
       }
-      if (next.register?.id === registerId && next.selectedRegisterId === registerId) {
-        selectedRegisterStore.write(captured.organizationId, captured.actorId, registerId);
-      }
-      setState(next);
-      return next.selectedRegisterId === registerId && next.register?.id === registerId;
+      applyRegisterPreference(loaded.preference, captured.organizationId, captured.actorId);
+      setState(loaded.authority);
+      return loaded.authority.selectedRegisterId === registerId && loaded.authority.register?.id === registerId;
     },
     applyShift(shift) {
       if (!state.session || !state.register || state.presentationOnly) {

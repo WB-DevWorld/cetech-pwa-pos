@@ -103,6 +103,7 @@ function authStub() {
 
 function watchRegisterPreference(initialRegisterId?: string) {
   const writes: Array<{ organizationId: string; actorId: string; registerId: string }> = [];
+  const clears: Array<{ organizationId: string; actorId: string }> = [];
   const inner = createMemorySelectedRegisterStore(
     initialRegisterId
       ? { [selectedRegisterStorageKey("org_a", "cashier_a")]: initialRegisterId }
@@ -110,6 +111,7 @@ function watchRegisterPreference(initialRegisterId?: string) {
   );
   return {
     writes,
+    clears,
     store: {
       read(organizationId: string, actorId: string) {
         return inner.read(organizationId, actorId);
@@ -119,6 +121,7 @@ function watchRegisterPreference(initialRegisterId?: string) {
         inner.write(organizationId, actorId, registerId);
       },
       clear(organizationId: string, actorId: string) {
+        clears.push({ organizationId, actorId });
         inner.clear(organizationId, actorId);
       },
     },
@@ -127,7 +130,7 @@ function watchRegisterPreference(initialRegisterId?: string) {
 
 function holdRegisterSwitch(
   registers: ReturnType<typeof stubRegisters>,
-  outcome: "forbidden" | "timeout" | "success",
+  outcome: "forbidden" | "timeout" | "success" | "missing",
 ) {
   let release!: () => void;
   const gate = new Promise<void>((resolve) => {
@@ -144,6 +147,9 @@ function holdRegisterSwitch(
       }
       if (outcome === "timeout") {
         return fail("INTEGRATION_UNAVAILABLE", "Warp server error: Thread killed by timeout manager");
+      }
+      if (outcome === "missing") {
+        return fail("NOT_FOUND", "register was not found");
       }
     }
     return original(id);
@@ -529,6 +535,130 @@ describe("STG-06 staff runtime register authority", () => {
       { organizationId: "org_a", actorId: "cashier_a", registerId: "reg_b" },
     ]);
     expect(watched.store.read("org_a", "cashier_a")).toBe("reg_b");
+  });
+
+  test("CAN-05 late NOT_FOUND after sign-out does not clear the stored register", async () => {
+    const watched = watchRegisterPreference("reg_a");
+    const registers = stubRegisters();
+    const { runtime } = controller(registers, ["reg_a", "reg_b"], watched.store);
+    await runtime.restore();
+    const held = holdRegisterSwitch(registers, "missing");
+    const pending = runtime.selectRegister("reg_b");
+    await runtime.signOut();
+    held.release();
+    await expect(pending).resolves.toBe(false);
+    expect(runtime.getState()).toMatchObject({
+      status: "signed_out",
+      session: null,
+      register: null,
+    });
+    expect(watched.writes).toEqual([]);
+    expect(watched.clears).toEqual([]);
+    expect(watched.store.read("org_a", "cashier_a")).toBe("reg_a");
+  });
+
+  test("CAN-05 late NOT_FOUND does not clear a newer same-actor preference", async () => {
+    const watched = watchRegisterPreference("reg_a");
+    const registers = stubRegisters();
+    const renewed: Session = { ...SESSION, expiresAt: "2099-06-01T00:00:00.000Z" };
+    let active = ok({
+      session: SESSION,
+      assignedLocationIds: ["loc_a1"],
+      assignedRegisterIds: ["reg_a", "reg_b"],
+    });
+    const runtime = createStaffRuntimeController({
+      gateway: {
+        async establish() {
+          active = ok({
+            session: renewed,
+            assignedLocationIds: ["loc_a1"],
+            assignedRegisterIds: ["reg_a", "reg_b"],
+          });
+          return active;
+        },
+        async readContext() {
+          return active;
+        },
+        async read() {
+          return active.ok ? active.data.session : null;
+        },
+        async clear() {
+          return;
+        },
+      },
+      auth: authStub(),
+      registers,
+      selectedRegisterStore: watched.store,
+    });
+    await runtime.restore();
+    const held = holdRegisterSwitch(registers, "missing");
+    const pending = runtime.selectRegister("reg_b");
+    await runtime.signIn();
+    expect(runtime.getState()).toMatchObject({
+      status: "ready",
+      session: { actorId: "cashier_a", organizationId: "org_a", expiresAt: renewed.expiresAt },
+      selectedRegisterId: "reg_a",
+      register: { id: "reg_a" },
+    });
+    const writesAfterRenewal = watched.writes.length;
+    const clearsAfterRenewal = watched.clears.length;
+    held.release();
+    await expect(pending).resolves.toBe(false);
+    expect(runtime.getState()).toMatchObject({
+      status: "ready",
+      session: { actorId: "cashier_a", organizationId: "org_a", expiresAt: renewed.expiresAt },
+      selectedRegisterId: "reg_a",
+      register: { id: "reg_a" },
+    });
+    expect(watched.writes).toHaveLength(writesAfterRenewal);
+    expect(watched.clears).toHaveLength(clearsAfterRenewal);
+    expect(watched.store.read("org_a", "cashier_a")).toBe("reg_a");
+  });
+
+  test("CAN-05 current explicit NOT_FOUND keeps the previously selected register", async () => {
+    const watched = watchRegisterPreference("reg_a");
+    const registers = stubRegisters();
+    const originalGet = registers.getImpl;
+    registers.getImpl = async (id) =>
+      id === "reg_b" ? fail("NOT_FOUND", "register was not found") : originalGet(id);
+    const { runtime } = controller(registers, ["reg_a", "reg_b"], watched.store);
+    await runtime.restore();
+    watched.writes.length = 0;
+    watched.clears.length = 0;
+    const accepted = await runtime.selectRegister("reg_b");
+    expect(accepted).toBe(false);
+    expect(runtime.getState()).toMatchObject({
+      status: "ready",
+      session: { actorId: "cashier_a", organizationId: "org_a" },
+      selectedRegisterId: "reg_a",
+      register: { id: "reg_a" },
+      shift: { id: SHIFT_A.id },
+      shiftOpen: true,
+    });
+    expect(runtime.getState().errorMessage).toContain("not found");
+    expect(watched.writes).toEqual([]);
+    expect(watched.clears).toEqual([]);
+    expect(watched.store.read("org_a", "cashier_a")).toBe("reg_a");
+  });
+
+  test("CAN-05 restore clears a stored register the server no longer has", async () => {
+    const store = createMemorySelectedRegisterStore({
+      [selectedRegisterStorageKey("org_a", "cashier_a")]: "reg_b",
+    });
+    const registers = stubRegisters();
+    const originalGet = registers.getImpl;
+    registers.getImpl = async (id) =>
+      id === "reg_b" ? fail("NOT_FOUND", "register was not found") : originalGet(id);
+    const { runtime } = controller(registers, ["reg_a", "reg_b"], store);
+    await runtime.restore();
+    expect(runtime.getState()).toMatchObject({
+      status: "ready",
+      session: { actorId: "cashier_a", organizationId: "org_a" },
+      selectedRegisterId: null,
+      register: null,
+      shift: null,
+    });
+    expect(store.read("org_a", "cashier_a")).toBeNull();
   });
 
   test("successful register and open shift become ready authority", async () => {
