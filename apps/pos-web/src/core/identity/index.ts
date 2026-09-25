@@ -20,6 +20,10 @@ export { readOrCreateLocalDeviceId } from "./local-device";
 export {
   createLocalOfflineStaffPresentationStore,
   createMemoryOfflineStaffPresentationStore,
+  formatOfflineVerifiedAt,
+  offlinePresentationBanner,
+  OFFLINE_GRACE_EXPIRED_MESSAGE,
   OFFLINE_STAFF_PRESENTATION_MAX_AGE_MS,
+  type OfflinePresentationEvaluation,
   type OfflineStaffPresentationStore,
 } from "./offline-staff-presentation";

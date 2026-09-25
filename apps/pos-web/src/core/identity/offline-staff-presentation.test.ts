@@ -3,6 +3,7 @@ import type { Register, Session, Shift } from "../../../../../docs/contracts/dom
 import type { StaffRuntimeAuthority } from "./staff-runtime";
 import {
   createMemoryOfflineStaffPresentationStore,
+  offlinePresentationBanner,
   OFFLINE_STAFF_PRESENTATION_MAX_AGE_MS,
 } from "./offline-staff-presentation";
 
@@ -62,7 +63,7 @@ describe("offline staff presentation cache", () => {
     expect(restored?.errorMessage).toContain("Offline");
   });
 
-  test("expires the local presentation by age and by server session expiry", () => {
+  test("expires the local presentation when the 24-hour grace has elapsed", () => {
     const store = createMemoryOfflineStaffPresentationStore();
     const verifiedAt = new Date("2026-09-21T10:00:00.000Z");
     store.write(authority(), verifiedAt);
@@ -71,6 +72,86 @@ describe("offline staff presentation cache", () => {
       store.read(new Date(verifiedAt.getTime() + OFFLINE_STAFF_PRESENTATION_MAX_AGE_MS + 1)),
     ).toBeNull();
     expect(store.read(new Date("2026-09-22T12:00:00.001Z"))).toBeNull();
+  });
+
+  test("online session expiry inside the 24-hour grace still restores presentation", () => {
+    const store = createMemoryOfflineStaffPresentationStore();
+    const verifiedAt = new Date("2026-09-21T10:00:00.000Z");
+    store.write(
+      {
+        ...authority(),
+        session: { ...SESSION, expiresAt: "2026-09-21T12:00:00.000Z" },
+      },
+      verifiedAt,
+    );
+
+    const restored = store.read(new Date("2026-09-21T13:00:00.000Z"));
+    expect(restored?.presentationOnly).toBe(true);
+    expect(restored?.session?.actorId).toBe("cashier-a");
+    expect(restored?.session?.organizationId).toBe("org-a");
+    expect(restored?.lastVerifiedAt).toBe("2026-09-21T10:00:00.000Z");
+    expect(restored?.errorMessage).toContain("Offline — staff access last verified at");
+    expect(restored?.errorMessage).toContain("2026-09-21 10:00:00 UTC");
+    expect(restored?.errorMessage).not.toContain("Signed in");
+    expect(restored?.session?.capabilities).toEqual([]);
+  });
+
+  test("retires an elapsed grace snapshot so a backward clock cannot revive it", () => {
+    const store = createMemoryOfflineStaffPresentationStore();
+    const verifiedAt = new Date("2026-09-21T10:00:00.000Z");
+    store.write(authority(), verifiedAt);
+    const expired = new Date(verifiedAt.getTime() + OFFLINE_STAFF_PRESENTATION_MAX_AGE_MS + 1);
+    expect(store.evaluate(expired).outcome).toBe("grace_expired");
+    expect(store.read(new Date(verifiedAt.getTime() + 60_000))).toBeNull();
+  });
+
+  test("a later verified cashier replaces the previous snapshot", () => {
+    const store = createMemoryOfflineStaffPresentationStore();
+    store.write(authority(), new Date("2026-09-21T10:00:00.000Z"));
+    store.write(
+      {
+        ...authority(),
+        session: { ...SESSION, actorId: "cashier-b", displayName: "Cashier B" },
+      },
+      new Date("2026-09-21T11:00:00.000Z"),
+    );
+    const restored = store.read(new Date("2026-09-21T11:30:00.000Z"));
+    expect(restored?.session?.actorId).toBe("cashier-b");
+    expect(restored?.session?.displayName).toBe("Cashier B");
+  });
+
+  test("refuses a snapshot with no organization", () => {
+    const store = createMemoryOfflineStaffPresentationStore();
+    store.write(
+      {
+        ...authority(),
+        session: { ...SESSION, organizationId: "  " },
+      },
+      new Date("2026-09-21T10:00:00.000Z"),
+    );
+    expect(store.evaluate(new Date("2026-09-21T10:01:00.000Z")).outcome).toBe("absent");
+  });
+
+  test("strips stored capabilities so the snapshot cannot carry management authority", () => {
+    const store = createMemoryOfflineStaffPresentationStore();
+    store.write(
+      {
+        ...authority(),
+        session: { ...SESSION, capabilities: ["pos.admin", "owner"] },
+      },
+      new Date("2026-09-21T10:00:00.000Z"),
+    );
+    expect(store.read(new Date("2026-09-21T10:30:00.000Z"))?.session?.capabilities).toEqual([]);
+  });
+
+  test("offline banner names the last verification and does not claim a current sign-in", () => {
+    const banner = offlinePresentationBanner({
+      online: false,
+      lastVerifiedAt: "2026-09-21T10:00:00.000Z",
+    });
+    expect(banner.title).toBe("Offline — staff access last verified at 2026-09-21 10:00:00 UTC.");
+    expect(banner.detail).toContain("Payments, authoritative pricing, returns and register changes stay unavailable");
+    expect(`${banner.title} ${banner.detail}`).not.toContain("Signed in");
   });
 
   test("explicit clear removes offline presentation", () => {

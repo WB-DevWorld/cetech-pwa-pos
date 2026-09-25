@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 
-export type AuthNoticeState = "signed_out" | "expired" | "unauthorized" | "locked" | "loading";
+export type AuthNoticeState = "signed_out" | "expired" | "unauthorized" | "locked" | "loading" | "offline_expired";
 
 export type LoginCredentials = {
   readonly email: string;
@@ -32,6 +32,11 @@ const NOTICES: Record<Exclude<AuthNoticeState, "signed_out" | "loading">, { tone
     title: "Register locked.",
     body: "Sign in to unlock the current shift.",
   },
+  offline_expired: {
+    tone: "warning",
+    title: "Offline access expired.",
+    body: "Sign in again when you are online. Your saved cart and transaction checks stay on this device.",
+  },
 };
 
 export function LoginScreen({
@@ -41,9 +46,13 @@ export function LoginScreen({
   onSignIn,
 }: LoginScreenProps) {
   const loading = busy || noticeState === "loading";
-  const notice = noticeState === "expired" || noticeState === "unauthorized" || noticeState === "locked"
-    ? NOTICES[noticeState]
-    : null;
+  const notice =
+    noticeState === "expired" ||
+    noticeState === "unauthorized" ||
+    noticeState === "locked" ||
+    noticeState === "offline_expired"
+      ? NOTICES[noticeState]
+      : null;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 

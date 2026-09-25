@@ -4,7 +4,11 @@ import type { Register, Session, Shift } from "../../../../../docs/contracts/dom
 import { createBffStaffSessionGateway } from "./bff-staff-session-gateway";
 import { checkoutScopeFromStaffAuthority } from "./checkout-scope";
 import { createMemorySelectedRegisterStore, selectedRegisterStorageKey } from "./selected-register-preference";
-import { createMemoryOfflineStaffPresentationStore } from "./offline-staff-presentation";
+import {
+  createMemoryOfflineStaffPresentationStore,
+  OFFLINE_GRACE_EXPIRED_MESSAGE,
+  OFFLINE_STAFF_PRESENTATION_MAX_AGE_MS,
+} from "./offline-staff-presentation";
 import { createStaffRuntimeController } from "./staff-runtime";
 
 const CORRELATION = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -365,6 +369,234 @@ describe("offline cold-start presentation continuity", () => {
     expect(offlineStore.read(new Date("2026-09-21T11:01:00.000Z"))).not.toBeNull();
     await runtime.signOut();
     expect(offlineStore.read(new Date("2026-09-21T11:01:00.000Z"))).toBeNull();
+  });
+
+  test("offline cold start after online session expiry still presents the cashier inside grace", async () => {
+    const offlineStore = createMemoryOfflineStaffPresentationStore();
+    const verifiedAt = new Date("2026-09-21T10:00:00.000Z");
+    offlineStore.write(
+      {
+        status: "ready",
+        session: { ...SESSION, expiresAt: "2026-09-21T12:00:00.000Z" },
+        assignedLocationIds: ["loc_a1"],
+        assignedRegisterIds: ["reg_a"],
+        assignedRegisters: [REGISTER_A],
+        selectedRegisterId: "reg_a",
+        register: REGISTER_A,
+        shift: SHIFT_A,
+        shiftOpen: true,
+      },
+      verifiedAt,
+    );
+    const runtime = createStaffRuntimeController({
+      gateway: {
+        async establish() {
+          return fail("INTEGRATION_UNAVAILABLE", "staff session transport failed");
+        },
+        async readContext() {
+          return fail("INTEGRATION_UNAVAILABLE", "staff session transport failed");
+        },
+        async read() {
+          return null;
+        },
+        async clear() {
+          return;
+        },
+      },
+      auth: authStub(),
+      registers: stubRegisters(),
+      offlinePresentationStore: offlineStore,
+      isOnline: () => false,
+      now: () => new Date("2026-09-21T13:00:00.000Z"),
+    });
+
+    await runtime.restore();
+    const state = runtime.getState();
+    expect(state).toMatchObject({
+      status: "ready",
+      presentationOnly: true,
+      session: { actorId: "cashier_a", organizationId: "org_a" },
+      register: { id: "reg_a" },
+      lastVerifiedAt: "2026-09-21T10:00:00.000Z",
+    });
+    expect(state.errorMessage).toContain("Offline — staff access last verified at");
+    expect(state.errorMessage).not.toContain("Signed in");
+    expect(checkoutScopeFromStaffAuthority(state, "fallback-device")).toBeUndefined();
+    expect(await runtime.selectRegister("reg_a")).toBe(false);
+    runtime.applyShift(SHIFT_A);
+    expect(runtime.getState().presentationOnly).toBe(true);
+  });
+
+  test("elapsed offline grace requires sign-in and does not revive after the clock moves backward", async () => {
+    const offlineStore = createMemoryOfflineStaffPresentationStore();
+    const verifiedAt = new Date("2026-09-21T10:00:00.000Z");
+    offlineStore.write(
+      {
+        status: "ready",
+        session: SESSION,
+        assignedLocationIds: ["loc_a1"],
+        assignedRegisterIds: ["reg_a"],
+        assignedRegisters: [REGISTER_A],
+        selectedRegisterId: "reg_a",
+        register: REGISTER_A,
+        shift: SHIFT_A,
+        shiftOpen: true,
+      },
+      verifiedAt,
+    );
+    const runtime = createStaffRuntimeController({
+      gateway: {
+        async establish() {
+          return fail("INTEGRATION_UNAVAILABLE", "staff session transport failed");
+        },
+        async readContext() {
+          return fail("INTEGRATION_UNAVAILABLE", "staff session transport failed");
+        },
+        async read() {
+          return null;
+        },
+        async clear() {
+          return;
+        },
+      },
+      auth: authStub(),
+      registers: stubRegisters(),
+      offlinePresentationStore: offlineStore,
+      isOnline: () => false,
+      now: () => new Date(verifiedAt.getTime() + OFFLINE_STAFF_PRESENTATION_MAX_AGE_MS + 1),
+    });
+
+    await runtime.restore();
+    expect(runtime.getState()).toMatchObject({
+      status: "expired",
+      session: null,
+      errorMessage: OFFLINE_GRACE_EXPIRED_MESSAGE,
+    });
+    expect(offlineStore.read(new Date(verifiedAt.getTime() + 60_000))).toBeNull();
+  });
+
+  test("authoritative session denial retires the cached presentation", async () => {
+    const offlineStore = createMemoryOfflineStaffPresentationStore();
+    offlineStore.write(
+      {
+        status: "ready",
+        session: SESSION,
+        assignedLocationIds: ["loc_a1"],
+        assignedRegisterIds: ["reg_a"],
+        assignedRegisters: [REGISTER_A],
+        selectedRegisterId: "reg_a",
+        register: REGISTER_A,
+        shift: SHIFT_A,
+        shiftOpen: true,
+      },
+      new Date("2026-09-21T10:00:00.000Z"),
+    );
+    const runtime = createStaffRuntimeController({
+      gateway: {
+        async establish() {
+          return fail("AUTH_REQUIRED", "staff session is expired or revoked");
+        },
+        async readContext() {
+          return fail("FORBIDDEN", "staff access is disabled");
+        },
+        async read() {
+          return null;
+        },
+        async clear() {
+          return;
+        },
+      },
+      auth: authStub(),
+      registers: stubRegisters(),
+      offlinePresentationStore: offlineStore,
+      isOnline: () => true,
+      now: () => new Date("2026-09-21T13:00:00.000Z"),
+    });
+
+    await runtime.restore();
+    expect(runtime.getState()).toMatchObject({
+      status: "unauthorized",
+      session: null,
+    });
+    expect(offlineStore.read(new Date("2026-09-21T13:00:00.000Z"))).toBeNull();
+  });
+
+  test("expired register authority retires the cached presentation", async () => {
+    const offlineStore = createMemoryOfflineStaffPresentationStore();
+    const registers = stubRegisters();
+    const runtime = createStaffRuntimeController({
+      gateway: createBffStaffSessionGateway({
+        fetchImpl: sessionFetch(() => ["reg_a"]),
+        correlationId: () => CORRELATION,
+      }),
+      auth: authStub(),
+      registers,
+      offlinePresentationStore: offlineStore,
+      now: () => new Date("2026-09-21T11:00:00.000Z"),
+    });
+
+    await runtime.restore();
+    expect(offlineStore.read(new Date("2026-09-21T11:00:00.000Z"))?.session?.actorId).toBe("cashier_a");
+    registers.getImpl = async () => fail("AUTH_REQUIRED", "staff session is expired or revoked");
+    await runtime.refreshRegister();
+    expect(runtime.getState().status).toBe("expired");
+    expect(offlineStore.read(new Date("2026-09-21T11:00:00.000Z"))).toBeNull();
+  });
+
+  test("successful verification of cashier B replaces cashier A's cached presentation", async () => {
+    const offlineStore = createMemoryOfflineStaffPresentationStore();
+    offlineStore.write(
+      {
+        status: "ready",
+        session: SESSION,
+        assignedLocationIds: ["loc_a1"],
+        assignedRegisterIds: ["reg_a"],
+        assignedRegisters: [REGISTER_A],
+        selectedRegisterId: "reg_a",
+        register: REGISTER_A,
+        shift: SHIFT_A,
+        shiftOpen: true,
+      },
+      new Date("2026-09-21T10:00:00.000Z"),
+    );
+    const sessionB: Session = { ...SESSION, actorId: "cashier_b", displayName: "Cashier B" };
+    const runtime = createStaffRuntimeController({
+      gateway: {
+        async establish() {
+          return ok({
+            session: sessionB,
+            assignedLocationIds: ["loc_a1"],
+            assignedRegisterIds: ["reg_a"],
+          });
+        },
+        async readContext() {
+          return ok({
+            session: sessionB,
+            assignedLocationIds: ["loc_a1"],
+            assignedRegisterIds: ["reg_a"],
+          });
+        },
+        async read() {
+          return sessionB;
+        },
+        async clear() {
+          return;
+        },
+      },
+      auth: authStub(),
+      registers: stubRegisters(),
+      offlinePresentationStore: offlineStore,
+      isOnline: () => true,
+      now: () => new Date("2026-09-21T12:00:00.000Z"),
+    });
+
+    await runtime.restore();
+    expect(runtime.getState().session?.actorId).toBe("cashier_b");
+    expect(runtime.getState().presentationOnly).not.toBe(true);
+    const cached = offlineStore.read(new Date("2026-09-21T12:30:00.000Z"));
+    expect(cached?.session?.actorId).toBe("cashier_b");
+    expect(cached?.session?.displayName).toBe("Cashier B");
+    expect(cached?.presentationOnly).toBe(true);
   });
 });
 

@@ -4,7 +4,11 @@ import type { StaffAuthProvider, StaffSignInRequest } from "./staff-auth-provide
 import { StaffAuthError } from "./staff-auth-provider";
 import type { StaffSessionBffGateway } from "./bff-staff-session-gateway";
 import type { StaffSessionContext } from "./staff-session-context";
-import type { OfflineStaffPresentationStore } from "./offline-staff-presentation";
+import {
+  formatOfflineVerifiedAt,
+  OFFLINE_GRACE_EXPIRED_MESSAGE,
+  type OfflineStaffPresentationStore,
+} from "./offline-staff-presentation";
 import {
   createLocalSelectedRegisterStore,
   resolveSelectedRegisterId,
@@ -31,6 +35,8 @@ export type StaffRuntimeAuthority = {
   readonly shiftOpen: boolean;
   readonly errorMessage?: string;
   readonly presentationOnly?: boolean;
+  /** ISO time of the last server verification. Present only for cached offline presentation. */
+  readonly lastVerifiedAt?: string;
 };
 
 export type StaffRuntimeController = {
@@ -194,6 +200,7 @@ export function createStaffRuntimeController(input: {
       }
       const notice = noticeFromFailure(registerResult);
       if (isAuthClosed(notice)) {
+        offlinePresentationStore?.clear();
         return authClosedAuthority(notice, registerResult.error.message);
       }
       if (registerResult.error.code === "NOT_FOUND") {
@@ -228,6 +235,7 @@ export function createStaffRuntimeController(input: {
       }
       const notice = noticeFromFailure(shiftResult);
       if (isAuthClosed(notice)) {
+        offlinePresentationStore?.clear();
         return authClosedAuthority(notice, shiftResult.error.message);
       }
       const sameRegister = previous.register?.id === registerResult.data.id;
@@ -284,18 +292,34 @@ export function createStaffRuntimeController(input: {
 
   async function applyContext(result: ApiResult<StaffSessionContext>): Promise<void> {
     if (!result.ok) {
+      if (result.error.code === "AUTH_REQUIRED" || result.error.code === "FORBIDDEN") {
+        offlinePresentationStore?.clear();
+      }
       if (result.error.code === "INTEGRATION_UNAVAILABLE") {
-        const cached = offlinePresentationStore?.read(now()) ?? null;
-        if (cached) {
+        const evaluation = offlinePresentationStore?.evaluate(now());
+        if (evaluation?.outcome === "available") {
+          const cached = evaluation.authority;
+          const verifiedAt = cached.lastVerifiedAt
+            ? formatOfflineVerifiedAt(cached.lastVerifiedAt)
+            : null;
           setState(
             isOnline()
               ? {
                   ...cached,
-                  errorMessage:
-                    "Connection unavailable. Showing the last verified cashier and register. Selling and register changes stay blocked until service recovers.",
+                  errorMessage: verifiedAt
+                    ? `Connection unavailable. Offline — staff access last verified at ${verifiedAt}. Selling and register changes stay blocked until the service recovers.`
+                    : "Connection unavailable. Showing the last verified cashier and register. Selling and register changes stay blocked until the service recovers.",
                 }
               : cached,
           );
+          return;
+        }
+        if (evaluation?.outcome === "grace_expired") {
+          setState({
+            ...idle,
+            status: "expired",
+            errorMessage: OFFLINE_GRACE_EXPIRED_MESSAGE,
+          });
           return;
         }
       }

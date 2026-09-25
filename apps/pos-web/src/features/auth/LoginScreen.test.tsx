@@ -33,6 +33,13 @@ describe("LoginScreen", () => {
       createElement(LoginScreen, { noticeState: "locked", onSignIn: () => undefined }),
     );
     expect(locked).toContain("Register locked.");
+
+    const offlineExpired = renderToStaticMarkup(
+      createElement(LoginScreen, { noticeState: "offline_expired", onSignIn: () => undefined }),
+    );
+    expect(offlineExpired).toContain("Offline access expired.");
+    expect(offlineExpired).toContain("Your saved cart and transaction checks stay on this device.");
+    expect(offlineExpired).not.toContain("Signed in and verified");
   });
 
   test("renders an adapter-supplied error without inventing staff identity", () => {
