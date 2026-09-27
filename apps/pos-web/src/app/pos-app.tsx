@@ -12,11 +12,15 @@ import {
   createBrowserSalesResolvePort,
 } from "./checkout-client";
 import {
+  checkoutBlockedByLocalRecovery,
   createAttentionRecoveryLock,
-  hasBlockingLocalTransactionRecovery,
+  createRecoveryScanGate,
+  isLocalRecoveryContextCurrent,
   loadLocalJournalAttentionItems,
+  localRecoverySellBanner,
   mergeAttentionItems,
   runAttentionRecovery,
+  type LocalRecoveryContext,
 } from "./attention-recovery";
 import { RegisterRuntimeScreen } from "./register-runtime";
 import { ReturnsRuntimeScreen, createBrowserHistoricReturnSaleLookup } from "./returns-runtime";
@@ -26,6 +30,7 @@ import { ApprovedWorkspaceScreens, clientAttentionExtras } from "./workspace-run
 import { AppShell, POS_ROUTE_HREFS, type PosRoute } from "../ui/shell";
 import { returnSelectionHref } from "./pos-route";
 import { resolveBrowserCatalogSourcePolicy } from "../core/catalog/source-policy";
+import { createBurstRefresh } from "../core/identity/authority-refresh";
 import {
   CATALOG_REFRESH_MIN_INTERVAL_MS,
   createCartDraftStore,
@@ -47,12 +52,18 @@ import {
   createBffStaffSessionGateway,
   createPublicSupabaseStaffAuthProvider,
   createLocalOfflineStaffPresentationStore,
+  offlinePresentationBanner,
+  OFFLINE_GRACE_EXPIRED_MESSAGE,
   createStaffIdentityPort,
   createStaffRuntimeController,
+  lockStaffSession,
+  readOrCreateLocalDeviceId,
+  REMOTE_SIGN_OUT_UNCONFIRMED_MESSAGE,
   type StaffRuntimeAuthority,
   type StaffRuntimeController,
 } from "../core/identity";
 import type { AuthNoticeState } from "../features/auth";
+import { staffPresentationCopy } from "../core/identity/staff-presentation-notice";
 import { toCashierError } from "../ui/cashier-language";
 import type { OperationJournal } from "../../../../docs/contracts/ports";
 import type { Shift } from "../../../../docs/contracts/domain.generated";
@@ -75,6 +86,32 @@ function bumpCatalogProjectionGeneration(
     generationRef.current += 1;
   }
   return generationRef.current;
+}
+
+function authNoticeFor(authority: StaffRuntimeAuthority): AuthNoticeState {
+  switch (authority.presentationNotice) {
+    case "invalid_credentials":
+    case "credentials_required":
+    case "access_disabled":
+    case "assignments_unavailable":
+    case "provider_unavailable":
+    case "offline_sign_in":
+      return authority.presentationNotice;
+    case "session_expired":
+      return "expired";
+    case "offline_grace_expired":
+      return "offline_expired";
+    case "remote_sign_out_unconfirmed":
+      return "remote_sign_out_unconfirmed";
+    default:
+      break;
+  }
+  if (authority.errorMessage === OFFLINE_GRACE_EXPIRED_MESSAGE) return "offline_expired";
+  if (authority.errorMessage === REMOTE_SIGN_OUT_UNCONFIRMED_MESSAGE) return "remote_sign_out_unconfirmed";
+  if (authority.status === "expired") return "expired";
+  if (authority.status === "unauthorized") return "unauthorized";
+  if (authority.status === "restoring") return "loading";
+  return "signed_out";
 }
 
 export function hasFreshStaffActionAuthority(authority: StaffRuntimeAuthority): boolean {
@@ -144,7 +181,8 @@ export function PosRuntime({
   const toastTimer = useRef<number | null>(null);
   const [serverAttention, setServerAttention] = useState<readonly AttentionItemView[]>([]);
   const [localAttention, setLocalAttention] = useState<readonly AttentionItemView[]>([]);
-  const [localRecoveryActorId, setLocalRecoveryActorId] = useState<string | null>(null);
+  const [scannedRecoveryContext, setScannedRecoveryContext] = useState<LocalRecoveryContext | null>(null);
+  const recoveryScanGate = useRef(createRecoveryScanGate());
   const [attentionState, setAttentionState] = useState<OperationalLoadState>("loading");
   const [nextSaleCustomer, setNextSaleCustomer] = useState<CustomerSearchResultView | null>(null);
   const [pendingReturnSaleId, setPendingReturnSaleId] = useState<string | null>(
@@ -244,23 +282,45 @@ export function PosRuntime({
     }, 4500);
   }, []);
 
+  const recoveryDeviceId = authority.shift?.deviceId || (typeof window === "undefined" ? "" : readOrCreateLocalDeviceId());
+  const currentRecoveryContext = useMemo<LocalRecoveryContext>(() => ({
+    organizationId: authority.session?.organizationId ?? "",
+    actorId: authority.session?.actorId ?? "",
+    registerId: authority.selectedRegisterId ?? "",
+    deviceId: recoveryDeviceId,
+  }), [
+    authority.selectedRegisterId,
+    authority.session?.actorId,
+    authority.session?.organizationId,
+    recoveryDeviceId,
+  ]);
+
   const loadAttention = useCallback(async (mode: "full" | "refresh" = "full") => {
     if (mode === "full") {
       setAttentionState("loading");
     }
+    const scannedContext = currentRecoveryContext;
+    const token = recoveryScanGate.current.start();
     const [result, localResult] = await Promise.all([
       fetchAttentionInbox(fetchImpl),
-      loadLocalJournalAttentionItems(recoveryJournal)
+      loadLocalJournalAttentionItems(recoveryJournal, {
+        actorId: scannedContext.actorId,
+        registerId: scannedContext.registerId || null,
+        organizationId: scannedContext.organizationId,
+      }, openPosLocalDatabase())
         .then((items) => ({ ok: true as const, items }))
         .catch(() => ({ ok: false as const, items: [] as readonly AttentionItemView[] })),
     ]);
+    if (!recoveryScanGate.current.isCurrent(token)) {
+      return;
+    }
 
     if (localResult.ok) {
       setLocalAttention(localResult.items);
-      setLocalRecoveryActorId(authority.session?.actorId ?? null);
+      setScannedRecoveryContext(scannedContext);
     } else {
       setLocalAttention([]);
-      setLocalRecoveryActorId(null);
+      setScannedRecoveryContext(null);
     }
 
     if (!result.ok) {
@@ -270,7 +330,7 @@ export function PosRuntime({
     }
     setServerAttention(result.data.items);
     setAttentionState(localResult.ok ? "ready" : "degraded");
-  }, [authority.session?.actorId, fetchImpl, recoveryJournal]);
+  }, [currentRecoveryContext, fetchImpl, recoveryJournal]);
 
   useEffect(() => {
     if (authority.status !== "ready" || !authority.session) {
@@ -299,23 +359,26 @@ export function PosRuntime({
   }, [authority.presentationOnly, authority.session, authority.status, fetchImpl]);
 
   useEffect(() => {
+    const burst = createBurstRefresh(async () => {
+      await runtime.refreshRegister();
+      await loadAttention("refresh");
+    });
     function sync() {
       setOnline(navigator.onLine);
       if (navigator.onLine) {
-        void runtime.refreshRegister();
-        void loadAttention("refresh");
+        burst.schedule();
       }
     }
     function onVisible() {
       if (document.visibilityState === "visible") {
-        void runtime.refreshRegister();
-        void loadAttention("refresh");
+        burst.schedule();
       }
     }
     window.addEventListener("online", sync);
     window.addEventListener("offline", sync);
     document.addEventListener("visibilitychange", onVisible);
     return () => {
+      burst.cancel();
       window.removeEventListener("online", sync);
       window.removeEventListener("offline", sync);
       document.removeEventListener("visibilitychange", onVisible);
@@ -342,7 +405,13 @@ export function PosRuntime({
           ? createBrowserCashCheckoutPorts({
               fetchImpl,
               scope,
-              journal: createOperationJournal(db),
+              journal: createOperationJournal(db, {
+                createdByActorId: current.session?.actorId,
+                organizationId: current.session?.organizationId,
+                locationId: current.register?.locationId ?? current.assignedLocationIds[0],
+                registerId: scope.registerId,
+                deviceId: scope.deviceId,
+              }),
               tenderActivity: createTenderActivityPort(db),
             })
           : null;
@@ -517,21 +586,15 @@ export function PosRuntime({
     [runtime],
   );
 
-  const cashierAuthorityError = authority.errorMessage
-    ? toCashierError({
-        message: authority.errorMessage,
-        domain: authority.status === "ready" ? "register" : "auth",
-      }).message
-    : undefined;
+  const cashierAuthorityError = authority.presentationNotice
+    ? staffPresentationCopy(authority.presentationNotice)
+    : authority.errorMessage
+      ? toCashierError({
+          domain: authority.status === "ready" ? "register" : "auth",
+        }).message
+      : undefined;
 
-  const authNotice: AuthNoticeState =
-    authority.status === "expired"
-      ? "expired"
-      : authority.status === "unauthorized"
-        ? "unauthorized"
-        : authority.status === "restoring"
-          ? "loading"
-          : "signed_out";
+  const authNotice: AuthNoticeState = authNoticeFor(authority);
 
   if (authority.status !== "ready" || !authority.session) {
     return (
@@ -544,7 +607,7 @@ export function PosRuntime({
         <StaffAuthGate
           noticeState={authNotice}
           busy={authority.status === "restoring"}
-          errorMessage={authority.errorMessage}
+          errorMessage={undefined}
           onSignIn={(request) => {
             void runtime.signIn(request);
           }}
@@ -589,11 +652,15 @@ export function PosRuntime({
     authoritativeActionsAllowed &&
     managementActorId === authority.session.actorId;
   const extras = clientAttentionExtras({ catalogAvailability: projectionAvailability, authority });
-  const localRecoveryChecked = localRecoveryActorId === authority.session.actorId;
+  const localRecoveryChecked = isLocalRecoveryContextCurrent(scannedRecoveryContext, currentRecoveryContext);
   const effectiveLocalAttention = localRecoveryChecked ? localAttention : [];
   const attentionItems = mergeAttentionItems(serverAttention, effectiveLocalAttention, extras);
-  const localTransactionRecoveryBlocked =
-    !localRecoveryChecked || hasBlockingLocalTransactionRecovery(effectiveLocalAttention);
+  const localTransactionRecoveryBlocked = checkoutBlockedByLocalRecovery({
+    scanned: scannedRecoveryContext,
+    current: currentRecoveryContext,
+    items: localAttention,
+  });
+  const recoveryBanner = localRecoverySellBanner(localRecoveryChecked, effectiveLocalAttention);
   const attentionCount = attentionItems.length;
   const noOperationalLocation =
     !authority.presentationOnly &&
@@ -603,6 +670,9 @@ export function PosRuntime({
     ports && localTransactionRecoveryBlocked
       ? { ...ports, checkout: undefined, payments: undefined, sales: undefined }
       : ports;
+  const offlineBanner = authority.presentationOnly
+    ? offlinePresentationBanner({ online, lastVerifiedAt: authority.lastVerifiedAt })
+    : null;
 
   return (
     <PosRuntimeOwner
@@ -623,19 +693,13 @@ export function PosRuntime({
       onNavigate={onNavigate}
       onOpenManagement={managementAvailable ? onOpenManagement : undefined}
       onLock={() => {
-        void (async () => {
-          await identity.signOut();
-          await runtime.signOut();
-        })();
+        void lockStaffSession({ identity, runtime });
       }}
     >
-      {authority.presentationOnly ? (
+      {offlineBanner ? (
         <div className="banner warning" role="status" data-offline-presentation-only="true">
-          <strong>{online ? "Connection unavailable." : "Offline mode."}</strong>
-          <span>
-            Showing the last verified cashier, register, saved products and cart. Payments, authoritative pricing,
-            returns and register changes stay unavailable until {online ? "the service recovers." : "reconnect."}
-          </span>
+          <strong>{offlineBanner.title}</strong>
+          <span>{offlineBanner.detail}</span>
         </div>
       ) : cashierAuthorityError ? (
         <p className="banner danger" role="status" data-register-authority-degraded="">
@@ -659,14 +723,8 @@ export function PosRuntime({
             ) : null}
             {localTransactionRecoveryBlocked ? (
               <div className="banner warning" role="alert" data-local-recovery-blocked="true">
-                <strong>
-                  {localRecoveryChecked ? "Previous transaction needs a status check." : "Checking saved transaction work…"}
-                </strong>
-                <span>
-                  {localRecoveryChecked
-                    ? "Open Needs attention and check the existing transaction before taking another payment."
-                    : "Checkout will stay unavailable until saved transaction work has been checked."}
-                </span>
+                <strong>{recoveryBanner?.title}</strong>
+                <span>{recoveryBanner?.detail}</span>
                 {localRecoveryChecked ? (
                   <button className="btn small" type="button" onClick={() => onNavigate("attention")}>
                     View issues

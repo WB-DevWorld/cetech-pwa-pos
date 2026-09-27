@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   createMemorySelectedRegisterStore,
+  decideSelectedRegisterId,
   resolveSelectedRegisterId,
   selectedRegisterStorageKey,
 } from "./selected-register-preference";
@@ -63,5 +64,24 @@ describe("selected register preference", () => {
       }),
     ).toBe("reg_a");
     expect(store.read("org_a", "cashier_a")).toBe("reg_a");
+  });
+
+  test("assignment decision is pure until the caller applies it", () => {
+    expect(decideSelectedRegisterId({
+      assignedRegisterIds: ["reg_a"],
+      storedRegisterId: "reg_b",
+    })).toEqual({ selectedRegisterId: "reg_a", persist: "write" });
+    expect(decideSelectedRegisterId({
+      assignedRegisterIds: ["reg_a", "reg_c"],
+      storedRegisterId: "reg_b",
+    })).toEqual({ selectedRegisterId: null, persist: "clear" });
+    expect(decideSelectedRegisterId({
+      assignedRegisterIds: ["reg_a", "reg_b"],
+      storedRegisterId: "reg_b",
+    })).toEqual({ selectedRegisterId: "reg_b", persist: "keep" });
+    expect(decideSelectedRegisterId({
+      assignedRegisterIds: ["reg_a", "reg_b"],
+      storedRegisterId: null,
+    })).toEqual({ selectedRegisterId: null, persist: "keep" });
   });
 });

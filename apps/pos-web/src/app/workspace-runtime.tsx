@@ -535,7 +535,12 @@ export function clientAttentionExtras(input: {
       recoverKind: "catalog",
     });
   }
-  if (!input.authority.register) {
+  if (
+    input.authority.status === "ready" &&
+    !input.authority.presentationOnly &&
+    input.authority.assignedRegisterIds.length === 0 &&
+    !input.authority.register
+  ) {
     next.push({
       id: "register-unassigned",
       title: "No register assigned",
@@ -544,7 +549,7 @@ export function clientAttentionExtras(input: {
       severity: "medium",
       recoverKind: "register",
     });
-  } else if (!input.authority.shiftOpen) {
+  } else if (input.authority.register && !input.authority.shiftOpen) {
     next.push({
       id: "shift-closed",
       title: "No open shift",

@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { createBffStaffSessionGateway } from "./bff-staff-session-gateway";
 
 const CORRELATION = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-const session = {
+const SESSION = {
   actorId: "cashier_a",
   displayName: "Cashier A",
   organizationId: "org_a",
@@ -11,16 +11,16 @@ const session = {
   expiresAt: "2099-01-01T00:00:00.000Z",
 };
 
-describe("BFF staff session establishment", () => {
+describe("BFF staff session gateway", () => {
   test("does not treat POST session data as register authority when GET fails", async () => {
     const methods: string[] = [];
     const fetchImpl = (async (_url: string, init?: RequestInit) => {
       methods.push(init?.method ?? "GET");
       if (init?.method === "POST") {
-        return new Response(
-          JSON.stringify({ ok: true, data: session, correlationId: CORRELATION }),
-          { status: 200, headers: { "content-type": "application/json" } },
-        );
+        return new Response(JSON.stringify({ ok: true, data: SESSION, correlationId: CORRELATION }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
       }
       return new Response(
         JSON.stringify({
@@ -30,6 +30,7 @@ describe("BFF staff session establishment", () => {
             message: "staff assignment directory is unavailable",
             retryable: true,
             nextAction: "resolve",
+            details: { field: "assignments" },
           },
           correlationId: CORRELATION,
         }),
@@ -47,6 +48,7 @@ describe("BFF staff session establishment", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error.code).toBe("INTEGRATION_UNAVAILABLE");
+      expect(result.error.details?.field).toBe("assignments");
     }
   });
 });

@@ -16,7 +16,9 @@ export type StaffIdentityClaims = {
 /**
  * Map a verified Supabase Auth user/JWT-shaped payload onto staff claims.
  * Buyer/customer fields never become staff identity.
+ * POS disablement is the server access-control row, not Auth app_metadata.
  */
+
 export function parseStaffIdentityClaims(payload: unknown): StaffIdentityClaims | null {
   if (payload === null || typeof payload !== "object") {
     return null;
