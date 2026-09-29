@@ -1006,7 +1006,15 @@ button.product-card:disabled {
 }
 
 @media print {
+  /*
+   * Explicit 80mm by 297mm page box. A width paired with the keyword auto
+   * is not valid CSS Paged Media, and browsers discard that declaration.
+   * 2mm page margins leave a 76mm printable content width. The printer
+   * driver must be set to an 80mm roll; this rule does not grow the page
+   * to the receipt's content height.
+   */
   @page {
+    size: 80mm 297mm;
     margin: 2mm;
   }
 
@@ -1069,6 +1077,16 @@ button.product-card:disabled {
     background: #fff !important;
     color: #000 !important;
     overflow: visible !important;
+    font-size: 12px !important;
+    line-height: 1.35 !important;
+  }
+
+  .receipt-paper .r-row {
+    gap: 6px !important;
+  }
+
+  .receipt-paper .r-row span {
+    overflow-wrap: anywhere;
   }
 
   .receipt-paper .muted {

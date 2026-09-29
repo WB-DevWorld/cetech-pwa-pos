@@ -148,7 +148,7 @@ describe("CAN-06 staff authority messaging", () => {
       },
       auth: {
         async signIn() {
-          return { accessToken: "access-token" };
+          return { accessToken: "access-token", correlationId: CORRELATION };
         },
         async signOut() {
           return;
@@ -164,6 +164,8 @@ describe("CAN-06 staff authority messaging", () => {
       register: null,
       presentationNotice: "access_disabled",
     });
+    expect(runtime.getState().supportReference).toBeUndefined();
+    expect(STAFF_PRESENTATION_COPY.access_disabled).toBe("Your POS access is disabled. Contact a manager.");
     expect(STAFF_PRESENTATION_COPY.access_disabled).not.toContain("password");
     expect(STAFF_PRESENTATION_COPY.access_disabled).not.toContain("temporarily unavailable");
   });
@@ -201,7 +203,7 @@ describe("CAN-06 staff authority messaging", () => {
       },
       auth: {
         async signIn() {
-          return { accessToken: "access-token" };
+          return { accessToken: "access-token", correlationId: CORRELATION };
         },
         async signOut() {
           return;
@@ -242,7 +244,7 @@ describe("CAN-06 staff authority messaging", () => {
       },
       auth: {
         async signIn() {
-          return { accessToken: "access-token" };
+          return { accessToken: "access-token", correlationId: CORRELATION };
         },
         async signOut() {
           return;
@@ -290,7 +292,7 @@ describe("CAN-06 staff authority messaging", () => {
       },
       auth: {
         async signIn() {
-          return { accessToken: "access-token" };
+          return { accessToken: "access-token", correlationId: CORRELATION };
         },
         async signOut() {
           return;
@@ -333,7 +335,7 @@ describe("CAN-06 staff authority messaging", () => {
           if (!available) {
             throw new StaffAuthError("provider_unavailable", "identity provider is unavailable");
           }
-          return { accessToken: "access-token" };
+          return { accessToken: "access-token", correlationId: CORRELATION };
         },
         async signOut() {
           return;
@@ -375,7 +377,7 @@ describe("CAN-06 staff authority messaging", () => {
       auth: {
         async signIn() {
           called = true;
-          return { accessToken: "access-token" };
+          return { accessToken: "access-token", correlationId: CORRELATION };
         },
         async signOut() {
           return;
@@ -414,7 +416,7 @@ describe("CAN-06 staff authority messaging", () => {
       },
       auth: {
         async signIn() {
-          return { accessToken: "access-token" };
+          return { accessToken: "access-token", correlationId: CORRELATION };
         },
         async signOut() {
           return;

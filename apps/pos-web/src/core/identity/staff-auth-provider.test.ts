@@ -73,4 +73,58 @@ describe("supabase password grant classification", () => {
       kind: "provider_unavailable",
     });
   });
+
+  test("a timed-out password grant is a support failure with one reference", async () => {
+    let signal: AbortSignal | undefined;
+    const reports: string[] = [];
+    const provider = createPublicSupabaseStaffAuthProvider({
+      env: ENV,
+      fetchImpl: async (_url, init) => {
+        const headers = new Headers(init?.headers);
+        if (headers.get("x-cetech-sign-in-report") === "1") {
+          reports.push(headers.get("x-correlation-id") ?? "");
+          return jsonResponse(200, {});
+        }
+        signal = init?.signal ?? undefined;
+        throw new DOMException("timed out", "TimeoutError");
+      },
+    });
+    let thrown: unknown;
+    try {
+      await provider.signIn({ email: "cashier@example.com", password: "secret" });
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toMatchObject({
+      kind: "provider_unavailable",
+      correlationId: reports[0],
+    });
+    expect(signal).toBeInstanceOf(AbortSignal);
+    expect(reports).toHaveLength(1);
+  });
+
+  test("a successful password grant keeps the attempt correlation", async () => {
+    let minted = 0;
+    const provider = createPublicSupabaseStaffAuthProvider({
+      env: ENV,
+      correlationId: () => {
+        minted += 1;
+        return "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+      },
+      isOnline: () => true,
+      fetchImpl: async () => jsonResponse(200, {
+        access_token: "access-token-value",
+        refresh_token: "refresh-token-value",
+      }),
+    });
+    await expect(provider.signIn({ email: " ", password: "" })).rejects.toMatchObject({
+      kind: "credentials_required",
+    });
+    expect(minted).toBe(0);
+    await expect(provider.signIn({ email: "cashier@example.com", password: "secret" })).resolves.toEqual({
+      accessToken: "access-token-value",
+      correlationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    });
+    expect(minted).toBe(1);
+  });
 });

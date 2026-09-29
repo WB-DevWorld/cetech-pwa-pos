@@ -125,6 +125,7 @@ Do not mark a blocked test as PASS.
 **Expected:**
 - sign-in is rejected;
 - message is understandable;
+- the main message stays the ordinary wrong-password wording and does not add a Reference line;
 - no technical/server error is shown as the main message;
 - no account access is granted.
 
@@ -583,7 +584,8 @@ Only run these tests when the payment method is available in the test POS.
 **Expected:**
 - browser print preview shows the actual receipt;
 - preview is not blank;
-- preview is receipt/thermal width, not the full POS screen.
+- preview is an 80mm-wide page, not A4 or Letter and not the full POS screen;
+- the printer itself must be set to an 80mm roll. The page does not grow with the receipt.
 
 ### Your result
 
@@ -1049,6 +1051,7 @@ Owner/Admin test.
 **Expected:**
 - disabled staff loses active POS sessions;
 - cannot establish a new POS session;
+- a new sign-in shows **Your POS access is disabled. Contact a manager.** and does not add a Reference line;
 - audit/management record reflects the change.
 
 ### Your result
@@ -1227,7 +1230,7 @@ Test selling, modal dialogs, Orders, Returns, Register, and Management where aut
 
 ## T144 — Printer
 
-**Expected:** receipt appears in print preview and prints in an appropriate receipt layout.
+**Expected:** receipt appears in print preview as an 80mm-wide page, not A4 or Letter, and prints when the printer is set to an 80mm roll.
 
 ### Your result
 
