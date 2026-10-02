@@ -24,6 +24,8 @@ acceptance: copies retain source text except navigation targets;
 
 These reading copies are not another application build or a source-document revision. The current brief, guide, workbook and historical brief remain unchanged at their canonical paths. Only their copied navigation targets are adjusted for formatted folder views. Publication remains on an isolated documentation branch; no integration or release is performed.
 
+Explicit folder URLs are used for copied cross-document links because GitHub rewrote relative directory links to its failing blob route. They point to this isolated publication branch; retain this branch as the current reading snapshot and use a new dated branch for future test rounds. External handoff links may pin its verified final commit. Workbook module anchors stay within the same page.
+
 ---
 
 ## STAFF-TEST-1021 — Independent testing modules and designated Admin setup

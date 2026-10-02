@@ -11,7 +11,7 @@ Use this link every time, including when installing the POS on your phone or com
 
 This version is ready for staff testing. Some checks still need your results before we can decide whether it is ready for normal customer use.
 
-The [24 September brief](../history/) is an old record. **Do not use its POS link for this round.**
+The [24 September brief](https://github.com/WB-DevWorld/cetech-pwa-pos/tree/docs/staff-test-readable-2026-10-02/docs/staff/testing-2026-10-02/history) is an old record. **Do not use its POS link for this round.**
 
 ## How the team will work
 
@@ -25,7 +25,7 @@ The owner still controls the final decision about using the POS for normal busin
 
 ## Administrator: set up the team first
 
-Use [Management in the Training Guide](../training/#27-staff--access) and **Module M00** in the [Testing Workbook](../workbook/#m00--team-setup-and-management).
+Use [Management in the Training Guide](https://github.com/WB-DevWorld/cetech-pwa-pos/tree/docs/staff-test-readable-2026-10-02/docs/staff/testing-2026-10-02/training#27-staff--access) and **Module M00** in the [Testing Workbook](https://github.com/WB-DevWorld/cetech-pwa-pos/tree/docs/staff-test-readable-2026-10-02/docs/staff/testing-2026-10-02/workbook#m00--team-setup-and-management).
 
 1. Sign in with your Admin account. Check that Management opens.
 2. Choose an active test location. Add a test location only if one is needed and the owner has directed you to do so.
@@ -61,7 +61,7 @@ Check them again before using them. A fresh test register is often easier than t
 
 ## Choose the tests you want to do
 
-Read the [Training Guide](../training/), then make your own copy of the [Testing Workbook](../workbook/).
+Read the [Training Guide](https://github.com/WB-DevWorld/cetech-pwa-pos/tree/docs/staff-test-readable-2026-10-02/docs/staff/testing-2026-10-02/training), then make your own copy of the [Testing Workbook](https://github.com/WB-DevWorld/cetech-pwa-pos/tree/docs/staff-test-readable-2026-10-02/docs/staff/testing-2026-10-02/workbook).
 
 Choose modules from the menu at the front. You do not have to start at T01 or wait for everyone else. You can choose the same module as another tester if you each use your own register and test records.
 

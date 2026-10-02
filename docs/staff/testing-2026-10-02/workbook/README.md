@@ -8,7 +8,7 @@
 
 ## Choose your testing modules
 
-Use the current dated [Test Brief](../#read-the-brief-first) for the POS link and this round's rules.
+Use the current dated [Test Brief](https://github.com/WB-DevWorld/cetech-pwa-pos/tree/docs/staff-test-readable-2026-10-02/docs/staff/testing-2026-10-02#read-the-brief-first) for the POS link and this round's rules.
 
 One designated **Admin** sets up staff, registers, and devices in **M00**. Once your own setup works, choose any module whose starting needs are met. You do not have to complete the whole workbook from top to bottom. Two people can choose the same module using their own registers and test records.
 

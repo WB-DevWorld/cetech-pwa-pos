@@ -1,4 +1,4 @@
-> **Historical record — 24 September 2026.** The old POS link and instructions below belong to that testing round. **Do not use them for the current round.** Read the [current test brief](../brief/) instead.
+> **Historical record — 24 September 2026.** The old POS link and instructions below belong to that testing round. **Do not use them for the current round.** Read the [current test brief](https://github.com/WB-DevWorld/cetech-pwa-pos/tree/docs/staff-test-readable-2026-10-02/docs/staff/testing-2026-10-02/brief) instead.
 
 ---
 
@@ -31,9 +31,9 @@ Please use only the link above during this test session.
 
 ## Before you start
 
-Read the [Staff Training & User Guide](../training/) first.
+Read the [Staff Training & User Guide](https://github.com/WB-DevWorld/cetech-pwa-pos/tree/docs/staff-test-readable-2026-10-02/docs/staff/testing-2026-10-02/training) first.
 
-Use the [Staff Testing & Acceptance Workbook](../workbook/) while carrying out the tests.
+Use the [Staff Testing & Acceptance Workbook](https://github.com/WB-DevWorld/cetech-pwa-pos/tree/docs/staff-test-readable-2026-10-02/docs/staff/testing-2026-10-02/workbook) while carrying out the tests.
 
 ---
 
