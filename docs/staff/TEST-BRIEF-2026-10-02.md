@@ -11,7 +11,7 @@ Use this link every time, including when installing the POS on your phone or com
 
 This version is ready for staff testing. Some checks still need your results before we can decide whether it is ready for normal customer use.
 
-The [24 September brief](TEST-BRIEF-2026-09-24.md) is an old record. Do not use its POS link for this round.
+The [24 September brief](TEST-BRIEF-2026-09-24.md) is an old record. **Do not use its POS link for this round.**
 
 ## How the team will work
 
