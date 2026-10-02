@@ -1,12 +1,14 @@
 # CETECH POS — Staff Training & User Guide
 
-**Updated for this testing round:** 2 October 2026.
+**Updated for this testing round:** 2 October 2026 — price-check instructions revised.
 
 **Read and understand the [current Test Brief](TEST-BRIEF-2026-10-02.md) first.**
 
 **[Open the POS for this round](https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app)**
 
 Use this same address when opening or installing the POS. If your installed POS already uses it and works, keep using it and preserve your saved work.
+
+The approved update is live. Refresh or close and reopen the installed POS, following any update instructions once your work is safe. The current brief records the version and the remaining slow-price check. Do not clear browser data.
 
 **Audience:** Cashiers, managers, owners/admins, and authorized support staff  
 **Language:** Plain operational English  
@@ -238,6 +240,10 @@ The cashier-friendly successful state is:
 **Price ready**
 
 If price information needs to be checked again, follow the message shown by the POS.
+
+If the POS shows **Check price again**, select it once. It checks the same cart; it does not make a payment or create another sale. Keep the products and quantities as they are while the check finishes. Pay stays unavailable until the price is ready.
+
+If the check fails again or stays on **Updating price…**, record how long you waited and take a screenshot. Continue a different test while the problem is investigated. Do not clear saved POS work or make up a replacement price.
 
 Do not manually calculate a replacement total when the POS says the price is unavailable.
 

@@ -1,8 +1,10 @@
 # CETECH POS staff documentation
 
-**Current testing documents updated:** 2 October 2026.
+**Current testing documents updated:** 2 October 2026 — approved price-check update is live.
 
 **Read and understand the current Test Brief first.**
+
+The approved update is live on the same POS link. Read the brief for version 2c7eb2d and the remaining slow-price check.
 
 [Open the formatted testing documents](https://github.com/WB-DevWorld/cetech-pwa-pos/tree/docs/staff-test-readable-2026-10-02/docs/staff/testing-2026-10-02#readme) — the brief, guide, and workbook.
 

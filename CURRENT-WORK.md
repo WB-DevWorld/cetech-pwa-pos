@@ -1,3 +1,27 @@
+## STAFF-QUOTE-132-LIVE — Record approved staff rollout
+
+Owner instruction 2 October 2026: urgently fix the price delay, preserve the same tester address, update all current test documents and folder pages; approval and Vercel browser authorization confirmed. This current record supersedes the earlier frozen-link instructions below for issue #132 only.
+
+```text
+task: STAFF-QUOTE-132-LIVE / WS3 documentation and deployment evidence
+editor: @wbdevworld; branch: docs/staff-test-readable-2026-10-02
+source: approved PR133 head 2c7eb2ddeb22c3402d82673421a54dbe6ad236f1
+allowed: current docs/staff/*.md, formatted testing folder copies,
+  CURRENT-WORK.md, docs/integration/evidence/STAFF-QUOTE-132.md
+forbidden: runtime/source edits in this publication, canonical September edits,
+  contracts/migrations/dependencies, commerce/account/register/device mutations,
+  protected #102, integration/main merges, production promotion
+owners: existing canonical staff documents; copies preserve their wording
+contracts/ADRs: none; staff-documentation impact: yes
+acceptance: reviewed SHA/green CI/READY deployment/unchanged tester URL recorded;
+  64 tests and 16 modules retained; September history preserved;
+  plain-English instructions and formatted anonymous folder access verified
+```
+
+The tester domain now targets Preview branch ws3/quote-latency-2026-10-02 at the exact approved SHA. Keep that runtime branch frozen. Documentation publication remains separate. A live server quote still took 29.733 seconds, mostly in the WordPress bridge path; issue132 stays open for server-owner investigation and visible device timing. Old records below are historical, not the current runtime identity.
+
+---
+
 ## STAFF-TEST-1021-LINK — Today's sign-in address and synchronized document editions
 
 Current canonical document snapshot for these refreshed reading copies: `2343193390c4f17167ffb1d39feb425a4ac08e6a` on PR #131. Original source/copy snapshots remain historical.

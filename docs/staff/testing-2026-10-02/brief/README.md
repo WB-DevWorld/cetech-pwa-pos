@@ -1,7 +1,7 @@
 # CETECH POS — Staff Test Brief
 
 **Issued:** 2 October 2026\
-**Updated:** 2 October 2026 — sign-in link corrected\
+**Updated:** 2 October 2026 — approved price-check update is live\
 **Use:** The next staff-testing round. Each tester records their actual test date.
 
 ## Open this POS
@@ -14,7 +14,15 @@ If your installed POS already opens from this address and works, keep using it. 
 
 If a different POS address shows **Access denied** even with your correct password, open the link above. If it still fails, record the address, the message, and any Reference line for the administrator.
 
-This version is ready for staff testing. Some checks still need your results before we can decide whether it is ready for normal customer use.
+The approved price-check update is now on this same POS link. **Version for this round: 2c7eb2d.** Results from the earlier version should be kept separate.
+
+The latest live price request took about 30 seconds. That is still slow, so the investigation continues. Do not mark a slow price check PASS just because it eventually finishes.
+
+Keep using the same POS address above. Refresh the browser page, or close and reopen the installed POS. If the POS offers an update, follow its instructions once your work is safe. Keep your saved cart and unfinished work. Do not clear browser data.
+
+Record how long the price takes to appear in **T23 and T30**. If **Check price again** appears, select it once. If the price is still unavailable, report the time and message and continue another module. Do not make up a total or repeat a sale.
+
+Some checks still need your results before we can decide whether the POS is ready for normal customer use.
 
 The [24 September brief](https://github.com/WB-DevWorld/cetech-pwa-pos/tree/docs/staff-test-readable-2026-10-02/docs/staff/testing-2026-10-02/history) is an old record. **Do not use its POS link for this round.**
 
@@ -119,20 +127,20 @@ You do not need the owner to sit with you. Your completed workbook and evidence 
 <details>
 <summary><strong>Build and qualification record — for the review team</strong></summary>
 
-- Frozen application SHA: `1021cd113c783e25030fe9c0bda1be9ddcf5888c`.
-- Source candidate: [PR #130](https://github.com/WB-DevWorld/cetech-pwa-pos/pull/130), `integration/r9-staff-remediation-final`.
-- Accepted test URL: `https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app`.
-- Link correction verified 2 October 2026: the shared integration address above resolves to the same frozen deployment. The generated deployment URL returned `FORBIDDEN: session origin is not allowed`; it is not the staff link. Password authentication succeeded in the sampled logs before that rejection.
-- This shared address is a branch alias. Keep `integration/r9-staff-remediation-final` at the frozen SHA for this round and check its deployment identity before a new session. A different build requires a new brief.
-- Vercel deployment: `dpl_89TVtntmRzjMi8WgdgvkU35KVFLn`; READY; metadata identifies the frozen SHA; Preview target.
-- CI: [#1466 / run 36994717064](https://github.com/WB-DevWorld/cetech-pwa-pos/actions/runs/36994717064), SUCCESS. Linux and Windows qualification belongs to this exact application head.
-- This dated brief follows the owner's instruction to freeze that head for staff testing. It is not a production approval or a claim that the remaining human/device qualifications passed.
-- This brief does not claim a new independent human approval of PR #130. Documentation review and final release approval remain separate.
-- Owner-provided pre-freeze sweep: cashier access, catalog performance, sale/recovery, stored receipts/reprint, return safety, invitations, X report and responsive Management have automated and/or live evidence. Six stale tickets (#103, #113, #116, #118, #126, #128) were closed.
-- Remaining evidence: #114 (T100–T104), #117 (T40/T60/T61), #112 (T92), #87 (T25), #86 (T05), #115 (specialist investigation). #102 remains protected historical work.
-- Register availability above is an earlier environment snapshot, not a live allocation. The administrator records actual allocations and readiness before each tester starts.
-- Documentation-only commits after this SHA do not change which application staff test. Keep using the exact URL above.
+- Current application SHA: `2c7eb2ddeb22c3402d82673421a54dbe6ad236f1`, [PR #133](https://github.com/WB-DevWorld/cetech-pwa-pos/pull/133), branch `ws3/quote-latency-2026-10-02`.
+- CI: [#1476 / run 37034917235](https://github.com/WB-DevWorld/cetech-pwa-pos/actions/runs/37034917235), SUCCESS on Linux and Windows; 1,418 unit tests and 26 browser tests passed.
+- Independent review: Ben-001-sys approved this exact head on 2 October 2026 at 16:52:18 UTC. The owner authorized deployment and keeping the same tester link.
+- Current Vercel deployment: `dpl_7uJ7TEMenmjpc3BpTFAEzgH7a5Zg`; READY at 17:08:05 UTC; Preview. `BUILD_ID` is scoped to this Preview branch and equals the application SHA above.
+- Accepted test URL: `https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app/`. On 2 October 2026, the address resolved to the deployment above; its HTTP 200 page carried the exact application SHA as `appBuild`.
+- The tester domain is connected to Preview branch `ws3/quote-latency-2026-10-02`. Keep that branch at the approved SHA. These documentation updates are published on a separate reading branch and do not move the application build.
+- Live timing at 17:15:29 UTC: an authenticated quote succeeded with HTTP 200 in 29,733 ms; the WordPress bridge wait was 28,159 ms. Reference `954d1875-333a-4adb-b1c2-5b4374925b03`. This proves one successful server response, not the visible price-display time or acceptable sustained performance. Issue [#132](https://github.com/WB-DevWorld/cetech-pwa-pos/issues/132) stays open.
+- The update prevents equivalent saved-cart inputs from repeatedly restarting price checks, limits long waits, and provides a safe price-check retry. It does not make cached catalog prices authoritative or authorize Pay without a valid current price.
+- Historical original freeze: `1021cd113c783e25030fe9c0bda1be9ddcf5888c`, [PR #130](https://github.com/WB-DevWorld/cetech-pwa-pos/pull/130), deployment `dpl_89TVtntmRzjMi8WgdgvkU35KVFLn`, CI #1466. The owner’s urgent issue #132 instruction superseded that freeze for this correction only. Record results before and after the update separately.
+- The earlier generated deployment address rejected the session origin. Use the accepted shared address above; do not substitute generated deployment links.
+- The original pre-freeze sweep covered cashier access, catalog, sale/recovery, stored receipts/reprint, return safety, invitations, X report and responsive Management with automated and/or live evidence. Six stale tickets (#103, #113, #116, #118, #126, #128) were closed.
+- Remaining evidence: #132 (T23/T30), #114 (T100–T104), #117 (T40/T60/T61), #112 (T92), #87 (T25), #86 (T05), #115 (specialist investigation). #102 remains protected historical work.
+- Register availability above is an earlier snapshot. The administrator checks actual allocations and readiness before each tester starts.
+- This is a staff-testing build. It is not a production release or proof that the remaining human/device checks passed.
 - Session start / first tester: fill in the private working copy.
-- If a different application build is needed, issue a new brief and collect its results separately. Do not silently switch this round to another build.
 
 </details>

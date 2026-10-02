@@ -1,12 +1,14 @@
 # CETECH POS — Staff Testing & Acceptance Workbook
 
-**Updated for this testing round:** 2 October 2026.
+**Updated for this testing round:** 2 October 2026 — price-check timing and retry checks added.
 
 **Read and understand the [current Test Brief](https://github.com/WB-DevWorld/cetech-pwa-pos/tree/docs/staff-test-readable-2026-10-02/docs/staff/testing-2026-10-02/brief) first.**
 
 **[Open the POS for this round](https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app)**
 
 Use this same address when opening or installing the POS. If your installed POS already uses it and works, keep using it and preserve your saved work.
+
+The approved update is live. Refresh or close and reopen the installed POS, following any update instructions once your work is safe. The current brief records the version and the remaining slow-price check. Do not clear browser data.
 
 **Purpose:** Help staff test the POS systematically, not randomly.\
 **Audience:** Cashiers, managers, owners/admins, and authorized support testers.\
@@ -620,11 +622,12 @@ Owner/Admin test.
 
 ## T23 — Quantity change
 
-**Do:** Add an item, increase/decrease quantity, then remove it.
+**Do:** Add an item, increase/decrease quantity, then remove it. Time each price check from the click until the total appears. Record the seconds or minutes for adding the item and changing its quantity.
 
 **Expected:**
 - quantity changes correctly;
 - totals respond appropriately;
+- the price check finishes without waiting several minutes; record the actual time, even if it eventually succeeds;
 - removing the line removes it from the working cart.
 
 ### Your result
@@ -691,10 +694,15 @@ Owner/Admin test.
 
 ## T30 — Walk-in sale
 
-**Do:** Prepare a normal walk-in sale.
+**Do:** Prepare a normal walk-in sale. Record how long the price takes to appear. If a price check fails and **Check price again** appears, select it once and record the result. Do not deliberately break a service to force this condition.
 
 **Expected:**
-- Walk-in works without selecting a customer account.
+- Walk-in works without selecting a customer account;
+- the price appears promptly; record the actual wait;
+- after a failed check, retry keeps the same products and quantities and does not create a payment or sale;
+- Pay stays unavailable until a valid price is ready.
+
+Record the retry part as **COULD NOT TEST** if no failed check or retry button is available. A several-minute wait is a failure to report, even if the price eventually appears.
 
 ### Your result
 
