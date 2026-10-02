@@ -1,8 +1,60 @@
 # CETECH POS — Staff Testing & Acceptance Workbook
 
-**Purpose:** Help staff test the POS systematically, not randomly.  
-**Audience:** Cashiers, managers, owners/admins, and authorized support testers.  
+**Updated for this testing round:** 2 October 2026.
+
+**Read and understand the [current Test Brief](TEST-BRIEF-2026-10-02.md) first.**
+
+**[Open the POS for this round](https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app)**
+
+Use this same address when opening or installing the POS. If your installed POS already uses it and works, keep using it and preserve your saved work.
+
+**Purpose:** Help staff test the POS systematically, not randomly.\
+**Audience:** Cashiers, managers, owners/admins, and authorized support testers.\
 **Rule:** Test the exact build recorded in the Test Brief. Do not mix results from different builds.
+
+---
+
+## Choose your testing modules
+
+Use the current dated [Test Brief](TEST-BRIEF-2026-10-02.md) for the POS link and this round's rules.
+
+One designated **Admin** sets up staff, registers, and devices in **M00**. Once your own setup works, choose any module whose starting needs are met. You do not have to complete the whole workbook from top to bottom. Two people can choose the same module using their own registers and test records.
+
+Each tester needs a separate register for an independent shift. Separate accounts on the same register do not provide separate shifts. Each register's location also needs an active POS device. The Admin can test selling too, with a Cashier or Manager location role and their own assigned register.
+
+Follow dependent steps inside a module in order. Record tests you cannot run as **COULD NOT TEST**, with the reason. Leave unattempted tests unmarked and list them in your handoff. A PASS needs the stated result, not just a screen opening.
+
+| Choose | Module | Tests | Who / what you need before starting |
+| --- | --- | --- | --- |
+| [ ] | [M00 Team setup and Management](#m00--team-setup-and-management) | T130–T139 | Designated Admin; other role accounts only for the specific permission checks |
+| [ ] | [M01 Sign-in and access](#m01--sign-in-and-access) | T01–T05 | Your account; T03 needs a new account; T05 needs a developer's controlled setup |
+| [ ] | [M02 Register and shift](#m02--register-and-shift) | T10–T14 | Your assigned register and an active device; T11/T12/T14 need separate agreed setups |
+| [ ] | [M03 Products and cart](#m03--products-and-cart) | T20–T25 | Saved/available products; T22 needs a scanner; T24 needs your completed sale; T25 needs a genuine out-of-date product list |
+| [ ] | [M04 Customers and prices](#m04--customers-and-prices) | T30–T33 | Agreed test customers/products; your own shift for sale steps |
+| [ ] | [M05 Cash sale](#m05--cash-sale) | T40–T42 | Your open shift, agreed test product, test cash; T42 needs controlled uncertainty |
+| [ ] | [M06 Receipts and printing](#m06--receipts-and-printing) | T60–T63 | Your completed sale for T62; a fresh uninterrupted sale for T60/T61; Admin for T63 changes |
+| [ ] | [M07 Orders](#m07--orders) | T70–T71 | Your completed order or an agreed view-only test order |
+| [ ] | [M08 Returns](#m08--returns) | T80–T83 | Your fresh eligible test order; agreed safe case for T82; location Manager for T83 |
+| [ ] | [M09 Attention and saved work](#m09--attention-and-saved-work) | T90–T92 | Safe existing unfinished test work; T92 needs two testers sharing one agreed browser |
+| [ ] | [M10 Offline and reconnect](#m10--offline-and-reconnect) | T100–T104 | POS installed from the round's link; online sign-in and a saved cart first; run in order |
+| [ ] | [M11 Saved cart](#m11--saved-cart) | T110–T111 | Your own safe unfinished cart and browser profile |
+| [ ] | [M12 Settings and status](#m12--settings-and-status) | T120–T121 | Your Cashier account |
+| [ ] | [M13 Screens and equipment](#m13--screens-and-equipment) | T140–T144 | Available computer/tablet/phone/scanner/printer; record missing equipment |
+| [ ] | [M14 Shift close](#m14--shift-close) | T150–T151 | Your open shift, recorded test cash, and permission to close it or an agreed Manager helper |
+| [ ] | [M15 Electronic payments](#m15--electronic-payments) | T50–T51 | Separate owner permission for that method and test; otherwise COULD NOT TEST |
+
+At the end, complete [staff feedback](#staff-feedback) and submit your results plus every referenced image.
+
+### Keep each person's work separate
+
+- Use your own account, register, browser profile, cart, and test orders for ordinary testing.
+- Do not close another person's shift or return their order.
+- Do not change someone's access, register assignment, or shared settings while they are testing. Permission-change tests need an agreed helper and a separate test account.
+- Admin does not automatically mean Manager. Return approvals and shift actions still need the right location role and permission.
+- Shared-browser testing is the deliberate exception in T92. Preserve unfinished work and follow that test's instructions.
+- Cash is the ordinary payment for this round. Appearance of another method is not permission to use it.
+- Never use the protected historical refund case under issue #102 as a normal return test.
+- If a sale, payment, refund, or stock result is uncertain, stop repeating that action and document it. Do not clear saved POS/browser data.
 
 ---
 
@@ -12,11 +64,11 @@ Make your own copy of this workbook and write your results in it.
 
 For every test you perform, add this result block underneath that test:
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 At the top of your completed workbook, also record:
 
@@ -26,6 +78,10 @@ At the top of your completed workbook, also record:
 - Browser / installed PWA:
 - Test role:
 - Test version/build shown in the Test Brief:
+- Exact POS link used:
+- Your location / register / selected POS device:
+- Modules chosen:
+- Tests not attempted or not finished, and why:
 
 ### Screenshots and photos
 
@@ -58,11 +114,11 @@ Keep the screenshot filename/path unchanged after you reference it.
 
 Save your completed workbook using:
 
-`POS-Test-Results-YourName-2026-09-24.md`
+`POS-Test-Results-YourName-YYYY-MM-DD.md`
 
 Save screenshots in a folder such as:
 
-`POS-Test-Screenshots-YourName-2026-09-24/`
+`POS-Test-Screenshots-YourName-YYYY-MM-DD/`
 
 Then submit:
 
@@ -71,8 +127,8 @@ Then submit:
 
 Example:
 
-- Workbook: `POS-Test-Results-Ama-2026-09-24.md`
-- Screenshot: `POS-Test-Screenshots-Ama-2026-09-24/T61-blank-print-preview-01.png`
+- Workbook: `POS-Test-Results-Ama-YYYY-MM-DD.md`
+- Screenshot: `POS-Test-Screenshots-Ama-YYYY-MM-DD/T61-blank-print-preview-01.png`
 
 If you embed screenshots directly in the Markdown file, keep the referenced image files with the document so the images still open.
 
@@ -96,7 +152,201 @@ Do not mark a blocked test as PASS.
 
 ---
 
-# A. BASIC ACCESS
+# M00 — Team setup and Management
+
+**Before you start:** The designated Admin starts here. Use T136 to set up registers/devices before T131/T132 assigns new staff to them. Record the actual setup in your copy of the current Test Brief. Use spare agreed accounts for T133/T134/T135. Do not disable the working testers or change their assignments mid-test. T137 and T63 change settings others may share, so agree on the affected test location/register and record the previous settings. Restore the previous settings afterward only when no tester is still using the test change. Admin needs a separate Cashier/Manager location role for cashier/manager actions. T138 uses your own test shift or an agreed view-only shift.
+
+
+
+## T130 — Management visibility by role
+
+Test Owner/Admin/Manager/Support/Cashier.
+
+**Expected:**
+- Cashier: no Management control plane.
+- Manager: only permitted management scope/locations.
+- Support: diagnostic/audit scope only.
+- Owner/Admin: organization control sections as authorized.
+
+### Your result
+
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
+
+---
+
+## T131 — Add staff: create account now
+
+Owner/Admin test.
+
+**Do:** In Management → Staff & access, select Create account now. Enter the agreed Name and Email, create/generate a temporary password, choose Cashier at the test location, assign that person's own active register, and enable POS access after setup succeeds. Give the temporary password privately. Have the new staff member complete T03 and check Register under T13.
+
+**Expected:**
+- Name/Email validated;
+- temporary password required;
+- organization/location/register role can be set as allowed;
+- access is not enabled if required setup fails;
+- user must change temporary password at first sign-in.
+
+### Your result
+
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
+
+---
+
+## T132 — Add staff: send invitation
+
+**Do:** As Owner/Admin, use Send invitation for a separate agreed test account. The recipient checks the email, opens its setup link, completes account setup, and signs in through the current Test Brief link. Confirm their location/register assignments and enabled POS access before they try Register. Record delivery and account setup separately. Do not put the invitation link in screenshots or the workbook.
+
+**Expected:**
+- invitation is sent/queued successfully when environment supports it;
+- invited staff cannot operate POS until assignments/access are completed.
+
+### Your result
+
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
+
+---
+
+## T133 — Disable POS access
+
+**Expected:**
+- disabled staff loses active POS sessions;
+- cannot establish a new POS session;
+- a new sign-in shows **Your POS access is disabled. Contact a manager.** and does not add a Reference line;
+- audit/management record reflects the change.
+
+### Your result
+
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
+
+---
+
+## T134 — Role hierarchy
+
+**Expected:**
+- Admin cannot reset/control an Owner in ways reserved for Owner;
+- at least one active Owner remains;
+- Manager cannot grant themselves organization control.
+
+### Your result
+
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
+
+---
+
+## T135 — Manager register assignment
+
+**Expected:**
+- Manager may adjust register assignment only for staff already assigned to the manager's location;
+- Manager cannot create a new location assignment or change the staff member's cashier/manager role unless explicitly authorized by the model.
+
+### Your result
+
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
+
+---
+
+## T136 — Locations / registers / devices
+
+Owner/Admin test.
+
+**Do:** Use Management → Locations, Registers, and Devices to set up separate test registers as directed. Check the agreed location and GHS before creating each register. Ensure its location has an active POS device. Record each tester's assignment in the Test Brief's working copy. Have each person verify Register with their own account. Use a spare test setup for inactive/no-device checks. Do not deactivate a location or device others are using.
+
+**Expected:**
+- add/update actions are scoped to organization;
+- inactive location/register/device behavior is clear;
+- a location without active POS device cannot open its register shift;
+- register currency cannot be casually changed after creation.
+
+### Your result
+
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
+
+---
+
+## T137 — Operational rules
+
+**Expected:**
+- rule scope (organization/location/register) is clear;
+- configured shift-close/return-approval behavior matches the effective rule.
+
+### Your result
+
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
+
+---
+
+## T138 — Shifts & cash management
+
+**Expected:**
+- X report is current/live;
+- Z report is durable after close;
+- cash correction reverses an existing entry rather than editing history;
+- manager permissions are respected.
+
+### Your result
+
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
+
+---
+
+## T139 — Management System status / Activity log
+
+**Expected:**
+- technical/support details are role-gated;
+- activity log shows authorized management changes;
+- cashier does not receive the same technical surface.
+
+### Your result
+
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
+
+---
+
+# M01 — Sign-in and access
+
+**Before you start:** Use your own account. T03 pairs with the Admin's T131 or T132 setup. T04 needs a Cashier-only account. T05 is a separate specialist check and does not hold up ordinary testing.
+
 
 ## T01 — Normal staff sign-in
 
@@ -110,11 +360,11 @@ Do not mark a blocked test as PASS.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -131,11 +381,11 @@ Do not mark a blocked test as PASS.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -150,11 +400,11 @@ Do not mark a blocked test as PASS.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -168,15 +418,44 @@ Do not mark a blocked test as PASS.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
-# B. REGISTER / SHIFT
+## T05 — Sign-in when a service is unavailable
+
+**Developer-assisted test only.** Do not stop services, change connections, or alter accounts yourself. If the controlled setup is unavailable, record COULD NOT TEST.
+
+**Do:**
+1. Use an agreed test account while the developer creates a controlled service failure.
+2. Attempt sign-in once. Record the time, the message, and any Reference shown.
+3. Give the developer the Reference through the private test report. The developer checks that it identifies the matching failure in the service records.
+4. After service is restored, try normal sign-in. Check a wrong password separately under T02.
+
+**Expected:**
+- a service problem is described as sign-in being unavailable, rather than an incorrect password or missing assignment;
+- the Reference helps the developer find the same problem without exposing private information;
+- normal sign-in works after restoration;
+- a wrong password still has the ordinary wrong-password message, without a Reference.
+
+### Your result
+
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
+
+---
+
+# M02 — Register and shift
+
+**Before you start:** Use your own assigned register at a location with an active device. One register supports one open/closing shift at a time. For T10, do not take over an existing shift. T11/T12 need spare test setups. T14 needs an agreed helper and must not change another active tester's assignment.
+
 
 ## T10 — Open assigned register
 
@@ -194,11 +473,11 @@ Do not mark a blocked test as PASS.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -212,11 +491,11 @@ Do not mark a blocked test as PASS.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -231,11 +510,11 @@ Do not mark a blocked test as PASS.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -251,11 +530,11 @@ Do not mark a blocked test as PASS.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -271,15 +550,18 @@ Do not mark a blocked test as PASS.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
-# C. PRODUCTS / CART
+# M03 — Products and cart
+
+**Before you start:** Use agreed training products. Record how quickly saved products appear after sign-in and whether the POS stays usable while products refresh. T24 uses your own completed sale from M05. T25 verifies the out-of-date → refresh → ready sequence; a fresh list alone does not prove it.
+
 
 ## T20 — Search product by name
 
@@ -291,11 +573,11 @@ Do not mark a blocked test as PASS.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -310,11 +592,11 @@ Do not mark a blocked test as PASS.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -328,11 +610,11 @@ Do not mark a blocked test as PASS.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -347,11 +629,11 @@ Do not mark a blocked test as PASS.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -367,15 +649,45 @@ Do not mark a blocked test as PASS.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
-# D. CUSTOMERS / PRICING
+## T25 — Refresh an out-of-date product list
+
+**Starting need:** The POS already shows that saved products may be out of date. Do not change product data or delete saved products to force this condition. If it is unavailable, record COULD NOT TEST.
+
+**Do:**
+1. Capture the out-of-date product message and the product status in Settings → System status.
+2. With internet restored, use the available Refresh products or Try again action for that warning. If that action is restricted to Management, work with the Admin and record which role used it.
+3. Record the message during the refresh and afterward, including how long it took.
+4. Check the warning and product status again. Search for a known saved product.
+
+**Expected:**
+- saved products remain usable for safe browsing while refresh runs;
+- a successful refresh changes the product status to ready and clears the out-of-date warning;
+- a failed refresh keeps an honest warning and does not claim the products are up to date;
+- the cart and unfinished work remain saved;
+- refreshing products does not bypass the fresh price check before payment.
+
+### Your result
+
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
+
+---
+
+# M04 — Customers and prices
+
+**Before you start:** Use agreed training customers and products. A price shown on a saved product is not the final payment price. Complete sale steps only with your own open shift and cash testing permission.
+
 
 ## T30 — Walk-in sale
 
@@ -386,11 +698,11 @@ Do not mark a blocked test as PASS.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -404,11 +716,11 @@ Do not mark a blocked test as PASS.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -423,11 +735,11 @@ Do not mark a blocked test as PASS.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -442,15 +754,18 @@ Do not mark a blocked test as PASS.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
-# E. CASH SALE
+# M05 — Cash sale
+
+**Before you start:** Open your own shift first. Use an agreed small training sale and test cash. T41 is the deliberate double-confirmation check and must not create a second transaction. T42 needs a safe controlled case; do not repeatedly interrupt ordinary sales to force it. For the first-receipt check, use a separate normal T40 sale and go straight to T60/T61 without reloading, signing out, or going offline.
+
 
 ## T40 — Normal cash sale
 
@@ -470,11 +785,11 @@ Do not mark a blocked test as PASS.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -489,11 +804,11 @@ Do not mark a blocked test as PASS.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -514,53 +829,18 @@ Do not mark a blocked test as PASS.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
-# F. ELECTRONIC PAYMENT
+# M06 — Receipts and printing
 
-Only run these tests when the payment method is available in the test POS.
+**Before you start:** For T60/T61, complete a fresh T40 cash sale and inspect/print its first receipt immediately. Do not reload, sign out, go offline, or use recovery first. Record the human location/register name, date/time, items and total. If interrupted, record that separately and do not count it as uninterrupted first-receipt proof. T62 then reprints the same stored receipt from Orders. An older receipt proves reprint only. A print-preview screenshot and a physical printer result are separate evidence. T63 changes need Owner/Admin; a Manager can check the permitted view.
 
-## T50 — Method availability
-
-**Expected:**
-- only configured methods are shown as available;
-- Mobile Money and Card are independently enabled;
-- a provider credential alone does not make a method appear usable.
-
-### Your result
-
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
-
----
-
-## T51 — Pending electronic payment
-
-**Expected:**
-- POS clearly says payment is still being checked;
-- **Do not charge again** is visible;
-- starting a duplicate payment is prevented.
-
-### Your result
-
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
-
----
-
-# G. RECEIPTS / PRINTING
 
 ## T60 — Completed-sale receipt
 
@@ -574,11 +854,11 @@ Only run these tests when the payment method is available in the test POS.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -594,11 +874,11 @@ Only run these tests when the payment method is available in the test POS.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -613,17 +893,17 @@ Only run these tests when the payment method is available in the test POS.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
 ## T63 — Receipt name/SKU settings
 
-Manager/Admin test only.
+Owner/Admin changes; Manager view-only.
 
 **Do:** In Management → Receipt settings, use a safe test location and adjust settings as authorized.
 
@@ -635,15 +915,18 @@ Manager/Admin test only.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
-# H. ORDERS
+# M07 — Orders
+
+**Before you start:** Use your own completed order, or an agreed view-only order. Record its displayed order number and test time so the result can be matched later. Do not return or change another tester's order.
+
 
 ## T70 — Search Orders
 
@@ -655,11 +938,11 @@ Manager/Admin test only.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -672,15 +955,18 @@ Manager/Admin test only.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
-# I. RETURNS
+# M08 — Returns
+
+**Before you start:** Use your own fresh eligible test order for return execution. Once a return starts, keep that same return until its result is clear. T82 needs an agreed safe case and is view-only unless a separate action is explicitly authorized. The old issue #102 refund case is excluded. T83 needs an operational Manager at the location; organization Admin alone is insufficient.
+
 
 ## T80 — Normal return
 
@@ -699,11 +985,11 @@ Manager/Admin test only.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -721,11 +1007,11 @@ Record any missing/confusing options.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -744,11 +1030,11 @@ Record any missing/confusing options.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -763,15 +1049,18 @@ Manager test only.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
-# J. ATTENTION / RECOVERY
+# M09 — Attention and saved work
+
+**Before you start:** Use agreed safe unfinished work. Viewing a notice is different from retrying a financial action. T91 checks that offline recovery is blocked. T92 is the deliberate shared-browser exception and needs two testers plus a safe unknown-result case.
+
 
 ## T90 — Attention list
 
@@ -782,11 +1071,11 @@ Manager test only.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -798,15 +1087,47 @@ Manager test only.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
-# K. OFFLINE TESTING
+## T92 — Another person signs into the same browser
+
+**Two-person, controlled test only.** Use the same browser profile and exact POS link for A and B. A developer must provide or help create a safe case where A's sale result is genuinely unknown. An ordinary saved cart is not enough. Do not deliberately interrupt a real payment or use the protected case under issue #102. If a safe case is unavailable, record COULD NOT TEST.
+
+**Do:**
+1. A signs in and uses A's assigned register. Capture the agreed unfinished sale and the message saying its result is not known.
+2. A signs out normally without clearing browser data or saved POS work.
+3. B signs into that same browser profile using B's own account. Capture any unfinished-work notice before taking another action.
+4. B checks their own assigned register. Do not pay or refund A's sale, or start a replacement sale for it.
+5. An authorized Manager/support helper checks whether A's unresolved work makes the shared register/device unsafe. Record the allowed next step. Do not assume B must always be allowed to sell.
+
+**Expected:**
+- A's unfinished work is preserved;
+- B is not told that B created A's sale;
+- B does not gain access to resolve A's work merely by signing in;
+- B's selling is blocked if the unresolved work makes the shared register/device unsafe, with an understandable explanation;
+- unrelated safe work is not blocked solely because a different person left work in that browser;
+- authorized review of the existing work remains possible, without another sale/payment/refund or clearing browser data.
+
+### Your result
+
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
+
+---
+
+# M10 — Offline and reconnect
+
+**Before you start:** Run T100 → T101 → T102 → T103 → T104 in that order on the POS installed from the current brief's exact link. Record device, browser/PWA, times, and the saved cart before disconnecting. Before T100, install and open it online so the app and safe local products are saved. Do not clear data. Reconnecting must check current permission again. An ordinary browser-tab test does not prove installed-PWA cold start. The developer should help arrange an additional pass across online-session expiry while still inside the permitted offline period. Record that boundary condition separately; a quick offline reopen does not close that part of #114.
+
 
 These are high-value tests. Follow the exact sequence.
 
@@ -822,11 +1143,11 @@ These are high-value tests. Follow the exact sequence.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -842,11 +1163,11 @@ These are high-value tests. Follow the exact sequence.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -864,11 +1185,11 @@ These are high-value tests. Follow the exact sequence.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -886,11 +1207,11 @@ The POS must not pretend those actions succeeded.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -906,15 +1227,18 @@ The POS must not pretend those actions succeeded.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
-# L. SAVED CART / LOCAL STATE
+# M11 — Saved cart
+
+**Before you start:** Use your own browser profile and unfinished test cart. Reloading must preserve that work. Do not clear browser data as part of this module.
+
 
 ## T110 — One active working cart
 
@@ -927,11 +1251,11 @@ The POS must not pretend those actions succeeded.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -945,15 +1269,18 @@ The POS must not pretend those actions succeeded.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
-# M. SETTINGS / SYSTEM STATUS
+# M12 — Settings and status
+
+**Before you start:** Use Cashier-only access to check what ordinary staff see. Technical Management screens are checked separately under M00.
+
 
 ## T120 — Settings
 
@@ -965,11 +1292,11 @@ The POS must not pretend those actions succeeded.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -982,198 +1309,18 @@ The POS must not pretend those actions succeeded.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
-# N. MANAGEMENT / ADMIN
+# M13 — Screens and equipment
 
-Run only with authorized test accounts.
+**Before you start:** Choose the equipment you actually have. For computer/tablet/phone, check both cashier screens and, with the authorized account, Management. Record unavailable equipment as COULD NOT TEST. Changing device does not let you open a second independent shift on the same register.
 
-## T130 — Management visibility by role
-
-Test Owner/Admin/Manager/Support/Cashier.
-
-**Expected:**
-- Cashier: no Management control plane.
-- Manager: only permitted management scope/locations.
-- Support: diagnostic/audit scope only.
-- Owner/Admin: organization control sections as authorized.
-
-### Your result
-
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
-
----
-
-## T131 — Add staff: create account now
-
-Owner/Admin test.
-
-**Expected:**
-- Name/Email validated;
-- temporary password required;
-- organization/location/register role can be set as allowed;
-- access is not enabled if required setup fails;
-- user must change temporary password at first sign-in.
-
-### Your result
-
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
-
----
-
-## T132 — Add staff: send invitation
-
-**Expected:**
-- invitation is sent/queued successfully when environment supports it;
-- invited staff cannot operate POS until assignments/access are completed.
-
-### Your result
-
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
-
----
-
-## T133 — Disable POS access
-
-**Expected:**
-- disabled staff loses active POS sessions;
-- cannot establish a new POS session;
-- a new sign-in shows **Your POS access is disabled. Contact a manager.** and does not add a Reference line;
-- audit/management record reflects the change.
-
-### Your result
-
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
-
----
-
-## T134 — Role hierarchy
-
-**Expected:**
-- Admin cannot reset/control an Owner in ways reserved for Owner;
-- at least one active Owner remains;
-- Manager cannot grant themselves organization control.
-
-### Your result
-
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
-
----
-
-## T135 — Manager register assignment
-
-**Expected:**
-- Manager may adjust register assignment only for staff already assigned to the manager's location;
-- Manager cannot create a new location assignment or change the staff member's cashier/manager role unless explicitly authorized by the model.
-
-### Your result
-
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
-
----
-
-## T136 — Locations / registers / devices
-
-Owner/Admin test.
-
-**Expected:**
-- add/update actions are scoped to organization;
-- inactive location/register/device behavior is clear;
-- a location without active POS device cannot open its register shift;
-- register currency cannot be casually changed after creation.
-
-### Your result
-
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
-
----
-
-## T137 — Operational rules
-
-**Expected:**
-- rule scope (organization/location/register) is clear;
-- configured shift-close/return-approval behavior matches the effective rule.
-
-### Your result
-
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
-
----
-
-## T138 — Shifts & cash management
-
-**Expected:**
-- X report is current/live;
-- Z report is durable after close;
-- cash correction reverses an existing entry rather than editing history;
-- manager permissions are respected.
-
-### Your result
-
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
-
----
-
-## T139 — Management System status / Activity log
-
-**Expected:**
-- technical/support details are role-gated;
-- activity log shows authorized management changes;
-- cashier does not receive the same technical surface.
-
-### Your result
-
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
-
----
-
-# O. RESPONSIVE / HARDWARE
 
 ## T140 — Desktop
 
@@ -1183,11 +1330,11 @@ Test selling, modal dialogs, Orders, Returns, Register, and Management where aut
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -1197,11 +1344,11 @@ Test selling, modal dialogs, Orders, Returns, Register, and Management where aut
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -1211,11 +1358,11 @@ Test selling, modal dialogs, Orders, Returns, Register, and Management where aut
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -1225,11 +1372,11 @@ Test selling, modal dialogs, Orders, Returns, Register, and Management where aut
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -1239,15 +1386,18 @@ Test selling, modal dialogs, Orders, Returns, Register, and Management where aut
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
-# P. END-OF-SHIFT
+# M14 — Shift close
+
+**Before you start:** You can choose this module as soon as your own test shift is ready to close; you need not wait for everybody else. Count the recorded test cash. If policy requires a Manager, use an agreed helper with that location role rather than granting Admin to the Cashier. Never close another tester's shift. Finish any uncertain work on your own shift through the safe review path before closing.
+
 
 ## T150 — Zero-variance close
 
@@ -1264,11 +1414,11 @@ Manager/authorized-role test.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
@@ -1279,15 +1429,57 @@ Manager/authorized-role test.
 
 ### Your result
 
-**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST  
-**What actually happened:**  
-**Anything confusing:**  
-**Screenshot/photo:** embedded image or exact filename/path  
-**Other notes:**  
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
 
 ---
 
-# Q. FREE-FORM STAFF FEEDBACK
+# M15 — Electronic payments
+
+**Before you start:** This module is not enabled for ordinary testing in this round. Record T50/T51 as COULD NOT TEST unless the owner separately authorizes the specific method and test. Seeing a payment option does not give permission to use it.
+
+
+Only run these tests when the owner has authorized that payment method and the specific test.
+
+## T50 — Method availability
+
+**Expected:**
+- only configured methods are shown as available;
+- Mobile Money and Card are independently enabled;
+- a provider credential alone does not make a method appear usable.
+
+### Your result
+
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
+
+---
+
+## T51 — Pending electronic payment
+
+**Expected:**
+- POS clearly says payment is still being checked;
+- **Do not charge again** is visible;
+- starting a duplicate payment is prevented.
+
+### Your result
+
+**Result:** PASS / FAIL / PARTLY WORKED / COULD NOT TEST\
+**What actually happened:**\
+**Anything confusing:**\
+**Screenshot/photo:** embedded image or exact filename/path\
+**Other notes:**
+
+---
+
+# Staff feedback
+
 
 After structured testing, ask every tester:
 

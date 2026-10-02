@@ -1,3 +1,70 @@
+## STAFF-TEST-1021-LINK — Today's sign-in address and synchronized document editions
+
+Owner/user instruction, 2026-10-02 at 14:51 UTC: update all relevant test-document versions for today, including the formatted folder pages. The user supplied evidence of a working installed PWA at the integration alias. Vercel identifies that alias as deployment `dpl_89TVtntmRzjMi8WgdgvkU35KVFLn`, source `1021cd113c783e25030fe9c0bda1be9ddcf5888c`. Same-origin session GET at the generated deployment URL returned 403 / session origin is not allowed; the integration alias passed the origin gate (401 / staff session required without a cookie).
+
+```text
+human / implementing editor: @wbdevworld
+workstream: WS3 documentation
+task: STAFF-TEST-1021-LINK
+branches: ws3/staff-testing-1021cd-2026-10-02 (PR131),
+  docs/staff-test-blob-copy-2026-10-02,
+  docs/staff-test-readable-2026-10-02
+allowed: docs/staff/README.md, docs/staff/TEST-BRIEF-2026-10-02.md,
+  docs/staff/STAFF-TRAINING-GUIDE.md,
+  docs/staff/STAFF-TESTING-ACCEPTANCE-WORKBOOK.md,
+  docs/staff/testing-2026-10-02/**, CURRENT-WORK.md,
+  docs/integration/evidence/STAFF-TEST-1021-DOCS-HANDOFF.md
+forbidden: historical September brief edits, runtime, migrations,
+  contracts, dependencies, CI, account/register/device/financial mutations,
+  hosting configuration changes, integration/main merges,
+  protected #102 reconciliation, electronic payments, production promotion
+canonical owner: current docs/staff source files; reading pages are copies
+contracts/ADRs changed: none; staff-documentation impact: yes
+acceptance: working alias used consistently, edition dated 2 October 2026,
+  same frozen application/deployment, 64 tests and 16 modules retained,
+  historical source unchanged, copy parity and public folder links checked
+```
+
+This follow-up authorizes updating the canonical documents and their public reading copies together, superseding the earlier reading-copy-only restriction for this bounded documentation task. The runtime origin-configuration defect remains; this task corrects the instructions to use the existing accepted address. Hold the integration alias at the frozen application SHA throughout the round. New commits on documentation branches do not change the integration alias.
+
+---
+
+## STAFF-TEST-1021 — Independent testing modules and designated Admin setup
+
+Owner/user instruction, 2026-10-02: proceed with documentation for frozen staff-test application `1021cd113c783e25030fe9c0bda1be9ddcf5888c`. One designated Admin provisions staff/register/device contexts, primarily tests Management, and may join cashier testing with a separate operational assignment. Use understandable English.
+
+```text
+human / implementing editor: @wbdevworld
+workstream: WS3 documentation
+task: STAFF-TEST-1021
+branch: ws3/staff-testing-1021cd-2026-10-02
+declared integration baseline: integration/r9-staff-remediation-final
+baseline application SHA: 1021cd113c783e25030fe9c0bda1be9ddcf5888c
+allowed: docs/staff/README.md, docs/staff/TEST-BRIEF-2026-10-02.md,
+  docs/staff/STAFF-TESTING-ACCEPTANCE-WORKBOOK.md,
+  docs/staff/STAFF-TRAINING-GUIDE.md, CURRENT-WORK.md,
+  docs/integration/evidence/STAFF-TEST-1021-DOCS-HANDOFF.md
+forbidden: runtime, migrations, contracts, dependencies, CI changes,
+  historical TEST-BRIEF-2026-09-24.md edits, live account/register mutations,
+  main merge, PR130 merge, production promotion, electronic-payment enablement,
+  protected #102 refund reconciliation, VitePOS cutover
+canonical owner: repository docs/staff Markdown; existing durable role/shift model unchanged
+contracts/ADRs changed: none; staff-documentation impact: yes
+dependencies: frozen SHA, CI1466 success, READY exact-SHA Preview,
+  ADR017 role separation and existing topology/staff administration
+acceptance: exact current preview link; dated old brief preserved;
+  every existing T-number and detailed test retained;
+  selectable modules with prerequisites and evidence fields;
+  separate registers for independent shifts; Admin setup tested;
+  remaining device/specialist checks not pre-marked PASS
+review: different competent human exact-head review before integration;
+  no request sent to another person in this documentation task
+```
+
+The documentation branch does not replace the frozen application build. Actual staff/register/device allocations are completed by the designated administrator in the private session record. No environment resources are provisioned by this change. Final scoped checks and bounded upstream observations are recorded in the documentation handoff and PR.
+
+---
+
 ## #105 Admin/Manager control plane — ACTIVE P0
 
 Owner/user explicitly made #105 the next blocking implementation before final R9 closure.
