@@ -68,6 +68,8 @@ Depending on the rules configured for the location, a manager may be able to:
 
 Owner/Admin access is organization-level control.
 
+An Admin may also sell, but needs a separate Cashier or Manager assignment at the location and an assigned register. Admin alone does not grant every shift or return-approval permission.
+
 Depending on the exact authorization, they can manage:
 
 - staff accounts;
@@ -148,6 +150,8 @@ Important:
 - If the system says the register/device is unavailable, ask a manager.
 
 Once open, Register shows the working register and shift status.
+
+Only one open or closing shift is allowed on a register at a time. People who need independent shifts need separate registers, even when they have separate accounts. Each register's location must have an active POS device.
 
 ---
 

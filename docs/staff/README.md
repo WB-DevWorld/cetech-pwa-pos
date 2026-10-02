@@ -7,8 +7,9 @@ Use plain English. Teach what the person needs to do, what they should expect to
 ## Which document should I use?
 
 - [Staff Training & User Guide](STAFF-TRAINING-GUIDE.md) — learn how to use the POS during normal work.
-- [Staff Testing & Acceptance Workbook](STAFF-TESTING-ACCEPTANCE-WORKBOOK.md) — follow structured tests and record Pass/Fail results.
-- [Test Brief — 24 September 2026](TEST-BRIEF-2026-09-24.md) — the short control sheet for the staff test session.
+- [Staff Testing & Acceptance Workbook](STAFF-TESTING-ACCEPTANCE-WORKBOOK.md) — choose independent testing modules and record results.
+- **[Current Test Brief — issued 2 October 2026](TEST-BRIEF-2026-10-02.md)** — the POS link, designated Admin setup, and rules for the next round.
+- [Test Brief — 24 September 2026](TEST-BRIEF-2026-09-24.md) — historical record only; do not reuse its POS link.
 - [Documentation Maintenance Policy](DOCUMENTATION-MAINTENANCE.md) — rules for keeping these guides synchronized with the application.
 
 ## Important status rule
