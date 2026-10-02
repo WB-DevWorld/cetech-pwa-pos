@@ -2,9 +2,21 @@
 
 Date: 2026-10-02. Workstream: WS3. Human/editor: `@wbdevworld` under the current owner instruction. Scope: documentation for the next staff-testing round, using understandable English.
 
+## Current document edition — 2 October 2026 sign-in link correction
+
+Owner instruction at 14:51 UTC: update all today's relevant test documents, including the formatted folder pages. This section governs the current staff link; earlier URL observations below remain historical evidence.
+
+- The current brief, training guide, workbook and staff documentation home use `https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app`. The public copy branch and formatted reading pages are synchronized with those canonical documents.
+- Vercel lookup of that alias identifies the same READY deployment `dpl_89TVtntmRzjMi8WgdgvkU35KVFLn`, source `1021cd113c783e25030fe9c0bda1be9ddcf5888c`. This is an address correction, not a different test build.
+- Anonymous same-origin session GET at the generated URL returned `403 / FORBIDDEN / session origin is not allowed`. The shared integration address passed the origin gate (`401 / AUTH_REQUIRED / staff session is required` without a cookie). Supabase logs showed successful password authentication followed by POS rejection on the generated-address requests. The user's working installed-PWA screenshot shows the accepted integration address.
+- The guide now explains that Access denied can also mean an unaccepted website address. Staff open the current brief's link, preserve saved work and record the address/message/reference if the problem remains.
+- All current document editions are dated 2 October 2026. Test numbers, module ordering, detailed tests, cash-only scope and protected #102 boundaries are retained. The original 24 September brief is unchanged and remains historical.
+- The shared address is a branch alias. Keep the integration branch frozen for this round and verify the alias still identifies the qualified SHA before a new session. If it points to a different build, issue a new brief rather than mixing results.
+- Application code and hosting configuration are unchanged. The broader origin-configuration repair is not claimed complete by this documentation correction. Source/copy publication SHAs and the new checks are supplied in the external handoff.
+
 ## Result
 
-- New [dated Test Brief](../../staff/TEST-BRIEF-2026-10-02.md) pins application `1021cd113c783e25030fe9c0bda1be9ddcf5888c` and its exact READY Preview.
+- New [dated Test Brief](../../staff/TEST-BRIEF-2026-10-02.md) pins application `1021cd113c783e25030fe9c0bda1be9ddcf5888c` and the accepted address for its same READY Preview.
 - [Workbook](../../staff/STAFF-TESTING-ACCEPTANCE-WORKBOOK.md) has 16 independently selectable modules, their prerequisites, role boundaries, evidence fields and local ordering requirements.
 - All 61 original T-numbered tests and their detailed instructions/expectations are retained. New checks are T05 (controlled infrastructure/sign-in failure), T25 (stale catalog refresh), and T92 (shared-browser recovery ownership), bringing the total to 64.
 - T131/T132/T136 gain setup steps. The prior T63 label is corrected: Owner/Admin may change receipt settings; Manager checks the permitted read-only view.

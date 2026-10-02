@@ -1,5 +1,13 @@
 # CETECH POS — Staff Training & User Guide
 
+**Updated for this testing round:** 2 October 2026.
+
+**Read and understand the [current Test Brief](TEST-BRIEF-2026-10-02.md) first.**
+
+**[Open the POS for this round](https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app)**
+
+Use this same address when opening or installing the POS. If your installed POS already uses it and works, keep using it and preserve your saved work.
+
 **Audience:** Cashiers, managers, owners/admins, and authorized support staff  
 **Language:** Plain operational English  
 **Purpose:** Teach staff how to use the POS safely during normal work  
@@ -94,7 +102,7 @@ Support access is for diagnostics and audit where authorized. Support access doe
 
 ## 3. Signing in
 
-1. Open CETECH POS.
+1. Open CETECH POS from the current Test Brief link above.
 2. Enter your **staff email**.
 3. Enter your **password**.
 4. Select **Sign in**.
@@ -104,7 +112,7 @@ If your temporary password must be changed, the POS will show **Choose a new pas
 If you see:
 
 - **Session expired** — sign in again. Your safe local cart should remain available.
-- **Access denied** — your account is not authorized for that register/location. Ask a manager.
+- **Access denied** — open the POS link in the current Test Brief first. If it still fails, ask a manager to check your access. Record the website address, the message, and any Reference line. This message can also appear when a different POS address is not accepted; it does not always mean your password is wrong.
 - **Register locked** — sign in to continue the existing shift.
 - **Sign-in unavailable** — try again. A **Reference** line under that notice is a support id. Read it to a manager. It is not a password.
 
