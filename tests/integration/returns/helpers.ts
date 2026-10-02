@@ -4,6 +4,7 @@ import { createInMemoryCheckoutStore } from "../../../apps/pos-web/src/core/chec
 import type { CheckoutStore, StoredSaleOrderLine } from "../../../apps/pos-web/src/core/checkout/types";
 import { createInMemoryReturnStore } from "../../../apps/pos-web/src/core/returns/in-memory-store";
 import { createMemoryAssignmentDirectory } from "../../../apps/pos-web/src/server/auth/assignments";
+import { createMemoryOperationalPolicyStore } from "../../../apps/pos-web/src/server/admin/operational-policy-store";
 import { createEphemeralInMemoryStaffSessionStore } from "../../../apps/pos-web/src/server/auth/session-store";
 import { createFakeElectronicRefundProvider } from "../../../apps/pos-web/src/server/payments/fake-refund-provider";
 import { handleOpenShift } from "../../../apps/pos-web/src/server/sales/handle-open-shift";
@@ -28,25 +29,31 @@ export function ghs(minor: number): Money {
   return { minor, currency: "GHS" };
 }
 
-export function cashierAssignments(registerIds: readonly string[] = ["reg_a1"]) {
+export function cashierAssignments(
+  registerIds: readonly string[] = ["reg_a1"],
+  locationId = "loc_a1",
+) {
   return createMemoryAssignmentDirectory([
     {
       actorId: "cashier_a",
       organizationId: "org_a",
-      locationRoles: [{ locationId: "loc_a1", role: "cashier" }],
+      locationRoles: [{ locationId, role: "cashier" }],
       registerIds,
+      registerAssignments: registerIds.map((registerId) => ({ registerId, locationId })),
     },
     {
       actorId: "manager_a",
       organizationId: "org_a",
       locationRoles: [{ locationId: "loc_a1", role: "manager" }],
       registerIds: ["reg_a1"],
+      registerAssignments: [{ registerId: "reg_a1", locationId: "loc_a1" }],
     },
     {
       actorId: "cashier_b",
       organizationId: "org_b",
       locationRoles: [{ locationId: "loc_b1", role: "cashier" }],
       registerIds: ["reg_b1"],
+      registerAssignments: [{ registerId: "reg_b1", locationId: "loc_b1" }],
     },
   ]);
 }
@@ -263,7 +270,19 @@ export async function preview(
     sessionStore: input?.sessionStore ?? runtime.sessions.store,
     checkoutStore: runtime.checkoutStore,
     returnStore: runtime.returnStore,
-    requireApproval: input?.requireApproval,
+    policies: createMemoryOperationalPolicyStore(
+      input?.requireApproval
+        ? [{
+            id: "77777777-7777-4777-8777-777777777701",
+            organizationId: "org_a",
+            locationId: "loc_a1",
+            registerId: "reg_a1",
+            returnApprovalRequired: true,
+            updatedByActorId: "owner_a",
+            updatedAt: NOW.toISOString(),
+          }]
+        : [],
+    ),
     client: input?.client,
     body: {
       saleId: input?.saleId ?? "woo-rt01",

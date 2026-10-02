@@ -17,6 +17,10 @@ import { OrdersScreen } from "../../apps/pos-web/src/features/orders/OrdersScree
 import { INTEGRATION_UNAVAILABLE } from "../../apps/pos-web/src/features/sell/state/quotePresentation";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const mountedPosAppSource = readFileSync(
+  resolve(repoRoot, "apps/pos-web/src/app/pos-app.tsx"),
+  "utf8",
+);
 
 const PROHIBITED = [
   "INTEGRATION_UNAVAILABLE",
@@ -123,8 +127,9 @@ describe("UX-01 cashier surfaces hide engineering vocabulary", () => {
     expect(primary).toContain("One or more items can't be sold right now");
     expect(primary).not.toContain("INTEGRATION_UNAVAILABLE");
     expect(primary).not.toContain("WooCommerce");
-    expect(html).toContain("Technical details");
-    expect(html).toContain("INTEGRATION_UNAVAILABLE");
+    expect(html).not.toContain("Technical details");
+    expect(html).not.toContain("INTEGRATION_UNAVAILABLE");
+    expect(html).not.toContain("WooCommerce");
   });
 
   test("payment uncertainty still contains Do not charge again without provider-callback copy", () => {
@@ -156,7 +161,7 @@ describe("UX-01 cashier surfaces hide engineering vocabulary", () => {
     expect(primary).not.toContain("Tender");
   });
 
-  test("system status, settings, and sign-in keep technical fields inside Technical details", () => {
+  test("cashier status and settings do not expose engineering diagnostics", () => {
     const health = renderToStaticMarkup(
       createElement(StoreHealthScreen, {
         health: {
@@ -169,20 +174,25 @@ describe("UX-01 cashier surfaces hide engineering vocabulary", () => {
             },
           ],
           contractVersion: "1.0.0",
-          pendingOperationCount: 0,
-          attentionCount: 0,
+          pendingOperationCount: 2,
+          attentionCount: 1,
           buildId: "abc123",
         },
-        localSchemaVersion: "7",
-        deviceName: "11111111-1111-4111-8111-111111111111",
+        onOpenAttention: () => undefined,
       }),
     );
     const healthPrimary = visiblePrimaryText(health);
     expect(health).toContain("System status");
-    expect(healthPrimary).toContain("Authoritative pricing");
+    expect(healthPrimary).toContain("Prices");
     expect(healthPrimary).toContain("Pending verification");
+    expect(healthPrimary).toContain("Pending work");
     expect(healthPrimary).not.toContain("wooDetected=true");
-    expect(health).toContain("API contract");
+    expect(health).not.toContain("API contract");
+    expect(health).not.toContain("Local schema");
+    expect(health).not.toContain("abc123");
+    expect(health).not.toContain("Technical details");
+    expect(health).not.toContain("Fix App");
+    expect(health).not.toContain("Rebuild catalog");
 
     const settings = renderToStaticMarkup(
       createElement(SettingsScreen, {
@@ -192,9 +202,6 @@ describe("UX-01 cashier surfaces hide engineering vocabulary", () => {
           scannerLabel: "Attached scanner (presentation only)",
           printerLabel: "Receipt printer via PrintPort",
           appearance: "system",
-          buildId: "abc",
-          contractVersion: "1.0.0",
-          localSchemaVersion: "7",
         },
         onOpenStoreHealth: () => undefined,
       }),
@@ -203,10 +210,13 @@ describe("UX-01 cashier surfaces hide engineering vocabulary", () => {
     expect(settingsPrimary).toContain("This device");
     expect(settingsPrimary).toContain("Keyboard-wedge scanner");
     expect(settingsPrimary).toContain("Browser print (80mm/A4)");
+    expect(settingsPrimary).toContain("Open System status");
     expect(settingsPrimary).not.toContain("Connected scanner");
-    expect(settingsPrimary).not.toContain("API contract");
-    expect(settingsPrimary).not.toContain("WS3");
-    expect(settings).toContain("API contract");
+    expect(settings).not.toContain("Diagnostics");
+    expect(settings).not.toContain("API contract");
+    expect(settings).not.toContain("Local schema");
+    expect(settings).not.toContain("Build ID");
+    expect(settings).not.toContain("Technical details");
 
     const login = renderToStaticMarkup(createElement(LoginScreen, { onSignIn: () => undefined }));
     expect(login).toContain("Staff sign-in");
@@ -246,8 +256,6 @@ describe("UX-01 cashier surfaces hide engineering vocabulary", () => {
           scannerLabel: "Attached scanner (presentation only)",
           printerLabel: "Receipt printer via PrintPort",
           appearance: "system",
-          buildId: "abc",
-          contractVersion: "1.0.0",
         },
         state: "error",
         errorMessage: unsafe[1],
@@ -268,6 +276,13 @@ describe("UX-01 cashier surfaces hide engineering vocabulary", () => {
     expect(visiblePrimaryText(customers)).not.toContain("staff session store is unavailable");
   });
 
+  test("mounted cashier composition uses operator-facing refresh copy", () => {
+    expect(mountedPosAppSource).toContain('title: "Products refreshed."');
+    expect(mountedPosAppSource).toContain('detail: "Your current sale was kept."');
+    expect(mountedPosAppSource).not.toContain("Rebuildable catalog projection refreshed.");
+    expect(mountedPosAppSource).not.toContain("Durable cart was preserved.");
+  });
+
   test("frontend presentation source does not move pricing or stock authority into the browser", () => {
     const source =
       collectSource(resolve(repoRoot, "apps/pos-web/src/features/sell/components")) +
@@ -276,6 +291,30 @@ describe("UX-01 cashier surfaces hide engineering vocabulary", () => {
     expect(source).not.toMatch(/displayPrice\.minor\s*[+\-*/]/);
     expect(source).not.toMatch(/from ["']docs\/contracts/);
     expect(source).not.toContain("wc_get_price");
+  });
+
+  test("ordinary cashier source does not label raw technical identifiers", () => {
+    const source = [
+      "apps/pos-web/src/features/register",
+      "apps/pos-web/src/features/returns",
+      "apps/pos-web/src/features/sell",
+      "apps/pos-web/src/features/settings",
+      "apps/pos-web/src/features/payments",
+      "apps/pos-web/src/ui/operational",
+      "apps/pos-web/src/ui/shell",
+    ].map((dir) => collectSource(resolve(repoRoot, dir))).join("\n");
+    for (const label of [
+      "Technical details",
+      "Shift ID",
+      "Approval ID",
+      "Build ID",
+      "API contract",
+      "Local schema",
+      "service-role",
+      "service_role",
+    ]) {
+      expect(source).not.toContain(label);
+    }
   });
 
   test("prohibited terms stay out of primary cashier markup for the sell cart", () => {

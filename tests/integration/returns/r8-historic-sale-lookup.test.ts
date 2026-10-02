@@ -4,6 +4,7 @@ import { createBrowserHistoricReturnSaleLookup } from "../../../apps/pos-web/src
 import { createBrowserReturnPort } from "../../../apps/pos-web/src/app/checkout-client";
 import { handleGetHistoricReturnSale } from "../../../apps/pos-web/src/server/returns/handle-get-historic-return-sale";
 import { handlePreviewReturn } from "../../../apps/pos-web/src/server/returns/handle-preview-return";
+import { createMemoryOperationalPolicyStore } from "../../../apps/pos-web/src/server/admin/operational-policy-store";
 import { projectHistoricReturnSale } from "../../../apps/pos-web/src/server/returns/historic-sale-projection";
 import {
   CORRELATION,
@@ -30,6 +31,7 @@ async function lookupHistoric(
     readonly saleKey: string;
     readonly cookieHeader: string;
     readonly sessionStore: Awaited<ReturnType<typeof staffCookies>>["store"];
+    readonly assignments?: ReturnType<typeof cashierAssignments>;
   },
 ) {
   return handleGetHistoricReturnSale({
@@ -43,7 +45,8 @@ async function lookupHistoric(
     sessionStore: input.sessionStore,
     allowedOrigins: [ORIGIN],
     checkoutStore: runtime.checkoutStore,
-    assignments: cashierAssignments(),
+    returnStore: runtime.returnStore,
+    assignments: input.assignments ?? cashierAssignments(),
   });
 }
 
@@ -73,6 +76,7 @@ describe("R8-02 historic return-sale lookup", () => {
         sessionStore: runtime.sessions.store,
         allowedOrigins: [ORIGIN],
         checkoutStore: runtime.checkoutStore,
+        returnStore: runtime.returnStore,
         assignments: cashierAssignments(),
       };
       if (url.includes("/api/pos/v1/returns/history/")) {
@@ -91,6 +95,7 @@ describe("R8-02 historic return-sale lookup", () => {
           ...common,
           body: init?.body ? JSON.parse(String(init.body)) : null,
           returnStore: runtime.returnStore,
+          policies: createMemoryOperationalPolicyStore(),
         });
         return new Response(JSON.stringify(result.body), {
           status: result.status,
@@ -174,6 +179,7 @@ describe("R8-02 historic return-sale lookup", () => {
       saleKey: TX_A,
       cookieHeader: otherLocation.cookieHeader,
       sessionStore: otherLocation.store,
+      assignments: cashierAssignments(["reg_b1"], "loc_a2"),
     });
     expect(result.body.ok).toBe(false);
     if (result.body.ok) {
@@ -285,6 +291,7 @@ describe("R8-02 historic return-sale lookup", () => {
       checkoutStore: runtime.checkoutStore,
       returnStore: runtime.returnStore,
       assignments: cashierAssignments(),
+      policies: createMemoryOperationalPolicyStore(),
     });
     expect(result.body.ok).toBe(false);
     if (result.body.ok) {

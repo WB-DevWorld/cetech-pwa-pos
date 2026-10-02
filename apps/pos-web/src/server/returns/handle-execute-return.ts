@@ -80,7 +80,7 @@ export async function handleExecuteReturn(input: {
     returnStore: input.returnStore,
     provider: input.provider,
     bridge: input.bridge,
-    actor: guard.session,
+    actor: authorized.data.session,
     request: input.body,
     context: { idempotencyKey: guard.idempotencyKey, correlationId: guard.correlationId },
     now: input.now,

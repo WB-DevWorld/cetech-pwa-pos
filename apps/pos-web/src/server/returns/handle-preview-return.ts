@@ -8,6 +8,7 @@ import type { StaffSessionStore } from "../auth/session-store";
 import { httpStatusFor } from "../http/status";
 import type { CheckoutStore } from "../../core/checkout/types";
 import type { ReturnStore } from "../../core/returns/types";
+import type { OperationalPolicyStore } from "../admin/operational-policy-store";
 import { authorizeCheckoutMutation, mutationProtectionFrom } from "../sales/authorize-checkout";
 import { guardStaffCommand, type CommandHttpHeaders } from "../sales/guard-staff-command";
 import { previewReturn } from "./preview";
@@ -26,7 +27,7 @@ export async function handlePreviewReturn(input: {
   readonly checkoutStore: CheckoutStore;
   readonly returnStore: ReturnStore;
   readonly assignments: StaffAssignmentDirectory;
-  readonly requireApproval?: boolean;
+  readonly policies: OperationalPolicyStore;
   readonly client?: ClientScopeClaim;
 }): Promise<{ readonly status: number; readonly body: ApiResult<ReturnPreview>; readonly headers: CommandHttpHeaders }> {
   const guard = await guardStaffCommand({
@@ -67,14 +68,29 @@ export async function handlePreviewReturn(input: {
   if (!authorized.ok) {
     return { status: httpStatusFor(authorized.error.code), body: authorized, headers: guard.headers };
   }
+
+  const policy = await input.policies.readEffective({
+    organizationId: sale.organizationId,
+    locationId: sale.locationId,
+    registerId: sale.registerId,
+  });
+  if (policy === "unavailable") {
+    const body = authFailure(
+      "INTEGRATION_UNAVAILABLE",
+      "return approval policy is unavailable",
+      guard.correlationId,
+    );
+    return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
+  }
+
   const result = await previewReturn({
     checkoutStore: input.checkoutStore,
     returnStore: input.returnStore,
-    actor: guard.session,
+    actor: authorized.data.session,
     request: input.body,
     correlationId: guard.correlationId,
     now: input.now,
-    requireApproval: input.requireApproval,
+    requireApproval: policy.returnApprovalRequired,
   });
   return { status: result.ok ? 200 : httpStatusFor(result.error.code), body: result, headers: guard.headers };
 }

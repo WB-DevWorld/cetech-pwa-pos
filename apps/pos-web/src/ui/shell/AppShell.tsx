@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { AppToast, type AppToastView } from "../toast";
 import { PrimaryNav } from "./PrimaryNav";
-import { SETTINGS_NAV_ITEM, POS_ROUTE_HREFS, type PosRoute } from "./routes";
+import { type PosRoute } from "./routes";
 import { TopBar, type TopBarProps } from "./TopBar";
 
 export type AppShellProps = TopBarProps & {
@@ -40,23 +40,8 @@ export function AppShell({
           activeRoute={activeRoute}
           attentionCount={attentionCount}
           onNavigate={onNavigate}
+          includeSettings
         />
-        <div className="sidebar-bottom">
-          <button
-            type="button"
-            className={activeRoute === "settings" ? "nav-btn active" : "nav-btn"}
-            aria-current={activeRoute === "settings" ? "page" : undefined}
-            aria-label="Settings"
-            data-route="settings"
-            data-href={POS_ROUTE_HREFS.settings}
-            onClick={() => onNavigate?.(SETTINGS_NAV_ITEM.route)}
-          >
-            <span className="icon" aria-hidden="true">
-              {SETTINGS_NAV_ITEM.icon}
-            </span>
-            <span>{SETTINGS_NAV_ITEM.label}</span>
-          </button>
-        </div>
       </aside>
       <div className="app-main">
         <TopBar {...topBar} />

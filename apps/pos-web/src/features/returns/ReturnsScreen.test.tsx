@@ -2,9 +2,10 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 import { ReturnsScreen } from "./ReturnsScreen";
-import { idleReturnSession, type HistoricReturnSaleView } from "./returnView";
+import type { HistoricReturnSaleWithExisting } from "./existingReturn";
+import { idleReturnSession } from "./returnView";
 
-const sale: HistoricReturnSaleView = {
+const sale: HistoricReturnSaleWithExisting = {
   saleId: "sale-24091",
   orderReference: "#24091",
   currency: "GHS",
@@ -36,6 +37,45 @@ describe("Returns discovery", () => {
     expect(html).toContain("Return items");
     expect(html).not.toContain("Look up sale");
     expect(html).not.toContain("Original sale");
+  });
+
+  test("an unresolved return replaces the new-return action with an existing-return path", () => {
+    const existingSale: HistoricReturnSaleWithExisting = {
+      ...sale,
+      existingReturn: {
+        returnId: "ret-49816",
+        status: "requires_attention",
+        refundTotal: { minor: 2000, currency: "GHS" },
+        lines: [{
+          orderLineId: "ol-1",
+          name: "Premium Interior Emulsion Paint 20L",
+          originalSoldQuantity: "2",
+          quantity: "1",
+          reason: "Damaged",
+          condition: "damaged",
+          intendedDisposition: "no_automatic_restock",
+          dispositionPolicy: "mandatory_no_automatic_restock",
+          remainingReturnableQuantity: "2",
+        }],
+      },
+    };
+    const html = renderToStaticMarkup(
+      createElement(ReturnsScreen, {
+        session: idleReturnSession(),
+        inFlight: false,
+        lookup: { async search() { return [existingSale]; } },
+        matches: [existingSale],
+        onSelectSale: () => undefined,
+        onUpdateLine: () => undefined,
+        onPreview: () => undefined,
+        onExecute: () => undefined,
+        onResolve: () => undefined,
+      }),
+    );
+    expect(html).toContain('data-existing-return="ret-49816"');
+    expect(html).toContain("An unresolved return already exists for this sale");
+    expect(html).toContain("Open existing return");
+    expect(html).not.toContain(">Return items<");
   });
 
   test("selected return flow is above discovery cards and the selected sale is explicit", () => {
@@ -74,4 +114,35 @@ describe("Returns discovery", () => {
     expect(html).toContain("Select return items");
   });
 
+  test("a locked return hides other sales so another return cannot be started", () => {
+    const locked = {
+      ...idleReturnSession(),
+      stage: "requires_attention" as const,
+      saleId: sale.saleId,
+      returnId: "ret-1",
+      identityLocked: true,
+      lines: sale.lines.map((line) => ({
+        ...line,
+        quantity: "1",
+        reason: "Damaged",
+        condition: "damaged" as const,
+      })),
+    };
+    const html = renderToStaticMarkup(
+      createElement(ReturnsScreen, {
+        session: locked,
+        inFlight: false,
+        lookup: { async search() { return [sale]; } },
+        matches: [sale],
+        onSelectSale: () => undefined,
+        onUpdateLine: () => undefined,
+        onPreview: () => undefined,
+        onExecute: () => undefined,
+        onResolve: () => undefined,
+      }),
+    );
+    expect(html).toContain("data-discovery-collapsed");
+    expect(html).not.toContain("returns-card-grid");
+    expect(html).toContain("disabled");
+  });
 });

@@ -77,7 +77,7 @@ export async function handleResolveRefund(input: {
     checkoutStore: input.checkoutStore,
     returnStore: input.returnStore,
     provider: input.provider,
-    actor: guard.session,
+    actor: authorized.data.session,
     refundId: input.refundId,
     correlationId: guard.correlationId,
     now: input.now,

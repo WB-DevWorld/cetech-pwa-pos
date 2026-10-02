@@ -3,13 +3,14 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { cashierErrorMessage, formatMoneyLabel, formatOperationalDateTime } from "../../ui/cashier-language";
 import { ReturnFlow } from "./ReturnFlow";
-import { OUTSTANDING_RETURN_COPY, type HistoricReturnSaleView, type ReturnConditionView, type ReturnSessionView } from "./returnView";
+import type { HistoricReturnSaleWithExisting } from "./existingReturn";
+import { type ReturnConditionView, type ReturnSessionView } from "./returnView";
 
 export type HistoricSaleLookup = {
-  search(query: string): Promise<readonly HistoricReturnSaleView[]>;
+  search(query: string): Promise<readonly HistoricReturnSaleWithExisting[]>;
 };
 
-function itemSummary(sale: HistoricReturnSaleView): string | undefined {
+function itemSummary(sale: HistoricReturnSaleWithExisting): string | undefined {
   if (sale.itemSummary) return sale.itemSummary;
   const first = sale.lines[0];
   if (!first) return undefined;
@@ -33,15 +34,15 @@ export function ReturnsScreen({
   session: ReturnSessionView;
   inFlight: boolean;
   lookup?: HistoricSaleLookup;
-  matches?: readonly HistoricReturnSaleView[];
-  onSelectSale: (sale: HistoricReturnSaleView) => void;
+  matches?: readonly HistoricReturnSaleWithExisting[];
+  onSelectSale: (sale: HistoricReturnSaleWithExisting) => void;
   onUpdateLine: (orderLineId: string, patch: { quantity?: string; reason?: string; condition?: ReturnConditionView }) => void;
   onPreview: () => void;
   onExecute: () => void;
   onResolve: () => void;
 }) {
   const [query, setQuery] = useState("");
-  const [localMatches, setLocalMatches] = useState<readonly HistoricReturnSaleView[] | null>(null);
+  const [localMatches, setLocalMatches] = useState<readonly HistoricReturnSaleWithExisting[] | null>(null);
   const [lookupError, setLookupError] = useState<string | undefined>();
   const [searching, setSearching] = useState(false);
   const selectedFlowRef = useRef<HTMLDivElement | null>(null);
@@ -117,7 +118,7 @@ export function ReturnsScreen({
       <div className="page-head">
         <div>
           <h1>Returns</h1>
-          <p>Returns keep refund, payment and physical stock disposition separate.</p>
+          <p>Review returned items, refund progress, and stock handling without mixing them together.</p>
         </div>
       </div>
       <form className="card card-pad returns-search" onSubmit={handleSearch}>
@@ -134,15 +135,15 @@ export function ReturnsScreen({
         </label>
         {!lookup ? (
           <div className="banner warning" role="status">
-            Original sale lookup is not available yet. You can still review a return after a sale is selected.
+            Original sale lookup is unavailable. You can still review a return after a sale is selected.
           </div>
         ) : null}
         {locked ? (
-          <div className="banner warning" role="alert" data-outstanding-return="">
-            {OUTSTANDING_RETURN_COPY}
-          </div>
+          <p className="muted" data-discovery-collapsed="">
+            Other sales are hidden until this return is checked.
+          </p>
         ) : null}
-        {lookupError ? (
+        {lookupError && !locked ? (
           <div className="banner danger" role="alert">
             {lookupError}
           </div>
@@ -166,43 +167,51 @@ export function ReturnsScreen({
           />
         </div>
       ) : null}
-      {matches.length > 0 ? (
+      {!locked && matches.length > 0 ? (
         <div className="returns-card-grid">
-          {matches.map((sale) => (
-            <article
-              className={sale.saleId === session.saleId ? "card card-pad returns-sale-card selected" : "card card-pad returns-sale-card"}
-              key={sale.saleId}
-              data-selected-sale={sale.saleId === session.saleId ? "true" : "false"}
-            >
-              <div className="returns-sale-head">
-                <strong>{sale.orderReference}</strong>
-                {sale.total ? <strong>{formatMoneyLabel(sale.total)}</strong> : null}
-              </div>
-              <p className="workspace-subline">
-                {[sale.customerLabel, sale.createdAt ? formatOperationalDateTime(sale.createdAt) : undefined]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
-              {itemSummary(sale) ? <p className="workspace-subline">{itemSummary(sale)}</p> : null}
-              <button
-                type="button"
-                className={sale.saleId === session.saleId ? "btn selected" : "btn"}
-                aria-pressed={sale.saleId === session.saleId}
-                disabled={inFlight || locked}
-                onClick={() => {
-                  if (locked) {
-                    return;
-                  }
-                  onSelectSale(sale);
-                }}
+          {matches.map((sale) => {
+            const existing = sale.existingReturn;
+            return (
+              <article
+                className={sale.saleId === session.saleId ? "card card-pad returns-sale-card selected" : "card card-pad returns-sale-card"}
+                key={sale.saleId}
+                data-selected-sale={sale.saleId === session.saleId ? "true" : "false"}
+                data-existing-return={existing ? existing.returnId : ""}
               >
-                Return items
-              </button>
-            </article>
-          ))}
+                <div className="returns-sale-head">
+                  <strong>{sale.orderReference}</strong>
+                  {sale.total ? <strong>{formatMoneyLabel(sale.total)}</strong> : null}
+                </div>
+                <p className="workspace-subline">
+                  {[sale.customerLabel, sale.createdAt ? formatOperationalDateTime(sale.createdAt) : undefined]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+                {itemSummary(sale) ? <p className="workspace-subline">{itemSummary(sale)}</p> : null}
+                {existing ? (
+                  <div className="banner warning" role="status" data-existing-return-warning="">
+                    An unresolved return already exists for this sale. Open it to review refund and stock progress.
+                  </div>
+                ) : null}
+                <button
+                  type="button"
+                  className={sale.saleId === session.saleId ? "btn selected" : "btn"}
+                  aria-pressed={sale.saleId === session.saleId}
+                  disabled={inFlight || locked}
+                  onClick={() => {
+                    if (locked) {
+                      return;
+                    }
+                    onSelectSale(sale);
+                  }}
+                >
+                  {existing ? "Open existing return" : "Return items"}
+                </button>
+              </article>
+            );
+          })}
         </div>
       ) : null}
-
     </div>
   );
 }

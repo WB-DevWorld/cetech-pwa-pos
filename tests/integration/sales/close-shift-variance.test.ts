@@ -2,7 +2,13 @@ import { describe, expect, test } from "vitest";
 import { createInMemoryCheckoutStore } from "../../../apps/pos-web/src/core/checkout/in-memory-store";
 import { handleCloseShift } from "../../../apps/pos-web/src/server/sales/handle-close-shift";
 import {
+  createMemoryOperationalPolicyStore,
+  type OperationalPolicyStore,
+} from "../../../apps/pos-web/src/server/admin/operational-policy-store";
+import type { ShiftClosePolicyOverride } from "../../../apps/pos-web/src/server/auth/policy";
+import {
   commandBase,
+  CORRELATION,
   ghs,
   openRegister,
   seedRegister,
@@ -23,7 +29,9 @@ async function createOpenShiftRuntime() {
   await seedRegister(checkoutStore);
   const shiftId = await openRegister(checkoutStore);
   const manager = await staffCookies({ actorId: "manager_a", displayName: "Manager A" });
-  return { checkoutStore, shiftId, manager };
+  const cashier = await staffCookies();
+  const policies = createMemoryOperationalPolicyStore();
+  return { checkoutStore, shiftId, manager, cashier, policies };
 }
 
 async function close(
@@ -31,11 +39,17 @@ async function close(
   countedMinor: number,
   key: string,
   approvalId?: string,
+  options?: {
+    readonly actor?: "manager" | "cashier";
+    readonly policies?: OperationalPolicyStore;
+  },
 ) {
+  const staff = options?.actor === "cashier" ? runtime.cashier : runtime.manager;
   return handleCloseShift({
-    ...commandBase(runtime.manager.cookieHeader),
-    sessionStore: runtime.manager.store,
+    ...commandBase(staff.cookieHeader),
+    sessionStore: staff.store,
     checkoutStore: runtime.checkoutStore,
+    policies: options?.policies ?? runtime.policies,
     idempotencyKeyHeader: key,
     body: {
       shiftId: runtime.shiftId,
@@ -43,6 +57,19 @@ async function close(
       ...(approvalId ? { approvalId } : {}),
     },
   });
+}
+
+async function policiesWith(
+  override: ShiftClosePolicyOverride,
+): Promise<OperationalPolicyStore> {
+  const store = createMemoryOperationalPolicyStore();
+  await store.writeOverride({
+    scope: { organizationId: "org_a", locationId: "loc_a1", registerId: "reg_a1" },
+    override,
+    actorId: "admin_a",
+    correlationId: CORRELATION,
+  });
+  return store;
 }
 
 describe("R8-02 shift variance is fail-closed", () => {
@@ -104,6 +131,95 @@ describe("R8-02 shift variance is fail-closed", () => {
     }
     expect(result.body.data.status).toBe("requires_attention");
     expect(result.body.data.closedAt).toBeUndefined();
+  });
+
+  test("default compatibility policy still denies cashier shift close", async () => {
+    const runtime = await createOpenShiftRuntime();
+    const result = await close(runtime, 10000, "aaaaaaa7-aaaa-4aaa-8aaa-aaaaaaaaaaa7", undefined, {
+      actor: "cashier",
+    });
+    expect(result.body.ok).toBe(false);
+    if (!result.body.ok) {
+      expect(result.body.error.code).toBe("FORBIDDEN");
+    }
+    expect((await runtime.checkoutStore.getShift(runtime.shiftId))?.status).toBe("open");
+  });
+
+  test("configured policy allows cashier to close their own zero-variance shift", async () => {
+    const runtime = await createOpenShiftRuntime();
+    const policies = await policiesWith({ cashierCanCloseShift: true });
+    const result = await close(runtime, 10000, "aaaaaaa8-aaaa-4aaa-8aaa-aaaaaaaaaaa8", undefined, {
+      actor: "cashier",
+      policies,
+    });
+    expect(result.body.ok).toBe(true);
+    if (result.body.ok) {
+      expect(result.body.data.status).toBe("closed");
+      expect(result.body.data.variance?.minor).toBe(0);
+    }
+  });
+
+  test("cashier non-zero variance is denied when policy requires manager review", async () => {
+    const runtime = await createOpenShiftRuntime();
+    const policies = await policiesWith({
+      cashierCanCloseShift: true,
+      nonZeroVarianceRequiresManager: true,
+      varianceToleranceMinor: 0,
+      varianceCurrency: "GHS",
+    });
+    const result = await close(runtime, 9900, "aaaaaaa9-aaaa-4aaa-8aaa-aaaaaaaaaaa9", undefined, {
+      actor: "cashier",
+      policies,
+    });
+    expect(result.body.ok).toBe(false);
+    if (!result.body.ok) {
+      expect(result.body.error.code).toBe("FORBIDDEN");
+      expect(result.body.error.message).toMatch(/variance requires manager/i);
+    }
+    expect((await runtime.checkoutStore.getShift(runtime.shiftId))?.status).toBe("open");
+  });
+
+  test("policy can allow cashier to submit non-zero count while close effect remains fail-closed", async () => {
+    const runtime = await createOpenShiftRuntime();
+    const policies = await policiesWith({
+      cashierCanCloseShift: true,
+      nonZeroVarianceRequiresManager: false,
+    });
+    const result = await close(runtime, 9900, "aaaaaa10-aaaa-4aaa-8aaa-aaaaaaaaaa10", undefined, {
+      actor: "cashier",
+      policies,
+    });
+    expect(result.body.ok).toBe(true);
+    if (result.body.ok) {
+      expect(result.body.data.status).toBe("requires_attention");
+      expect(result.body.data.closedAt).toBeUndefined();
+    }
+  });
+
+  test("manager close authority can be disabled by policy", async () => {
+    const runtime = await createOpenShiftRuntime();
+    const policies = await policiesWith({ managerCanCloseShift: false });
+    const result = await close(runtime, 10000, "aaaaaa11-aaaa-4aaa-8aaa-aaaaaaaaaa11", undefined, {
+      policies,
+    });
+    expect(result.body.ok).toBe(false);
+    if (!result.body.ok) {
+      expect(result.body.error.code).toBe("FORBIDDEN");
+    }
+    expect((await runtime.checkoutStore.getShift(runtime.shiftId))?.status).toBe("open");
+  });
+
+  test("manager close-other authority is independently configurable", async () => {
+    const runtime = await createOpenShiftRuntime();
+    const policies = await policiesWith({ managerCanCloseOthersShift: false });
+    const result = await close(runtime, 10000, "aaaaaa12-aaaa-4aaa-8aaa-aaaaaaaaaa12", undefined, {
+      policies,
+    });
+    expect(result.body.ok).toBe(false);
+    if (!result.body.ok) {
+      expect(result.body.error.code).toBe("FORBIDDEN");
+      expect(result.body.error.message).toMatch(/another staff member/i);
+    }
   });
 
   test("idempotent replay does not duplicate close or escalate status", async () => {

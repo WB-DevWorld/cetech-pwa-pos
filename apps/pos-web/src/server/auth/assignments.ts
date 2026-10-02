@@ -43,6 +43,7 @@ export function createMemoryAssignmentDirectory(
     readonly organizationId: string;
     readonly locationRoles: readonly StaffLocationRole[];
     readonly registerIds: readonly string[];
+    readonly registerAssignments?: readonly StaffRegisterAssignment[];
   }>,
 ): StaffAssignmentDirectory {
   return {
@@ -57,6 +58,7 @@ export function createMemoryAssignmentDirectory(
       return {
         locationIds: locationRoles.map((row) => row.locationId),
         registerIds: match.registerIds,
+        ...(match.registerAssignments ? { registerAssignments: match.registerAssignments } : {}),
         locationRoles,
       };
     },

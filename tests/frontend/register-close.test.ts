@@ -109,9 +109,12 @@ describe("FE-06 register close", () => {
         session: controller.getSession(),
         inFlight: false,
         onClose: () => undefined,
+        closePresentation: { showClose: true, notice: "You can close this shift under the current policy." },
       }),
     );
     expect(html).toContain("closing-count");
+    expect(html).not.toContain("Shift ID");
+    expect(html).not.toContain("Technical details");
     expect(html).not.toContain("data-closed-expected");
     expect(html).not.toContain('name="expectedCash"');
   });

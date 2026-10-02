@@ -1,8 +1,8 @@
 "use client";
 
 import { formatMoneyDisplay } from "../sell/state/quotePresentation";
-import { orderStatusLabel, TechnicalDetails } from "../../ui/cashier-language";
 import {
+  availableBeforeRequestLabel,
   canPresentReturnComplete,
   conditionLabel,
   conditionRestockNotice,
@@ -10,6 +10,8 @@ import {
   dispositionLabel,
   dispositionPolicyLabel,
   OUTSTANDING_RETURN_COPY,
+  returnProgressLines,
+  returnSafetyCopy,
   unresolvedEffectLabels,
   type ReturnConditionView,
   type ReturnSessionView,
@@ -25,27 +27,22 @@ const CONDITIONS: readonly ReturnConditionView[] = [
 ];
 
 function EffectRow({
-  label,
-  effect,
-  refundIdentity = false,
+  line,
+  status,
+  effectId,
 }: {
-  label: string;
-  effect?: ReturnSessionView["providerRefund"];
-  refundIdentity?: boolean;
+  line: string;
+  status: string;
+  effectId?: string;
 }) {
-  if (!effect) {
-    return null;
-  }
   return (
     <div
-      className="r-row"
-      data-effect-name={label}
-      data-effect-status={effect.status}
-      data-effect-id={effect.effectId ?? ""}
-      data-refund-identity={refundIdentity ? effect.effectId ?? "" : undefined}
+      className="r-row return-effect-row"
+      data-effect-status={status}
+      data-effect-id={effectId ?? ""}
+      data-refund-identity={line.startsWith("Refund —") ? effectId : undefined}
     >
-      <span>{label}</span>
-      <span>{orderStatusLabel(effect.status)}</span>
+      <span className="return-effect-label">{line}</span>
     </div>
   );
 }
@@ -70,6 +67,9 @@ export function ReturnFlow({
   const unresolved = unresolvedEffectLabels(session);
   const locked = session.identityLocked;
   const fieldsDisabled = inFlight || locked;
+  const safety = returnSafetyCopy(session);
+  const progress = returnProgressLines(session);
+  const lockCopyAlreadyShown = (session.message || copy.status).includes(OUTSTANDING_RETURN_COPY);
 
   return (
     <section
@@ -85,7 +85,7 @@ export function ReturnFlow({
       <p className="muted" role="status" aria-live="polite">
         {session.message || copy.status}
       </p>
-      {locked ? (
+      {locked && !lockCopyAlreadyShown ? (
         <div className="banner warning" role="alert" data-outstanding-return="">
           {OUTSTANDING_RETURN_COPY}
         </div>
@@ -97,18 +97,18 @@ export function ReturnFlow({
       ) : null}
       {session.lines.map((line) => {
         const preview = session.previewLines.find((item) => item.orderLineId === line.orderLineId);
-        const safety = conditionRestockNotice(line.condition);
+        const restockNotice = conditionRestockNotice(line.condition);
         return (
           <article key={line.orderLineId} className="card card-pad return-line" data-order-line-id={line.orderLineId}>
             <div className="row between">
               <div>
-                <strong>{line.name}</strong>
+                <strong className="compact-product-name">{line.name}</strong>
                 <div className="muted">Sold {line.originalSoldQuantity}</div>
               </div>
             </div>
             <div className="grid-3">
               <div className="field">
-                <label htmlFor={`return-qty-${line.orderLineId}`}>Return qty</label>
+                <label htmlFor={`return-qty-${line.orderLineId}`}>Quantity to return</label>
                 <input
                   id={`return-qty-${line.orderLineId}`}
                   className="input"
@@ -146,12 +146,12 @@ export function ReturnFlow({
                 </select>
               </div>
             </div>
-            {safety ? (
+            {restockNotice ? (
               <div className="banner warning" role="status" data-restock-safety={line.condition}>
-                {safety}
+                {restockNotice}
               </div>
             ) : (
-              <p className="muted">Stock action follows the reviewed return. A refund is not a stock update.</p>
+              <p className="muted">The refund and stock handling are confirmed separately.</p>
             )}
             {preview ? (
               <div
@@ -161,17 +161,14 @@ export function ReturnFlow({
                 data-intended-disposition={preview.intendedDisposition}
                 data-disposition-policy={preview.dispositionPolicy}
               >
-                <div>Remaining returnable: {preview.remainingReturnableQuantity}</div>
-                <div>Stock action: {dispositionLabel(preview.intendedDisposition)}</div>
-                <div>Stock action: {dispositionPolicyLabel(preview.dispositionPolicy)}</div>
-                {preview.intendedDisposition === "no_automatic_restock" ? (
-                  <div className="banner info" role="status">
-                    No automatic restock.
-                  </div>
-                ) : null}
-                {!preview.automaticSellableRestock ? (
-                  <div data-not-automatic-sellable="">Not automatically restocked as sellable.</div>
-                ) : null}
+                <div>{availableBeforeRequestLabel(preview.remainingReturnableQuantity)}</div>
+                <div>
+                  Stock handling: {dispositionLabel(preview.intendedDisposition)}
+                  {dispositionPolicyLabel(preview.dispositionPolicy) === dispositionLabel(preview.intendedDisposition)
+                    ? ""
+                    : `. ${dispositionPolicyLabel(preview.dispositionPolicy)}`}
+                  {preview.intendedDisposition === "no_automatic_restock" ? ". No automatic restock." : ""}
+                </div>
               </div>
             ) : null}
           </article>
@@ -188,28 +185,28 @@ export function ReturnFlow({
         </div>
       ) : null}
       {session.approvalId ? (
-        <div data-bound-approval={session.approvalId}>
-          <TechnicalDetails rows={[{ label: "Approval ID", value: session.approvalId }]} />
+        <div className="banner success" role="status" data-bound-approval="">
+          Manager approval recorded.
         </div>
       ) : null}
-      {session.providerRefund || session.cashRefund || session.commercialRefund || session.stockDisposition ? (
-        <div className="card card-pad" data-return-effects="">
+      {progress.length > 0 ? (
+        <div className="card card-pad return-effect-card" data-return-effects="">
           <strong>Return progress</strong>
-          <EffectRow label="Payment refund" effect={session.providerRefund} refundIdentity />
-          <EffectRow label="Cash refund" effect={session.cashRefund} refundIdentity />
-          <EffectRow label="Order refund" effect={session.commercialRefund} />
-          <EffectRow label="Stock update" effect={session.stockDisposition} />
+          <div className="return-effect-list">
+            {progress.map((row) => (
+              <EffectRow key={row.text} line={row.text} status={row.status} effectId={row.effectId} />
+            ))}
+          </div>
+          {safety ? (
+            <div className="banner warning return-effect-safety" role="alert" data-return-safety="">
+              {safety}
+            </div>
+          ) : null}
         </div>
       ) : null}
-      {session.refundIdentities.length > 0 ? (
-        <TechnicalDetails
-          rows={session.refundIdentities.map((id, index) => ({ label: `Refund ${index + 1}`, value: id }))}
-        />
-      ) : null}
-      {!complete && unresolved.length > 0 ? (
+      {!complete && !safety && unresolved.length > 0 ? (
         <div className="banner warning" role="alert" data-return-unresolved="">
-          {"This return isn't finished yet. Some refund or stock updates are still pending."}
-          <TechnicalDetails rows={unresolved.map((label) => ({ label: "Pending", value: label }))} />
+          This return is not finished yet. Check the progress above before doing anything else.
         </div>
       ) : null}
       {complete ? (
@@ -223,9 +220,9 @@ export function ReturnFlow({
             Review return
           </button>
         ) : null}
-        {!locked && (session.stage === "previewed" || (session.stage === "approval_required" && session.approvalId)) && session.returnId ? (
+        {!locked && (session.stage === "previewed" || session.stage === "approval_required") && session.returnId ? (
           <button type="button" className="btn primary" disabled={inFlight} onClick={onExecute}>
-            Complete return
+            {session.stage === "approval_required" && !session.approvalId ? "Check approval" : "Complete return"}
           </button>
         ) : null}
         {locked || session.stage === "resolving" || session.stage === "in_progress" || session.stage === "refund_pending" || session.stage === "requires_attention" ? (

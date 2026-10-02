@@ -31,19 +31,24 @@ export function ghs(minor: number): Money {
   return { minor, currency: "GHS" };
 }
 
-export function cashierAssignments(registerIds: readonly string[] = ["reg_a1"]) {
+export function cashierAssignments(
+  registerIds: readonly string[] = ["reg_a1"],
+  locationId = "loc_a1",
+) {
   return createMemoryAssignmentDirectory([
     {
       actorId: "cashier_a",
       organizationId: "org_a",
-      locationRoles: [{ locationId: "loc_a1", role: "cashier" }],
+      locationRoles: [{ locationId, role: "cashier" }],
       registerIds,
+      registerAssignments: registerIds.map((registerId) => ({ registerId, locationId })),
     },
     {
       actorId: "cashier_b",
       organizationId: "org_b",
       locationRoles: [{ locationId: "loc_b1", role: "cashier" }],
       registerIds: ["reg_b1"],
+      registerAssignments: [{ registerId: "reg_b1", locationId: "loc_b1" }],
     },
   ]);
 }
@@ -213,7 +218,12 @@ export async function initializeCard(runtime: Awaited<ReturnType<typeof createPa
     provider: runtime.provider,
     appEnv: "local",
     sandboxPayerEmail: SANDBOX_EMAIL,
-    env: {},
+    env: {
+      PAYMENT_PROVIDER: "paystack",
+      PAYSTACK_MODE: "test",
+      PAYSTACK_SECRET_KEY: "sk_test_fixture_key",
+      PAYSTACK_CARD_ENABLED: "true",
+    },
   });
 }
 

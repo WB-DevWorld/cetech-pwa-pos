@@ -292,6 +292,7 @@ describe("FE-05 cash checkout and receipt UX", () => {
     const controller = createCashCheckoutController(ports);
     const first = controller.startPrepare(quoteFixture());
     const second = controller.startPrepare(quoteFixture());
+    await Promise.resolve();
     expect(ports.prepare).toHaveBeenCalledTimes(1);
     gate.resolve(success(preparedSale()));
     await Promise.all([first, second]);

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
+import { receiptPaperIsMounted } from "../../orders/reprint-receipt";
 import type { CartDraftStore, CatalogPort, CheckoutUseCases, CustomerPort, PaymentPort, PricingPort, PrintPort, ReceiptPort, SalesPort } from "../../../../../../docs/contracts/ports";
 import { SellScreen } from "../SellScreen";
 import { ReceiptPaper } from "../components/ReceiptPaper";
@@ -19,6 +20,7 @@ import { useCashCheckout, type CashCheckoutPorts } from "./useCashCheckout";
 import type { ReceiptViewModel } from "../state/checkoutSession";
 import type { CashCheckoutScope } from "./cashCheckoutController";
 import type { CartDraft } from "../../../../../../docs/contracts/domain.generated";
+import type { PaymentMethodCapabilities } from "../../../server/payments/method-capabilities";
 
 export type SellSessionPorts = {
   readonly catalog: CatalogPort;
@@ -43,7 +45,7 @@ export type SellSessionPorts = {
   readonly createCheckoutUuid?: () => string;
   readonly catalogAvailability?: CatalogAvailability;
   readonly catalogProjectionGeneration?: number;
-  readonly electronicPaymentsAvailable?: boolean;
+  readonly paymentMethods?: PaymentMethodCapabilities;
   readonly nextSaleCustomer?: CustomerSearchResultView | null;
   readonly onNextSaleCustomerApplied?: (customer: CustomerSearchResultView) => void;
   readonly customerSearch?: (query: string) => Promise<readonly CustomerSearchResultView[]>;
@@ -82,6 +84,27 @@ function preserveProjectionAvailability(
     return online ? "stale" : "offline_cached";
   }
   return availabilityFromNetwork(online, searchFailed, hasCache);
+}
+
+export function SellLoadingSkeleton() {
+  return (
+    <div className="sell-workspace sell-loading-workspace" role="status" aria-live="polite" aria-busy="true">
+      <div className="sell-loading-head">
+        <div className="sell-skeleton sell-skeleton-search" />
+        <div className="sell-loading-label">Loading saved products…</div>
+      </div>
+      <div className="sell-loading-grid" aria-hidden="true">
+        {Array.from({ length: 8 }, (_, index) => (
+          <div className="sell-loading-card" key={index}>
+            <div className="sell-skeleton sell-skeleton-title" />
+            <div className="sell-skeleton sell-skeleton-line" />
+            <div className="sell-skeleton sell-skeleton-line short" />
+            <div className="sell-skeleton sell-skeleton-price" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function SellRuntimeScreen(ports: SellSessionPorts) {
@@ -161,14 +184,15 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
   const electronic = useElectronicPayment(electronicPorts);
   const cashCheckoutRef = useRef(cashCheckout);
   const tenderAvailability = useMemo<TenderAvailabilityView>(() => {
-    const electronicReady = Boolean(ports.electronicPaymentsAvailable && ports.payments?.initialize);
+    const canStartElectronic = Boolean(ports.payments?.initialize);
+    const methods = ports.paymentMethods;
     return {
       cash: true,
-      mobileMoney: electronicReady,
-      card: electronicReady,
-      externalElectronic: electronicReady,
+      mobileMoney: canStartElectronic && methods?.mobileMoney === "configured",
+      card: canStartElectronic && methods?.card === "configured",
+      externalElectronic: canStartElectronic && methods?.externalTerminal === "configured",
     };
-  }, [ports.electronicPaymentsAvailable, ports.payments?.initialize]);
+  }, [ports.paymentMethods, ports.payments?.initialize]);
 
   useEffect(() => {
     cashCheckoutRef.current = cashCheckout;
@@ -357,11 +381,7 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
   );
 
   if (!ready || !initialState) {
-    return (
-      <div className="sell-workspace">
-        <p className="muted">Loading products…</p>
-      </div>
-    );
+    return <SellLoadingSkeleton />;
   }
 
   return (
@@ -417,6 +437,10 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
           flushSync(() => {
             setPrintReceipt(receipt);
           });
+          if (!receiptPaperIsMounted(document, receipt.receiptNumber)) {
+            setPrintReceipt(null);
+            return;
+          }
           void cashCheckout.printReceipt().finally(() => {
             setPrintReceipt(null);
           });

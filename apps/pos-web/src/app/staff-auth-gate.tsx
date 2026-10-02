@@ -8,11 +8,13 @@ export function StaffAuthGate({
   noticeState,
   busy,
   errorMessage,
+  supportReference,
   onSignIn,
 }: {
   readonly noticeState: AuthNoticeState;
   readonly busy: boolean;
   readonly errorMessage?: string;
+  readonly supportReference?: string;
   readonly onSignIn: (request: StaffSignInRequest) => void;
 }) {
   return (
@@ -20,7 +22,12 @@ export function StaffAuthGate({
       <LoginScreen
         noticeState={noticeState}
         busy={busy}
-        errorMessage={errorMessage ? toCashierError({ message: errorMessage, domain: "auth" }).message : undefined}
+        errorMessage={
+          errorMessage
+            ? toCashierError({ message: errorMessage, domain: "auth" }).message
+            : undefined
+        }
+        supportReference={supportReference}
         onSignIn={onSignIn}
       />
     </div>

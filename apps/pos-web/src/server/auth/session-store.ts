@@ -1,9 +1,16 @@
 import type { Session } from "../../../../../docs/contracts/domain.generated";
 
+export type StaffSessionCreateFlags = {
+  readonly mustChangePassword?: boolean;
+  readonly authUserId?: string | null;
+};
+
 export type StoredStaffSession = {
   readonly session: Session;
   readonly csrfToken: string;
   readonly expiresAt: Date;
+  readonly mustChangePassword?: boolean;
+  readonly authUserId?: string | null;
 };
 
 /**
@@ -11,9 +18,18 @@ export type StoredStaffSession = {
  * implementation. Process memory is not that implementation.
  */
 export interface StaffSessionStore {
-  create(session: Session, csrfToken: string, expiresAt: Date): Promise<string>;
+  create(
+    session: Session,
+    csrfToken: string,
+    expiresAt: Date,
+    flags?: StaffSessionCreateFlags,
+  ): Promise<string>;
   get(sessionId: string, now: Date): Promise<StoredStaffSession | null>;
   revoke(sessionId: string): Promise<void>;
+  revokeActorSessions(input: {
+    readonly organizationId: string;
+    readonly actorId: string;
+  }): Promise<void>;
 }
 
 /**
@@ -23,9 +39,15 @@ export interface StaffSessionStore {
 export function createEphemeralInMemoryStaffSessionStore(): StaffSessionStore {
   const rows = new Map<string, StoredStaffSession>();
   return {
-    async create(session, csrfToken, expiresAt) {
+    async create(session, csrfToken, expiresAt, flags) {
       const sessionId = crypto.randomUUID();
-      rows.set(sessionId, { session, csrfToken, expiresAt });
+      rows.set(sessionId, {
+        session,
+        csrfToken,
+        expiresAt,
+        mustChangePassword: flags?.mustChangePassword === true,
+        authUserId: flags?.authUserId ?? null,
+      });
       return sessionId;
     },
     async get(sessionId, now) {
@@ -41,6 +63,16 @@ export function createEphemeralInMemoryStaffSessionStore(): StaffSessionStore {
     },
     async revoke(sessionId) {
       rows.delete(sessionId);
+    },
+    async revokeActorSessions(input) {
+      for (const [sessionId, row] of rows) {
+        if (
+          row.session.organizationId === input.organizationId &&
+          row.session.actorId === input.actorId
+        ) {
+          rows.delete(sessionId);
+        }
+      }
     },
   };
 }

@@ -8,6 +8,7 @@ import type { ReturnStore } from "../../core/returns/types";
 import { resolveTenderRefund } from "../payments/refund";
 import type { ElectronicRefundProvider } from "../payments/refund-provider";
 import { resolutionFromRecord } from "./resolution";
+import { buildStockDispositionCommand } from "./bridge-commands";
 
 export async function resolveReturn(input: {
   readonly checkoutStore: CheckoutStore;
@@ -58,6 +59,30 @@ export async function resolveReturn(input: {
         ...stored.stockDisposition,
         status: monotonicIndependent(stored.stockDisposition.status, resolved.data.status),
         message: resolved.data.message,
+      });
+    } else if (resolved.error.code === "NOT_FOUND") {
+      // A missing remote effect proves the prior stock command never established
+      // bridge-side effect identity. Reapply the same immutable disposition using
+      // the existing effect id as a stable idempotency key. This is deliberately
+      // not done for commercial refunds, where a native Woo refund may already
+      // exist without recoverable CETECH identity.
+      const applied = await input.bridge.applyStockDisposition(
+        buildStockDispositionCommand({ stored, stock: stored.stockDisposition }),
+        {
+          idempotencyKey: stored.stockDisposition.stockDispositionId,
+          correlationId: input.correlationId,
+        },
+      );
+      await input.returnStore.saveStockDisposition({
+        ...stored.stockDisposition,
+        ...(applied.ok
+          ? {
+              status: monotonicIndependent(stored.stockDisposition.status, applied.data.status),
+              message: applied.data.message,
+            }
+          : {
+              message: applied.error.message,
+            }),
       });
     }
   }

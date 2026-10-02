@@ -13,6 +13,7 @@ import type {
   IdempotencyClaim,
   OutboxEvent,
   PosSaleRecord,
+  PrepareOperationDiagnostic,
   SeedPreparedSaleInput,
   StoredCashMovement,
   StoredDevice,
@@ -21,6 +22,7 @@ import type {
   StoredRegister,
   StoredShift,
 } from "../../core/checkout/types";
+import { claimKindForExistingPrepare } from "../../core/checkout/prepare-claim";
 import { isPrepareIntentSnapshot, type PrepareIntentSnapshot } from "../../core/receipt/prepare-intent";
 
 export type SupabaseCheckoutStoreOptions = {
@@ -104,6 +106,17 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
     return rows[0];
   }
 
+  async function readLocationName(organizationId: string, locationId: string): Promise<string | undefined> {
+    try {
+      const row = await getOne(
+        `pos_locations?id=eq.${encodeURIComponent(locationId)}&organization_id=eq.${encodeURIComponent(organizationId)}&select=name`,
+      );
+      return typeof row?.name === "string" && row.name.trim() ? row.name.trim() : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
   return {
     async withLock(_key, fn) {
       return fn();
@@ -148,7 +161,9 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
 
     async getRegister(id) {
       const row = await getOne(`pos_registers?id=eq.${encodeURIComponent(id)}&select=id,organization_id,location_id,name,currency,status`);
-      return row ? mapRegister(row) : undefined;
+      const register = row ? mapRegister(row) : undefined;
+      if (!register) return undefined;
+      return { ...register, locationName: await readLocationName(register.organizationId, register.locationId) };
     },
 
     async getDevice(id) {
@@ -725,6 +740,38 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
       }
     },
 
+    async recordPrepareDiagnostic(input) {
+      const existing = await getPending(getRows, input.organizationId, input.operation, input.idempotencyKey);
+      if (!existing) {
+        return;
+      }
+      const current = numericAttempts(existing.attempts);
+      const attempts = input.countAttempt ? current + 1 : Math.max(current, input.errorCode ? 1 : current);
+      await patchPending(request, input.organizationId, input.operation, input.idempotencyKey, {
+        status: input.status,
+        attempts,
+        last_attempt_at: input.attemptedAt,
+        ...(input.errorCode !== undefined ? { last_error_code: input.errorCode } : {}),
+        ...(input.outcome !== undefined ? { outcome: input.outcome } : {}),
+      });
+    },
+
+    async readPrepareDiagnostic(organizationId, operation, idempotencyKey) {
+      const existing = await getPending(getRows, organizationId, operation, idempotencyKey);
+      return existing ? diagnosticFromRest(existing, idempotencyKey) : undefined;
+    },
+
+    async findSalePrepareOperation(transactionId) {
+      const rows = await getRows(
+        `pos_pending_operations?transaction_id=eq.${encodeURIComponent(transactionId)}&operation=eq.sale.prepare&select=${PENDING_DIAGNOSTIC_SELECT}`,
+      );
+      const row = rows[0];
+      if (!row || typeof row.idempotency_key !== "string" || typeof row.organization_id !== "string") {
+        return undefined;
+      }
+      return diagnosticFromRest(row, row.idempotency_key);
+    },
+
     async peekIdempotency(organizationId, operation, idempotencyKey) {
       const existing = await getPending(getRows, organizationId, operation, idempotencyKey);
       return asPendingStatus(existing?.status);
@@ -765,6 +812,39 @@ async function upsertSale(
   }
 }
 
+const PENDING_DIAGNOSTIC_SELECT =
+  "organization_id,idempotency_key,transaction_id,request_hash,status,outcome,intent_snapshot,attempts,last_attempt_at,last_error_code";
+
+function numericAttempts(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      return parsed;
+    }
+  }
+  return 0;
+}
+
+function diagnosticFromRest(row: RestRow, idempotencyKey: Uuid): PrepareOperationDiagnostic | undefined {
+  if (typeof row.organization_id !== "string" || typeof row.status !== "string") {
+    return undefined;
+  }
+  return {
+    organizationId: row.organization_id,
+    idempotencyKey,
+    transactionId: typeof row.transaction_id === "string" ? row.transaction_id : undefined,
+    status: row.status as PrepareOperationDiagnostic["status"],
+    attempts: numericAttempts(row.attempts),
+    lastAttemptAt: typeof row.last_attempt_at === "string" ? row.last_attempt_at : undefined,
+    lastErrorCode: typeof row.last_error_code === "string" ? row.last_error_code : undefined,
+    outcome: row.outcome,
+    intentPresent: parseIntentSnapshot(row.intent_snapshot) !== undefined,
+  };
+}
+
 async function getPending(
   getRows: (path: string) => Promise<RestRow[]>,
   organizationId: Id,
@@ -772,7 +852,7 @@ async function getPending(
   idempotencyKey: Uuid,
 ): Promise<RestRow | undefined> {
   const rows = await getRows(
-    `pos_pending_operations?organization_id=eq.${encodeURIComponent(organizationId)}&operation=eq.${encodeURIComponent(operation)}&idempotency_key=eq.${encodeURIComponent(idempotencyKey)}&select=request_hash,status,outcome,intent_snapshot`,
+    `pos_pending_operations?organization_id=eq.${encodeURIComponent(organizationId)}&operation=eq.${encodeURIComponent(operation)}&idempotency_key=eq.${encodeURIComponent(idempotencyKey)}&select=${PENDING_DIAGNOSTIC_SELECT}`,
   );
   return rows[0];
 }
@@ -804,7 +884,6 @@ function mapCommandScope(row: RestRow): CommandScopeBinding | undefined {
   if (
     typeof row.organization_id !== "string" ||
     typeof row.location_id !== "string" ||
-    typeof row.transaction_id !== "string" ||
     typeof row.operation !== "string"
   ) {
     return undefined;
@@ -814,7 +893,7 @@ function mapCommandScope(row: RestRow): CommandScopeBinding | undefined {
     locationId: row.location_id,
     registerId: typeof row.register_id === "string" ? row.register_id : undefined,
     shiftId: typeof row.shift_id === "string" ? row.shift_id : undefined,
-    transactionId: row.transaction_id,
+    transactionId: typeof row.transaction_id === "string" ? row.transaction_id : undefined,
     operation: row.operation as CommandScopeBinding["operation"],
   };
 }
@@ -842,13 +921,18 @@ function claimFromRow(row: RestRow, requestHash: string): IdempotencyClaim {
   if (typeof row.request_hash !== "string" || row.request_hash !== requestHash) {
     return { kind: "conflict" };
   }
-  if (row.status === "sent") {
+  const kind = claimKindForExistingPrepare({
+    status: typeof row.status === "string" ? row.status : "",
+    outcome: row.outcome,
+    intentPresent: parseIntentSnapshot(row.intent_snapshot) !== undefined,
+  });
+  if (kind === "in_progress") {
     return { kind: "in_progress" };
   }
-  if (row.status === "acknowledged") {
+  if (kind === "replay") {
     return { kind: "replay", outcome: row.outcome };
   }
-  if (row.status === "requires_attention") {
+  if (kind === "repair") {
     return { kind: "repair", outcome: row.outcome };
   }
   return { kind: "acquired" };

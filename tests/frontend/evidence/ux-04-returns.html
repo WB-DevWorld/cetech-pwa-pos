@@ -398,6 +398,8 @@ button:disabled {
   flex-direction: column;
   gap: 8px;
   width: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .nav-btn {
@@ -438,11 +440,8 @@ button:disabled {
   font-weight: 800;
 }
 
-.sidebar-bottom {
+.nav-list .nav-btn[data-route="settings"] {
   margin-top: auto;
-  width: 100%;
-  display: grid;
-  gap: 8px;
 }
 
 .app-main {
@@ -556,20 +555,31 @@ button:disabled {
     z-index: 50;
   }
 
-  .brand-mark,
-  .sidebar-bottom {
+  .brand-mark {
     display: none;
   }
 
   .nav-list {
     flex-direction: row;
-    justify-content: space-around;
+    justify-content: flex-start;
     gap: 2px;
     height: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+
+  .nav-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-list .nav-btn[data-route="settings"] {
+    margin-top: 0;
   }
 
   .nav-btn {
-    flex: 1;
+    flex: 1 0 54px;
+    min-width: 54px;
     min-height: 56px;
     padding: 3px;
   }
@@ -594,8 +604,21 @@ button:disabled {
 }
 
 @media (max-width: 480px) {
-  .topbar-right .status-pill .status-text {
+  .topbar .status-pill .status-text {
     display: none;
+  }
+
+  .topbar {
+    gap: 8px;
+  }
+
+  .topbar-left,
+  .topbar-right {
+    gap: 6px;
+  }
+
+  .topbar .btn.small {
+    padding-inline: 9px;
   }
 
   .page-head {
@@ -1219,9 +1242,15 @@ button.product-card:disabled {
   gap: 10px;
 }
 
-.cart-line-name {
+.cart-line-name,
+.compact-product-name {
   font-weight: 750;
   line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .qty-row {
@@ -1854,7 +1883,83 @@ button.product-card:disabled {
     max-width: none;
   }
 }
+
+
+.receipt-print-host {
+  display: none;
+}
+
+@media print {
+  @page {
+    margin: 2mm;
+  }
+
+  html,
+  body {
+    width: 76mm !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  /*
+   * Keep only the ancestor chain needed to reach the print host. Everything
+   * else is removed from print layout so hidden POS chrome cannot paginate
+   * into blank sheets.
+   */
+  body *:not(:has(.receipt-print-host)):not(.receipt-print-host):not(.receipt-print-host *) {
+    display: none !important;
+  }
+
+  body *:has(.receipt-print-host) {
+    position: static !important;
+    display: block !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  .receipt-print-host {
+    position: static !important;
+    display: block !important;
+    width: 76mm !important;
+    max-width: 76mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .receipt-paper {
+    position: static !important;
+    width: 76mm !important;
+    max-width: 76mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    color: #000 !important;
+    overflow: visible !important;
+  }
+
+  .receipt-paper .muted {
+    color: #000 !important;
+  }
+}
 </style>
 </head>
-<body><div class="app-shell"><a class="skip-link" href="#main-content">Skip to main content</a><div class="live-region" aria-live="polite"></div><aside class="sidebar" aria-label="App sidebar"><div class="brand-mark" title="CETECH">CT</div><nav class="nav-list" aria-label="Primary navigation"><button type="button" class="nav-btn" aria-label="Sell" data-route="sell" data-href="/sell"><span class="icon" aria-hidden="true">▦</span><span>Sell</span></button><button type="button" class="nav-btn" aria-label="Orders" data-route="orders" data-href="/orders"><span class="icon" aria-hidden="true">▤</span><span>Orders</span></button><button type="button" class="nav-btn" aria-label="Customers" data-route="customers" data-href="/customers"><span class="icon" aria-hidden="true">♙</span><span>Customers</span></button><button type="button" class="nav-btn active" aria-current="page" aria-label="Returns" data-route="returns" data-href="/returns"><span class="icon" aria-hidden="true">↩</span><span>Returns</span></button><button type="button" class="nav-btn" aria-label="Register" data-route="register" data-href="/register"><span class="icon" aria-hidden="true">▣</span><span>Register</span></button><button type="button" class="nav-btn" aria-label="Health" data-route="health" data-href="/health"><span class="icon" aria-hidden="true">●</span><span>Health</span></button><button type="button" class="nav-btn" aria-label="Attention 1" data-route="attention" data-href="/attention"><span class="icon" aria-hidden="true">!</span><span>Attention<span class="nav-badge"> 1</span></span></button></nav><div class="sidebar-bottom"><button type="button" class="nav-btn" aria-label="Settings" data-route="settings" data-href="/settings"><span class="icon" aria-hidden="true">⚙</span><span>Settings</span></button></div></aside><div class="app-main"><header class="topbar"><div class="topbar-left"><span class="app-title">CETECH POS</span><span class="context-pill">Front Counter 1</span><span class="context-pill secondary">Ama Mensah</span><span class="status-pill warning"><span class="dot" aria-hidden="true"></span>No open shift</span></div><div class="topbar-right"><span class="status-pill success" data-online="true" aria-label="Online"><span class="dot" aria-hidden="true"></span><span class="status-text">Online</span></span><button class="icon-btn" type="button" title="Lock register" aria-label="Lock register">⌁</button></div></header><main class="content" id="main-content"><div class="returns-screen" data-return-identity-locked="false"><div class="page-head"><div><h1>Returns</h1><p>Returns keep refund, payment and physical stock disposition separate.</p></div></div><form class="card card-pad returns-search"><label class="field" for="return-sale-query"><span class="sr-only">Find order, customer or receipt</span><input id="return-sale-query" class="input" placeholder="Find order, customer or receipt…" value=""/></label></form><div class="returns-card-grid"><article class="card card-pad returns-sale-card"><div class="returns-sale-head"><strong>#24091</strong><strong>GHS 1,150.00</strong></div><p class="workspace-subline">Accra Buildworks Ltd · 10 Sept 2026, 15:12</p><p class="workspace-subline">2 × Premium Interior Emulsion Paint 20L</p><button type="button" class="btn">Return items</button></article><article class="card card-pad returns-sale-card"><div class="returns-sale-head"><strong>#24088</strong><strong>GHS 425.00</strong></div><p class="workspace-subline">Adwoa Mensah · 10 Sept 2026, 12:08</p><p class="workspace-subline">1 × 650W Professional Impact Drill</p><button type="button" class="btn">Return items</button></article></div></div></main></div></div></body>
+<body><div class="app-shell"><a class="skip-link" href="#main-content">Skip to main content</a><div class="live-region" aria-live="polite"></div><aside class="sidebar" aria-label="App sidebar"><div class="brand-mark" title="CETECH">CT</div><nav class="nav-list" aria-label="Primary navigation"><button type="button" class="nav-btn" aria-label="Sell" data-route="sell" data-href="/sell"><span class="icon" aria-hidden="true">▦</span><span>Sell</span></button><button type="button" class="nav-btn" aria-label="Orders" data-route="orders" data-href="/orders"><span class="icon" aria-hidden="true">▤</span><span>Orders</span></button><button type="button" class="nav-btn" aria-label="Customers" data-route="customers" data-href="/customers"><span class="icon" aria-hidden="true">♙</span><span>Customers</span></button><button type="button" class="nav-btn active" aria-current="page" aria-label="Returns" data-route="returns" data-href="/returns"><span class="icon" aria-hidden="true">↩</span><span>Returns</span></button><button type="button" class="nav-btn" aria-label="Register" data-route="register" data-href="/register"><span class="icon" aria-hidden="true">▣</span><span>Register</span></button><button type="button" class="nav-btn" aria-label="Attention 1" data-route="attention" data-href="/attention"><span class="icon" aria-hidden="true">!</span><span>Attention<span class="nav-badge"> 1</span></span></button><button type="button" class="nav-btn" aria-label="Settings" data-route="settings" data-href="/settings"><span class="icon" aria-hidden="true">⚙</span><span>Settings</span></button></nav></aside><div class="app-main"><header class="topbar"><div class="topbar-left"><span class="app-title">CETECH POS</span><span class="context-pill">Front Counter 1</span><span class="context-pill secondary">Ama Mensah</span><span class="status-pill warning shift-status" aria-label="No open shift"><span class="dot" aria-hidden="true"></span><span class="status-text">No open shift</span></span></div><div class="topbar-right"><span class="status-pill success" data-online="true" aria-label="Online"><span class="dot" aria-hidden="true"></span><span class="status-text">Online</span></span><button class="icon-btn" type="button" title="Lock register" aria-label="Lock register">⌁</button></div></header><main class="content" id="main-content"><div class="returns-screen" data-return-identity-locked="false"><div class="page-head"><div><h1>Returns</h1><p>Review returned items, refund progress, and stock handling without mixing them together.</p></div></div><form class="card card-pad returns-search"><label class="field" for="return-sale-query"><span class="sr-only">Find order, customer or receipt</span><input id="return-sale-query" class="input" placeholder="Find order, customer or receipt…" value=""/></label></form><div class="returns-card-grid"><article class="card card-pad returns-sale-card" data-selected-sale="false"><div class="returns-sale-head"><strong>#24091</strong><strong>GHS 1,150.00</strong></div><p class="workspace-subline">Accra Buildworks Ltd · 10 Sept 2026, 15:12</p><p class="workspace-subline">2 × Premium Interior Emulsion Paint 20L</p><button type="button" class="btn" aria-pressed="false">Return items</button></article><article class="card card-pad returns-sale-card" data-selected-sale="false"><div class="returns-sale-head"><strong>#24088</strong><strong>GHS 425.00</strong></div><p class="workspace-subline">Adwoa Mensah · 10 Sept 2026, 12:08</p><p class="workspace-subline">1 × 650W Professional Impact Drill</p><button type="button" class="btn" aria-pressed="false">Return items</button></article></div></div></main></div></div></body>
 </html>

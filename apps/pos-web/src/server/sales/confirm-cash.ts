@@ -44,6 +44,11 @@ export async function confirmCash(input: {
       context.idempotencyKey,
       hash,
       sale?.locationId ?? actor.locationIds[0],
+      {
+        registerId: sale?.registerId,
+        shiftId: sale?.shiftId,
+        transactionId: request.transactionId,
+      },
     );
     if (claim.kind === "conflict") {
       return apiFailure(

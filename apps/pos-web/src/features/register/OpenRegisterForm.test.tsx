@@ -66,6 +66,42 @@ describe("OpenRegisterForm", () => {
     expect(html).toContain("disabled");
   });
 
+  test("blocks opening until a server-authorized device is available", () => {
+    const html = renderToStaticMarkup(
+      createElement(OpenRegisterForm, {
+        registers,
+        selectedRegisterId: "reg-main",
+        devices: [],
+        selectedDeviceId: "",
+        online: true,
+        onSubmit: () => undefined,
+      }),
+    );
+    expect(html).toContain("No active device available");
+    expect(html).toContain("Only active devices assigned to this register location can open a shift.");
+    expect(html).toContain("disabled");
+  });
+
+  test("shows an explicit device choice when more than one active device is available", () => {
+    const html = renderToStaticMarkup(
+      createElement(OpenRegisterForm, {
+        registers,
+        selectedRegisterId: "reg-main",
+        devices: [
+          { id: "11111111-1111-4111-8111-111111111111", label: "Front tablet" },
+          { id: "22222222-2222-4222-8222-222222222222", label: "Spare tablet" },
+        ],
+        selectedDeviceId: "",
+        online: true,
+        onSubmit: () => undefined,
+      }),
+    );
+    expect(html).toContain("Select a device");
+    expect(html).toContain("Front tablet");
+    expect(html).toContain("Spare tablet");
+    expect(html).toContain("disabled");
+  });
+
   test("shows submitting state", () => {
     const html = renderToStaticMarkup(
       createElement(OpenRegisterForm, {

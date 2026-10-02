@@ -26,6 +26,8 @@ export type StaffActor = Pick<Session, "actorId" | "displayName" | "organization
 
 export type StoredRegister = Register & {
   readonly organizationId: Id;
+  /** Human location label captured for new receipts. Absent on older register rows. */
+  readonly locationName?: string;
 };
 
 export type StoredDevice = {
@@ -157,8 +159,31 @@ export type CommandScopeBinding = {
   readonly locationId: Id;
   readonly registerId?: Id;
   readonly shiftId?: Uuid;
-  readonly transactionId: Uuid;
+  readonly transactionId?: Uuid;
   readonly operation: PendingOperation["operation"];
+};
+
+/** Known commercial effect of one sale.prepare attempt. Stored inside outcome, not a second intent. */
+export type PrepareEffectCertainty =
+  | "none"
+  | "unknown"
+  | "not_found"
+  | "prepared"
+  | "payment_pending"
+  | "finalizing"
+  | "completed"
+  | "cancelled";
+
+export type PrepareOperationDiagnostic = {
+  readonly organizationId: Id;
+  readonly idempotencyKey: Uuid;
+  readonly transactionId?: Uuid;
+  readonly status: PendingOperation["status"];
+  readonly attempts: number;
+  readonly lastAttemptAt?: Timestamp;
+  readonly lastErrorCode?: string;
+  readonly outcome?: unknown;
+  readonly intentPresent: boolean;
 };
 
 export type CommandScopeFields = {
@@ -283,6 +308,22 @@ export interface CheckoutStore {
     outcome: unknown,
   ): Promise<void>;
   releaseIdempotency(organizationId: Id, operation: PendingOperation["operation"], idempotencyKey: Uuid): Promise<void>;
+  recordPrepareDiagnostic(input: {
+    readonly organizationId: Id;
+    readonly operation: PendingOperation["operation"];
+    readonly idempotencyKey: Uuid;
+    readonly status: PendingOperation["status"];
+    readonly attemptedAt: Timestamp;
+    readonly countAttempt: boolean;
+    readonly errorCode?: string;
+    readonly outcome?: unknown;
+  }): Promise<void>;
+  readPrepareDiagnostic(
+    organizationId: Id,
+    operation: PendingOperation["operation"],
+    idempotencyKey: Uuid,
+  ): Promise<PrepareOperationDiagnostic | undefined>;
+  findSalePrepareOperation(transactionId: Uuid): Promise<PrepareOperationDiagnostic | undefined>;
   withLock<T>(key: string, fn: () => Promise<T>): Promise<T>;
   peekIdempotency(
     organizationId: Id,

@@ -1,3 +1,173 @@
+## #105 Admin/Manager control plane — ACTIVE P0
+
+Owner/user explicitly made #105 the next blocking implementation before final R9 closure.
+
+```text
+human / implementing editor: @wbdevworld
+independent reviewer: @Ben-001-sys
+issue: #105
+branch: ws3/admin-105-control-plane
+base: cd37c19f79594ae5c5d3ebdb40520fa51668f9ab
+mode: DESIGN / IMPLEMENT / REVIEW-HANDOFF
+authority:
+  ADR-017 organization control plane + configurable operational permissions
+allowed:
+  docs/decisions/ADR/017.md
+  docs/decisions/DECISION-REGISTER.md
+  CURRENT-WORK.md
+  apps/pos-web/src/server/auth/**
+  apps/pos-web/src/server/admin/**
+  apps/pos-web/src/core/admin/**
+  apps/pos-web/src/features/admin/**
+  apps/pos-web/src/app/admin/**
+  apps/pos-web/src/app/api/pos/v1/admin/**
+  apps/pos-web/src/ui/shell/** only where needed for role-gated management navigation
+  supabase/migrations/** for #105 persistence only
+  supabase/tests/** for #105 persistence only
+  focused frontend/integration/e2e tests
+initial scope:
+  authority/control-plane model
+  configurable shift-close policy
+  management shell
+  staff/access read-management foundation
+  locations/registers/devices management foundation
+  shift/cash oversight foundation
+  diagnostics/audit boundary
+forbidden:
+  Woo pricing/quote authority changes
+  electronic-payment expansion
+  new refund/restock effects
+  VitePOS cutover
+  production promotion
+  protected-main edits
+  self-merge
+  requesting Emmanuel
+review:
+  exact candidate CI must be green
+  Ben independent exact-head review required before R9 integration
+```
+
+Current R9 PR #63 remains DRAFT. Existing R9 evidence is preserved. Final ADR-012/FRESH_2 and final R9 milestone review are paused until #105 is independently reviewed, integrated and runtime-accepted.
+
+Shift and cash oversight is complete on `ws3/admin-105-control-plane` / PR #109. It is a read-only Management view over existing `pos_shifts` aggregates.
+
+Returns, approvals, and requires-attention oversight is complete on `ws3/admin-105-control-plane` / PR #109. It is a Management view over existing return, refund, stock-disposition, and pending-operation records. It does not invent Approved or Rejected statuses, issue a new refund, or restock. An operational manager at the return location can bind an audited approval for an `approval_required` return. An operational manager at the refund location can check that existing refund through the existing reconciliation path. Organization Owner or Admin authority does not grant either action by itself.
+
+Receipt settings administration is complete on `ws3/admin-105-control-plane` / PR #109. It reuses location-scoped `pos_receipt_settings` and `ReceiptSettings`. Owner and Admin may change settings through the still-unreleased `20260922123000_pos_admin_control_plane.sql` atomic RPC, which also appends `pos_admin_audit_events`. That migration has not been applied to staging or production, so the receipt-settings function was added there instead of as a later migration. Managers can view managed locations only.
+
+System health is complete on `ws3/admin-105-control-plane` / PR #109. It is a read-only Management view over the existing store, commerce-connection, and commerce-contract checks. Owner, Admin, Manager, and Support may read it. Cashiers stay on the existing staff health route.
+
+Audit browser is complete on `ws3/admin-105-control-plane` / PR #109. It is a bounded read-only view over append-only `pos_admin_audit_events`. Owner, Admin, and Support may read organization-wide events; operational managers may read only events tied to verified managed locations. Raw before/after JSON is not exposed to the browser.
+
+## Temporary senior #105 cashier-boundary cleanup — COMPLETE
+
+Owner/user's 2026-09-22 instruction to continue #105 authorizes this bounded task-specific reassignment so step 9 can remove technical/admin/support diagnostics from ordinary cashier surfaces. This does **not** permanently alter `OWNERSHIP.md`. Ben / `@Ben-001-sys` remains the independent reviewer of the frozen #105 head.
+
+```text
+human / implementing editor: @wbdevworld
+workstream: WS1 surface boundary + bounded WS3 composition
+task: #105 step 9 — remove technical/admin controls from ordinary cashier surfaces
+branch: ws3/admin-105-control-plane
+starting SHA: 32cae139f60534b631a8dee725f04fb82788db6d
+allowed WS1:
+  apps/pos-web/src/features/settings/SettingsScreen.tsx
+  apps/pos-web/src/features/settings/SettingsScreen.test.tsx
+  apps/pos-web/src/features/sell/components/QuoteStatus.tsx
+  apps/pos-web/src/features/sell/components/QuoteStatus.test.tsx
+  apps/pos-web/src/ui/operational/OperationalSurfaces.tsx
+  apps/pos-web/src/ui/operational/OperationalSurfaces.test.tsx
+  apps/pos-web/src/ui/operational/healthPresentation.ts
+  apps/pos-web/src/ui/operational/healthPresentation.test.ts
+  apps/pos-web/src/ui/shell/routes.ts
+  apps/pos-web/src/ui/shell/AppShell.test.tsx
+  tests/frontend/cashier-language-surfaces.test.ts
+allowed WS3 composition:
+  apps/pos-web/src/app/workspace-runtime.tsx
+  apps/pos-web/src/app/pos-app.tsx
+  CURRENT-WORK.md
+scope:
+  keep cashier operational Status and Needs attention behavior
+  remove build/API/schema/raw technical details from cashier UI
+  remove cashier support/repair controls such as Fix App/manual update diagnostics
+  remove Health from primary cashier navigation while retaining the safe /health route via Settings/recovery
+  remove raw quote error technical details from cashier markup
+  preserve safe retry/recovery, offline, pending-work and attention semantics
+forbidden:
+  Management redesign
+  payment/quote authority changes
+  pricing logic changes
+  PWA cache/data deletion changes
+  refund/restock changes
+  Woo/WS2 changes
+  production promotion
+  self-merge
+review:
+  exact-head CI green
+  @Ben-001-sys independent exact-head review at final #105 freeze
+```
+
+Cashier diagnostics cleanup is source-complete on `ws3/admin-105-control-plane` / PR #109. Ordinary cashier Settings/System status no longer expose raw build/API/schema/quote diagnostics or repair controls; safe R9 local-recovery and update-safety behavior remains intact. System status is reached from Settings rather than primary cashier navigation.
+
+## Temporary senior #105 source closeout — COMPLETE
+
+Owner/user's 2026-09-22 instruction to finish #105 authorizes this bounded task-specific reassignment for the remaining source candidate. This does **not** permanently alter `OWNERSHIP.md`. Ben / `@Ben-001-sys` remains the independent reviewer of the frozen #105 head.
+
+```text
+human / implementing editor: @wbdevworld
+workstream: WS3 control plane + bounded WS1 cashier surfaces
+task: #105 source closeout — return approval continuation, cashier diagnostic boundary, manager register assignment, refund reconciliation, X/Z read, cash correction, close visibility
+branch: ws3/admin-105-control-plane
+starting SHA: ae854d1a1085887c1f379e83eabba9f7164bc0ff
+allowed WS1:
+  apps/pos-web/src/features/returns/**
+  apps/pos-web/src/features/register/**
+  apps/pos-web/src/features/sell/components/ReceiptPaper.tsx
+  apps/pos-web/src/ui/operational/**
+  apps/pos-web/src/ui/shell/**
+  tests/frontend/**
+  apps/pos-web/e2e/**
+allowed WS3:
+  apps/pos-web/src/server/admin/**
+  apps/pos-web/src/server/auth/**
+  apps/pos-web/src/server/returns/**
+  apps/pos-web/src/server/payments/**
+  apps/pos-web/src/server/sales/**
+  apps/pos-web/src/app/management-client.ts
+  apps/pos-web/src/app/management-runtime.tsx
+  apps/pos-web/src/app/register-runtime.tsx
+  apps/pos-web/src/app/api/pos/v1/admin/**
+  apps/pos-web/src/app/api/pos/v1/registers/**
+  apps/pos-web/src/features/admin/**
+  supabase/migrations/20260922123000_pos_admin_control_plane.sql
+  supabase/tests/**
+  CURRENT-WORK.md
+scope:
+  finish defined #105 source gaps without new commerce effects
+  cashier continuation after server-owned return approval
+  manager register assignment inside an existing location assignment
+  exact-reversal cash correction only
+forbidden:
+  OWNERSHIP.md changes
+  new refund or restock engines
+  pricing or Woo authority changes
+  staging migration apply
+  production promotion
+  self-merge
+review:
+  exact-head CI green
+  @Ben-001-sys independent exact-head review
+```
+
+#105 exact head `054e386fe13360f255fb44fdfc37cec7fcfe4218` passed source review, exact-SHA Preview identity, and staging database acceptance. The final UI/language audit reopened only a bounded Management presentation remediation: missing Staff/Policy layout styles, compact responsive navigation, 44px Management touch targets, operator-facing Management copy, and CI-running Management viewport tests. Business authorization/accounting/return/payment/PWA semantics remain frozen. The staging `pos_admin_control_plane` migration is already applied; production remains untouched. This remediation requires fresh exact-head CI and a new independent Ben review before runtime acceptance resumes. R9 remains paused.
+
+The inherited operational policy includes `returnApprovalRequired` (default false). Return preview resolves it server-side at organization → location → register scope. Staging and production do not fall back to an ephemeral policy store. An operational manager binds an atomic, audited, replay-safe approval. The cashier continues the same stored return; the server matches return id and fingerprint and does not require a pasted approval id. Approval does not refund or change stock. `pos_returns.status` stays `approval_required` until existing return execution advances it.
+
+Manager register assignment can change registers only for operational staff already assigned at a location the manager manages. It cannot change the operational role, add a location, invite, disable, or change Owner/Admin/Support membership. Owner and Admin keep full assignment management.
+
+Cash correction reuses the existing exact-reversal rule: the signed amount is the negative of the original movement, the original row is unchanged, a correction cannot correct a correction, and expected cash moves only through the existing insert trigger. A manager at the shift location supplies a reason. Owner or Admin authority alone does not reverse cash.
+
+Management X report is the live expected-cash view and is not stored. Z report reads the durable closed report and is not recalculated. Shift close controls on the register follow effective policy; the server close command remains the final gate.
+
 ## 5PM bounded UX-01 cashier-copy slice — ACTIVE until 2026-09-21 17:00 Africa/Accra
 
 Owner/user explicitly authorizes only this narrow #78 slice for today's release candidate.
@@ -523,3 +693,17 @@ Semantic conflict: `apps/pos-web/src/app/pos-app.tsx` and `apps/pos-web/src/conf
 - No secrets in prompts, commits, screenshots, logs or evidence.
 - No wildcard origin/CSRF bypass.
 - Do not clear IndexedDB/drafts/journal as a routine recovery or catalog-sync technique.
+
+## Final #105 source remediation — IN SOURCE, NOT RUNTIME-ACCEPTED
+
+The 2026-09-23 whole-system remediation stays on `ws3/admin-105-control-plane` / PR #109.
+Starting remote head: `b5e70f6edd338428cc5e079db85ec4da45879645`.
+It does not merge the PR, close #105, resume R9, promote production, or launch an Exact SHA Preview.
+
+Source now includes one Settings navigation control, direct staff creation with a durable password-change gate, policy scope selection, server-owned payment-method capabilities, and owner/admin location, register, and device administration.
+Location lifecycle uses forward migration `20260923140000_pos_admin_topology.sql`.
+`20260922123000_pos_admin_control_plane.sql` stays unchanged because it is already applied on shared staging.
+
+No persistent staging Owner was created. The next controlled runtime action is `docs/runbooks/ADMIN-105-FIRST-OWNER-BOOTSTRAP.md`.
+Screen classification is `docs/workstreams/WS-03-CORE-DATA-INTEGRATION/evidence/ADMIN-105-SCREEN-CAPABILITY-MATRIX.md`.
+Fresh `@Ben-001-sys` review is required for the exact final SHA. Older review does not carry forward.

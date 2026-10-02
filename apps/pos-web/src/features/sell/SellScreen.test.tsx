@@ -305,9 +305,9 @@ describe("SellScreen presentation", () => {
     );
     expect(html).toContain('data-quote-status="failed"');
     expect(html).toContain("couldn&#x27;t be checked");
-    expect(html).toContain("Technical details");
-    expect(html).toContain("INTEGRATION_UNAVAILABLE");
-    expect(html).toContain("Pricing unavailable — cart saved");
+    expect(html).not.toContain("Technical details");
+    expect(html).not.toContain("INTEGRATION_UNAVAILABLE");
+    expect(html).not.toContain("Pricing unavailable — cart saved");
     expect(html).toContain('data-eligibility-reason="CONNECTION_REQUIRED"');
     expect(html).toMatch(/pay-btn[^>]*disabled/);
     expect(html).not.toContain("PRICING_UNAVAILABLE");

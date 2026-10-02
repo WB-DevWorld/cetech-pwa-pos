@@ -5,12 +5,13 @@ export {
   POS_LOCAL_SCHEMA_V2,
   POS_LOCAL_SCHEMA_V3,
   POS_LOCAL_SCHEMA_V4,
+  POS_LOCAL_SCHEMA_V5,
   closePosLocalDatabase,
   deletePosLocalDatabase,
   openPosLocalDatabase,
 } from "./pos-local-db";
 export { createCartDraftStore, retireCartDraft } from "./cart-draft-store";
-export { createOperationJournal, loadJournalPayload } from "./operation-journal";
+export { createOperationJournal, listUnresolvedJournalRecords, loadJournalPayload } from "./operation-journal";
 export {
   applyCatalogIncremental,
   createLocalCatalogPort,

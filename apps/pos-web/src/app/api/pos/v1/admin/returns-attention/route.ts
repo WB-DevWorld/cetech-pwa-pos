@@ -1,0 +1,52 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { composeStaffSessionStore } from "../../../../../../server/auth/compose-session-store";
+import { composeStaffAssignmentDirectory } from "../../../../../../server/sales/compose-assignment-directory";
+import { composeControlPlaneDirectory } from "../../../../../../server/admin/compose-control-plane-directory";
+import { composeManagementReturnsAttentionDirectory } from "../../../../../../server/admin/compose-management-returns-attention-directory";
+import { handleGetManagementReturnsAttention } from "../../../../../../server/admin/handle-management-returns-attention";
+import { createServerRestFetch } from "../../../../../../server/http/server-fetch";
+import { resolveCorrelationId } from "../../../../../../server/http/correlation";
+import { httpStatusFor } from "../../../../../../server/http/status";
+
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const correlation = resolveCorrelationId(request.headers.get("x-correlation-id") ?? undefined);
+  try {
+    const fetchImpl = createServerRestFetch();
+    const locationId = request.nextUrl.searchParams.get("locationId") ?? undefined;
+    const result = await handleGetManagementReturnsAttention({
+      correlationId: correlation.correlationId,
+      cookieHeader: request.headers.get("cookie") ?? undefined,
+      now: new Date(),
+      sessions: composeStaffSessionStore(process.env, fetchImpl),
+      assignments: composeStaffAssignmentDirectory(process.env, fetchImpl),
+      controlPlane: composeControlPlaneDirectory(process.env),
+      returnsAttention: composeManagementReturnsAttentionDirectory(process.env),
+      locationId,
+    });
+    return NextResponse.json(result, {
+      status: result.ok ? 200 : httpStatusFor(result.error.code),
+      headers: {
+        "Cache-Control": "no-store",
+        "X-Correlation-ID": result.correlationId,
+      },
+    });
+  } catch {
+    const result = {
+      ok: false as const,
+      error: {
+        code: "INTEGRATION_UNAVAILABLE" as const,
+        message: "returns and approvals are unavailable",
+        retryable: true,
+        nextAction: "resolve" as const,
+      },
+      correlationId: correlation.correlationId,
+    };
+    return NextResponse.json(result, {
+      status: httpStatusFor(result.error.code),
+      headers: {
+        "Cache-Control": "no-store",
+        "X-Correlation-ID": result.correlationId,
+      },
+    });
+  }
+}

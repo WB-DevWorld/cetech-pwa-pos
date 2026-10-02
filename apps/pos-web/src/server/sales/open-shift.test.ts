@@ -50,6 +50,45 @@ describe("STG-06 open-shift pre-send idempotency", () => {
     expect(await store.peekIdempotency("org_a", "shift.open", KEY)).toBeUndefined();
   });
 
+  test("open shift binds the register into the durable operation scope", async () => {
+    const store = createInMemoryCheckoutStore();
+    await store.seedRegister({
+      id: "reg_a1",
+      name: "Register 1",
+      locationId: "loc_a1",
+      currency: "GHS",
+      status: "active",
+      organizationId: "org_a",
+    });
+    await store.seedDevice({
+      id: DEVICE_ID,
+      organizationId: "org_a",
+      locationId: "loc_a1",
+      status: "active",
+    });
+    const originalClaim = store.claimIdempotency.bind(store);
+    let capturedScope: unknown;
+    store.claimIdempotency = async (...args) => {
+      capturedScope = args[5];
+      return originalClaim(...args);
+    };
+
+    const result = await openShift({
+      store,
+      actor: ACTOR,
+      request: {
+        registerId: "reg_a1",
+        deviceId: DEVICE_ID,
+        openingFloat: { minor: 0, currency: "GHS" },
+      },
+      context: { idempotencyKey: KEY, correlationId: CORRELATION },
+      now: NOW,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(capturedScope).toEqual({ registerId: "reg_a1" });
+  });
+
   test("successful open acknowledges the idempotency row", async () => {
     const store = createInMemoryCheckoutStore();
     await store.seedRegister({

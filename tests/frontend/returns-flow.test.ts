@@ -226,11 +226,24 @@ describe("FE-06 returns", () => {
 
   test("11 approval-required does not fabricate approval", async () => {
     const previewFn = vi.fn(async () => success(preview({ approvalRequired: true })));
-    const { controller } = await readyPreview(previewFn);
+    const { controller, execute } = await readyPreview(previewFn);
     expect(controller.getSession().approvalRequired).toBe(true);
     expect(controller.getSession().approvalId).toBeUndefined();
     expect(controller.getSession().stage).toBe("approval_required");
+    execute.mockResolvedValue({
+      ok: false,
+      correlationId: CORRELATION,
+      error: {
+        code: "FORBIDDEN",
+        message: "manager approval is required",
+        retryable: false,
+        nextAction: "contact_manager",
+      },
+    });
     await controller.execute();
+    expect(execute).toHaveBeenCalled();
+    expect(execute.mock.calls[0]?.[0]).toMatchObject({ returnId: RETURN_ID, fingerprint: FINGERPRINT });
+    expect(execute.mock.calls[0]?.[0].approvalId).toBeUndefined();
     expect(controller.getSession().stage).toBe("approval_required");
     expect(controller.getSession().approvalId).toBeUndefined();
     const html = renderToStaticMarkup(
@@ -244,6 +257,9 @@ describe("FE-06 returns", () => {
       }),
     );
     expect(html).toContain("Manager approval is required before you can continue.");
+    expect(html).toContain("Check approval");
+    expect(html).not.toContain("Approval ID");
+    expect(html).not.toContain("Technical details");
     expect(html).toContain('data-approval-id=""');
   });
 
@@ -278,7 +294,7 @@ describe("FE-06 returns", () => {
       }),
     );
     expect(html).toContain('data-automatic-sellable="false"');
-    expect(html).toContain("never automatically restocked as sellable");
+    expect(html).toContain("not automatically returned to sellable stock");
   });
 
   test("13 quarantine never displays automatic sellable restock", async () => {
@@ -398,7 +414,36 @@ describe("FE-06 returns", () => {
     expect(html).toContain('data-return-complete="false"');
     expect(html).not.toContain("data-return-complete-banner");
     expect(html).toContain("data-return-unresolved");
-    expect(html).toContain("Payment refund");
+    expect(html).toContain("Refund — Payment — Pending");
+    expect(html).not.toContain("Needs attention");
+  });
+
+  test("18b mixed return state clearly warns that cash is already refunded", async () => {
+    const previewFn = vi.fn(async () => success(preview()));
+    const { controller, execute } = await readyPreview(previewFn);
+    execute.mockResolvedValue(
+      success({
+        returnId: RETURN_ID,
+        status: "requires_attention",
+        providerRefund: settled("not_required"),
+        cashRefund: settled("completed", REFUND_2),
+        commercialRefund: openEffect("requires_attention", COMMERCIAL_ID),
+        stockDisposition: openEffect("pending", STOCK_ID),
+      }),
+    );
+    await controller.execute();
+    const html = renderFlow(controller.getSession());
+    expect(html).toContain("Refund — Cash — Completed");
+    expect(html).toContain("Order refund record — Needs attention");
+    expect(html).toContain("Stock handling — Pending");
+    expect(html).toContain("Do not refund the customer again");
+    expect(html.split("Do not refund the customer again").length - 1).toBe(1);
+    expect(html).not.toContain("Woo");
+    expect(html).not.toContain("commercial refund");
+    expect(html).not.toContain("stock disposition");
+    expect(html).not.toContain("tenant policy");
+    expect(html).toContain("data-return-safety");
+    expect(html).not.toContain("data-return-unresolved");
   });
 
   test("19 completed aggregate is presented only from authoritative completed resolution", async () => {

@@ -52,7 +52,7 @@ export async function handleListOrders(input: {
     const body = authFailure("INTEGRATION_UNAVAILABLE", "staff assignments are unavailable", guard.correlationId);
     return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
   }
-  const locationIds = uniqueIds([...guard.session.locationIds, ...assigned.locationIds]);
+  const locationIds = uniqueIds(assigned.locationIds);
   const scope = { organizationId: guard.session.organizationId, locationIds, limit: 80 };
   const [sales, uncertainPayments] = await Promise.all([
     input.checkoutStore.listRecentSales(scope),

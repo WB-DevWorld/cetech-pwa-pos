@@ -73,7 +73,13 @@ test("client-side POS navigation keeps the authenticated staff runtime mounted",
   ] as const;
 
   for (const { route, heading } of mounted) {
-    await page.locator(`button.nav-btn[data-route="${route}"]`).click();
+    if (route === "health") {
+      await page.locator('button.nav-btn[data-route="settings"]').click();
+      await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible({ timeout: 15_000 });
+      await page.getByRole("button", { name: "Open System status" }).click();
+    } else {
+      await page.locator(`button.nav-btn[data-route="${route}"]`).click();
+    }
     if (route === "sell") {
       await expect(page.locator("#product-search")).toBeVisible({ timeout: 15_000 });
     } else {

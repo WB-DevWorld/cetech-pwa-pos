@@ -10,6 +10,7 @@ import { composeCheckoutRuntime } from "./compose-checkout-runtime";
 import { composeStaffAssignmentDirectory } from "./compose-assignment-directory";
 import { readSupabaseInfrastructureEnv } from "../../config/env";
 import { createSupabaseOperationalCloseStore } from "../register/operational-close-store";
+import { composeOperationalPolicyStore } from "../admin/compose-operational-policy-store";
 
 export function composePosCommandHandlers(request: NextRequest) {
   try {
@@ -21,6 +22,7 @@ export function composePosCommandHandlers(request: NextRequest) {
       sessionStore: composeStaffSessionStore(process.env, fetchImpl),
       runtime: composeCheckoutRuntime(process.env, fetchImpl),
       assignments: composeStaffAssignmentDirectory(process.env, fetchImpl),
+      policies: composeOperationalPolicyStore(process.env),
       payments,
       returns: composeReturnRuntime(process.env, fetchImpl),
       closeStore: infrastructure

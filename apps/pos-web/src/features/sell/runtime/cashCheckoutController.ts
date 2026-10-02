@@ -18,6 +18,7 @@ import type {
 } from "../../../../../../docs/contracts/ports";
 import { parseDecimalToMinorUnits } from "../../register/parseDecimalToMinorUnits";
 import { cashierErrorMessage, withDoNotChargeAgain } from "../../../ui/cashier-language";
+import { customerReceiptPlaceLabel } from "../../../core/receipt/customer-presentation";
 import {
   canBeginNewSale,
   canReturnToPaymentChoice,
@@ -28,6 +29,7 @@ import {
   type PreparedSaleView,
   type ReceiptViewModel,
 } from "../state/checkoutSession";
+import type { CheckoutAttemptRecord, CheckoutAttemptStore } from "./checkout-attempt-store";
 
 export type CashCheckoutScope = {
   readonly registerId: string;
@@ -43,6 +45,7 @@ export type CashCheckoutPorts = {
   readonly printer: PrintPort;
   readonly scope: CashCheckoutScope;
   readonly createUuid?: () => string;
+  readonly attemptStore?: CheckoutAttemptStore;
 };
 
 type AttemptIdentities = {
@@ -86,12 +89,13 @@ export function mapReceiptSnapshot(snapshot: ReceiptSnapshot): ReceiptViewModel 
     receiptNumber: snapshot.receiptNumber,
     orderReference: snapshot.orderReference,
     issuedAt: snapshot.issuedAt,
-    locationName: snapshot.locationName,
-    registerName: snapshot.registerName,
+    locationName: customerReceiptPlaceLabel(snapshot.locationName, "Store"),
+    registerName: customerReceiptPlaceLabel(snapshot.registerName, "Register"),
     cashierName: snapshot.cashierName,
     customerLabel: snapshot.customerLabel,
     lines: snapshot.lines.map((line) => ({
-      name: line.name,
+      name: line.displayName ?? line.name,
+      sku: line.sku,
       variationLabel: line.variationLabel,
       quantity: line.quantity,
       unitPrice: line.unitPrice,
@@ -139,6 +143,15 @@ function shouldResolveFailure(failure: ApiFailure): boolean {
   return failure.error.nextAction === "resolve";
 }
 
+function isProvenPreEffect(failure: ApiFailure): boolean {
+  return failure.error.details?.field === "pre_effect";
+}
+
+const PRE_EFFECT_MESSAGE = "The sale was not sent. Try Pay again on this same cart.";
+const CANCELLED_CART_MESSAGE = "This sale was cancelled. The cart is unchanged.";
+const RECEIPT_MISSING_MESSAGE =
+  "This sale is complete, but the official receipt is not on this register. Do not take payment again. Contact a manager.";
+
 function paymentVerified(state: PaymentState): boolean {
   return state.status === "verified";
 }
@@ -159,13 +172,119 @@ function paymentAllowsCashRetry(state: PaymentState): boolean {
 }
 
 export function createCashCheckoutController(ports: CashCheckoutPorts) {
-  const createUuid = ports.createUuid ?? defaultUuid;
+  let currentPorts = ports;
+  const createUuid = () => currentPorts.createUuid?.() ?? defaultUuid();
   let session: CheckoutSessionView = idleCheckoutSession();
   let identities: AttemptIdentities | null = null;
   let paymentId: string | undefined;
   let commandLock = false;
   let printAttempted = false;
   const listeners = new Set<() => void>();
+
+  function scopeMatches(record: CheckoutAttemptRecord): boolean {
+    return (
+      record.registerId === currentPorts.scope.registerId &&
+      record.shiftId === currentPorts.scope.shiftId &&
+      record.deviceId === currentPorts.scope.deviceId
+    );
+  }
+
+  function attemptRecord(): CheckoutAttemptRecord | null {
+    if (!identities) {
+      return null;
+    }
+    return {
+      transactionId: identities.transactionId,
+      quoteId: identities.quoteId,
+      quoteFingerprint: identities.quoteFingerprint,
+      quoteTotalMinor: identities.quoteTotal.minor,
+      currency: identities.currency,
+      registerId: currentPorts.scope.registerId,
+      shiftId: currentPorts.scope.shiftId,
+      deviceId: currentPorts.scope.deviceId,
+      prepareKey: identities.prepare.idempotencyKey,
+      prepareCorrelationId: identities.prepare.correlationId,
+      cashKey: identities.cash.idempotencyKey,
+      cashCorrelationId: identities.cash.correlationId,
+      finalizeKey: identities.finalize.idempotencyKey,
+      finalizeCorrelationId: identities.finalize.correlationId,
+      cancelKey: identities.cancel?.idempotencyKey,
+      cancelCorrelationId: identities.cancel?.correlationId,
+      paymentId,
+      prepared: session.prepared,
+      stage: session.stage,
+      saleCompleted: session.saleCompleted,
+      message: session.message,
+    };
+  }
+
+  function persistAttempt(): void {
+    const record = attemptRecord();
+    if (!currentPorts.attemptStore || !record) {
+      return;
+    }
+    void currentPorts.attemptStore.write(record).catch(() => undefined);
+  }
+
+  async function persistAttemptDurable(): Promise<void> {
+    const record = attemptRecord();
+    if (!currentPorts.attemptStore || !record) {
+      return;
+    }
+    await currentPorts.attemptStore.write(record);
+  }
+
+  function restoreAttempt(record: CheckoutAttemptRecord): void {
+    identities = {
+      quoteId: record.quoteId,
+      quoteFingerprint: record.quoteFingerprint,
+      quoteTotal: { minor: record.quoteTotalMinor, currency: record.currency },
+      transactionId: record.transactionId,
+      currency: record.currency,
+      prepare: { idempotencyKey: record.prepareKey, correlationId: record.prepareCorrelationId },
+      cash: { idempotencyKey: record.cashKey, correlationId: record.cashCorrelationId },
+      finalize: { idempotencyKey: record.finalizeKey, correlationId: record.finalizeCorrelationId },
+      ...(record.cancelKey && record.cancelCorrelationId
+        ? { cancel: { idempotencyKey: record.cancelKey, correlationId: record.cancelCorrelationId } }
+        : {}),
+    };
+    paymentId = record.paymentId;
+    const inFlight =
+      record.stage === "preparing" ||
+      record.stage === "confirming_cash" ||
+      record.stage === "finalizing" ||
+      record.stage === "resolving_sale" ||
+      record.stage === "resolving_payment" ||
+      record.stage === "cancelling" ||
+      record.stage === "printing";
+    const restoredCompletedWithoutReceipt =
+      record.saleCompleted &&
+      (record.stage === "complete" ||
+        record.stage === "receipt_ready" ||
+        record.stage === "printing" ||
+        record.stage === "print_failed");
+    session = {
+      ...idleCheckoutSession(),
+      stage: inFlight
+        ? "resolving_sale"
+        : restoredCompletedWithoutReceipt
+          ? "receipt_failed"
+          : record.stage,
+      message: inFlight
+        ? "Sale status is uncertain. Do not start another sale."
+        : restoredCompletedWithoutReceipt
+          ? "The sale is complete. Load the official receipt or start a new sale. Do not take payment again."
+          : record.message,
+      prepared: record.prepared,
+      transactionId: record.transactionId,
+      saleCompleted: record.saleCompleted,
+    };
+  }
+
+  const restored = currentPorts.attemptStore?.readSync() ?? null;
+  if (restored && scopeMatches(restored)) {
+    restoreAttempt(restored);
+  }
 
   function notify(): void {
     for (const listener of listeners) {
@@ -175,6 +294,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
 
   function setSession(next: CheckoutSessionView): void {
     session = next;
+    persistAttempt();
     notify();
   }
 
@@ -186,11 +306,17 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
     return { idempotencyKey: createUuid(), correlationId: createUuid() };
   }
 
+  function retireAttempt(): void {
+    identities = null;
+    paymentId = undefined;
+    currentPorts.attemptStore?.clear();
+  }
+
   function identitiesFor(quote: Quote): AttemptIdentities {
-    if (identities && quoteMatches(identities, quote)) {
+    if (identities && !session.saleCompleted) {
       return identities;
     }
-    if (identities && session.prepared && !session.saleCompleted) {
+    if (identities && quoteMatches(identities, quote)) {
       return identities;
     }
     identities = {
@@ -245,7 +371,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       message: "Sale status is uncertain. Do not start another sale.",
       inputError: undefined,
     });
-    const outcome = await settle(() => ports.sales.resolve(identities!.transactionId));
+    const outcome = await settle(() => currentPorts.sales.resolve(identities!.transactionId));
     if (outcome.kind === "unknown") {
       patch({
         stage: "resolving_sale",
@@ -254,6 +380,14 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       return;
     }
     if (!outcome.value.ok) {
+      if (isProvenPreEffect(outcome.value)) {
+        patch({
+          stage: "prepare_failed",
+          message: PRE_EFFECT_MESSAGE,
+          transactionId: identities.transactionId,
+        });
+        return;
+      }
       if (shouldResolveFailure(outcome.value)) {
         patch({
           stage: "resolving_sale",
@@ -287,7 +421,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       if (!prepared) {
         patch({
           stage: "resolving_sale",
-          message: "Sale is prepared, but the total could not be recovered. Do not start another sale.",
+          message: "This sale is ready for payment, but the total could not be recovered. Do not start another sale.",
           transactionId: resolution.transactionId,
         });
         return;
@@ -315,9 +449,9 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
         stage: "finalizing",
         saleCompleted: false,
         transactionId: resolution.transactionId,
-        message: "Completing the sale. Payment has been submitted; do not charge again.",
+        message: resolution.message ?? "Completing the sale. Payment has been submitted; do not charge again.",
       });
-      if (paymentId) {
+      if (paymentId && session.prepared) {
         await finalizeUnlocked();
       }
       return;
@@ -330,19 +464,18 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       });
       return;
     }
-    if (resolution.status === "cancelled" || resolution.status === "not_found") {
+      if (resolution.status === "cancelled" || resolution.status === "not_found") {
       if (session.stage === "cancelling" || session.stage === "cancel_failed") {
-        identities = null;
-        paymentId = undefined;
+        retireAttempt();
         setSession(idleCheckoutSession());
         return;
       }
+      retireAttempt();
       patch({
         stage: "prepare_failed",
         message: resolution.message ?? "The previous sale attempt was not found. The cart is unchanged.",
         prepared: undefined,
       });
-      identities = null;
       return;
     }
     patch({
@@ -362,7 +495,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       inputError: undefined,
     });
     const outcome = await settle(() =>
-      ports.payments.resolve({
+      currentPorts.payments.resolve({
         transactionId: identities!.transactionId,
         paymentId,
       }),
@@ -433,11 +566,18 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       message: "Completing the sale. Payment has been submitted; do not charge again.",
     });
     const outcome = await settle(() =>
-      ports.checkout.finalize(
+      currentPorts.checkout.finalize(
         { transactionId: attempt.transactionId, paymentId: verifiedPaymentId },
         attempt.finalize,
       ),
     );
+    if (outcome.kind === "result" && !outcome.value.ok && isProvenPreEffect(outcome.value)) {
+      patch({
+        stage: "finalize_failed",
+        message: PRE_EFFECT_MESSAGE,
+      });
+      return;
+    }
     if (outcome.kind === "unknown" || (outcome.kind === "result" && !outcome.value.ok && shouldResolveFailure(outcome.value))) {
       await resolveSaleUnlocked();
       return;
@@ -458,7 +598,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
     if (!identities) {
       return;
     }
-    const outcome = await settle(() => ports.receipts.getByTransaction(identities!.transactionId));
+    const outcome = await settle(() => currentPorts.receipts.getByTransaction(identities!.transactionId));
     if (outcome.kind === "unknown") {
       patch({
         stage: "receipt_failed",
@@ -498,7 +638,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       message: "Sending the receipt to the printer.",
     });
     try {
-      const result = await ports.printer.print({ receiptId: receipt.id, reason });
+      const result = await currentPorts.printer.print({ receiptId: receipt.id, reason });
       printAttempted = true;
       if (result.status === "dialog_opened") {
         patch({
@@ -539,8 +679,32 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
     isLocked(): boolean {
       return commandLock;
     },
+    replacePorts(next: CashCheckoutPorts): void {
+      currentPorts = {
+        ...next,
+        attemptStore: currentPorts.attemptStore ?? next.attemptStore,
+      };
+    },
     async startPrepare(quote: Quote | undefined, customerSnapshot?: CustomerSummary): Promise<void> {
       if (commandLock || session.saleCompleted) {
+        return;
+      }
+      const stored = currentPorts.attemptStore?.readSync() ?? null;
+      if (stored && !stored.saleCompleted && !scopeMatches(stored)) {
+        patch({
+          stage: "resolving_sale",
+          message: "A sale is already in progress on this device. Do not start another sale.",
+        });
+        return;
+      }
+      if (identities && quote && !session.saleCompleted && !quoteMatches(identities, quote)) {
+        if (!session.prepared) {
+          patch({
+            stage: "resolving_sale",
+            message: "This checkout already has a sale in progress. Check that sale before starting another.",
+            transactionId: identities.transactionId,
+          });
+        }
         return;
       }
       if (!quote || !quote.purchasable) {
@@ -577,13 +741,24 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
         saleCompleted: false,
       });
       try {
+        try {
+          await persistAttemptDurable();
+        } catch {
+          patch({
+            stage: "prepare_failed",
+            message: "This sale could not be saved on this device. Retry before taking payment.",
+            transactionId: attempt.transactionId,
+            saleCompleted: false,
+          });
+          return;
+        }
         const outcome = await settle(() =>
-          ports.checkout.prepare(
+          currentPorts.checkout.prepare(
             {
               transactionId: attempt.transactionId,
-              registerId: ports.scope.registerId,
-              shiftId: ports.scope.shiftId,
-              deviceId: ports.scope.deviceId,
+              registerId: currentPorts.scope.registerId,
+              shiftId: currentPorts.scope.shiftId,
+              deviceId: currentPorts.scope.deviceId,
               quoteId: quote.id,
               quoteFingerprint: quote.fingerprint,
               ...(customerSnapshot ? { customerSnapshot } : {}),
@@ -591,7 +766,52 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
             attempt.prepare,
           ),
         );
-        if (outcome.kind === "unknown" || (outcome.kind === "result" && !outcome.value.ok && shouldResolveFailure(outcome.value))) {
+        if (outcome.kind === "result" && !outcome.value.ok && outcome.value.error.details?.field === "pre_effect") {
+          patch({
+            stage: "prepare_failed",
+            message: PRE_EFFECT_MESSAGE,
+            transactionId: attempt.transactionId,
+            prepared: undefined,
+          });
+          return;
+        }
+        if (outcome.kind === "result" && !outcome.value.ok && outcome.value.error.details?.field === "remote_sale") {
+          retireAttempt();
+          patch({
+            stage: "prepare_failed",
+            message: "The previous sale attempt was not found. The cart is unchanged.",
+            prepared: undefined,
+          });
+          return;
+        }
+        if (outcome.kind === "result" && !outcome.value.ok && outcome.value.error.details?.field === "sale_cancelled") {
+          retireAttempt();
+          patch({
+            stage: "prepare_failed",
+            message: CANCELLED_CART_MESSAGE,
+            prepared: undefined,
+          });
+          return;
+        }
+        if (outcome.kind === "result" && !outcome.value.ok && outcome.value.error.details?.field === "receipt_missing") {
+          patch({
+            stage: "finalize_failed",
+            message: RECEIPT_MISSING_MESSAGE,
+            transactionId: attempt.transactionId,
+            receipt: undefined,
+            saleCompleted: false,
+          });
+          return;
+        }
+        if (outcome.kind === "result" && !outcome.value.ok && outcome.value.error.code === "REQUIRES_ATTENTION") {
+          patch({
+            stage: "finalize_failed",
+            message: cashierErrorMessage(outcome.value.error, "generic"),
+            transactionId: attempt.transactionId,
+          });
+          return;
+        }
+        if (outcome.kind === "unknown" || (outcome.kind === "result" && !outcome.value.ok && shouldResolveFailure(outcome.value) && !isProvenPreEffect(outcome.value))) {
           await resolveSaleUnlocked();
           return;
         }
@@ -652,7 +872,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       });
       try {
         const outcome = await settle(() =>
-          ports.payments.confirmCash(
+          currentPorts.payments.confirmCash(
             {
               transactionId: attempt.transactionId,
               cashReceived: {
@@ -741,7 +961,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       });
       try {
         const outcome = await settle(() =>
-          ports.sales.cancel({ transactionId: attempt.transactionId, reason }, cancelContextFor(attempt)),
+          currentPorts.sales.cancel({ transactionId: attempt.transactionId, reason }, cancelContextFor(attempt)),
         );
         if (outcome.kind === "unknown" || (outcome.kind === "result" && !outcome.value.ok && shouldResolveFailure(outcome.value))) {
           await resolveSaleUnlocked();
@@ -805,8 +1025,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       if (!checkoutDismissAllowed(session)) {
         return;
       }
-      identities = null;
-      paymentId = undefined;
+      retireAttempt();
       patch({
         stage: "idle",
         message: "",
@@ -819,8 +1038,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       if (!canBeginNewSale(session)) {
         return;
       }
-      identities = null;
-      paymentId = undefined;
+      retireAttempt();
       printAttempted = false;
       commandLock = false;
       setSession(idleCheckoutSession());

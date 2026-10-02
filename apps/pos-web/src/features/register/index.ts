@@ -1,4 +1,4 @@
-export { OpenRegisterForm, type OpenRegisterFormProps, type OpenRegisterSubmit, type RegisterChoice } from "./OpenRegisterForm";
+export { OpenRegisterForm, type OpenRegisterFormProps, type OpenRegisterSubmit, type RegisterChoice, type DeviceChoice } from "./OpenRegisterForm";
 export { CloseShiftForm } from "./CloseShiftForm";
 export { RegisterScreen } from "./RegisterScreen";
 export { createRegisterController, type RegisterController, type RegisterWorkspacePorts } from "./registerController";

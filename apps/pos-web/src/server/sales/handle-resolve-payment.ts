@@ -92,7 +92,7 @@ export async function handleResolvePayment(input: HandleResolvePaymentInput): Pr
     const resolved = await resolveElectronicPayment({
       store: input.checkoutStore,
       provider: input.provider,
-      actor: guard.session,
+      actor: authorized.data.session,
       request: input.body,
       context: { correlationId: guard.correlationId },
       now: input.now,

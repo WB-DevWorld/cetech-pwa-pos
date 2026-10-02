@@ -51,6 +51,7 @@ export async function handleResolveSale(input: HandleResolveSaleInput): Promise<
     const body = authFailure("VALIDATION_ERROR", "transactionId must be a UUID", guard.correlationId);
     return { status: httpStatusFor(body.error.code), body, headers: guard.headers };
   }
+  let actor = guard.session;
   const sale = await input.checkoutStore.getSale(input.transactionId);
   if (sale) {
     const authorized = await authorizeCheckoutRead({
@@ -64,6 +65,7 @@ export async function handleResolveSale(input: HandleResolveSaleInput): Promise<
     if (!authorized.ok) {
       return { status: httpStatusFor(authorized.error.code), body: authorized, headers: guard.headers };
     }
+    actor = authorized.data.session;
   } else {
     const binding = await input.checkoutStore.lookupCommandScope({
       transactionId: input.transactionId,
@@ -81,12 +83,13 @@ export async function handleResolveSale(input: HandleResolveSaleInput): Promise<
       if (!authorized.ok) {
         return { status: httpStatusFor(authorized.error.code), body: authorized, headers: guard.headers };
       }
+      actor = authorized.data.session;
     }
   }
   const result = await resolveSale({
     store: input.checkoutStore,
     salesPort: input.salesPort,
-    actor: guard.session,
+    actor,
     transactionId: input.transactionId,
     correlationId: guard.correlationId,
   });

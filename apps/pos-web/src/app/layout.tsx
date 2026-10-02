@@ -10,6 +10,7 @@ import "@/features/auth/auth.css";
 import "@/features/orders/orders.css";
 import "@/features/customers/customers.css";
 import "@/features/settings/settings.css";
+import "@/features/admin/admin.css";
 import type { Metadata } from "next";
 import { Suspense, type ReactNode } from "react";
 import { readServerEnv } from "../config/env";
@@ -20,7 +21,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "CETECH POS",
-  description: "CETECH POS cashier workspace. Not a production payment terminal.",
+  description: "CETECH POS for in-store selling, payments, receipts, and store management.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

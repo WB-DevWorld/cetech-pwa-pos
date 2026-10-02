@@ -2,20 +2,18 @@ import type { CashCheckoutScope } from "../../features/sell/runtime/cashCheckout
 import type { StaffRuntimeAuthority } from "./staff-runtime";
 
 /**
- * Checkout identity comes from the selected authoritative register/shift.
- * No selected register, closed shift, or a shift belonging to another register
- * means fail-closed (no hardcoded LOCAL_CHECKOUT_SCOPE).
+ * Checkout identity comes only from the selected authoritative register and
+ * open server-owned shift. Browser-local device ids are never checkout authority.
  */
 export function checkoutScopeFromStaffAuthority(
   authority: StaffRuntimeAuthority,
-  fallbackDeviceId: string,
 ): CashCheckoutScope | undefined {
   if (authority.presentationOnly) {
     return undefined;
   }
   const registerId = authority.register?.id ?? authority.selectedRegisterId;
   const shift = authority.shift;
-  if (!registerId || !authority.shiftOpen || !shift?.id) {
+  if (!registerId || !authority.shiftOpen || !shift?.id || !shift.deviceId) {
     return undefined;
   }
   if (shift.registerId !== registerId) {
@@ -27,6 +25,6 @@ export function checkoutScopeFromStaffAuthority(
   return {
     registerId,
     shiftId: shift.id,
-    deviceId: shift.deviceId || fallbackDeviceId,
+    deviceId: shift.deviceId,
   };
 }

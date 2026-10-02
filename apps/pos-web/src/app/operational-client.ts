@@ -1,5 +1,6 @@
 import type { ApiResult } from "../../../../docs/contracts/ports";
 import type { CustomerSummary, StoreHealth } from "../../../../docs/contracts/domain.generated";
+import type { PaymentMethodCapabilities } from "../server/payments/method-capabilities";
 import type { AttentionItemView } from "../ui/operational";
 import type { OrderDetailView, OrderListItemView } from "../features/orders";
 import type { CustomerReadItem } from "../features/customers/customerRead";
@@ -45,8 +46,29 @@ async function getJson<T>(path: string, fetchImpl?: typeof fetch): Promise<ApiRe
   }
 }
 
+export async function fetchPaymentMethodCapabilities(
+  fetchImpl?: typeof fetch,
+): Promise<ApiResult<PaymentMethodCapabilities>> {
+  return getJson<PaymentMethodCapabilities>("/api/pos/v1/payments/capabilities", fetchImpl);
+}
+
 export async function fetchStoreHealth(fetchImpl?: typeof fetch): Promise<ApiResult<StoreHealth>> {
   return getJson<StoreHealth>("/api/pos/v1/health", fetchImpl);
+}
+
+export type RegisterClosePresentation = {
+  readonly showClose: boolean;
+  readonly notice: string;
+};
+
+export async function fetchRegisterClosePresentation(
+  registerId: string,
+  fetchImpl?: typeof fetch,
+): Promise<ApiResult<RegisterClosePresentation>> {
+  return getJson<RegisterClosePresentation>(
+    `/api/pos/v1/registers/${encodeURIComponent(registerId)}/close-presentation`,
+    fetchImpl,
+  );
 }
 
 export async function fetchOrderHistory(

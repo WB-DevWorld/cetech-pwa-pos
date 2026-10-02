@@ -34,8 +34,24 @@ export function orderStatusLabel(status: string): string {
       return "Verified";
     case "failed":
       return "Failed";
-    default:
-      return status.replaceAll("_", " ");
+    case "not_started":
+      return "Not started";
+    case "not_required":
+      return "Not required";
+    case "not_found":
+      return "Not found";
+    case "in_progress":
+      return "In progress";
+    case "approval_required":
+      return "Approval required";
+    case "refund_pending":
+      return "Refund pending";
+    case "previewed":
+      return "Previewed";
+    default: {
+      const label = status.replaceAll("_", " ");
+      return label.length > 0 ? label[0]!.toUpperCase() + label.slice(1) : label;
+    }
   }
 }
 

@@ -60,6 +60,32 @@ describe("R10 fail-closed payment guards", () => {
     expect(runtime.provider.initializeCount).toBe(0);
   });
 
+  test("unconfigured card method blocks before provider initialize", async () => {
+    const runtime = await createPay01Runtime();
+
+    const result = await handleInitializePayment({
+      ...commandBase(runtime.sessions.cookieHeader),
+      idempotencyKeyHeader: INIT_KEY,
+      body: { transactionId: TX_A, tender: "card" },
+      sessionStore: runtime.sessions.store,
+      checkoutStore: runtime.checkoutStore,
+      provider: runtime.provider,
+      appEnv: "local",
+      sandboxPayerEmail: SANDBOX_EMAIL,
+      env: {
+        PAYMENT_PROVIDER: "paystack",
+        PAYSTACK_MODE: "test",
+        PAYSTACK_SECRET_KEY: "sk_test_fixture_key",
+      },
+    });
+
+    expect(result.body.ok).toBe(false);
+    if (!result.body.ok) {
+      expect(result.body.error.code).toBe("INTEGRATION_UNAVAILABLE");
+    }
+    expect(runtime.provider.initializeCount).toBe(0);
+  });
+
   test("missing CSRF protection blocks before provider initialize", async () => {
     const runtime = await createPay01Runtime();
 

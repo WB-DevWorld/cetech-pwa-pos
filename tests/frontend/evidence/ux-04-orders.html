@@ -398,6 +398,8 @@ button:disabled {
   flex-direction: column;
   gap: 8px;
   width: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .nav-btn {
@@ -438,11 +440,8 @@ button:disabled {
   font-weight: 800;
 }
 
-.sidebar-bottom {
+.nav-list .nav-btn[data-route="settings"] {
   margin-top: auto;
-  width: 100%;
-  display: grid;
-  gap: 8px;
 }
 
 .app-main {
@@ -556,20 +555,31 @@ button:disabled {
     z-index: 50;
   }
 
-  .brand-mark,
-  .sidebar-bottom {
+  .brand-mark {
     display: none;
   }
 
   .nav-list {
     flex-direction: row;
-    justify-content: space-around;
+    justify-content: flex-start;
     gap: 2px;
     height: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+
+  .nav-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-list .nav-btn[data-route="settings"] {
+    margin-top: 0;
   }
 
   .nav-btn {
-    flex: 1;
+    flex: 1 0 54px;
+    min-width: 54px;
     min-height: 56px;
     padding: 3px;
   }
@@ -594,8 +604,21 @@ button:disabled {
 }
 
 @media (max-width: 480px) {
-  .topbar-right .status-pill .status-text {
+  .topbar .status-pill .status-text {
     display: none;
+  }
+
+  .topbar {
+    gap: 8px;
+  }
+
+  .topbar-left,
+  .topbar-right {
+    gap: 6px;
+  }
+
+  .topbar .btn.small {
+    padding-inline: 9px;
   }
 
   .page-head {
@@ -1219,9 +1242,15 @@ button.product-card:disabled {
   gap: 10px;
 }
 
-.cart-line-name {
+.cart-line-name,
+.compact-product-name {
   font-weight: 750;
   line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .qty-row {
@@ -1854,7 +1883,83 @@ button.product-card:disabled {
     max-width: none;
   }
 }
+
+
+.receipt-print-host {
+  display: none;
+}
+
+@media print {
+  @page {
+    margin: 2mm;
+  }
+
+  html,
+  body {
+    width: 76mm !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  /*
+   * Keep only the ancestor chain needed to reach the print host. Everything
+   * else is removed from print layout so hidden POS chrome cannot paginate
+   * into blank sheets.
+   */
+  body *:not(:has(.receipt-print-host)):not(.receipt-print-host):not(.receipt-print-host *) {
+    display: none !important;
+  }
+
+  body *:has(.receipt-print-host) {
+    position: static !important;
+    display: block !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  .receipt-print-host {
+    position: static !important;
+    display: block !important;
+    width: 76mm !important;
+    max-width: 76mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .receipt-paper {
+    position: static !important;
+    width: 76mm !important;
+    max-width: 76mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    color: #000 !important;
+    overflow: visible !important;
+  }
+
+  .receipt-paper .muted {
+    color: #000 !important;
+  }
+}
 </style>
 </head>
-<body><div class="app-shell"><a class="skip-link" href="#main-content">Skip to main content</a><div class="live-region" aria-live="polite"></div><aside class="sidebar" aria-label="App sidebar"><div class="brand-mark" title="CETECH">CT</div><nav class="nav-list" aria-label="Primary navigation"><button type="button" class="nav-btn" aria-label="Sell" data-route="sell" data-href="/sell"><span class="icon" aria-hidden="true">▦</span><span>Sell</span></button><button type="button" class="nav-btn active" aria-current="page" aria-label="Orders" data-route="orders" data-href="/orders"><span class="icon" aria-hidden="true">▤</span><span>Orders</span></button><button type="button" class="nav-btn" aria-label="Customers" data-route="customers" data-href="/customers"><span class="icon" aria-hidden="true">♙</span><span>Customers</span></button><button type="button" class="nav-btn" aria-label="Returns" data-route="returns" data-href="/returns"><span class="icon" aria-hidden="true">↩</span><span>Returns</span></button><button type="button" class="nav-btn" aria-label="Register" data-route="register" data-href="/register"><span class="icon" aria-hidden="true">▣</span><span>Register</span></button><button type="button" class="nav-btn" aria-label="Health" data-route="health" data-href="/health"><span class="icon" aria-hidden="true">●</span><span>Health</span></button><button type="button" class="nav-btn" aria-label="Attention 1" data-route="attention" data-href="/attention"><span class="icon" aria-hidden="true">!</span><span>Attention<span class="nav-badge"> 1</span></span></button></nav><div class="sidebar-bottom"><button type="button" class="nav-btn" aria-label="Settings" data-route="settings" data-href="/settings"><span class="icon" aria-hidden="true">⚙</span><span>Settings</span></button></div></aside><div class="app-main"><header class="topbar"><div class="topbar-left"><span class="app-title">CETECH POS</span><span class="context-pill">Front Counter 1</span><span class="context-pill secondary">Ama Mensah</span><span class="status-pill warning"><span class="dot" aria-hidden="true"></span>No open shift</span></div><div class="topbar-right"><span class="status-pill success" data-online="true" aria-label="Online"><span class="dot" aria-hidden="true"></span><span class="status-text">Online</span></span><button class="icon-btn" type="button" title="Lock register" aria-label="Lock register">⌁</button></div></header><main class="content" id="main-content"><section class="orders-workspace workspace-surface" aria-labelledby="orders-title"><div class="page-head"><div><h1 id="orders-title">Orders</h1><p>Find sales, reprint receipts, and start returns.</p></div><button class="btn" type="button">New sale</button></div><div class="card card-pad workspace-toolbar"><label class="field workspace-search" for="order-search"><span class="sr-only">Search orders</span><input id="order-search" class="input" type="search" placeholder="Search order, receipt, customer or transaction…" value=""/></label><label class="field workspace-filter" for="order-status-filter"><span>Status</span><select id="order-status-filter" class="select"><option value="all" selected="">All</option><option value="completed">Completed</option><option value="refunded">Refunded</option><option value="partially_refunded">Partially refunded</option><option value="payment_pending">Pending</option><option value="needs_attention">Needs review</option><option value="cancelled">Cancelled</option></select></label></div><div class="workspace-table-wrap"><table class="workspace-table"><thead><tr><th scope="col">Order</th><th scope="col">Customer</th><th scope="col">Date</th><th scope="col">Payment</th><th scope="col">Total</th><th scope="col">Status</th></tr></thead><tbody><tr><td data-label="Order"><button class="workspace-link" type="button">#24091</button><span class="workspace-subline">CT-00091</span></td><td data-label="Customer">Accra Buildworks Ltd<span class="workspace-badge info">Wholesale</span></td><td data-label="Date">10 Sept 2026, 15:12</td><td data-label="Payment">Mobile Money<span class="workspace-badge success">Verified</span></td><td data-label="Total"><strong>GHS 1,150.00</strong></td><td data-label="Status"><span class="workspace-badge success">Completed</span></td></tr><tr><td data-label="Order"><button class="workspace-link" type="button">#24088</button><span class="workspace-subline">CT-00088</span></td><td data-label="Customer">Adwoa Mensah</td><td data-label="Date">10 Sept 2026, 12:08</td><td data-label="Payment">Cash<span class="workspace-badge success">Verified</span></td><td data-label="Total"><strong>GHS 425.00</strong></td><td data-label="Status"><span class="workspace-badge success">Completed</span></td></tr></tbody></table></div></section></main></div></div></body>
+<body><div class="app-shell"><a class="skip-link" href="#main-content">Skip to main content</a><div class="live-region" aria-live="polite"></div><aside class="sidebar" aria-label="App sidebar"><div class="brand-mark" title="CETECH">CT</div><nav class="nav-list" aria-label="Primary navigation"><button type="button" class="nav-btn" aria-label="Sell" data-route="sell" data-href="/sell"><span class="icon" aria-hidden="true">▦</span><span>Sell</span></button><button type="button" class="nav-btn active" aria-current="page" aria-label="Orders" data-route="orders" data-href="/orders"><span class="icon" aria-hidden="true">▤</span><span>Orders</span></button><button type="button" class="nav-btn" aria-label="Customers" data-route="customers" data-href="/customers"><span class="icon" aria-hidden="true">♙</span><span>Customers</span></button><button type="button" class="nav-btn" aria-label="Returns" data-route="returns" data-href="/returns"><span class="icon" aria-hidden="true">↩</span><span>Returns</span></button><button type="button" class="nav-btn" aria-label="Register" data-route="register" data-href="/register"><span class="icon" aria-hidden="true">▣</span><span>Register</span></button><button type="button" class="nav-btn" aria-label="Attention 1" data-route="attention" data-href="/attention"><span class="icon" aria-hidden="true">!</span><span>Attention<span class="nav-badge"> 1</span></span></button><button type="button" class="nav-btn" aria-label="Settings" data-route="settings" data-href="/settings"><span class="icon" aria-hidden="true">⚙</span><span>Settings</span></button></nav></aside><div class="app-main"><header class="topbar"><div class="topbar-left"><span class="app-title">CETECH POS</span><span class="context-pill">Front Counter 1</span><span class="context-pill secondary">Ama Mensah</span><span class="status-pill warning shift-status" aria-label="No open shift"><span class="dot" aria-hidden="true"></span><span class="status-text">No open shift</span></span></div><div class="topbar-right"><span class="status-pill success" data-online="true" aria-label="Online"><span class="dot" aria-hidden="true"></span><span class="status-text">Online</span></span><button class="icon-btn" type="button" title="Lock register" aria-label="Lock register">⌁</button></div></header><main class="content" id="main-content"><section class="orders-workspace workspace-surface" aria-labelledby="orders-title"><div class="page-head"><div><h1 id="orders-title">Orders</h1><p>Review recent POS sales, reprint receipts, and start returns.</p></div><button class="btn" type="button">New sale</button></div><div class="card card-pad workspace-toolbar"><label class="field workspace-search" for="order-search"><span class="sr-only">Search orders</span><input id="order-search" class="input" type="search" placeholder="Search recent order, receipt, customer or transaction…" value=""/></label><label class="field workspace-filter" for="order-status-filter"><span>Status</span><select id="order-status-filter" class="select"><option value="all" selected="">All</option><option value="completed">Completed</option><option value="payment_pending">Pending</option><option value="needs_attention">Needs review</option><option value="cancelled">Cancelled</option></select></label></div><div class="workspace-table-wrap"><table class="workspace-table"><thead><tr><th scope="col">Order</th><th scope="col">Customer</th><th scope="col">Date</th><th scope="col">Payment</th><th scope="col">Total</th><th scope="col">Status</th></tr></thead><tbody><tr><td data-label="Order"><button class="workspace-link" type="button">#24091</button><span class="workspace-subline">CT-00091</span></td><td data-label="Customer">Accra Buildworks Ltd<span class="workspace-badge info">Wholesale</span></td><td data-label="Date">10 Sept 2026, 15:12</td><td data-label="Payment">Mobile Money<span class="workspace-badge success">Verified</span></td><td data-label="Total"><strong>GHS 1,150.00</strong></td><td data-label="Status"><span class="workspace-badge success">Completed</span></td></tr><tr><td data-label="Order"><button class="workspace-link" type="button">#24088</button><span class="workspace-subline">CT-00088</span></td><td data-label="Customer">Adwoa Mensah</td><td data-label="Date">10 Sept 2026, 12:08</td><td data-label="Payment">Cash<span class="workspace-badge success">Verified</span></td><td data-label="Total"><strong>GHS 425.00</strong></td><td data-label="Status"><span class="workspace-badge success">Completed</span></td></tr></tbody></table></div></section></main></div></div></body>
 </html>

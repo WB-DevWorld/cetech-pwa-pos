@@ -170,13 +170,13 @@ export function presentsAutomaticSellableRestock(
 
 export function conditionRestockNotice(condition: ReturnConditionView): string | undefined {
   if (condition === "damaged") {
-    return "Damaged goods are never automatically restocked as sellable. Refund is not restock.";
+    return "Damaged goods are not automatically returned to sellable stock. Refunding the customer does not change that.";
   }
   if (condition === "quarantine") {
-    return "Quarantine items are never automatically restocked as sellable. Refund is not restock.";
+    return "Quarantined items are not automatically returned to sellable stock. Refunding the customer does not change that.";
   }
   if (condition === "not_physically_returned") {
-    return "Items not physically returned are never automatically restocked as sellable. Refund is not restock.";
+    return "Items that were not physically returned cannot be put back into sellable stock.";
   }
   return undefined;
 }
@@ -195,6 +195,65 @@ export function effectIsBlocking(effect: IndependentEffectView | undefined): boo
 
 export function canPresentReturnComplete(session: Pick<ReturnSessionView, "stage" | "complete">): boolean {
   return session.complete && session.stage === "completed";
+}
+
+export function availableBeforeRequestLabel(quantity: string): string {
+  return `Available to return before this request: ${quantity}`;
+}
+
+export function returnEffectStatusLabel(status: IndependentEffectView["status"]): string {
+  if (status === "requires_attention") return "Needs attention";
+  if (status === "pending") return "Pending";
+  if (status === "completed") return "Completed";
+  if (status === "not_required") return "Not required";
+  if (status === "not_started") return "Not started";
+  if (status === "not_found") return "Not found";
+  return status;
+}
+
+export type ReturnProgressLine = {
+  readonly text: string;
+  readonly status: IndependentEffectView["status"];
+  readonly effectId?: string;
+};
+
+export function returnProgressLines(session: ReturnSessionView): readonly ReturnProgressLine[] {
+  const lines: ReturnProgressLine[] = [];
+  const push = (effect: IndependentEffectView | undefined, label: string) => {
+    if (!effect || effect.status === "not_required" || effect.status === "not_started") return;
+    lines.push({
+      text: `${label} — ${returnEffectStatusLabel(effect.status)}`,
+      status: effect.status,
+      ...(effect.effectId ? { effectId: effect.effectId } : {}),
+    });
+  };
+  push(session.cashRefund, "Refund — Cash");
+  push(session.providerRefund, "Refund — Payment");
+  push(session.commercialRefund, "Order refund record");
+  push(session.stockDisposition, "Stock handling");
+  return lines;
+}
+
+/** One cashier safety notice. Refund wording is used only when a customer refund is already complete. */
+export function returnSafetyCopy(session: ReturnSessionView): string | undefined {
+  const customerRefundDone =
+    session.cashRefund?.status === "completed" || session.providerRefund?.status === "completed";
+  const needsAttention =
+    session.stage === "requires_attention" ||
+    session.commercialRefund?.status === "requires_attention" ||
+    session.stockDisposition?.status === "requires_attention" ||
+    session.cashRefund?.status === "requires_attention" ||
+    session.providerRefund?.status === "requires_attention";
+  if (customerRefundDone && needsAttention) {
+    return "The customer has already been refunded. Do not refund the customer again. Contact a manager or support if this status does not clear.";
+  }
+  if (customerRefundDone && !canPresentReturnComplete(session)) {
+    return "The customer has already been refunded. Do not refund the customer again.";
+  }
+  if (needsAttention) {
+    return "This return needs attention. Contact a manager or support if this status does not clear.";
+  }
+  return undefined;
 }
 
 export function unresolvedEffectLabels(session: ReturnSessionView): readonly string[] {

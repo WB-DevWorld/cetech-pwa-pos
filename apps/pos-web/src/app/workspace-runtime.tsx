@@ -1,12 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import type { CustomerPort, PrintPort, ReceiptPort } from "../../../../docs/contracts/ports";
 import type { CustomerSummary, StoreHealth } from "../../../../docs/contracts/domain.generated";
+import type { PaymentMethodCapabilities } from "../server/payments/method-capabilities";
 import { OrdersScreen, OrderDetailDialog, type OrderDetailView, type OrderListItemView } from "../features/orders";
 import { ReceiptPaper } from "../features/sell/components/ReceiptPaper";
 import type { ReceiptViewModel } from "../features/sell/state/checkoutSession";
 import { mapReceiptSnapshot } from "../features/sell/runtime/cashCheckoutController";
+import { receiptPaperIsMounted, reprintImmutableReceipt } from "../features/orders/reprint-receipt";
 import { CustomersScreen } from "../features/customers";
 import { loadCustomerSearchPresentation } from "../features/customers/loadCustomerSearch";
 import { SettingsScreen, type AppearancePreference } from "../features/settings";
@@ -17,17 +20,16 @@ import {
   toCashierError,
 } from "../ui/cashier-language";
 import {
-  FixAppPanel,
   NeedsAttentionScreen,
   StoreHealthScreen,
   type AttentionItemView,
   type OperationalLoadState,
 } from "../ui/operational";
-import { inspectLocalRecoveryState, POS_LOCAL_SCHEMA_CURRENT, type LocalRecoveryDiagnostics } from "../local";
+import { inspectLocalRecoveryState, type LocalRecoveryDiagnostics } from "../local";
 import type { CatalogProjectionAvailability, CatalogProjectionSyncResult } from "../local/catalog-sync";
 import { ensureCatalogProjection } from "../local/catalog-sync";
 import { resolveBrowserCatalogSourcePolicy } from "../core/catalog/source-policy";
-import { readOrCreateLocalDeviceId, type StaffRuntimeAuthority } from "../core/identity";
+import type { StaffRuntimeAuthority } from "../core/identity";
 import type { PosRoute } from "../ui/shell";
 import { catalogRebuildStatusText, type CatalogRebuildView } from "./catalog-rebuild-status";
 import { usePwaLifecycle } from "./pwa-lifecycle-runtime";
@@ -35,6 +37,7 @@ import {
   fetchCustomerDirectory,
   fetchOrderDetail,
   fetchOrderHistory,
+  fetchPaymentMethodCapabilities,
   fetchStoreHealth,
 } from "./operational-client";
 
@@ -46,7 +49,6 @@ export function ApprovedWorkspaceScreens({
   catalogAvailability,
   fetchImpl,
   appearance,
-  buildId,
   attentionItems,
   attentionCount,
   attentionState,
@@ -70,7 +72,6 @@ export function ApprovedWorkspaceScreens({
   readonly catalogAvailability: CatalogProjectionAvailability | null;
   readonly fetchImpl?: typeof fetch;
   readonly appearance: AppearancePreference;
-  readonly buildId?: string;
   readonly attentionItems: readonly AttentionItemView[];
   readonly attentionCount: number;
   readonly attentionState: OperationalLoadState;
@@ -114,14 +115,11 @@ export function ApprovedWorkspaceScreens({
     return (
       <SettingsScreen
         settings={{
-          deviceName: readOrCreateLocalDeviceId(),
+          deviceName: authority.shift?.deviceId ? "Assigned to current shift" : "Select a POS device when opening a register",
           registerName: authority.register?.name ?? "No register assigned",
           scannerLabel: KEYBOARD_SCANNER_CAPABILITY,
           printerLabel: BROWSER_PRINT_CAPABILITY,
           appearance,
-          buildId: buildId ?? "Unverified",
-          contractVersion: "1.0.0",
-          localSchemaVersion: String(POS_LOCAL_SCHEMA_CURRENT),
         }}
         state={online ? "ready" : "offline"}
         onAppearanceChange={onAppearanceChange}
@@ -137,8 +135,6 @@ export function ApprovedWorkspaceScreens({
         online={online}
         attentionCount={attentionCount}
         onNavigate={onNavigate}
-        onCatalogProjectionChange={onCatalogProjectionChange}
-        onRebuildSuccess={onRebuildSuccess}
       />
     );
   }
@@ -179,6 +175,8 @@ function OrdersWorkspace({
   const [detail, setDetail] = useState<OrderDetailView | undefined>();
   const [detailOpen, setDetailOpen] = useState(false);
   const [printReceipt, setPrintReceipt] = useState<ReceiptViewModel | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | undefined>();
+  const [actionError, setActionError] = useState<string | undefined>();
 
   const load = useCallback(async () => {
     setState("loading");
@@ -203,14 +201,19 @@ function OrdersWorkspace({
       <OrdersScreen
         orders={orders}
         state={state}
+        actionMessage={actionMessage}
+        actionError={actionError}
         onRetry={() => {
           void load();
         }}
         onNewSale={() => onNavigate("sell")}
         onSelectOrder={(orderId) => {
+          setActionMessage(undefined);
+          setActionError(undefined);
           void (async () => {
             const result = await fetchOrderDetail(orderId, fetchImpl);
             if (!result.ok) {
+              setActionError("Order details could not be loaded. Try again.");
               return;
             }
             setDetail(result.data);
@@ -225,17 +228,32 @@ function OrdersWorkspace({
         onReprint={
           receipts && printer
             ? (order) => {
+                setActionMessage(undefined);
+                setActionError(undefined);
                 void (async () => {
-                  const receipt = await receipts.getByTransaction(order.id);
-                  if (!receipt.ok) {
+                  const outcome = await reprintImmutableReceipt({
+                    transactionId: order.id,
+                    receipts,
+                    mapReceipt: mapReceiptSnapshot,
+                    present: (view) => {
+                      flushSync(() => {
+                        setPrintReceipt(view);
+                      });
+                      return receiptPaperIsMounted(document, view.receiptNumber);
+                    },
+                    print: (receiptId) => printer.print({ receiptId, reason: "reprint" }),
+                  });
+                  if (!outcome.ok) {
+                    setPrintReceipt(null);
+                    setActionError(outcome.message);
                     return;
                   }
-                  setPrintReceipt(mapReceiptSnapshot(receipt.data));
-                  window.setTimeout(() => {
-                    void printer
-                      .print({ receiptId: receipt.data.id, reason: "reprint" })
-                      .finally(() => setPrintReceipt(null));
-                  }, 0);
+                  if (outcome.printed.status === "dialog_opened") {
+                    setActionMessage("Print dialog opened.");
+                  } else {
+                    setActionError(outcome.printed.message ?? "Receipt printing is not available.");
+                  }
+                  setPrintReceipt(null);
                 })();
               }
             : undefined
@@ -326,36 +344,39 @@ function HealthWorkspace({
   online,
   attentionCount,
   onNavigate,
-  onCatalogProjectionChange,
-  onRebuildSuccess,
 }: {
   readonly catalogAvailability: CatalogProjectionAvailability | null;
   readonly fetchImpl?: typeof fetch;
   readonly online: boolean;
   readonly attentionCount: number;
   readonly onNavigate: (route: PosRoute) => void;
-  readonly onCatalogProjectionChange?: (result: CatalogProjectionSyncResult) => void;
-  readonly onRebuildSuccess: () => void;
 }) {
   const lifecycle = usePwaLifecycle();
   const [health, setHealth] = useState<StoreHealth | undefined>();
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodCapabilities | undefined>();
   const [state, setState] = useState<OperationalLoadState>("loading");
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
-  const [showFix, setShowFix] = useState(false);
-  const [rebuild, setRebuild] = useState<CatalogRebuildView>({ phase: "idle" });
   const [recovery, setRecovery] = useState<LocalRecoveryDiagnostics | undefined>();
   const [updateCheckBusy, setUpdateCheckBusy] = useState(false);
 
   const load = useCallback(async () => {
-    const [result, diagnostics] = await Promise.all([
+    const [result, diagnostics, capabilities] = await Promise.all([
       fetchStoreHealth(fetchImpl),
       inspectLocalRecoveryState().catch(() => undefined),
+      fetchPaymentMethodCapabilities(fetchImpl),
     ]);
+    setPaymentMethods(capabilities.ok ? capabilities.data : undefined);
     setRecovery(diagnostics);
     if (!result.ok) {
       setHealth(undefined);
       setState("error");
-      setErrorMessage(toCashierError({ code: result.error.code, message: result.error.message, domain: "health" }).message);
+      setErrorMessage(
+        toCashierError({
+          code: result.error.code,
+          message: result.error.message,
+          domain: "health",
+        }).message,
+      );
       return;
     }
     setHealth(result.data);
@@ -370,51 +391,27 @@ function HealthWorkspace({
     return () => clearTimeout(timer);
   }, [load]);
 
-  const rebuildCatalog = useCallback(() => {
-    void runCatalogRebuild({
-      fetchImpl,
-      onCatalogProjectionChange,
-      setRebuild,
-      onSuccess: onRebuildSuccess,
-    });
-  }, [fetchImpl, onCatalogProjectionChange, onRebuildSuccess]);
-
-  const rebuildText = catalogRebuildStatusText(rebuild);
-
   return (
     <>
       <StoreHealthScreen
         health={health}
         state={state}
         errorMessage={errorMessage}
-        deviceName={readOrCreateLocalDeviceId()}
-        appVersion={health?.buildId}
-        localSchemaVersion={String(POS_LOCAL_SCHEMA_CURRENT)}
         online={online}
         catalogAvailability={catalogAvailability}
-        electronicPaymentsAvailable={false}
+        paymentMethods={paymentMethods}
         attentionCountOverride={attentionCount}
         onRetry={() => {
           void load();
         }}
-        onFixApp={() => setShowFix(true)}
         onOpenAttention={() => onNavigate("attention")}
-        onRebuildCatalog={rebuildCatalog}
       />
-      {rebuild.phase === "failure" && rebuildText ? (
-        <p className="banner danger" role="alert" data-catalog-rebuild-phase={rebuild.phase}>
-          {rebuildText}
-        </p>
-      ) : rebuild.phase === "stale" && rebuildText ? (
-        <p className="banner warning" role="status" data-catalog-rebuild-phase={rebuild.phase}>
-          {rebuildText}
-        </p>
-      ) : null}
+
       {recovery ? (
         <section className="card card-pad operational-panel" aria-labelledby="recovery-summary-title">
-          <h2 id="recovery-summary-title">Saved work & recovery</h2>
+          <h2 id="recovery-summary-title">Saved work</h2>
           <p className="muted">
-            Your current sale and pending work are kept separately from replaceable app files and the product list.
+            Your current sale and pending work are kept while the app updates or refreshes.
           </p>
           <div className="operational-metrics" aria-label="Recovery summary">
             <div className="card operational-metric">
@@ -430,24 +427,28 @@ function HealthWorkspace({
               <strong>{recovery.attentionOperationCount}</strong>
             </div>
           </div>
+
           {!recovery.schemaCompatible ? (
             <div className="banner danger" role="alert">
               <strong>Saved offline data needs a safe update.</strong>
               <span>Do not clear the current sale or pending work as a normal repair step.</span>
             </div>
           ) : null}
+
           {recovery.pendingOperationCount > 0 ? (
             <div className="banner warning" role="status">
               <strong>Pending work must be resolved before an app update.</strong>
               <span>Do not repeat a sale just because its result is not yet confirmed.</span>
             </div>
           ) : null}
+
           {lifecycle?.updateReady ? (
             <div className="banner info" role="status">
               <strong>Update ready.</strong>
               <span>The app will wait for a safe point before applying it.</span>
             </div>
           ) : null}
+
           {lifecycle ? (
             <div className="operational-actions">
               <button
@@ -464,15 +465,6 @@ function HealthWorkspace({
             </div>
           ) : null}
         </section>
-      ) : null}
-      {showFix ? (
-        <FixAppPanel
-          criticalOperationActive={(recovery?.pendingOperationCount ?? 0) > 0}
-          onCheckHealth={() => {
-            void load();
-          }}
-          onRebuildCatalog={rebuildCatalog}
-        />
       ) : null}
     </>
   );
@@ -497,20 +489,35 @@ function AttentionWorkspace({
   readonly recoveringItemId?: string | null;
   readonly onRebuildSuccess: () => void;
 }) {
+  const [catalogRebuild, setCatalogRebuild] = useState<CatalogRebuildView>({ phase: "idle" });
+  const catalogRefreshing = catalogRebuild.phase === "rebuilding";
+  const catalogStatus = catalogRebuildStatusText(catalogRebuild);
+
   return (
-    <NeedsAttentionScreen
+    <>
+      {catalogStatus ? (
+        <div
+          className={`banner ${catalogRebuild.phase === "failure" ? "danger" : catalogRebuild.phase === "stale" ? "warning" : "info"} operational-banner`}
+          role="status"
+          aria-live="polite"
+        >
+          <strong>{catalogRebuild.phase === "rebuilding" ? "Refreshing products…" : catalogRebuild.phase === "success" ? "Products refreshed." : "Product refresh status"}</strong>
+          {catalogRebuild.phase !== "rebuilding" ? <span>{catalogStatus}</span> : <span>Checking for the latest product list. You can keep this screen open.</span>}
+        </div>
+      ) : null}
+      <NeedsAttentionScreen
       items={items}
       state={state}
-      recoveringItemId={recoveringItemId}
+      recoveringItemId={catalogRefreshing ? "catalog-projection" : recoveringItemId}
       onRetryLoad={onRetryLoad}
       onRetryItem={(id) => {
-        if (id !== "catalog-projection") {
+        if (id !== "catalog-projection" || catalogRefreshing) {
           return;
         }
         void runCatalogRebuild({
           fetchImpl,
           onCatalogProjectionChange,
-          setRebuild: () => undefined,
+          setRebuild: setCatalogRebuild,
           onSuccess: onRebuildSuccess,
         });
       }}
@@ -525,6 +532,7 @@ function AttentionWorkspace({
           : undefined
       }
     />
+    </>
   );
 }
 
@@ -549,20 +557,25 @@ export function clientAttentionExtras(input: {
       recoverKind: "catalog",
     });
   }
-  if (!input.authority.register) {
+  if (
+    input.authority.status === "ready" &&
+    !input.authority.presentationOnly &&
+    input.authority.assignedRegisterIds.length === 0 &&
+    !input.authority.register
+  ) {
     next.push({
       id: "register-unassigned",
       title: "No register assigned",
-      summary: "This staff session has no permitted register. Open/close shift stays blocked until assignment exists.",
+      summary: "No register is assigned to this staff account. Opening or closing a shift stays unavailable until a manager assigns one.",
       typeLabel: "Register",
       severity: "medium",
       recoverKind: "register",
     });
-  } else if (!input.authority.shiftOpen) {
+  } else if (input.authority.register && !input.authority.shiftOpen) {
     next.push({
       id: "shift-closed",
       title: "No open shift",
-      summary: "Checkout stays blocked until an assigned register has an open shift. Use Register; do not invent a shift.",
+      summary: "Checkout stays unavailable until you open a shift on an assigned register. Open Register to continue.",
       typeLabel: "Register",
       severity: "low",
       recoverKind: "register",

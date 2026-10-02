@@ -51,9 +51,12 @@ export function createStaffIdentityPort(options: StaffIdentityPortOptions): Iden
       return session.capabilities.includes(capability);
     },
     async signOut() {
-      await options.gateway.clear();
-      if (options.localWork) {
-        preserveLocalWorkOnSignOut(options.localWork);
+      try {
+        await options.gateway.clear();
+      } finally {
+        if (options.localWork) {
+          preserveLocalWorkOnSignOut(options.localWork);
+        }
       }
     },
   };

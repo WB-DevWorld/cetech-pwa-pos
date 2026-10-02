@@ -22,6 +22,7 @@ export async function initializeElectronicPayment(input: {
   readonly now: Date;
   readonly appEnv: string;
   readonly sandboxPayerEmail?: string;
+  readonly methodConfigured?: boolean;
 }): Promise<ApiResult<PaymentState>> {
   const { store, provider, actor, request, context, appEnv } = input;
   return store.withLock(`pay:${request.transactionId}`, async () => {
@@ -84,6 +85,19 @@ export async function initializeElectronicPayment(input: {
       const state = toPaymentState(existing);
       await store.acknowledgeIdempotency(actor.organizationId, "payment.initialize", context.idempotencyKey, state);
       return succeed(existing, context.correlationId);
+    }
+
+    // Resolve idempotency and any existing intent before applying current
+    // method availability. A configuration change must not hide a replay or
+    // conflict for an already-effectful request, but no new provider side
+    // effect may start when the selected method is disabled.
+    if (input.methodConfigured === false) {
+      await store.releaseIdempotency(actor.organizationId, "payment.initialize", context.idempotencyKey);
+      return apiFailure(
+        "INTEGRATION_UNAVAILABLE",
+        "the selected electronic payment method is not configured",
+        context.correlationId,
+      );
     }
 
     const payer = sandboxPayerEmail({ appEnv, configuredEmail: input.sandboxPayerEmail });

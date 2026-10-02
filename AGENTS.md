@@ -2,7 +2,7 @@
 
 Read in order: [SOURCE-OF-TRUTH.md](SOURCE-OF-TRUTH.md), [current architecture](docs/architecture/CURRENT-ARCHITECTURE.md), [Decision Register](docs/decisions/DECISION-REGISTER.md), applicable ADRs, [OWNERSHIP.md](OWNERSHIP.md), then your workstream's eight documents and the assigned issue.
 
-Before edits, state the task ID, workstream, allowed/forbidden paths, canonical owners, contracts affected, dependencies and acceptance criteria. Check CURRENT-WORK.md and git status. Preserve unrelated changes. One contributor branch and worktree per concurrent assignment; no shared mutable checkout. Read the approved batch record in CURRENT-WORK.md and docs/plans/LONG-RUNNING-WORK.md (ADR-012).
+Before edits, state the task ID, workstream, allowed/forbidden paths, canonical owners, contracts affected, dependencies, acceptance criteria, and whether the task can affect staff-facing documentation. Check CURRENT-WORK.md and git status. Preserve unrelated changes. One contributor branch and worktree per concurrent assignment; no shared mutable checkout. Read the approved batch record in CURRENT-WORK.md and docs/plans/LONG-RUNNING-WORK.md (ADR-012).
 
 Git/repository truth outranks private AI memory.
 A historical ChatGPT conversation cannot override a newer approved ADR or current contract.
@@ -19,6 +19,7 @@ Cursor conversation history is not canonical project truth.
 - Routine PWA recovery must preserve IndexedDB, drafts, journal, unsynced work and auth. Never blindly clear all caches/storage.
 - Root config, contract schema/types, migrations, transaction state machine, environment schema, CI and release config have one WS3 editor at a time. Ask the integration lead for a scoped delegation if needed; existing task authorization counts.
 - Reference/frontend-approved is immutable. Implement from it in apps/pos-web; do not redesign it.
+- Staff-facing behavior and staff documentation move together. If a confirmed change affects what staff see, do, are permitted to do, are warned about, or must test, update the affected `docs/staff/*.md` files in the same change. If it genuinely has no staff-documentation impact, declare that explicitly in the PR. See `docs/staff/DOCUMENTATION-MAINTENANCE.md`.
 
 ## Workflow
 Audit first. Remediation second. An audit request authorizes findings, severity and proposed fixes, not silent remediation. Implementation authorizes its bounded task, not unrelated redesign.

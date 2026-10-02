@@ -8,6 +8,7 @@ export type TopBarProps = {
   updateReady?: boolean;
   onLock?: () => void;
   onOpenUpdate?: () => void;
+  onOpenManagement?: () => void;
 };
 
 export function TopBar({
@@ -18,6 +19,7 @@ export function TopBar({
   updateReady = false,
   onLock,
   onOpenUpdate,
+  onOpenManagement,
 }: TopBarProps) {
   return (
     <header className="topbar">
@@ -26,14 +28,14 @@ export function TopBar({
         <span className="context-pill">{registerName}</span>
         {cashierDisplayName ? <span className="context-pill secondary">{cashierDisplayName}</span> : null}
         {shiftOpen ? (
-          <span className="status-pill success">
+          <span className="status-pill success shift-status" aria-label="Shift open">
             <span className="dot" aria-hidden="true" />
-            Shift open
+            <span className="status-text">Shift open</span>
           </span>
         ) : (
-          <span className="status-pill warning">
+          <span className="status-pill warning shift-status" aria-label="No open shift">
             <span className="dot" aria-hidden="true" />
-            No open shift
+            <span className="status-text">No open shift</span>
           </span>
         )}
       </div>
@@ -46,6 +48,11 @@ export function TopBar({
           <span className="dot" aria-hidden="true" />
           <span className="status-text">{online ? "Online" : "Offline"}</span>
         </span>
+        {onOpenManagement ? (
+          <button className="btn small" type="button" onClick={onOpenManagement}>
+            Manage
+          </button>
+        ) : null}
         {updateReady ? (
           <button className="btn small" type="button" onClick={onOpenUpdate}>
             Update ready

@@ -14,6 +14,7 @@ export function authFailure(
   code: keyof typeof POLICY,
   message: string,
   correlationId: Uuid,
+  details?: ApiFailure["error"]["details"],
 ): ApiFailure {
   const policy = POLICY[code];
   return {
@@ -23,6 +24,7 @@ export function authFailure(
       message,
       retryable: policy.retryable,
       nextAction: policy.nextAction,
+      ...(details ? { details } : {}),
     },
     correlationId,
   };
