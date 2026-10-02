@@ -1,5 +1,13 @@
 # CETECH POS — Staff Testing & Acceptance Workbook
 
+**Updated for this testing round:** 2 October 2026.
+
+**Read and understand the [current Test Brief](https://github.com/WB-DevWorld/cetech-pwa-pos/tree/docs/staff-test-readable-2026-10-02/docs/staff/testing-2026-10-02/brief) first.**
+
+**[Open the POS for this round](https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app)**
+
+Use this same address when opening or installing the POS. If your installed POS already uses it and works, keep using it and preserve your saved work.
+
 **Purpose:** Help staff test the POS systematically, not randomly.\
 **Audience:** Cashiers, managers, owners/admins, and authorized support testers.\
 **Rule:** Test the exact build recorded in the Test Brief. Do not mix results from different builds.
@@ -8,7 +16,7 @@
 
 ## Choose your testing modules
 
-Use the current dated [Test Brief](https://github.com/WB-DevWorld/cetech-pwa-pos/tree/docs/staff-test-readable-2026-10-02/docs/staff/testing-2026-10-02#read-the-brief-first) for the POS link and this round's rules.
+Use the current dated [Test Brief](https://github.com/WB-DevWorld/cetech-pwa-pos/tree/docs/staff-test-readable-2026-10-02/docs/staff/testing-2026-10-02/brief) for the POS link and this round's rules.
 
 One designated **Admin** sets up staff, registers, and devices in **M00**. Once your own setup works, choose any module whose starting needs are met. You do not have to complete the whole workbook from top to bottom. Two people can choose the same module using their own registers and test records.
 

@@ -1,13 +1,18 @@
 # CETECH POS — Staff Test Brief
 
 **Issued:** 2 October 2026\
+**Updated:** 2 October 2026 — sign-in link corrected\
 **Use:** The next staff-testing round. Each tester records their actual test date.
 
 ## Open this POS
 
-**[Open the POS for this testing round](https://cetech-pos-staging-qn5v3m37s-wbdevworlds-projects.vercel.app)**
+**[Open the POS for this testing round](https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app)**
 
 Use this link every time, including when installing the POS on your phone or computer. Start from this brief instead of an old message or bookmark.
+
+If your installed POS already opens from this address and works, keep using it. Keep your saved cart and unfinished work.
+
+If a different POS address shows **Access denied** even with your correct password, open the link above. If it still fails, record the address, the message, and any Reference line for the administrator.
 
 This version is ready for staff testing. Some checks still need your results before we can decide whether it is ready for normal customer use.
 
@@ -116,7 +121,9 @@ You do not need the owner to sit with you. Your completed workbook and evidence 
 
 - Frozen application SHA: `1021cd113c783e25030fe9c0bda1be9ddcf5888c`.
 - Source candidate: [PR #130](https://github.com/WB-DevWorld/cetech-pwa-pos/pull/130), `integration/r9-staff-remediation-final`.
-- Exact test URL: `https://cetech-pos-staging-qn5v3m37s-wbdevworlds-projects.vercel.app`.
+- Accepted test URL: `https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app`.
+- Link correction verified 2 October 2026: the shared integration address above resolves to the same frozen deployment. The generated deployment URL returned `FORBIDDEN: session origin is not allowed`; it is not the staff link. Password authentication succeeded in the sampled logs before that rejection.
+- This shared address is a branch alias. Keep `integration/r9-staff-remediation-final` at the frozen SHA for this round and check its deployment identity before a new session. A different build requires a new brief.
 - Vercel deployment: `dpl_89TVtntmRzjMi8WgdgvkU35KVFLn`; READY; metadata identifies the frozen SHA; Preview target.
 - CI: [#1466 / run 36994717064](https://github.com/WB-DevWorld/cetech-pwa-pos/actions/runs/36994717064), SUCCESS. Linux and Windows qualification belongs to this exact application head.
 - This dated brief follows the owner's instruction to freeze that head for staff testing. It is not a production approval or a claim that the remaining human/device qualifications passed.

@@ -1,5 +1,13 @@
 # CETECH POS staff documentation
 
+**Current testing documents updated:** 2 October 2026.
+
+**Read and understand the current Test Brief first.**
+
+[Open the formatted testing documents](https://github.com/WB-DevWorld/cetech-pwa-pos/tree/docs/staff-test-readable-2026-10-02/docs/staff/testing-2026-10-02#readme) — the brief, guide, and workbook.
+
+**[Open the POS for this round](https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app)**
+
 These files are the **canonical staff-facing documentation** for CETECH POS.
 
 Use plain English. Teach what the person needs to do, what they should expect to happen, and what they should do next. Do not expose internal engineering language to cashiers.

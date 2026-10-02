@@ -1,3 +1,36 @@
+## STAFF-TEST-1021-LINK — Today's sign-in address and synchronized document editions
+
+Current canonical document snapshot for these refreshed reading copies: `2343193390c4f17167ffb1d39feb425a4ac08e6a` on PR #131. Original source/copy snapshots remain historical.
+
+Owner/user instruction, 2026-10-02 at 14:51 UTC: update all relevant test-document versions for today, including the formatted folder pages. The user supplied evidence of a working installed PWA at the integration alias. Vercel identifies that alias as deployment `dpl_89TVtntmRzjMi8WgdgvkU35KVFLn`, source `1021cd113c783e25030fe9c0bda1be9ddcf5888c`. Same-origin session GET at the generated deployment URL returned 403 / session origin is not allowed; the integration alias passed the origin gate (401 / staff session required without a cookie).
+
+```text
+human / implementing editor: @wbdevworld
+workstream: WS3 documentation
+task: STAFF-TEST-1021-LINK
+branches: ws3/staff-testing-1021cd-2026-10-02 (PR131),
+  docs/staff-test-blob-copy-2026-10-02,
+  docs/staff-test-readable-2026-10-02
+allowed: docs/staff/README.md, docs/staff/TEST-BRIEF-2026-10-02.md,
+  docs/staff/STAFF-TRAINING-GUIDE.md,
+  docs/staff/STAFF-TESTING-ACCEPTANCE-WORKBOOK.md,
+  docs/staff/testing-2026-10-02/**, CURRENT-WORK.md,
+  docs/integration/evidence/STAFF-TEST-1021-DOCS-HANDOFF.md
+forbidden: historical September brief edits, runtime, migrations,
+  contracts, dependencies, CI, account/register/device/financial mutations,
+  hosting configuration changes, integration/main merges,
+  protected #102 reconciliation, electronic payments, production promotion
+canonical owner: current docs/staff source files; reading pages are copies
+contracts/ADRs changed: none; staff-documentation impact: yes
+acceptance: working alias used consistently, edition dated 2 October 2026,
+  same frozen application/deployment, 64 tests and 16 modules retained,
+  historical source unchanged, copy parity and public folder links checked
+```
+
+This follow-up authorizes updating the canonical documents and their public reading copies together, superseding the earlier reading-copy-only restriction for this bounded documentation task. The runtime origin-configuration defect remains; this task corrects the instructions to use the existing accepted address. Hold the integration alias at the frozen application SHA throughout the round. New commits on documentation branches do not change the integration alias.
+
+---
+
 ## STAFF-TEST-ACCESS — Formatted public reading copies
 
 Owner/user instruction, 2026-10-02: restore readable, formatted GitHub access for non-technical testers; plain raw Markdown is unsuitable. Public repository access is already enabled. Anonymous file (`blob`) views returned GitHub HTTP 503, including the old brief and another public repository; folder (`tree`) views returned HTTP 200 with rendered Markdown.

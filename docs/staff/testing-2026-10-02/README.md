@@ -1,10 +1,15 @@
 # CETECH POS — Staff Testing
 
-**Issued: 2 October 2026**
+**Issued: 2 October 2026**\
+**Updated: 2 October 2026 — working POS link confirmed**
 
 ## Read the brief first
 
 **Read and understand the test brief before opening the POS or starting a test.**
+
+**[Open the POS for this round](https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app)**
+
+Use this same address when opening or installing the POS. If your installed POS already uses it and works, keep using it and preserve your saved work.
 
 1. **[Read the test brief first](https://github.com/WB-DevWorld/cetech-pwa-pos/tree/docs/staff-test-readable-2026-10-02/docs/staff/testing-2026-10-02/brief)** — the correct POS link, Admin setup, and testing rules.
 2. **[Read the training guide](https://github.com/WB-DevWorld/cetech-pwa-pos/tree/docs/staff-test-readable-2026-10-02/docs/staff/testing-2026-10-02/training)** — how to use the POS.
