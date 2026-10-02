@@ -11,7 +11,24 @@ Date: 2026-10-02. Workstream: WS3. Human/editor: `@wbdevworld` under the current
 - Designated Admin provisions the team and primarily tests Management. Cashiers keep cashier-only access and separate registers. Admin may sell with a separate operational assignment. Live allocations remain for the administrator to complete.
 - [Training Guide](../../staff/STAFF-TRAINING-GUIDE.md) records the durable Admin/operational-role distinction and one-open-or-closing-shift-per-register rule.
 - [Documentation Home](../../staff/README.md) points to the new brief and labels the September 24 brief historical. The old brief is byte-for-byte unchanged.
-- Existing Markdown hard breaks in the reorganized workbook are represented by backslashes rather than trailing spaces so whitespace checks remain clean. Original test content is preserved semantically.
+- Markdown hard breaks between result fields use backslashes rather than trailing spaces so whitespace checks remain clean. The final field in each paragraph has no backslash. Original test content is preserved semantically.
+
+## PR #131 review formatting fix — 2026-10-02
+
+Owner instruction: fix the review finding. WS3 editor: `@wbdevworld`; existing STAFF-TEST-1021 documentation scope. Starting PR head: `e5b2ed4b3674edd6bb3d5789cd06cf269de5caa2`. The fix is published on the same documentation contributor branch and PR.
+
+- Removed the paragraph-final backslash from 65 `Other notes` fields (the example and 64 test result blocks). Line breaks between fields remain intact; all other workbook text is unchanged.
+- GFM rendering with the installed `marked` parser: PASS — 65 `Other notes` fields and zero visible trailing backslashes.
+- Reran `python3 scripts/verify_control_plane.py`: PASS (exit 0); `python3 -m unittest discover -s tests/tooling -p test_staff_docs_impact.py`: PASS (3 tests, exit 0); task-scoped preservation/link check: PASS (exit 0); `git diff --check`: PASS (exit 0).
+- Allowed changes: workbook and this handoff. Contracts, ADRs and migrations: none. The exact frozen application link, 61 original tests, 3 added tests, 16 modules and historical September brief are preserved.
+
+| Follow-up observation | UTC | main | Declared integration upstream |
+| --- | --- | --- | --- |
+| Start | 2026-10-02T11:55:24.867Z | `c49045dd02c46574af5d341cc65c177116fa7306` | `1021cd113c783e25030fe9c0bda1be9ddcf5888c` |
+| Pass 1 | 2026-10-02T11:56:22.129Z | `c49045dd02c46574af5d341cc65c177116fa7306` | `1021cd113c783e25030fe9c0bda1be9ddcf5888c` |
+| Pass 2 / cutoff | 2026-10-02T11:56:35.172Z | `c49045dd02c46574af5d341cc65c177116fa7306` | `1021cd113c783e25030fe9c0bda1be9ddcf5888c` |
+
+Both upstream observations succeeded and were unchanged: FRESH_2. No reconciliation was needed. The final published fix SHA and its CI result are supplied externally; independent human review remains required before integration.
 
 ## Provenance and application boundary
 

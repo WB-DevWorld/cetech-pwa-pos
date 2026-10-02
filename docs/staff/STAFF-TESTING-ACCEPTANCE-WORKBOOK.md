@@ -60,7 +60,7 @@ For every test you perform, add this result block underneath that test:
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 At the top of your completed workbook, also record:
 
@@ -166,7 +166,7 @@ Test Owner/Admin/Manager/Support/Cashier.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -189,7 +189,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -207,7 +207,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -225,7 +225,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -242,7 +242,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -258,7 +258,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -280,7 +280,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -296,7 +296,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -314,7 +314,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -331,7 +331,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -356,7 +356,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -377,7 +377,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -396,7 +396,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -414,7 +414,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -440,7 +440,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -469,7 +469,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -487,7 +487,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -506,7 +506,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -526,7 +526,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -546,7 +546,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -569,7 +569,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -588,7 +588,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -606,7 +606,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -625,7 +625,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -645,7 +645,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -672,7 +672,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -694,7 +694,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -712,7 +712,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -731,7 +731,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -750,7 +750,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -781,7 +781,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -800,7 +800,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -825,7 +825,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -850,7 +850,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -870,7 +870,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -889,7 +889,7 @@ Owner/Admin test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -911,7 +911,7 @@ Owner/Admin changes; Manager view-only.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -934,7 +934,7 @@ Owner/Admin changes; Manager view-only.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -951,7 +951,7 @@ Owner/Admin changes; Manager view-only.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -981,7 +981,7 @@ Owner/Admin changes; Manager view-only.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -1003,7 +1003,7 @@ Record any missing/confusing options.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -1026,7 +1026,7 @@ Record any missing/confusing options.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -1045,7 +1045,7 @@ Manager test only.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -1067,7 +1067,7 @@ Manager test only.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -1083,7 +1083,7 @@ Manager test only.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -1112,7 +1112,7 @@ Manager test only.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -1139,7 +1139,7 @@ These are high-value tests. Follow the exact sequence.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -1159,7 +1159,7 @@ These are high-value tests. Follow the exact sequence.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -1181,7 +1181,7 @@ These are high-value tests. Follow the exact sequence.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -1203,7 +1203,7 @@ The POS must not pretend those actions succeeded.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -1223,7 +1223,7 @@ The POS must not pretend those actions succeeded.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -1247,7 +1247,7 @@ The POS must not pretend those actions succeeded.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -1265,7 +1265,7 @@ The POS must not pretend those actions succeeded.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -1288,7 +1288,7 @@ The POS must not pretend those actions succeeded.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -1305,7 +1305,7 @@ The POS must not pretend those actions succeeded.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -1326,7 +1326,7 @@ Test selling, modal dialogs, Orders, Returns, Register, and Management where aut
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -1340,7 +1340,7 @@ Test selling, modal dialogs, Orders, Returns, Register, and Management where aut
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -1354,7 +1354,7 @@ Test selling, modal dialogs, Orders, Returns, Register, and Management where aut
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -1368,7 +1368,7 @@ Test selling, modal dialogs, Orders, Returns, Register, and Management where aut
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -1382,7 +1382,7 @@ Test selling, modal dialogs, Orders, Returns, Register, and Management where aut
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -1410,7 +1410,7 @@ Manager/authorized-role test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -1425,7 +1425,7 @@ Manager/authorized-role test.
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -1449,7 +1449,7 @@ Only run these tests when the owner has authorized that payment method and the s
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
@@ -1466,7 +1466,7 @@ Only run these tests when the owner has authorized that payment method and the s
 **What actually happened:**\
 **Anything confusing:**\
 **Screenshot/photo:** embedded image or exact filename/path\
-**Other notes:**\
+**Other notes:**
 
 ---
 
