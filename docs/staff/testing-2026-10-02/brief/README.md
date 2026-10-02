@@ -16,7 +16,7 @@ If a different POS address shows **Access denied** even with your correct passwo
 
 The approved price-check update is now on this same POS link. **Version for this round: 2c7eb2d.** Results from the earlier version should be kept separate.
 
-The latest live price request took about 30 seconds. That is still slow, so the investigation continues. Do not mark a slow price check PASS just because it eventually finishes.
+Sampled live server price checks took about 9–31 seconds. That is still slow, so the investigation continues. Do not mark a slow price check PASS just because it eventually finishes.
 
 Keep using the same POS address above. Refresh the browser page, or close and reopen the installed POS. If the POS offers an update, follow its instructions once your work is safe. Keep your saved cart and unfinished work. Do not clear browser data.
 
