@@ -1,3 +1,31 @@
+## STAFF-TEST-ACCESS — Formatted public reading copies
+
+Owner/user instruction, 2026-10-02: restore readable, formatted GitHub access for non-technical testers; plain raw Markdown is unsuitable. Public repository access is already enabled. Anonymous file (`blob`) views returned GitHub HTTP 503, including the old brief and another public repository; folder (`tree`) views returned HTTP 200 with rendered Markdown.
+
+```text
+human / implementing editor: @wbdevworld
+workstream: WS3 documentation
+task: STAFF-TEST-ACCESS
+branch: docs/staff-test-readable-2026-10-02
+published source snapshot: e99fc20688835bc416320078197d3631253c0f98
+frozen application SHA: 1021cd113c783e25030fe9c0bda1be9ddcf5888c
+allowed: docs/staff/testing-2026-10-02/**, CURRENT-WORK.md
+forbidden: existing canonical/historical staff document edits, runtime,
+  migrations, contracts, dependencies, CI, main/PR130/PR131 changes,
+  repository permission changes, account/register mutations,
+  electronic payments, protected #102 reconciliation, production release
+canonical owner: existing docs/staff source documents
+contracts/ADRs changed: none; staff-documentation impact: reading access only
+acceptance: copies retain source text except navigation targets;
+  original September brief unchanged; historical copy clearly marked;
+  64 tests and M00-M15 retained; cash-only and frozen POS link retained;
+  formatted folder pages and document/module links verified without auth
+```
+
+These reading copies are not another application build or a source-document revision. The current brief, guide, workbook and historical brief remain unchanged at their canonical paths. Only their copied navigation targets are adjusted for formatted folder views. Publication remains on an isolated documentation branch; no integration or release is performed.
+
+---
+
 ## STAFF-TEST-1021 — Independent testing modules and designated Admin setup
 
 Owner/user instruction, 2026-10-02: proceed with documentation for frozen staff-test application `1021cd113c783e25030fe9c0bda1be9ddcf5888c`. One designated Admin provisions staff/register/device contexts, primarily tests Management, and may join cashier testing with a separate operational assignment. Use understandable English.
