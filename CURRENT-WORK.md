@@ -737,3 +737,20 @@ independent integration review: required before any integration/main merge
 Paths beginning `src/` or `e2e/` are relative to `apps/pos-web`. The consumer delegation is limited to the owner's urgent quote correction, not a transfer of general WS1 ownership. Upstream WordPress latency must remain open until live timings prove improvement. A timeout is not proof that pricing became fast.
 
 ---
+
+
+## UI-REF-20261003 — owner-authorized UI refinement — REVIEW HANDOFF
+
+Owner instruction, 2026-10-03 01:39 UTC: implement the UI changes discussed in this chat, with an 80-minute target and parallel agents as needed. This is an explicit bounded WS1 presentation reassignment to the senior/user implementing editor (@wbdevworld), expiring at review handoff. Existing source/reference bytes and commercial workflows remain intact.
+
+- Branch: `ws1/ui-refinement-2026-10-03`.
+- Baseline: deployed quote correction `2c7eb2ddeb22c3402d82673421a54dbe6ad236f1`; declared integration `1021cd113c783e25030fe9c0bda1be9ddcf5888c`.
+- Allowed: non-receipt `apps/pos-web/src/ui/**`, `src/features/**`; focused frontend/e2e tests; this ledger, WS1 evidence/handoff and affected staff documentation. WS3 presentation-only composition in `src/app/globals.css` may be edited by the root integration editor if necessary.
+- Parallel ownership: shell agent owns tokens/workspace/shell/toast/auth; Sell agent owns non-receipt Sell components/styles; operations agent owns Orders/Returns/Register/Customers; management agent owns non-receipt Management panels/styles; verification agent owns new refinement browser evidence/tests. Root alone owns docs/integration/composition and Settings outside receipt-owned controls. Each contributor has an isolated branch/worktree.
+- Forbidden: receipt layout/settings/snapshot/print components and receipt CSS rules; core/server/local/config/contracts/migrations/dependencies/CI/service worker; WordPress bridge; main/protected branches; live commercial mutations; production promotion. Receipt work remains owned by `RECEIPT-REF-01` in its separate checkout.
+- Canonical owners: Woo prices/orders/stock; Supabase POS operations; local drafts/journal remain preserved. Consumes existing v1 ports; no contract/migration/architecture changes.
+- Acceptance: refined coherent visuals, usable responsive layouts, stable loading/error feedback, keyboard/touch accessibility, unchanged quote/payment/refund/shift/update safeguards; foundation/lint/typecheck/unit/build and relevant browser checks. Synthetic browser tests are not live payment/hardware proof.
+- Staff documentation impact: yes; update current guide/workbook and formatted copies together after assembly.
+- Independent exact-head human review remains required before integration/main merge. Publish a reviewable contributor candidate; do not self-merge. Staging deployment must use a qualified combined candidate that preserves any completed receipt handoff.
+
+Implementation and local production verification are complete. Contributor leases are released after import. [PR #135](https://github.com/WB-DevWorld/cetech-pwa-pos/pull/135) holds the UI-only review candidate; [UI evidence](tests/frontend/evidence/ui-refinement-2026-10-03/README.md) records tests, screenshots, contributor provenance and the pinned receipt compatibility checkout. The designated independent human reviewer is @Ben-001-sys; approval is pending and AI quality review does not supply that approval. No integration/main merge, staging alias change, database write or production promotion occurred. Final upstream cutoff: 2026-10-03T02:12:22.605Z, main `c49045dd02c46574af5d341cc65c177116fa7306`, declared integration `1021cd113c783e25030fe9c0bda1be9ddcf5888c`. Final remote head and exact-head CI result belong in the PR handoff. No autonomous third freshness pass.
