@@ -18,8 +18,8 @@ test("refined Orders reprint preserves the immutable receipt and its thermal pri
   });
   await installAuthoritativeStaffSession(page);
   await page.addInitScript(() => {
-    const state = window as Window & { uiPrintEvidence?: { calls: number; text: string; html: string } };
-    state.uiPrintEvidence = { calls: 0, text: "", html: "" };
+    const state = window as Window & { uiPrintEvidence?: { calls: number; text: string; html: string; sizing: string } };
+    state.uiPrintEvidence = { calls: 0, text: "", html: "", sizing: "" };
     window.print = () => {
       const host = document.querySelector(".receipt-print-host");
       const previousCalls = state.uiPrintEvidence?.calls ?? 0;
@@ -27,7 +27,10 @@ test("refined Orders reprint preserves the immutable receipt and its thermal pri
         calls: previousCalls + 1,
         text: host?.textContent ?? "",
         html: host?.outerHTML ?? "",
+        sizing: document.querySelector("[data-receipt-print-sizing]")?.textContent ?? "",
       };
+      // Simulate the native dialog lifecycle, rather than leaving PrintPort pending.
+      setTimeout(() => window.dispatchEvent(new Event("afterprint")), 0);
     };
   });
   const order = {
@@ -86,7 +89,7 @@ test("refined Orders reprint preserves the immutable receipt and its thermal pri
   await page.getByRole("button", { name: "Reprint", exact: true }).click();
   await expect(page.getByText("Print dialog opened.", { exact: true })).toBeVisible();
   const printed = await page.evaluate(() => (window as Window & {
-    uiPrintEvidence?: { calls: number; text: string; html: string };
+    uiPrintEvidence?: { calls: number; text: string; html: string; sizing: string };
   }).uiPrintEvidence);
   expect(printed?.calls).toBe(1);
   expect(printed?.text).toContain(order.receiptNumber);
@@ -97,6 +100,7 @@ test("refined Orders reprint preserves the immutable receipt and its thermal pri
   // Replay only the captured mounted print host to inspect the actual app CSS.
   // The browser print dialog is stubbed; this is not physical-printer evidence.
   await page.evaluate((html) => document.body.insertAdjacentHTML("beforeend", html), printed?.html ?? "");
+  if (printed?.sizing) await page.addStyleTag({ content: printed.sizing });
   await page.emulateMedia({ media: "print" });
   const receipt = page.locator(".receipt-print-host .receipt-paper");
   await expect(receipt).toBeVisible();

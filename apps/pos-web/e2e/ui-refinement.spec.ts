@@ -277,4 +277,34 @@ test.describe("UI-REF-20261003 cashier refinement", () => {
     await expect(page.locator("button.nav-btn[data-route='settings']")).toHaveCount(1);
     await expectNoOverflow(page);
   });
+
+  test("customer confirmation stays in the screen flow above product search", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installAuthoritativeStaffSession(page);
+    await page.route("**/api/pos/v1/customers**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          correlationId: CORRELATION,
+          data: { items: [{ id: "customer-ui-refinement", displayName: "UI Test Customer", kind: "retail" }] },
+        }),
+      });
+    });
+    await page.goto("/customers");
+    await page.getByRole("button", { name: "Use for next sale", exact: true }).click({ timeout: 30_000 });
+    const toast = page.locator("[data-app-toast='true']");
+    await expect(toast).toContainText("Customer selected for next sale.");
+    await expect(page.locator("#product-search")).toBeVisible();
+    const [headerBox, toastBox, searchBox] = await Promise.all([
+      page.getByRole("banner").boundingBox(), toast.boundingBox(), page.locator("#product-search").boundingBox(),
+    ]);
+    expect(headerBox).not.toBeNull();
+    expect(toastBox).not.toBeNull();
+    expect(searchBox).not.toBeNull();
+    expect(toastBox!.y).toBeGreaterThanOrEqual(headerBox!.y + headerBox!.height - 1);
+    expect(searchBox!.y).toBeGreaterThanOrEqual(toastBox!.y + toastBox!.height - 1);
+    await expectNoOverflow(page);
+  });
 });
