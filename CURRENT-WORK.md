@@ -737,3 +737,82 @@ independent integration review: required before any integration/main merge
 Paths beginning `src/` or `e2e/` are relative to `apps/pos-web`. The consumer delegation is limited to the owner's urgent quote correction, not a transfer of general WS1 ownership. Upstream WordPress latency must remain open until live timings prove improvement. A timeout is not proof that pricing became fast.
 
 ---
+## RECEIPT-REF-01 — reference receipt layout and bounded settings — REVIEW HANDOFF
+
+Owner instructions on 2026-10-03: implement the receipt reference and accepted configuration recommendation; update the existing tester URL after qualification. This authorizes a bounded WS1 receipt/settings presentation reassignment to the senior implementing editor and the necessary WS3 schema, settings, immutable snapshot and print composition changes. It does not transfer general WS1 ownership. Current explicit owner instructions govern this new assignment over historical task prohibitions below.
+
+```text
+human / implementing editor: @wbdevworld
+workstream: WS3 + bounded WS1 receipt/settings surfaces
+task: RECEIPT-REF-01
+branch: ws3/receipt-layout-2026-10-03
+source baseline: ws3/quote-latency-2026-10-02 / 2c7eb2ddeb22c3402d82673421a54dbe6ad236f1
+declared integration baseline: integration/r9-staff-remediation-final / 1021cd113c783e25030fe9c0bda1be9ddcf5888c
+staging tester URL: https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app/
+allowed:
+  receipt settings schema/types, core settings and server persistence
+  additive receipt presentation migration and focused database tests
+  sale finalization receipt snapshot only
+  ReceiptPaper, receipt view mapping, sell receipt CSS
+  receipt Management editor and preview/test print
+  device printer paper preference and Settings binding
+  existing browser print adapter only
+  focused receipt tests, staff documentation, ADR/evidence and this ledger
+forbidden:
+  commerce pricing/payment/refund/stock/recovery changes
+  protected main or existing frozen PR #133 source edits
+  production promotion, VitePOS cutover, #102 incident disposition
+  destructive data cleanup or rewritten historical receipts
+review:
+  fresh exact-head CI and different competent human source review
+  staging rollout is authorized; production remains unauthorized
+```
+
+Receipt presentation settings remain location-scoped; paper width is a separate local printer preference. Snapshot content freezes presentation at completion and reads without live settings on reprint. Parallel contributors use isolated worktrees with non-overlapping scopes; the senior controls canonical schema generation and integration.
+
+Receipt source implementation and local combined verification are complete. Final remote candidate/CI/freshness and rollout state are recorded in PR #134. Independent reviewer: @Ben-001-sys (approval pending). The owner subsequently authorized a one-time staging exception, and candidate `37bcc76ac33e3c9eb8bded2c49cb2f319223ae89` plus the additive receipt migration were deployed to the existing tester alias. Normal independent review remains pending; no merge or production promotion occurred. All contributor worktree leases for that task are released after import.
+
+## RECEIPT-TOP-01 — preserve selected paper and start printing at the top
+
+Current owner instruction, 2026-10-03: “my same size but it should be at the top.” This is a bounded correction to the receipt release, retaining the existing tester URL and paper/text size. The previous exact receipt source `37bcc76ac33e3c9eb8bded2c49cb2f319223ae89` is already on staging under the recorded owner exception; PR #134 remains open for Ben. No independent approval is implied by deployment.
+
+```text
+human / integrating editor: @wbdevworld, WS3
+task: RECEIPT-TOP-01
+integration branch: ws3/receipt-print-top-2026-10-03
+base source: 37bcc76ac33e3c9eb8bded2c49cb2f319223ae89
+base tree: cada5de37e7dc4c4b0adffa5fa708fb656d51694
+synthetic local equivalent: 23ad0f847dc40e7f6a80b58a33053c3ecef257b1
+declared integration baseline: integration/r9-staff-remediation-final, 1021cd113c783e25030fe9c0bda1be9ddcf5888c
+start main: c49045dd02c46574af5d341cc65c177116fa7306
+allowed implementation:
+  apps/pos-web/src/core/receipt/printer-preference.ts and its tests
+  apps/pos-web/e2e/thermal-receipt-print.spec.ts
+  apps/pos-web/e2e/receipt-settings.spec.ts sample print width assertion only
+  apps/pos-web/src/features/sell/sell.css print documentation only
+allowed integration/docs:
+  CURRENT-WORK.md, ADR-018 printing clarification
+  affected canonical staff guide/workbook and their maintained mirrors
+contributor: receipt_render, isolated local/receipt-print-top worktree
+contributor lease: printer helper + unit/e2e tests + print CSS comment only
+root lease: docs, import, review, verification and staging handoff
+contracts / schema / migrations / dependencies: unchanged
+acceptance:
+  selected 80/58 mm printer paper is preserved
+  same receipt text scale starts near the top, with small margins
+  fixed-sheet Chromium PDFs cover CSS-preferred and driver-preferred modes
+  long receipts paginate, no clipping/blank leading page, print lifecycle preserved
+  sample printing has no commerce effects; exact source CI green
+forbidden:
+  payment, pricing, stock, refunds, PWA recovery or historical snapshot rewrites
+  protected main, frozen PR #133, unrelated peer branches, production
+release:
+  owner explicitly instructed “deploy the fixes using the bypass” on 2026-10-03
+  one-time staging release exception for this exact tested positioning correction
+  no fabricated independent review, merge, protection/workflow changes
+  normal independent review remains pending with Ben; no blanket future exception
+expiry: this receipt positioning correction's tested staging handoff
+staff-documentation impact: YES, top alignment and selected printer paper behavior
+```
+
+The receipt_render contributor produced local source `e595619e4bd6cf1609ad8e768397d0e1bbbbf5bd` from the pinned equivalent receipt baseline. Its four allowed files were imported without other contributor changes. The contributor lease is released; the root is now the sole integration editor. Local source review found no new runtime blocker. Focused verification passed: 16 unit tests, 9 Chromium tests, focused lint and TypeScript. A negative control using the old helper failed the actual PDF heading-position assertion (~197 pt down), demonstrating that the new tests detect the reported defect rather than only checking DOM position or CSS spelling. Exact remote combined SHA, CI, final freshness and rollout evidence belong in the PR handoff. Physical printer/Safari output remains unverified.

@@ -875,8 +875,10 @@ Record the retry part as **COULD NOT TEST** if no failed check or retry button i
 **Expected:**
 - browser print preview shows the actual receipt;
 - preview is not blank;
-- preview is an 80mm-wide page, not A4 or Letter and not the full POS screen;
-- the printer itself must be set to an 80mm roll. The page does not grow with the receipt.
+- preview keeps the printer's selected paper size and shows only the receipt;
+- for thermal printing, match the printer's paper width to the 80 mm or 58 mm device choice;
+- the receipt starts near the top with a small margin and keeps its text size; blank space on a longer sheet is below the receipt, not above and below it;
+- longer receipts continue onto later pages without a blank first page or clipped rows.
 
 ### Your result
 
@@ -907,17 +909,26 @@ Record the retry part as **COULD NOT TEST** if no failed check or retry button i
 
 ---
 
-## T63 — Receipt name/SKU settings
+## T63 — Receipt presentation, preview and printer settings
 
 Owner/Admin changes; Manager view-only.
 
 **Do:** In Management → Receipt settings, use a safe test location and adjust settings as authorized.
+
+Preview a business name/address/footer change before saving. Upload a small valid PNG/JPEG logo if available. Try the customer/cashier display choices. Use **Test print (sample)**, then match **Printer paper width on this device** to the physical printer. After saving, use a separately agreed new sale to check the actual receipt. Change a presentation setting and reprint that completed receipt to check preservation. Restore shared settings after coordinated testing.
 
 **Expected:**
 - shortening changes future receipt display only;
 - catalog product name stays unchanged;
 - Show SKU affects receipt presentation;
 - historic receipts remain unchanged.
+- unsaved branding changes appear in the preview; sample printing is clearly marked and creates no sale/payment/stock effect;
+- Owner/Admin can save; Manager can inspect but cannot change the location configuration;
+- new receipts show numbered items, quantity, separate unit price, line totals and correct payment details;
+- blank optional fields are omitted; customer phone is shown only when available and enabled;
+- reprints preserve the completed receipt's logo, header, footer and customer presentation after later settings changes;
+- 80 mm/58 mm paper preference persists on this device and does not change other devices;
+- a physical print has readable text, aligned amounts and no clipped rows. Record physical hardware evidence separately from browser preview.
 
 ### Your result
 
@@ -1388,7 +1399,7 @@ Test selling, modal dialogs, Orders, Returns, Register, and Management where aut
 
 ## T144 — Printer
 
-**Expected:** receipt appears in print preview as an 80mm-wide page, not A4 or Letter, and prints when the printer is set to an 80mm roll.
+**Expected:** print preview keeps the selected printer paper size, with the receipt near the top and the same text size. For thermal printing, match the printer's 80 mm or 58 mm paper width to this device's setting. Check the physical print separately.
 
 ### Your result
 
