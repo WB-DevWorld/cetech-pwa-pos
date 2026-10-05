@@ -353,8 +353,13 @@ export function createStaffRuntimeController(input: {
     selectedRegisterId: string,
     assignedRegisters: readonly Register[],
     mode: "restore" | "explicit_switch" = "restore",
+    sameHydrationRegister?: Register,
   ): Promise<HydratedRegister> {
-    const registerResult = await input.registers.get(selectedRegisterId);
+    // Only restore may pass a successful matching response from this invocation.
+    // Explicit switches and failed/missing assigned reads still fetch independently.
+    const registerResult = mode === "restore" && sameHydrationRegister?.id === selectedRegisterId
+      ? { ok: true as const, data: sameHydrationRegister }
+      : await input.registers.get(selectedRegisterId);
     if (!registerResult.ok) {
       if (registerResult.error.code === "FORBIDDEN") {
         const message = "This register is not permitted for the current staff session. Choose another assigned register.";
@@ -477,6 +482,8 @@ export function createStaffRuntimeController(input: {
       previous,
       decision.selectedRegisterId,
       assignedRegisters,
+      "restore",
+      assignedRegisters.find((register) => register.id === decision.selectedRegisterId),
     );
     return hydrated(
       loaded.authority,
@@ -485,7 +492,11 @@ export function createStaffRuntimeController(input: {
     );
   }
 
-  async function applyContext(result: ApiResult<StaffSessionContext>, epochAtStart: number): Promise<void> {
+  async function applyContext(
+    result: ApiResult<StaffSessionContext>,
+    epochAtStart: number,
+    isStillCurrent: () => boolean = () => true,
+  ): Promise<void> {
     if (epochAtStart !== authorityEpoch) return;
     if (!result.ok) {
       if (result.error.code === "AUTH_REQUIRED" || result.error.code === "FORBIDDEN") {
@@ -546,7 +557,7 @@ export function createStaffRuntimeController(input: {
       return;
     }
     const loaded = await loadRegister(result.data, state);
-    if (epochAtStart !== authorityEpoch) return;
+    if (epochAtStart !== authorityEpoch || !isStillCurrent()) return;
     applyHydratedEffects(
       loaded,
       result.data.session.organizationId,
@@ -674,7 +685,7 @@ export function createStaffRuntimeController(input: {
         // a new browser session, and a stale refresh must not publish it.
         const result = await input.gateway.readContext();
         if (!refreshStillCurrent(captured)) return;
-        await applyContext(result, captured.epoch);
+        await applyContext(result, captured.epoch, () => refreshStillCurrent(captured));
       })();
       const tracked = run.finally(() => {
         if (inflightRefresh?.promise === tracked) inflightRefresh = null;

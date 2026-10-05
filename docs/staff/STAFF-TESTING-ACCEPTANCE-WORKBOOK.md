@@ -6,6 +6,8 @@
 
 **Management remediation candidate — 3 October 2026:** Guidance marked **Candidate Management** describes the current management correction candidate. Use it only after the coordinator confirms its exact build in the Test Brief. Source changes and these instructions do not establish that the shared POS link has changed or that a reported live problem is resolved.
 
+**Scanner safety candidate — 5 October 2026:** Guidance marked **Candidate Scanner** applies only after the coordinator confirms this candidate's exact build in the Test Brief. The shared POS link has not been changed by this source patch.
+
 **Read and understand the [current Test Brief](TEST-BRIEF-2026-10-02.md) first.**
 
 **[Open the POS for this round](https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app)**
@@ -635,6 +637,8 @@ An inactive location must reject a new shift even when its register/device is ac
 **Expected:**
 - correct product/variation is found;
 - scan does not add the wrong product.
+
+**Candidate Scanner check:** Scan two different known simple products quickly, then scan the same known barcode twice. Confirm both different products appear in scan order and the repeated product increases by two units. If a barcode asks for a product/variation choice, finish or cancel it and verify scans already received appear afterward. While a scan is pending, Pay must be unavailable; after all choices finish, wait for the current price before paying. If lookup fails, retry that scan or deliberately cancel it, then verify the cart and quantities. Do not take payment just to test this case unless the Test Brief permits it.
 
 ### Your result
 

@@ -1,0 +1,47 @@
+{
+  "optimization_id": "REGISTER-REFRESH-GUARD-01",
+  "baseline_sha": "816e0bb6963aff760609a3c7e4817e603c4ffdf0",
+  "symptom": "A refresh delayed inside activeShift can overwrite a newer locally applied shift; existing old test did not actually enter its read barrier.",
+  "measured_metric": "TEST-ONLY strengthened deterministic controller regression: late hydration overwrites replacement shift (focused run58/59 passed). Baseline negative control required.",
+  "target": "After async hydration, publish refresh authority/preferences/offline snapshot only if captured actor/org/register/shift/epoch still current.",
+  "allowed_paths": [
+    "CURRENT-WORK.md",
+    "apps/pos-web/src/core/identity/staff-runtime.ts",
+    "apps/pos-web/src/core/identity/staff-runtime.test.ts",
+    "docs/testing/performance-2026-10-05/scope-register-refresh-guard-01.json",
+    "docs/testing/performance-2026-10-05/README.md"
+  ],
+  "forbidden_paths": [
+    "all other production source",
+    "auth policy/RLS/server/checkout effects",
+    "schema/migrations/lockfiles/CI",
+    "Woo/Delivery Engine",
+    "long-lived cache or broad epoch behavior changes"
+  ],
+  "permitted_schema_changes": [],
+  "permitted_remote_writes": [
+    "Scoped source branch/draft PR and CI only. No runtime/deployment writes."
+  ],
+  "protected_invariants": [
+    "No late refresh restores old shift authority",
+    "Reuse existing refreshStillCurrent predicate after awaited hydration",
+    "Fresh session/register/assignment/shift checks remain",
+    "Current auth failure still fails closed",
+    "Stale result produces no preference/offline snapshot writes",
+    "No applyShift global epoch change",
+    "Restore/signin/explicit selection semantics unchanged"
+  ],
+  "tests_before": [
+    "Entered activeShift gate -> apply newer shift -> release late response fails on base and read-reuse candidate"
+  ],
+  "tests_after": [
+    "Same gate preserves newer shift afterfix",
+    "Late auth-closed response afternewer authority does not erase it",
+    "Current auth failures stillfailclosed",
+    "Complete staff-runtime concurrency/failure + connected auth suites"
+  ],
+  "rollback": "Revert this guard commit only if needed; no state/schema repair. Retain tests to expose qualification gap.",
+  "owner": "@wbdevworld / WS3 senior, owner-approved bounded Phase2 correctness work; independent human review @Ben-001-sys pending",
+  "staff_documentation_impact": "NO: restores existing advertised stale-refresh protection.",
+  "classification": "TEST-ONLY discovered reliability gap, no runtime incident asserted"
+}

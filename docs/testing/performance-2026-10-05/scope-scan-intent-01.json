@@ -1,0 +1,59 @@
+{
+  "optimization_id": "SCAN-INTENT-01",
+  "baseline_sha": "816e0bb6963aff760609a3c7e4817e603c4ffdf0",
+  "symptom": "Overlapping independent barcode events discard the older local lookup result.",
+  "measured_metric": "TEST-ONLY actual mounted component: two distinct accepted scans -> one added line/revision1.",
+  "target": "Every accepted same-cart scan applied once in order; one active lookup; Pay blocked until resolved.",
+  "allowed_paths": [
+    "CURRENT-WORK.md",
+    "apps/pos-web/src/features/sell/SellScreen.tsx",
+    "apps/pos-web/src/features/sell/components/CartPanel.tsx",
+    "apps/pos-web/src/features/sell/runtime/scanIntentQueue.ts",
+    "apps/pos-web/src/features/sell/runtime/scanIntentQueue.test.ts",
+    "apps/pos-web/e2e/sell-scanner-intents.spec.ts",
+    "docs/staff/STAFF-TRAINING-GUIDE.md",
+    "docs/staff/STAFF-TESTING-ACCEPTANCE-WORKBOOK.md",
+    "docs/staff/testing-2026-10-02/training/README.md",
+    "docs/staff/testing-2026-10-02/workbook/README.md",
+    "docs/testing/performance-2026-10-05/scope-scan-intent-01.json",
+    "docs/testing/performance-2026-10-05/README.md"
+  ],
+  "forbidden_paths": [
+    "src/core/**",
+    "src/server/**",
+    "src/local/**",
+    "supabase/**",
+    "contracts/**",
+    "dependencies/lockfiles",
+    "service-worker/cache/storage-schema",
+    "Woo/PHP/Delivery Engine",
+    "protected refs and peer branches"
+  ],
+  "permitted_schema_changes": [],
+  "permitted_remote_writes": [
+    "Publish bounded source branch/draft PR and CI only; no runtime business writes or deployment/alias change."
+  ],
+  "protected_invariants": [
+    "Woo price/tax/B2B/stock/order authority",
+    "provider settlement authority",
+    "stable transaction/idempotency identity",
+    "pre-effect durable intent and resolve after uncertainty",
+    "draft/journal preservation",
+    "no queued scan applied to another cart or during prepared checkout",
+    "unchanged typeahead latest-only behavior"
+  ],
+  "tests_before": [
+    "Phase1 actual-component deferred overlap negative control",
+    "Existing barcode/cart/checkout regression tests"
+  ],
+  "tests_after": [
+    "FIFO/repeated/collision/variation/retry/cart lifecycle tests",
+    "Native browser overlap and Pay guard fixture",
+    "Connected Sell/quote/attempt/checkout tests",
+    "Control-plane/tooling/lint/typecheck/unit/build/browser where runtime available"
+  ],
+  "rollback": "Revert bounded source commits; preserve IndexedDB/drafts/journal and current receipt parser compatibility. No migration.",
+  "owner": "@wbdevworld / WS3 senior, bounded WS1 scanner delegation; independent human review @Ben-001-sys pending",
+  "authorization": "Owner: alright... on to the next phase (2026-10-05), after Phase1 scoped recommendations.",
+  "classification": "SOURCE-ONLY / TEST-ONLY until exact-SHA staging/device qualification"
+}

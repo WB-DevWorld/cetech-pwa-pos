@@ -6,6 +6,8 @@
 
 **Management remediation candidate — 3 October 2026:** Guidance marked **Candidate Management** describes the current management correction candidate. Use it only after the coordinator confirms its exact build in the Test Brief. Source changes and these instructions do not establish that the shared POS link has changed or that a reported live problem is resolved.
 
+**Scanner safety candidate — 5 October 2026:** Guidance marked **Candidate Scanner** applies only after the coordinator confirms this candidate's exact build in the Test Brief. The shared POS link has not been changed by this source patch.
+
 **Read and understand the [current Test Brief](https://github.com/WB-DevWorld/cetech-pwa-pos/tree/ws3/management-remediation-2026-10-03/docs/staff/testing-2026-10-02/brief) first.**
 
 **[Open the POS for this round](https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app)**
@@ -188,6 +190,10 @@ For a keyboard-style barcode scanner:
 1. click/focus the normal selling screen if needed;
 2. scan the product;
 3. wait for the product to appear in the cart or for the POS to ask you to choose a variation.
+
+**Candidate Scanner:** Quick successive scans of ordinary products should all appear in scan order. Scanning the same barcode twice should add two units. If the POS asks you to choose a product or variation, finish or cancel that choice before scanning more. Scans already received wait for that choice. Check the cart and quantities before paying.
+
+Pay stays unavailable while a received scan is still being added or needs a choice. If **Barcode lookup is unavailable** appears, use **Retry barcode lookup**, or **Cancel pending scan** only when you intend to leave that scan out. Check the cart afterward; cancelling a scan does not cancel a payment or completed sale. If variations cannot load, use **Retry variations** and check the chosen item before paying.
 
 Do not manually shorten or rename product data because a product name is long. Compact POS screens may visually show only part of a long name, but the underlying product name remains complete.
 

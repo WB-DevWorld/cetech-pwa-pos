@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BarcodeCollisionDialog } from "./components/BarcodeCollisionDialog";
 import { CartPanel } from "./components/CartPanel";
 import { CatalogStatusBanners } from "./components/CatalogStatus";
@@ -18,6 +18,7 @@ import type { TenderAvailabilityView } from "./components/TenderChoice";
 import { resolveQuotePresentation } from "./state/quoteRevision";
 import { isDigitBarcodeQuery } from "./state/barcodeResolution";
 import { bindLocalGeneration } from "./runtime/productDisplayPriceCache";
+import { createScanIntentQueue, type ScanIntentStatus } from "./runtime/scanIntentQueue";
 import type {
   CatalogAvailability,
   CatalogSearchState,
@@ -179,10 +180,21 @@ export function SellScreen({
   const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [cartTransitioning, setCartTransitioning] = useState(false);
+  const [variationLoading, setVariationLoading] = useState(false);
+  const [variationFailure, setVariationFailure] = useState<{ cartId: string; product: SellProductView } | null>(null);
+  const variationRequestRef = useRef(false);
   const searchSeq = useRef(0);
-  const barcodeSeq = useRef(0);
+  const scanRuntimeRef = useRef({ onBarcodeScanned, cartId: state.cartId });
+  const [scanStatus, setScanStatus] = useState<ScanIntentStatus>({ pendingCount: 0, failed: null });
+  const [scanCommitId, setScanCommitId] = useState(0);
+  const [scanQueue] = useState(() => createScanIntentQueue<readonly SellProductView[]>());
   const observedProjectionGenerationRef = useRef<number | undefined>(undefined);
   const completedSaleRotationRef = useRef<string | null>(null);
+
+  useLayoutEffect(() => {
+    scanQueue.start();
+    return () => scanQueue.stop();
+  }, [scanQueue]);
 
   useEffect(() => {
     onWorkspaceChange?.(state);
@@ -200,6 +212,7 @@ export function SellScreen({
     const previous = state;
     const next = applyNewSale(previous, catalog, deps);
     completedSaleRotationRef.current = completedToken;
+    scanQueue.pause();
     setCartTransitioning(true);
 
     void (async () => {
@@ -219,6 +232,7 @@ export function SellScreen({
     checkoutSession?.transactionId,
     deps,
     onTransitionCart,
+    scanQueue,
     state,
   ]);
 
@@ -279,6 +293,29 @@ export function SellScreen({
     displayed.notice?.kind === "collision" ||
     Boolean(checkoutSession && checkoutDialogOpen(checkoutSession.stage));
   const catalogMutationAllowed = isCatalogMutationAllowed(displayed.catalogAvailability);
+  const scanPaused = modalOpen || !catalogMutationAllowed || cartTransitioning || checkoutInFlight || variationLoading;
+
+  useLayoutEffect(() => {
+    scanRuntimeRef.current = { onBarcodeScanned, cartId: state.cartId };
+    scanQueue.setPorts({
+      lookup: (barcode) => resolveBarcodeCatalog ? resolveBarcodeCatalog(barcode) : Promise.resolve(catalog),
+      apply: (intent, slice) => {
+        // Allocate once outside the updater: React may replay a pure update in Strict Mode.
+        const lineId = deps.createLineId();
+        const scanDeps = { ...deps, createLineId: () => lineId };
+        setState((current) => current.cartId === intent.cartId ? applyBarcodeScan(current, intent.barcode, slice, scanDeps) : current);
+        setScanCommitId(intent.id);
+      },
+      onChange: setScanStatus,
+    });
+  }, [catalog, deps, onBarcodeScanned, resolveBarcodeCatalog, scanQueue, state.cartId]);
+
+  // Acknowledge after the chooser/collision is committed, so the next intent cannot replace it.
+  // Run on each commit to release synchronous handler pauses even if a transition was declined.
+  useLayoutEffect(() => {
+    scanQueue.setContext(state.cartId, scanPaused);
+    scanQueue.acknowledge(scanCommitId);
+  });
 
   const closeNotice = useCallback(() => {
     setState((current) => dismissNotice(current));
@@ -310,6 +347,7 @@ export function SellScreen({
       }
       if (event.key === "F4") {
         event.preventDefault();
+        scanQueue.pause();
         setCustomerPickerOpen(true);
       }
       if (event.key === "Escape") {
@@ -320,23 +358,17 @@ export function SellScreen({
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [scanQueue]);
 
   const scanBarcode = useCallback(
     (barcode: string) => {
-      if (!catalogMutationAllowed) return;
-      onBarcodeScanned?.(barcode);
-      const seq = ++barcodeSeq.current;
-      void (async () => {
-        const slice = resolveBarcodeCatalog ? await resolveBarcodeCatalog(barcode) : catalog;
-        if (seq !== barcodeSeq.current) return;
-        setState((current) => (applyBarcodeScan(current, barcode, slice, deps)));
-      })();
+      const runtime = scanRuntimeRef.current;
+      if (scanQueue.enqueue(barcode, runtime.cartId)) runtime.onBarcodeScanned?.(barcode);
     },
-    [catalog, catalogMutationAllowed, deps, onBarcodeScanned, resolveBarcodeCatalog],
+    [scanQueue],
   );
 
-  useBarcodeScanner(scanBarcode, !modalOpen && catalogMutationAllowed);
+  useBarcodeScanner(scanBarcode, !scanPaused);
 
   function handleQueryChange(query: string) {
     onSearch?.(query);
@@ -372,11 +404,19 @@ export function SellScreen({
   }
 
   function handleSelectProduct(item: SellProductView) {
-    if (!catalogMutationAllowed) return;
+    if (!catalogMutationAllowed || variationRequestRef.current) return;
     onSelectProduct?.(item.id);
+    if (item.kind === "variable") scanQueue.pause();
     if (item.kind === "variable" && loadVariations) {
-      void loadVariations(item.id).then((variations) => {
-        setState((current) => (applyVariationChooser(current, item, variations)));
+      const cartId = state.cartId;
+      variationRequestRef.current = true;
+      setVariationFailure(null);
+      setVariationLoading(true);
+      void Promise.resolve().then(() => loadVariations(item.id)).then((variations) => {
+        setState((current) => current.cartId === cartId ? applyVariationChooser(current, item, variations) : current);
+      }).catch(() => setVariationFailure({ cartId, product: item })).finally(() => {
+        variationRequestRef.current = false;
+        setVariationLoading(false);
       });
       return;
     }
@@ -422,6 +462,7 @@ export function SellScreen({
         const previous = state;
         const next = applyNewSale(previous, catalog, deps);
         completedSaleRotationRef.current = completedToken;
+        scanQueue.pause();
         setCartTransitioning(true);
         try {
           await onTransitionCart?.(previous, next, "completed");
@@ -442,6 +483,7 @@ export function SellScreen({
 
     const previous = state;
     const next = applyNewSale(previous, catalog, deps);
+    scanQueue.pause();
     setCartTransitioning(true);
     try {
       await onTransitionCart?.(previous, next, "discarded");
@@ -465,7 +507,20 @@ export function SellScreen({
       handleNewSale();
       return;
     }
+    scanQueue.pause();
     setClearConfirmOpen(true);
+  }
+
+  function handlePay() {
+    // The ref-owned queue updates during the scanner event, before a disabled button can render.
+    if (scanQueue.hasPending() || scanQueue.isPaused() || scanPaused || !onPay) return;
+    scanQueue.pause();
+    try {
+      onPay();
+    } finally {
+      // Even a declined/throwing callback needs a commit to release the temporary handler gate.
+      setScanStatus((current) => ({ ...current }));
+    }
   }
 
   const itemCount = displayed.lines.length;
@@ -489,6 +544,22 @@ export function SellScreen({
       <h1 className="sr-only">Sell</h1>
       {displayed.notice?.kind === "unknown" ? (
         <SellToast title="Product not found for barcode" detail={displayed.notice.barcode} />
+      ) : null}
+      {scanStatus.failed ? (
+        <div className="banner danger" role="alert">
+          <p>Barcode lookup is unavailable. Retry or cancel this scan.</p>
+          <p>{scanStatus.failed.barcode}</p>
+          <button type="button" className="btn" onClick={() => scanQueue.retry()}>Retry barcode lookup</button>
+          <button type="button" className="btn" onClick={() => scanQueue.cancelFailed()}>Cancel pending scan</button>
+        </div>
+      ) : null}
+      {variationFailure?.cartId === state.cartId ? (
+        <div className="banner danger" role="alert">
+          <p>Variations are unavailable. Retry loading this product.</p>
+          <button type="button" className="btn" disabled={!catalogMutationAllowed} onClick={() => handleSelectProduct(variationFailure.product)}>
+            Retry variations
+          </button>
+        </div>
       ) : null}
       <div className="sell-workspace-body" inert={modalOpen ? true : undefined}>
         <CatalogStatusBanners availability={displayed.catalogAvailability} />
@@ -527,7 +598,7 @@ export function SellScreen({
             lines={displayed.lines}
             customer={displayed.selectedCustomer}
             mobileOpen={displayed.mobileCartOpen}
-            onOpenCustomers={() => setCustomerPickerOpen(true)}
+            onOpenCustomers={() => { scanQueue.pause(); setCustomerPickerOpen(true); }}
             onClear={handleClearRequest}
             onIncrement={(lineId) => setState((current) => (applyQuantityIncrement(current, lineId)))}
             onDecrement={(lineId) => setState((current) => (applyQuantityDecrement(current, lineId)))}
@@ -538,8 +609,10 @@ export function SellScreen({
             eligibility={presentedQuote.eligibility}
             checkoutReady={checkoutReady}
             checkoutInFlight={checkoutInFlight}
+            scanPending={scanStatus.pendingCount > 0}
+            selectionPending={variationLoading}
             clearDisabled={newSaleBlocked}
-            onPay={onPay}
+            onPay={handlePay}
             onRetryQuote={onRetryQuote}
           />
           <div className="mobile-cart-bar">

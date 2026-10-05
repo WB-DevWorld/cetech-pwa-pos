@@ -928,3 +928,41 @@ Owner report on 2026-10-03 requests receipt settings across locations with local
 - Expiry: exact source review/handoff for this task. A new explicit release decision is required before changing the tester alias or applying its migration; the earlier one-time bypass was consumed. No automatic third freshness pass; this new assignment has its own start and exactly two final observations.
 
 The combined source and local qualification are complete; [management remediation evidence](docs/testing/management-remediation-2026-10-03/README.md) records contributor imports, 1,718 unit and 72 browser checks, migration/static-review limits and live diagnostic boundaries. Root retains publication, exact-head CI and two-pass handoff only. Final remote source, Linux/Windows CI, freshness cutoff and any new release decision belong in the draft PR. No live repair, settings/access/lifecycle mutation, migration application or tester alias change has occurred in this assignment.
+
+
+## PERF-SAFETY-20261005 — Phase 2 bounded performance/correctness batch — ACTIVE
+
+Owner instruction, 2026-10-05: “alright... on to the next phase”, after the Phase-1 technical verdict. This authorizes the report's narrow implementation sequence; it does not authorize production, migrations, release bypass, or tester alias changes.
+
+- Acting editor/integration lead: @wbdevworld / WS3 senior. Fresh bounded WS1 reassignment: scanner intent preservation only, from original WS1 owner Ben to this owner-requested remediation. Independent human reviewer: @Ben-001-sys; AI reviews are supporting evidence only.
+- Branch/worktree: `ws3/performance-safety-2026-10-05` / `implementation/pos-performance`. Baseline exact deployed source `816e0bb6963aff760609a3c7e4817e603c4ffdf0`; protected main `c49045dd02c46574af5d341cc65c177116fa7306`; integration `1021cd113c783e25030fe9c0bda1be9ddcf5888c`. Start refs fetched/pruned and open PRs/issues reconciled. Tester Preview `dpl_nxWGrSLqaLBGNNN683QjdixNBjF6` remains unchanged.
+- First task: SCAN-INTENT-01. Frozen manual scope: `docs/testing/performance-2026-10-05/scope-scan-intent-01.json`, SHA256 aaba74f661d4cbb55dd5fbc8805951f6eec38e5ca4dd66a883f28010bb0f1985. #104 general enforcement remains a separate task; this batch validates actual diff against a separately frozen copy.
+- Scanner contributor `frontend_audit`: isolated worktree; SellScreen, CartPanel, scanIntentQueue helper and its unit test only. Root imports exact tested changes.
+- Browser contributor `research_qualification`: isolated worktree; `apps/pos-web/e2e/sell-scanner-intents.spec.ts` only. Uses safe local fixtures, no staging orders.
+- Root owns ledger, manifests, staff guide/workbook and maintained mirrors, evidence, import, final tests and publication. No concurrent mutable checkout.
+- Contracts/schema/dependencies: unchanged. Scanner queue is transient UI intent, never payment/order/stock evidence.
+- Acceptance: every accepted independent/repeated same-cart scan remains ordered; collision/variation modals pause; rejected lookup is truthful/retryable; reset/unmount cannot replay into a new cart; pending scans synchronously block Pay; authoritative quote/prepare/receipt/journal invariants remain intact.
+- Staff documentation impact: YES, rapid scans and pending-scan Pay feedback. Canonical guide/workbook and maintained copies move together.
+- Forbidden: core/server/local changes in this first scope, pricing/stock/payment/refund/receipt authority changes, migrations/indexes/lockfiles/CI/release changes, Woo/Delivery edits, protected refs/peer branches, main merge, runtime business writes, deployment/alias changes, production, VitePOS cutover, destructive storage cleanup or fabricated review/runtime evidence.
+- Next candidate: selected-register same-hydration duplicate read elimination, under a separate frozen manifest before its edits. Quote scheduling remains diagnostic-only until measured latency tradeoff is justified.
+- Expiry: this tested review-candidate handoff; no automatic extension to broad optimizations. Final publication requires exactly two bounded freshness observations after checkpoint; stop after Pass 2.
+
+### REGISTER-READ-01 — separate bounded WS3 optimization
+
+Frozen scope: `docs/testing/performance-2026-10-05/scope-register-read-01.json`, SHA256 73a6183f925a469a8f119555134c84cd37623174ed7fe502694f2511de3e2702. Same freshly reconciled base816e0bb. Contributor `transaction_woo_audit`, isolated worktree, edits only staff-runtime.ts and its test. Root owns evidence/import/publication. Reuse only a successful matching register response from this same hydration; failed/missing/mismatched results retain fallback reads; explicit selection, fresh context/assignment and activeShift authority remain unchanged. Staff documentation impact: NO, internal redundant success-path read only. No database/server/policy/cache/deployment change. Lease expires after exact tested import/handoff.
+
+### REGISTER-REFRESH-GUARD-01 — measured connected reliability defect
+
+Strengthening the duplicate-read regression exposed a delayed activeShift hydration overwriting a newer applied shift; the historical test had not entered the claimed asynchronous barrier. This bounded WS3 correctness fix is recorded separately before edits, rather than silently expanding REGISTER-READ-01. Frozen scope `docs/testing/performance-2026-10-05/scope-register-refresh-guard-01.json`, SHA256 ebb3a9dcf4676f58ef26e98d9d2be395ad916303d6ba147e451ee057752e27d8. Same controller/test contributor and base; recheck existing captured refresh authority after awaited hydration, before state/preference/offline publication. No global applyShift epoch redesign, server/auth-policy change, migration or release. Staff documentation impact NO: existing stale-refresh guarantee is enforced. Acceptance requires original-source negative control, current auth fail-closed behavior and newer-shift preservation.
+
+### Scanner boundary test maintenance — explicit scope extension before edit
+
+The full native browser suite passes77/77. Full unit has only an obsolete literal scanner-hook assertion (1733/1734 pass). Frozen `scope-scan-test-maintenance.json`, SHA256 c4429877856c675cdcfb9c9c3dfdce25744f5443ab9341a04ffe9762a6075678, adds only `tests/frontend/sell-boundaries.test.ts` to the connected test scope. Root adapts the static assertion to the expanded modal/catalog/transition/checkout/variation gate; no production behavior change or test deletion. This is regression maintenance for SCAN-INTENT-01, not another optimization or #104 implementation.
+
+### Phase 2 tested integration checkpoint / contributor leases released
+
+Imported register `f194f841` as `b80bd9e`, browser `e0be691f` as `23cda3b`, scanner `9fee56cd` as `e9c92379`. Exact non-overlapping contribution files and production parity independently reviewed; all three contributor editor leases are released. Root is sole remaining integration/docs/publication editor. Full native browser77/77, unit1734/1734 (`TZ=UTC`), typecheck/build and lint pass (five warnings only in untouched paths). Connected literal scanner-boundary assertion was updated under its pre-recorded test scope. Test-generated tracked fixture/HTML changes are restored, not included. Final remote tree/head, exact-head CI and exactly two final freshness observations belong in the PR/final report. No source is merged or live accepted; independent human review remains pending. Tester alias, migrations and production unchanged.
+
+### CI receipt alert locator — bounded test-only gate repair
+
+Exact head7addddf3 WindowsCI passed; Linuxdatabase/pgTAP/PHP/lint/typecheck/unit/buildpassed, browser76/77passed. Theexisting receipt-shared-settings mismatch test matched both the actual receipt-unavailable alert and Next route announcer. Frozen `scope-ci-alert-locator-01.json`, SHA256 1bb4dbf148778c05265c33ba47ff62ae8340410cbd1d1cc570ee70f4d11adc97, permits onlythat test locator, evidence/ledger andits scopefile. Root narrowsboth scope-denial alerts to intended error text, retains noeditablefields/noSave assertions; zero retries/skips orreceiptproduction changes. This is explicitly recorded beforeedit, a mandatory gate repair underWS3 rather than an unrelated product refactor.

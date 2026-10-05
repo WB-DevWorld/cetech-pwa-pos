@@ -239,7 +239,13 @@ async function expectCurrentAuthClosed(target: "register" | "shift") {
   } else {
     registers.shiftImpl = async () => fail("AUTH_REQUIRED", "staff session is expired or revoked");
   }
+  registers.got.length = 0;
+  registers.shifted.length = 0;
   await harness.runtime.refreshRegister();
+  if (target === "shift") {
+    expect(registers.got).toEqual(["reg_a"]);
+    expect(registers.shifted).toEqual(["reg_a"]);
+  }
   expect(harness.runtime.getState()).toMatchObject({
     status: "expired",
     session: null,
@@ -328,7 +334,7 @@ describe("STG-06 staff runtime register authority", () => {
     const burst = Promise.all(Array.from({ length: 8 }, () => runtime.refreshRegister()));
     release();
     await burst;
-    expect(registers.got).toEqual(["reg_a", "reg_a"]);
+    expect(registers.got).toEqual(["reg_a"]);
     expect(registers.shifted).toEqual(["reg_a"]);
     expect(runtime.getState()).toMatchObject({
       status: "ready",
@@ -490,20 +496,22 @@ describe("STG-06 staff runtime register authority", () => {
     const registers = stubRegisters();
     const { runtime } = controller(registers);
     await runtime.restore();
-    let calls = 0;
     let release!: () => void;
+    let entered!: () => void;
     const gate = new Promise<void>((resolve) => {
       release = resolve;
     });
-    const originalGet = registers.getImpl;
-    registers.getImpl = async (id) => {
-      calls += 1;
-      if (calls >= 2) {
-        await gate;
-      }
-      return originalGet(id);
+    const started = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const originalShift = registers.shiftImpl;
+    registers.shiftImpl = async (id) => {
+      entered();
+      await gate;
+      return originalShift(id);
     };
     const pending = runtime.refreshRegister();
+    await started;
     const replacement: Shift = {
       ...SHIFT_A,
       id: "80c80173-ce30-4ab7-9461-697ee625ceb5",
@@ -514,6 +522,42 @@ describe("STG-06 staff runtime register authority", () => {
     expect(runtime.getState().shift?.id).toBe(replacement.id);
     expect(runtime.getState().register?.id).toBe("reg_a");
     expect(runtime.getState().shiftOpen).toBe(true);
+  });
+
+  test("late refresh active-shift AUTH_REQUIRED after a newer shift preserves authority and presentation", async () => {
+    const watched = watchRegisterPreference("reg_a");
+    const offlineStore = createMemoryOfflineStaffPresentationStore();
+    const registers = stubRegisters();
+    const { runtime } = cashierRuntime({
+      registers,
+      assigned: ["reg_a"],
+      store: watched.store,
+      offlineStore,
+    });
+    await runtime.restore();
+    const snapshot = offlineStore.serializedSnapshot();
+    watched.writes.length = 0;
+    watched.clears.length = 0;
+    const held = holdAuthClosedLookup(registers, "shift", "reg_a");
+    const pending = runtime.refreshRegister();
+    await held.started;
+    const replacement: Shift = { ...SHIFT_A, id: "80c80173-ce30-4ab7-9461-697ee625ceb5" };
+    runtime.applyShift(replacement);
+
+    held.release();
+    await pending;
+
+    expect(runtime.getState()).toMatchObject({
+      status: "ready",
+      session: { actorId: "cashier_a", organizationId: "org_a" },
+      register: { id: "reg_a" },
+      shift: { id: replacement.id },
+      shiftOpen: true,
+    });
+    expect(offlineStore.serializedSnapshot()).toBe(snapshot);
+    expect(watched.writes).toEqual([]);
+    expect(watched.clears).toEqual([]);
+    expect(watched.store.read("org_a", "cashier_a")).toBe("reg_a");
   });
 
   test("CAN-05 A slow register switch plus sign-out drops a forbidden hydration", async () => {
@@ -875,7 +919,7 @@ describe("STG-06 staff runtime register authority", () => {
       onEstablish: () => renewed,
     });
     await runtime.restore();
-    const held = holdAuthClosedLookup(registers, "register", "reg_a", 1);
+    const held = holdAuthClosedLookup(registers, "shift", "reg_a");
     const pending = runtime.refreshRegister();
     await held.started;
     await runtime.signIn();
@@ -1609,6 +1653,116 @@ describe("explicit sign-out retires local authority before remote logout", () =>
     expect(runtime.getState().session).toBeNull();
     expect(offlineStore.read(later)).toBeNull();
     expect(evidence).toEqual(commercialEvidence());
+  });
+});
+
+describe("REGISTER-READ-01 same-hydration register request budget", () => {
+  test("restore reads its single selected register and active shift once", async () => {
+    const registers = stubRegisters();
+    const { runtime } = controller(registers, ["reg_a"]);
+
+    await runtime.restore();
+
+    expect(registers.got).toEqual(["reg_a"]);
+    expect(registers.shifted).toEqual(["reg_a"]);
+    expect(runtime.getState().register).toEqual(REGISTER_A);
+    expect(runtime.getState().shift?.id).toBe(SHIFT_A.id);
+  });
+
+  test("stored selection reuses its matching read and each refresh reads current registers again", async () => {
+    const store = createMemorySelectedRegisterStore({
+      [selectedRegisterStorageKey("org_a", "cashier_a")]: "reg_b",
+    });
+    const registers = stubRegisters();
+    const { runtime } = controller(registers, ["reg_a", "reg_b"], store);
+    await runtime.restore();
+    expect(registers.got).toEqual(["reg_a", "reg_b"]);
+    expect(registers.shifted).toEqual(["reg_b"]);
+
+    const updated = { ...REGISTER_B, name: "Updated Back Counter" };
+    const originalGet = registers.getImpl;
+    registers.getImpl = async (id) => id === "reg_b" ? ok(updated) : originalGet(id);
+    registers.got.length = 0;
+    registers.shifted.length = 0;
+    await runtime.refreshRegister();
+
+    expect(registers.got).toEqual(["reg_a", "reg_b"]);
+    expect(registers.shifted).toEqual(["reg_b"]);
+    expect(runtime.getState().register).toEqual(updated);
+    expect(runtime.getState().shift?.id).toBe(SHIFT_B.id);
+  });
+
+  test("multiple assignments without a selection only read the assigned list", async () => {
+    const registers = stubRegisters();
+    const { runtime } = controller(registers, ["reg_a", "reg_b"]);
+
+    await runtime.restore();
+
+    expect(registers.got).toEqual(["reg_a", "reg_b"]);
+    expect(registers.shifted).toEqual([]);
+    expect(runtime.getState().selectedRegisterId).toBeNull();
+    expect(runtime.getState().register).toBeNull();
+  });
+
+  test.each(["INTEGRATION_UNAVAILABLE", "NOT_FOUND"] as const)(
+    "a selected assigned read returning %s keeps the independent fallback read",
+    async (code) => {
+      const registers = stubRegisters();
+      const originalGet = registers.getImpl;
+      let first = true;
+      registers.getImpl = async (id) => {
+        if (first) {
+          first = false;
+          return fail(code, "assigned-register fixture failure");
+        }
+        return originalGet(id);
+      };
+      const { runtime } = controller(registers, ["reg_a"]);
+
+      await runtime.restore();
+
+      expect(registers.got).toEqual(["reg_a", "reg_a"]);
+      expect(registers.shifted).toEqual(["reg_a"]);
+      expect(runtime.getState().register).toEqual(REGISTER_A);
+      expect(runtime.getState().assignedRegisters).toEqual([]);
+    },
+  );
+
+  test("a mismatched assigned response cannot replace the selected register fallback", async () => {
+    const registers = stubRegisters();
+    const originalGet = registers.getImpl;
+    let first = true;
+    registers.getImpl = async (id) => {
+      if (first) {
+        first = false;
+        return ok(REGISTER_B);
+      }
+      return originalGet(id);
+    };
+    const { runtime } = controller(registers, ["reg_a"]);
+
+    await runtime.restore();
+
+    expect(registers.got).toEqual(["reg_a", "reg_a"]);
+    expect(registers.shifted).toEqual(["reg_a"]);
+    expect(runtime.getState().register).toEqual(REGISTER_A);
+    expect(runtime.getState().assignedRegisters).toEqual([]);
+  });
+
+  test("explicit selection reads current register data independently of the earlier assigned list", async () => {
+    const registers = stubRegisters();
+    const { runtime } = controller(registers, ["reg_a", "reg_b"]);
+    await runtime.restore();
+    const updated = { ...REGISTER_B, name: "Current Back Counter" };
+    registers.getImpl = async () => ok(updated);
+    registers.got.length = 0;
+    registers.shifted.length = 0;
+
+    await expect(runtime.selectRegister("reg_b")).resolves.toBe(true);
+
+    expect(registers.got).toEqual(["reg_b"]);
+    expect(registers.shifted).toEqual(["reg_b"]);
+    expect(runtime.getState().register).toEqual(updated);
   });
 });
 

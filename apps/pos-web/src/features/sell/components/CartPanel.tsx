@@ -146,6 +146,8 @@ export function CartPanel({
   eligibility,
   checkoutReady = false,
   checkoutInFlight = false,
+  scanPending = false,
+  selectionPending = false,
   clearDisabled = false,
   onPay,
   onRetryQuote,
@@ -165,6 +167,8 @@ export function CartPanel({
   eligibility?: CheckoutEligibilityView;
   checkoutReady?: boolean;
   checkoutInFlight?: boolean;
+  scanPending?: boolean;
+  selectionPending?: boolean;
   clearDisabled?: boolean;
   onPay?: () => void;
   onRetryQuote?: () => void;
@@ -234,15 +238,19 @@ export function CartPanel({
         <button
           className="btn primary block pay-btn"
           type="button"
-          disabled={pay.disabled}
+          disabled={pay.disabled || scanPending || selectionPending}
           onClick={() => {
-            if (pay.disabled) return;
+            if (pay.disabled || scanPending || selectionPending) return;
             onPay?.();
           }}
         >
           {pay.label}
         </button>
-        {eligibility ? (
+        {scanPending ? (
+          <div className="muted pay-reason" role="status">Finish pending barcode scans before paying.</div>
+        ) : selectionPending ? (
+          <div className="muted pay-reason" role="status">Finish choosing the product before paying.</div>
+        ) : eligibility ? (
           <div
             className="muted pay-reason"
             data-eligibility-allowed={pay.eligibilityAllowed ? "true" : "false"}

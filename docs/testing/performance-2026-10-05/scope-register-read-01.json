@@ -1,0 +1,47 @@
+{
+  "optimization_id": "REGISTER-READ-01",
+  "baseline_sha": "816e0bb6963aff760609a3c7e4817e603c4ffdf0",
+  "symptom": "Selected register is read again after a successful matching read in the same assigned-register hydration.",
+  "measured_metric": "TEST-ONLY actual controller injected ports: one assigned restore/refresh4 requests; two assigned stored selection5.",
+  "target": "3/4 requests respectively, with current context and activeShift checks unchanged; explicit select2 unchanged.",
+  "allowed_paths": [
+    "CURRENT-WORK.md",
+    "apps/pos-web/src/core/identity/staff-runtime.ts",
+    "apps/pos-web/src/core/identity/staff-runtime.test.ts",
+    "docs/testing/performance-2026-10-05/scope-register-read-01.json",
+    "docs/testing/performance-2026-10-05/README.md"
+  ],
+  "forbidden_paths": [
+    "all other production source",
+    "server handlers/RLS/auth policy",
+    "local drafts/journal/SW",
+    "contracts/schema/migrations/lockfiles/CI",
+    "Woo/Delivery Engine",
+    "protected refs/peer branches"
+  ],
+  "permitted_schema_changes": [],
+  "permitted_remote_writes": [
+    "Scoped branch/draft PR and CI only; no runtime/deployment writes."
+  ],
+  "protected_invariants": [
+    "Only matching successful same-invocation Register reused",
+    "Fresh readContext/assignments and activeShift retained",
+    "Missing/mismatched/failure result follows existing fallback read/error semantics",
+    "Explicit register selection performs a fresh read",
+    "Epoch/session/switch/signout/shift guards unchanged",
+    "No cross-request/session authorization cache"
+  ],
+  "tests_before": [
+    "audit/phase2-review/baseline-counts.json actual controller source diagnostic"
+  ],
+  "tests_after": [
+    "Complete staff-runtime safety/failure/concurrency tests",
+    "Auth composition/gateway/preference/checkout-scope/provider/HTTP connected regressions",
+    "Repeat actual controller port-count diagnostic",
+    "Foundation/tooling/lint/typecheck/unit/build gates"
+  ],
+  "rollback": "Revert scoped code/test commit; no schema/state repair.",
+  "owner": "@wbdevworld / WS3 senior; independent reviewer @Ben-001-sys pending",
+  "staff_documentation_impact": "NO: existing selection/security/offline behavior retained; internal duplicate successful read only.",
+  "classification": "SOURCE-ONLY / TEST-ONLY until exact-head staging qualification"
+}

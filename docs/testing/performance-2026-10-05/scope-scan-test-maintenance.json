@@ -1,0 +1,36 @@
+{
+  "optimization_id": "SCAN-INTENT-01-TEST-MAINTENANCE",
+  "baseline_sha": "816e0bb6963aff760609a3c7e4817e603c4ffdf0",
+  "symptom": "Full unit suite has one obsolete exact source-string assertion for the former scanner gate; production gate now contains those protections plus transition/checkout/variation pauses.",
+  "measured_metric": "Native browser77/77 pass; full unit1733/1734 pass, sole failure in sell-boundaries.test.ts line76.",
+  "target": "Keep static boundary check for modal/catalog blocking and gated hook, adapt to equivalent expanded scanPaused predicate; no production source change.",
+  "allowed_paths": [
+    "CURRENT-WORK.md",
+    "tests/frontend/sell-boundaries.test.ts",
+    "docs/testing/performance-2026-10-05/scope-scan-test-maintenance.json",
+    "docs/testing/performance-2026-10-05/README.md"
+  ],
+  "forbidden_paths": [
+    "all production source and unrelated tests",
+    "schema/dependencies/CI",
+    "Woo/Delivery/runtime state"
+  ],
+  "permitted_schema_changes": [],
+  "permitted_remote_writes": [],
+  "protected_invariants": [
+    "Scanner remains gated by modal and catalog availability",
+    "Existing presentation-only and barcode normalization protections retained",
+    "No test removed or broad assertions weakened",
+    "Runtime behaviors independently covered by native and mounted negative/positive controls"
+  ],
+  "tests_before": [
+    "Recorded obsolete literal failure"
+  ],
+  "tests_after": [
+    "Full unit suite",
+    "Foundation/tooling/typecheck"
+  ],
+  "rollback": "Revert scoped test assertion update together with scanner source revert; no runtime state.",
+  "owner": "@wbdevworld / WS3 integration editor, connected regression maintenance only",
+  "staff_documentation_impact": "NO additional impact beyond documented scanner candidate"
+}

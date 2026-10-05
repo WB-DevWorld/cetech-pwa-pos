@@ -1,0 +1,39 @@
+{
+  "optimization_id": "CI-ALERT-LOCATOR-01",
+  "baseline_sha": "7addddf3e9e3303ef8b89b8b20df9ab5dc76e2a4",
+  "symptom": "Linux CI receipt scope-denial browser assertion finds two role=alert nodes: intended error and Next route announcer.",
+  "measured_metric": "Exact-head Linux run37357308535:76/77 browser tests pass; onlystrictlocatorambiguityfails. Windows andallotherLinuxgatespass.",
+  "target": "Identify the intended receipt-unavailable alert while retaining noneditable-field and no-save assertions; no receipt behavior change or rerun-to-hidefailure.",
+  "allowed_paths": [
+    "CURRENT-WORK.md",
+    "apps/pos-web/e2e/receipt-shared-settings.spec.ts",
+    "docs/testing/performance-2026-10-05/scope-ci-alert-locator-01.json",
+    "docs/testing/performance-2026-10-05/README.md"
+  ],
+  "forbidden_paths": [
+    "all production source",
+    "receipt contracts/rendering/storage/settings behavior",
+    "unrelated tests",
+    "CI/dependencies/schema/Woo/Delivery"
+  ],
+  "permitted_schema_changes": [],
+  "permitted_remote_writes": [
+    "Update existing own draft branch/PR and freshCI only."
+  ],
+  "protected_invariants": [
+    "Mismatched location/org response exposes noeditable Businessname orSave controls",
+    "Expected receipt-unavailable error remains visible",
+    "Do notexclude/skiptest or addCI retries",
+    "Noapplication modification"
+  ],
+  "tests_before": [
+    "ActualCI strictmodeviolationwith bothnodes"
+  ],
+  "tests_after": [
+    "Focusednative receiptshared-settings tests with zero retries",
+    "Full exact-headLinux/Windows CI"
+  ],
+  "rollback": "Revert this test-only adjustment with no runtime/state effect.",
+  "owner": "@wbdevworld / WS3 integration editor, mandatory connected gate maintenance",
+  "staff_documentation_impact": "NO additional impact; testlocator only."
+}

@@ -73,7 +73,8 @@ describe("FE-03 sell layer stays presentation-only", () => {
 
   test("gates the keyboard-wedge scanner while a Sell modal is open or catalog is unavailable", () => {
     const sellScreenSource = readFileSync(join(sellRoot, "SellScreen.tsx"), "utf8");
-    expect(sellScreenSource).toContain("useBarcodeScanner(scanBarcode, !modalOpen && catalogMutationAllowed)");
+    expect(sellScreenSource).toContain("scanPaused = modalOpen || !catalogMutationAllowed");
+    expect(sellScreenSource).toContain("useBarcodeScanner(scanBarcode, !scanPaused)");
     expect(sellScreenSource).not.toMatch(/useBarcodeScanner\(scanBarcode\);/);
     expect(sellScreenSource).toContain("catalogMutationAllowed = isCatalogMutationAllowed(displayed.catalogAvailability)");
   });

@@ -164,11 +164,11 @@ test("mismatched receipt location and organization responses cannot expose edita
   await page.route("**/api/pos/v1/admin/receipt-settings**", route => route.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true, correlationId: CORRELATION,
     data: { scope: "location", locationId: "loc_b1", locationName: "Wrong location", settings: DEFAULT_RECEIPT_SETTINGS, persisted: true, canManage: true } }) }));
   await page.getByRole("combobox", { name: "Receipt settings scope", exact: true }).selectOption("location");
-  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.getByRole("alert").filter({ hasText: "Receipt settings are temporarily unavailable." })).toBeVisible();
   await expect(page.getByRole("button", { name: "Save location overrides", exact: true })).toHaveCount(0);
   await expect(page.getByLabel("Business name", { exact: true })).toHaveCount(0);
   await page.getByRole("combobox", { name: "Receipt settings scope", exact: true }).selectOption("organization");
-  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.getByRole("alert").filter({ hasText: "Receipt settings are temporarily unavailable." })).toBeVisible();
   await expect(page.getByRole("button", { name: "Save shared defaults", exact: true })).toHaveCount(0);
   await expect(page.getByLabel("Business name", { exact: true })).toHaveCount(0);
 });
