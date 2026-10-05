@@ -1585,3 +1585,8 @@ After structured testing, ask every tester:
 10. Would you feel safe using this with a real customer? Why or why not?
 
 Do not replace the structured tests with free-form feedback. Use both.
+
+
+### Quote-context review candidate — 5 October 2026
+
+This candidate is awaiting review; the shared tester link remains on its recorded testing revision. Changing the customer or location requires a price check for the current context. Pay must remain unavailable while that check is pending, even when the visible items and quantities are unchanged. Test that a delayed earlier response cannot restore the previous customer/location price or enable Pay. Continue using “Check price again” after a failed check; saved cart and recovery instructions are unchanged.

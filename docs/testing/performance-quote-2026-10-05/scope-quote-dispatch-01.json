@@ -1,0 +1,51 @@
+{
+  "optimization_id": "QUOTE-DISPATCH-01",
+  "baseline_sha": "3c2a5a6af4ab202988e46bb3af6d3ae365147be8",
+  "symptom": "Each rapid distinct cartrevision startsquote independently; retained scanintent increaseslegitimatequote demand.",
+  "measured_metric": "Actualhook held20revisions@25ms baseline20calls/peak20; bounded100ms/full-keyprototype6calls/peak6; sparseimmediate, obsoleteheldrequestdoesnotblocklatest. TESTONLY, noproductionlatencyclaim.",
+  "target": "First/sparse quoteimmediate; changedrapidrequests coalescewithin100ms dispatchwindow withcontinuousprogress andlatestquotegating, neverawaitobsoletequote.",
+  "allowed_paths": [
+    "CURRENT-WORK.md",
+    "docs/testing/performance-quote-2026-10-05/README.md",
+    "apps/pos-web/src/features/sell/runtime/useCartQuote.ts",
+    "apps/pos-web/src/features/sell/runtime/use-cart-quote-hook.test.tsx",
+    "apps/pos-web/src/features/sell/runtime/quoteDispatchWindow.ts",
+    "apps/pos-web/src/features/sell/runtime/quoteDispatchWindow.test.ts",
+    "docs/testing/performance-quote-2026-10-05/scope-quote-dispatch-01.json",
+    "docs/staff/STAFF-TRAINING-GUIDE.md",
+    "docs/staff/STAFF-TESTING-ACCEPTANCE-WORKBOOK.md",
+    "docs/staff/testing-2026-10-02/training/README.md",
+    "docs/staff/testing-2026-10-02/workbook/README.md"
+  ],
+  "forbidden_paths": [
+    "Woo/Delivery/WordPress/plugin files",
+    "Supabase/schema/migrations/indexes/RLS/grants",
+    "commerce/payment/stock/order/receipt/journal authority and contracts",
+    "dependencies/lockfiles/CI/service worker/storage schema",
+    "all unnamed application paths and peer/protected refs"
+  ],
+  "permitted_schema_changes": [],
+  "permitted_remote_writes": [
+    "own isolated candidate branch and draftPR metadata afterlocalqualification; normalautomaticPreviewhook only"
+  ],
+  "protected_invariants": [
+    "Woo owns price/tax/B2B/finalstock/order",
+    "provider settlement truth and exactly-once operationidentity unchanged",
+    "no old location/customer/lines quote may authorize current Pay",
+    "local cart feedback stays immediate; no draft/journal removal",
+    "no successful/completedquote cache or new auth cache",
+    "no application/data migrations or test retries/skips"
+  ],
+  "tests_before": [
+    "actual mounted baseline negative/control and synthetic burst/current-readiness evidence"
+  ],
+  "tests_after": [
+    "focused actual-source regressions",
+    "connected scanner/cart/quote/checkout/auth/session unit and nativebrowser suites",
+    "pinned lint/typecheck/build/foundation/tooling",
+    "exact-head Linux/Windows CI"
+  ],
+  "rollback": "Revert only bounded candidate source to3c2a5a6a; preserve local/business evidence and existing authoritative effects. No schema/state rollback.",
+  "owner": "@wbdevworld / WS3 senior, boundedquoteconsumer delegation under current#132 issue; root alone editscentralledger/docs/integration",
+  "staff_documentation_impact": "YES: candidate-specific quotation/context/rapid-edit acceptance notes, canonicalguide/workbook plusmirrors"
+}

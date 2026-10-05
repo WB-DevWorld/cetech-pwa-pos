@@ -1,0 +1,47 @@
+{
+  "optimization_id": "QUOTE-TIMING-01",
+  "baseline_sha": "3c2a5a6af4ab202988e46bb3af6d3ae365147be8",
+  "symptom": "Existing BFFquote stage logs are unavailable to normalbrowserwaterfall; realbridge-heavy latencyneeds safephaseattribution.",
+  "measured_metric": "SOURCEPROVEN existing session/assignments/catalogIdentity/bridge/saveSnapshot durations logonly. CurrentanonymousWP401 probes16.68/17.72s, unseparatedbootstrap/network; notauthenticatedquote.",
+  "target": "Expose existing allowlisted numeric durations asServer-Timing onsuccess/failures; no extra upstreamrequests orbody/status/auth/cache changes.",
+  "allowed_paths": [
+    "CURRENT-WORK.md",
+    "docs/testing/performance-quote-2026-10-05/README.md",
+    "apps/pos-web/src/app/api/pos/v1/quotes/route.ts",
+    "apps/pos-web/src/server/http/quote-timing.ts",
+    "apps/pos-web/src/server/http/quote-timing.test.ts",
+    "apps/pos-web/src/server/quotes/quote-route-timing.test.ts",
+    "docs/testing/performance-quote-2026-10-05/scope-quote-timing-01.json"
+  ],
+  "forbidden_paths": [
+    "Woo/Delivery/WordPress/plugin files",
+    "Supabase/schema/migrations/indexes/RLS/grants",
+    "commerce/payment/stock/order/receipt/journal authority and contracts",
+    "dependencies/lockfiles/CI/service worker/storage schema",
+    "all unnamed application paths and peer/protected refs"
+  ],
+  "permitted_schema_changes": [],
+  "permitted_remote_writes": [
+    "own isolated candidate branch and draftPR metadata afterlocalqualification; normalautomaticPreviewhook only"
+  ],
+  "protected_invariants": [
+    "Woo owns price/tax/B2B/finalstock/order",
+    "provider settlement truth and exactly-once operationidentity unchanged",
+    "no old location/customer/lines quote may authorize current Pay",
+    "local cart feedback stays immediate; no draft/journal removal",
+    "no successful/completedquote cache or new auth cache",
+    "no application/data migrations or test retries/skips"
+  ],
+  "tests_before": [
+    "actual mounted baseline negative/control and synthetic burst/current-readiness evidence"
+  ],
+  "tests_after": [
+    "focused actual-source regressions",
+    "connected scanner/cart/quote/checkout/auth/session unit and nativebrowser suites",
+    "pinned lint/typecheck/build/foundation/tooling",
+    "exact-head Linux/Windows CI"
+  ],
+  "rollback": "Revert only bounded candidate source to3c2a5a6a; preserve local/business evidence and existing authoritative effects. No schema/state rollback.",
+  "owner": "@wbdevworld / WS3 senior, boundedquoteconsumer delegation under current#132 issue; root alone editscentralledger/docs/integration",
+  "staff_documentation_impact": "NO: diagnostic HTTP header only; operatorflow unchanged"
+}

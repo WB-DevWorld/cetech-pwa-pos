@@ -11,6 +11,7 @@ import { authFailure } from "../../../../../server/auth/errors";
 import { resolveCorrelationId } from "../../../../../server/http/correlation";
 import { composeCheckoutRuntime } from "../../../../../server/sales/compose-checkout-runtime";
 import { composeStaffAssignmentDirectory } from "../../../../../server/sales/compose-assignment-directory";
+import { formatQuoteServerTiming } from "../../../../../server/http/quote-timing";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const started = performance.now();
@@ -36,7 +37,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
     return NextResponse.json(body, {
       status: httpStatusFor(body.error.code),
-      headers: { "Cache-Control": "no-store", "X-Correlation-ID": body.correlationId },
+      headers: { "Cache-Control": "no-store", "X-Correlation-ID": body.correlationId,
+        "Server-Timing": formatQuoteServerTiming(performance.now() - started, stages) },
     });
   }
   let body: unknown = null;
@@ -66,12 +68,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return { status: httpStatusFor(failure.error.code), body: failure,
       headers: { "Cache-Control": "no-store", "X-Correlation-ID": correlation.correlationId } };
   });
+  const elapsedMs = Math.round(performance.now() - started);
   console.info(JSON.stringify({
     event: "quote_request_timing", correlationId: result.body.correlationId,
-    elapsedMs: Math.round(performance.now() - started), status: result.status, stages,
+    elapsedMs, status: result.status, stages,
   }));
   return NextResponse.json(result.body, {
     status: result.status,
-    headers: result.headers,
+    headers: { ...result.headers, "Server-Timing": formatQuoteServerTiming(elapsedMs, stages) },
   });
 }

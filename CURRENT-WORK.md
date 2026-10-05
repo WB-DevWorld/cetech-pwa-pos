@@ -966,3 +966,48 @@ Imported register `f194f841` as `b80bd9e`, browser `e0be691f` as `23cda3b`, scan
 ### CI receipt alert locator — bounded test-only gate repair
 
 Exact head7addddf3 WindowsCI passed; Linuxdatabase/pgTAP/PHP/lint/typecheck/unit/buildpassed, browser76/77passed. Theexisting receipt-shared-settings mismatch test matched both the actual receipt-unavailable alert and Next route announcer. Frozen `scope-ci-alert-locator-01.json`, SHA256 1bb4dbf148778c05265c33ba47ff62ae8340410cbd1d1cc570ee70f4d11adc97, permits onlythat test locator, evidence/ledger andits scopefile. Root narrowsboth scope-denial alerts to intended error text, retains noeditablefields/noSave assertions; zero retries/skips orreceiptproduction changes. This is explicitly recorded beforeedit, a mandatory gate repair underWS3 rather than an unrelated product refactor.
+
+
+## PERF-QUOTE-20261005 — fresh bounded continuation
+
+Owner instruction, 5 October 2026 at 19:19 UTC: continue the next steps, multiple scoped steps, subagents and thorough qualification.
+
+The prior PERF-SAFETY-20261005 task is complete as a review candidate: remote `3c2a5a6a`, tree `a8eee058`, draft/unmerged PR #139, final Linux/Windows CI `37359202290` PASS, and FRESH_2 cutoff `18:59:53.944887 UTC`. All previous implementation leases expired. Its earlier ACTIVE header/checkpoint does not reopen source work. No third observation of that old task is permitted.
+
+### New source and editor boundaries
+
+- Base: exact PR #139 head `3c2a5a6af4ab202988e46bb3af6d3ae365147be8`, a provisional predecessor, not merged or live acceptance.
+- Root branch/worktree: `ws3/performance-quote-2026-10-05` / `implementation/pos-quote-performance`. Fresh start fetches completed; main `c49045dd`, integration `1021cd`, tester `816e0bb`, Delivery master `637c02f` unchanged.
+- Acting senior/integration editor: @wbdevworld / WS3. Existing #132 explicitly allows WS3 quote orchestration/transport timing and a bounded consumer implementation lease. This fresh senior delegation names only useCartQuote.ts, quoteDispatchWindow.ts and their named tests. It does not reuse the expired scanner lease or grant unrelated WS1/WS2 ownership.
+- Frontend contributor `frontend_audit`: isolated `local/quote-consumer-2026-10-05` / `implementation/quote-consumer`; QUOTE-CONTEXT-01 first. QUOTE-DISPATCH-01 is now HELD as described below.
+- Server contributor `transaction_woo_audit`: isolated `local/quote-timing-2026-10-05` / `implementation/quote-timing`; exact four paths in QUOTE-TIMING-01 only.
+- Root alone owns CURRENT-WORK, all scope files, staff documentation, imports, integration tests and publication. Contributors may not edit those or the shared checkout.
+- Independent human reviewer: @Ben-001-sys. AI review is supporting evidence only; no author self-approval or consumed release exception is reused.
+
+### Frozen manual scopes and narrower implementation queue
+
+The following files were recorded before product edits and frozen separately under audit/phase3/scopes; actual diff must be a subset of their union. This is not implementation of general #104 enforcement.
+
+1. QUOTE-CONTEXT-01, SHA256 `e724ac1cec77cde8aac63f467069ea9f5f8eac27dfadd57ac2de890d27a7b060`: full commercial request applicability before rendering confirmed price/Pay, including same-cart/revision location/customer changes. Actual mounted baseline exposes stale confirmed eligibility; the full-key prototype fails closed.
+2. QUOTE-DISPATCH-01, SHA256 `7040649a015dd33a9215d8bf2cc4d07cd115e8903d5f7430c7610285cf4a42ac`: bounded 100ms revision dispatch prototype. HELD after benchmark: burst calls20→6–7 and continuous80→10, but worst-phase healthy latest readiness adds about94ms. Live capacity benefit is unproven. No dispatch source implementation/import is currently authorized; preserve prototype evidence for a separate retain/reject decision.
+3. QUOTE-TIMING-01, SHA256 `98a063b3ed3065d519ab1b249551b4419719ce354f7e19fa2091bda39dd7e6a9`: safe Server-Timing header from existing BFF stage durations. Exact route/formatter/tests only; no extra upstream requests.
+
+Current implementation queue: context guard; safe phase header; connected qualification and handoff. No scheduling delay is introduced while its measured healthy-path tradeoff lacks runtime capacity justification.
+
+### Acceptance and protected invariants
+
+Current location/customer/cart/revision/lines must match the confirmed request before Pay, synchronously. Preserve failed/expired/reconnect revalidation, changed-price review, equivalent-object request stability, late-response/cart-replacement/unmount isolation, current transport deadlines and fresh server authorization. No successful quote cache or authorization cache. Local cart feedback remains immediate.
+
+Server-Timing includes fixed names and finite nonnegative durations only, on success and typed/error responses. BFF elapsed excludes external network and serialization. Keep response body/status/no-store/correlation, request counts and auth semantics. No raw identifiers, credential payload, TAO or CORS expansion.
+
+Staff documentation impact: YES for the context candidate and acceptance expectations; root updates guide/workbook plus both maintained mirrors. Header diagnostics alone have no operator-flow impact. Required gates: focused actual-source tests, connected scanner/cart/quote/checkout/auth/session regressions, native browser qualification, pinned build/typecheck/lint/foundation/tooling and exact-head Linux/Windows CI. Missing live evidence remains UNVERIFIED.
+
+No Woo/Delivery/plugin, migrations/indexes/grants/RLS/schema, dependencies/CI/service-worker/storage, contracts, commerce/payment/stock/order/refund/receipt/journal authority changes; no runtime business writes, production, main merge, shared alias promotion or bypass. A diagnostic quote POST persists a snapshot; this run has not issued one. DB-SEC-01 and the WS2 global-order-count race remain separate gates.
+
+Expiry: tested new-batch review handoff. This task has a fresh start and exactly two final successful observations; stop source work after Pass2. #115/#132 remain open until correlated runtime qualification is complete.
+
+### Tested integration checkpoint / contributor leases released
+
+Imported QUOTE-CONTEXT-01 `56572b99` as `a3a24b26` and QUOTE-TIMING-01 `3f8f7667` as `87d62b11`; exactly2+4 approved source/test files. Both contributor implementation leases are released; root alone completes documentation, publication and handoff. QUOTE-DISPATCH-01 remains HELD with no implementation files. Native exact-hook comparison passes14/14 scenarios and28/28 candidate checks; baseline fails4 context scenarios. Full production-build browser suite77/77, unit1763/1763 across210 files, build/typecheck/foundation/tooling76 PASS. Lint has zero errors and five existing warnings in untouched files. Known39 unit-generated outputs and12 browser-generated PNGs are preserved externally and restored, not committed. No retries/skips, migration, grants/indexes, Woo/Delivery, dependencies, business writes or production effects.
+
+Independent AI review supports qualification only; different-human review remains required. Exact remote tree/head, Linux/Windows CI, preview identity and exactly two final freshness observations are recorded externally and in the draft PR. The shared tester alias and installed bridge source are not qualified by this local checkpoint. No live transaction speed improvement is claimed. New task leases expire on its tested review-candidate handoff; any further source change requires a new bounded task/scope.

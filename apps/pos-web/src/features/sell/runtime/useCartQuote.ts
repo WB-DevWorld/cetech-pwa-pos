@@ -28,6 +28,8 @@ export type StoredRemoteQuote = {
   readonly cartId: string;
   readonly revision: number;
   readonly state: QuoteState;
+  /** Hook-owned request binding; optional to preserve existing pure-helper callers. */
+  readonly requestKey?: string;
 };
 
 function localQuoteState(input: UseCartQuoteInput): QuoteState | undefined {
@@ -121,20 +123,8 @@ export function useCartQuote(input: UseCartQuoteInput): UseCartQuoteResult {
     }
   }
 
-  const local = localQuoteState(input);
   const cartId = input.workspace?.cartId;
   const cartRevision = input.workspace?.cartRevision;
-  const revision = cartRevision ?? 0;
-  const nowIso = input.now().toISOString();
-  const awaitingRevalidation = onlineEpoch !== appliedEpoch || retryEpoch !== appliedRetryEpoch;
-  const applicableRemote = remoteQuoteForCartRevision(remote, cartId, revision);
-  const quote: QuoteState = local
-    ?? (awaitingRevalidation
-      ? quotingState(revision)
-      : applicableRemote
-        ? expireQuoteIfNeeded(applicableRemote.state, nowIso)
-        : quotingState(revision));
-
   const lines = input.workspace?.lines;
   const selectedCustomer = input.workspace?.selectedCustomer;
   const pricing = input.pricing;
@@ -146,6 +136,20 @@ export function useCartQuote(input: UseCartQuoteInput): UseCartQuoteResult {
     ? JSON.stringify(quoteRequestFromCart(cartId, cartRevision, lines, selectedCustomer, locationId))
     : "null";
 
+  const local = localQuoteState(input);
+  const revision = cartRevision ?? 0;
+  const nowIso = input.now().toISOString();
+  const awaitingRevalidation = onlineEpoch !== appliedEpoch || retryEpoch !== appliedRetryEpoch;
+  // Cart revision alone cannot authorize a quote after a location/customer/line context change.
+  const applicableRemote = remote?.requestKey === requestKey
+    ? remoteQuoteForCartRevision(remote, cartId, revision)
+    : null;
+  const quote: QuoteState = local
+    ?? (awaitingRevalidation
+      ? quotingState(revision)
+      : applicableRemote
+        ? expireQuoteIfNeeded(applicableRemote.state, nowIso)
+        : quotingState(revision));
   useEffect(() => {
     if (requestKey === "null" || !pricing || !online) {
       return;
@@ -153,7 +157,9 @@ export function useCartQuote(input: UseCartQuoteInput): UseCartQuoteResult {
     const request = JSON.parse(requestKey) as QuoteRequest;
     const requestCartId = request.cartId;
     const requestRevision = request.cartRevision;
-    const previous = previousConfirmedQuoteForRequest(remoteRef.current, requestCartId, requestRevision);
+    const previous = remoteRef.current?.requestKey === requestKey
+      ? previousConfirmedQuoteForRequest(remoteRef.current, requestCartId, requestRevision)
+      : { status: "missing" } as const;
     const requestEpoch = onlineEpoch;
     const requestRetryEpoch = retryEpoch;
     let cancelled = false;
@@ -168,6 +174,7 @@ export function useCartQuote(input: UseCartQuoteInput): UseCartQuoteResult {
       const committed: StoredRemoteQuote = {
         cartId: requestCartId,
         revision: requestRevision,
+        requestKey,
         state: next,
       };
       remoteRef.current = committed;
