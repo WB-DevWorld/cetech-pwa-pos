@@ -23,11 +23,15 @@ The live `SELECT`, `INSERT`, `UPDATE`, `DELETE`, and `TRUNCATE` set matches a ho
 
 `supabase/migrations/20261006025100_db_sec_01_revoke_authenticated_truncate.sql`
 
-`REVOKE TRUNCATE` from `PUBLIC`, `anon`, and `authenticated` on the 11 observed tables. Version `20261006025100` sorts after both the source filename `20261003072537` and the live history version `20261003083357`. Existing migration filenames are not rewritten.
+The migration defines `db_sec_01_revoke_authenticated_truncate()` and runs it once. The function revokes `TRUNCATE` from `PUBLIC`, `anon`, and `authenticated` on the 11 observed tables. Execute is revoked from `PUBLIC`, `anon`, and `authenticated`. Version `20261006025100` sorts after both the source filename `20261003072537` and the live history version `20261003083357`. Existing migration filenames are not rewritten.
 
-Preserved: row `SELECT`, `INSERT`, `UPDATE`, and `DELETE`; `service_role` grants; every RLS policy.
+Preserved: row `SELECT`, `INSERT`, `UPDATE`, and `DELETE`; `service_role` grants; every RLS policy; `pos_lock_shift_topology(text, uuid)` execute for `authenticated`.
 
 Residual, intentionally unchanged: hosted `UPDATE` and `DELETE` on these tables, hosted access to outbox and watermark tables, and default privileges that could grant `TRUNCATE` on a future table. Those need their own decision.
+
+## Staging plan, not authorized
+
+Read `has_table_privilege` for `authenticated` and `anon` `TRUNCATE` on all 11 tables, and the row counts, before applying this migration. Apply only this forward file. Read the same privileges and counts again. Acceptance is effective `TRUNCATE` false for both roles, explicit `SELECT` and `INSERT` still present, `service_role` and the shift-topology RPC unchanged, and counts unchanged. Rolling the application back must not grant `TRUNCATE` again.
 
 ## Rollback
 
@@ -35,4 +39,4 @@ App rollback does not restore this grant. Re-granting `TRUNCATE` to `authenticat
 
 ## Tests
 
-`supabase/tests/db_sec_01_truncate.sql` asserts the installed absence of `TRUNCATE`, reproduces `GRANT ALL`, re-runs the revoke, and checks that the explicit row grants used by register, shift, cash, and assignment flows remain. Local pgTAP execution is recorded in the handoff. Staff documentation impact: none.
+`supabase/tests/db_sec_01_truncate.sql` grants `ALL` to `authenticated` first, proves effective `TRUNCATE` is true, then calls only `db_sec_01_revoke_authenticated_truncate()`. A migration that does not install that function, or a function that does not remove the effective privilege, fails. Staff documentation impact: none.
