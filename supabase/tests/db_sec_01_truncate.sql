@@ -3,7 +3,7 @@
 
 BEGIN;
 
-SELECT plan(28);
+SELECT plan(29);
 
 SELECT ok(NOT has_table_privilege('authenticated', 'public.pos_cash_movements', 'TRUNCATE'), 'authenticated lacks TRUNCATE on pos_cash_movements');
 SELECT ok(NOT has_table_privilege('authenticated', 'public.pos_devices', 'TRUNCATE'), 'authenticated lacks TRUNCATE on pos_devices');
