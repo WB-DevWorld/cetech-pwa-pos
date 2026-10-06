@@ -1,3 +1,28 @@
+## DB-SEC-01 — review candidate, not applied
+
+Owner execution assignment 2026-10-06 batch 2. Remote DDL is not authorized. This lease covers the local repair candidate only.
+
+```text
+human / implementing editor: @wbdevworld
+workstream: WS3
+task: DB-SEC-01
+branch: ws3/db-sec-01
+base: 0e383d84f11573ca89d6533c8cb7c35d79d7b261
+allowed:
+  CURRENT-WORK.md
+  supabase/migrations/20261006025100_db_sec_01_revoke_authenticated_truncate.sql
+  supabase/tests/db_sec_01_truncate.sql
+  docs/workstreams/WS-03-CORE-DATA-INTEGRATION/evidence/DB-SEC-01.md
+forbidden:
+  remote DDL or GRANT changes
+  RLS policy edits
+  revoking SELECT, INSERT, UPDATE, or DELETE
+  application code
+  production promotion
+  #102 repair
+staff documentation impact: NONE
+```
+
 ## #105 Admin/Manager control plane — ACTIVE P0
 
 Owner/user explicitly made #105 the next blocking implementation before final R9 closure.
