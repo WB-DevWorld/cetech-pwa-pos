@@ -39,5 +39,33 @@
   "production_effects": "NONE",
   "readiness": "NOT READY FOR PRODUCTION",
   "open_issues": [115, 132],
-  "runtime_authorization": "NONE"
+  "runtime_authorization": "NONE",
+  "qualification": {
+    "task": "QUOTE-BRIDGE-TIMING-01-QUAL",
+    "reviewed_source_sha": "baaa8ac458689180a5a4bb0b5f8b3607829aac1f",
+    "reviewed_application_tree": "3ea4a2c7930b50a7ccb5ab5f0c0478347abd95dd",
+    "reviewed_bridge_tree": "21c8660b3e74c17d9e9631d264499d140d6b159d",
+    "start": "2026-10-06T01:08:11Z",
+    "allowed_paths": [
+      "tests/bridge/test-quote.php",
+      "docs/workstreams/WS-02-COMMERCE-BRIDGE/evidence/QUOTE-BRIDGE-TIMING-01.md",
+      "docs/workstreams/WS-02-COMMERCE-BRIDGE/evidence/QUOTE-BRIDGE-TIMING-01-scope.json",
+      "CURRENT-WORK.md"
+    ],
+    "source_defect": "NONE_OBSERVED",
+    "pairs": [
+      "enabled restore throw with throwing sink versus untimed restore control",
+      "enabled both-throw with throwing clock versus untimed both-throw control"
+    ],
+    "independent_review": "PENDING",
+    "runtime_authorization": "NONE",
+    "pending_runtime_slots": [
+      "installed_baseline_and_backup",
+      "php_fpm_pool_and_loaded_code_transition",
+      "current_bff_deployment",
+      "customer_location_cart_lines_currency",
+      "fresh_correlation_uuid",
+      "exact_head_human_review"
+    ]
+  }
 }

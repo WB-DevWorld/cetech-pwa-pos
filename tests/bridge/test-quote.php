@@ -945,6 +945,142 @@ br01_assert_eq( 'restore SECRET_EXCEPTION_TOKEN', $br02t_both_msg, 'restore thro
 br01_assert_eq( 1, $br02t_both->restore_calls, 'both-throw path still restores once' );
 br01_assert_eq( 0, br02t_puts() - $br02t_both_puts, 'both-throw path does not store' );
 
+function br02t_controller_for( $engine, $factory = null ) {
+	$args = array(
+		new Cetech_Pos_Bridge_Auth( br01_authorized_env() ),
+		new Cetech_Pos_Bridge_Correlation(),
+		$engine,
+	);
+	if ( $factory !== null ) {
+		$args[] = $factory;
+		$args[] = 'Br02_Quote_Timing_Gate';
+	}
+	return new Cetech_Pos_Bridge_Quote_Controller( ...$args );
+}
+
+function br02t_catch_quote( $engine, array $body, $recorder = null ) {
+	try {
+		if ( $recorder === null ) {
+			$engine->quote( $body );
+		} else {
+			$engine->quote( $body, $recorder );
+		}
+		return null;
+	} catch ( Throwable $e ) {
+		return $e;
+	}
+}
+
+/**
+ * Enabled recorder plus one throwing diagnostic dependency, compared with
+ * the same commerce failure and no recorder.
+ *
+ * @param callable $configure_runtime
+ * @param callable $configure_state
+ */
+function br02t_qualified_failure_pair( $label, $configure_runtime, $configure_state, $expect_puts, $expect_engine_message ) {
+	global $br02t_uuid, $br02t_direct_body, $br02t_boom;
+	Br02_Quote_Timing_Gate::$on       = true;
+	Br02_Quote_Timing_Gate::$selected = $br02t_uuid;
+
+	$timed_rt   = br02t_runtime();
+	$control_rt = br02t_runtime();
+	$configure_runtime( $timed_rt );
+	$configure_runtime( $control_rt );
+	$timed_engine   = br02t_pair( $timed_rt );
+	$control_engine = br02t_pair( $control_rt );
+	$state          = br02t_harness();
+	$configure_state( $state );
+	$recorder = call_user_func( $state->factory_fn );
+	$recorder->begin_controller();
+	br01_assert( $recorder->select( $br02t_uuid ), $label . ' recorder accepts the fixture correlation' );
+
+	$timed_error   = br02t_catch_quote( $timed_engine, $br02t_direct_body, $recorder );
+	$control_error = br02t_catch_quote( $control_engine, $br02t_direct_body );
+	br01_assert( $timed_error instanceof Throwable, $label . ' timed engine still throws' );
+	br01_assert( $control_error instanceof Throwable, $label . ' untimed engine still throws' );
+	br01_assert_eq( get_class( $control_error ), get_class( $timed_error ), $label . ' exception class matches the untimed control' );
+	br01_assert_eq( $control_error->getMessage(), $timed_error->getMessage(), $label . ' exception message matches the untimed control' );
+	br01_assert_eq( $expect_engine_message, $timed_error->getMessage(), $label . ' keeps the original business exception' );
+	$finish_error = null;
+	try {
+		$recorder->finish( 'engine_aborted' );
+	} catch ( Throwable $e ) {
+		$finish_error = $e;
+	}
+	br01_assert( $finish_error === null, $label . ' diagnostic finish does not replace the business exception' );
+
+	$http_timed_rt   = br02t_runtime();
+	$http_control_rt = br02t_runtime();
+	$configure_runtime( $http_timed_rt );
+	$configure_runtime( $http_control_rt );
+	$http_state = br02t_harness();
+	$configure_state( $http_state );
+	$request = br02t_request( $br02t_direct_body, $br02t_uuid );
+	$puts_before = br02t_puts();
+	$timed_escaped = null;
+	try {
+		$timed_response = br02t_controller_for( br02t_pair( $http_timed_rt ), $http_state->factory_fn )->handle( $request );
+	} catch ( Throwable $e ) {
+		$timed_escaped  = $e;
+		$timed_response = null;
+	}
+	$puts_timed = br02t_puts();
+	$control_escaped = null;
+	try {
+		$control_response = br02t_controller_for( br02t_pair( $http_control_rt ) )->handle( $request );
+	} catch ( Throwable $e ) {
+		$control_escaped  = $e;
+		$control_response = null;
+	}
+	$puts_control = br02t_puts();
+	br01_assert( $timed_escaped === null, $label . ' timed controller does not let a diagnostic exception escape' );
+	br01_assert( $control_escaped === null, $label . ' untimed controller mapping does not escape' );
+	br01_assert_eq( 503, br01_status( $timed_response ), $label . ' controller maps the failure to HTTP 503' );
+	br01_assert_eq( br01_status( $control_response ), br01_status( $timed_response ), $label . ' status matches the untimed control' );
+	br01_assert_eq( br01_payload( $control_response )['error'], br01_payload( $timed_response )['error'], $label . ' mapped error matches the untimed control' );
+	br01_assert_eq( 'INTEGRATION_UNAVAILABLE', br01_payload( $timed_response )['error']['code'], $label . ' mapped code' );
+	br01_assert_eq( 1, $http_timed_rt->restore_calls, $label . ' restores once' );
+	br01_assert_eq( $http_control_rt->restore_calls, $http_timed_rt->restore_calls, $label . ' restore count matches' );
+	br01_assert_eq( $http_control_rt->trace, $http_timed_rt->trace, $label . ' call order matches' );
+	br01_assert_eq( $expect_puts, $puts_timed - $puts_before, $label . ' store count' );
+	br01_assert_eq( $expect_puts, $puts_control - $puts_timed, $label . ' untimed store count' );
+	br01_assert_eq( 0, $http_timed_rt->side_effect_counts()['orders'], $label . ' orders stay zero' );
+	br01_assert_eq( 0, $http_timed_rt->side_effect_counts()['stock'], $label . ' stock stays zero' );
+	br01_assert_eq( 0, $http_timed_rt->side_effect_counts()['payments'], $label . ' payments stay zero' );
+	br01_assert_eq( $http_control_rt->side_effect_counts(), $http_timed_rt->side_effect_counts(), $label . ' effect counts match' );
+	$timed_body = json_encode( br01_payload( $timed_response ) );
+	br01_assert( strpos( $timed_body, $br02t_boom ) === false, $label . ' response hides diagnostic and restore text' );
+	foreach ( $http_state->events as $json ) {
+		br01_assert( strpos( $json, $br02t_boom ) === false, $label . ' event hides diagnostic text' );
+		br01_assert( strpos( $json, 'success' ) === false, $label . ' event does not claim success' );
+	}
+}
+
+br02t_qualified_failure_pair(
+	'enabled restore throw with throwing sink',
+	function ( $runtime ) {
+		$runtime->fail = 'restore';
+	},
+	function ( $state ) {
+		$state->sink_mode = 'throw';
+	},
+	1,
+	'restore SECRET_EXCEPTION_TOKEN'
+);
+br02t_qualified_failure_pair(
+	'enabled both-throw with throwing clock',
+	function ( $runtime ) {
+		$runtime->fail                = 'both';
+		$runtime->throw_on_calculate  = true;
+	},
+	function ( $state ) {
+		$state->clock_mode = 'throw';
+	},
+	0,
+	'restore SECRET_EXCEPTION_TOKEN'
+);
+
 Br02_Quote_Timing_Gate::$on       = true;
 Br02_Quote_Timing_Gate::$selected = $br02t_uuid;
 $br02t_encode_rt = br02t_runtime();

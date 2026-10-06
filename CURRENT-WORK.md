@@ -38,6 +38,40 @@ readiness: NOT READY FOR PRODUCTION
 
 SOURCE verification on this branch, before the commit SHA existed: bridge check exit 0, bridge test 2913 passed / 0 failed, parity 138 passed / 0 failed / 19 skipped, `python scripts/verify_control_plane.py` PASS. `python3` is not on PATH. Windows GNU make needed `SHELL=C:/PROGRA~1/Git/usr/bin/sh.exe` to run the POSIX recipe. The published SHA is the commit that contains this checkpoint and is copied into the PR handoff. Independent review remains PENDING. No runtime install.
 
+## QUOTE-BRIDGE-TIMING-01-QUAL — post-review qualification lease
+
+The QUOTE-BRIDGE-TIMING-01 source lease above is closed at its handoff, head `baaa8ac458689180a5a4bb0b5f8b3607829aac1f`. This qualification does not erase that record or the #105 lease. #105 does not include these four paths. No competing editor was found on them.
+
+```text
+task: QUOTE-BRIDGE-TIMING-01-QUAL
+implementing owner / workstream: @wbdevworld / WS3
+original bridge owner: @Emmanuel-coder-prog / WS2
+authority: DIRECT_OWNER_INSTRUCTION 2026-10-05T23:28:29Z
+authority quote: stop implementation... let ws3 do all implementations
+reason: AI review of draft #141 found two combined failure-qualification gaps. This task adds those pairs and a prepare-only runtime plan. It does not change recorder, controller, or engine behavior.
+reviewed source: baaa8ac458689180a5a4bb0b5f8b3607829aac1f
+reviewed application tree: 3ea4a2c7930b50a7ccb5ab5f0c0478347abd95dd
+reviewed bridge tree: 21c8660b3e74c17d9e9631d264499d140d6b159d
+branch: ws3/quote-bridge-timing-01
+parent: origin/integration/r9-staff-remediation-final 1021cd113c783e25030fe9c0bda1be9ddcf5888c
+start: 2026-10-06T01:08:11Z
+expiry: this qualification handoff. It is not a runtime lease and not an unlimited file lease.
+dependencies: reviewed #141 head above. #139 and #140 stay unimported. Prior FRESH_2 cutoffs 2026-10-06T00:36:54Z and 2026-10-05T23:01:40Z stay closed.
+contributor lease reconciliation: prior timing lease closed at its handoff; #105 unchanged.
+handoff / notification: not sent. No person-directed review request.
+independent reviewer: a different competent human on the resulting tested head. Preferred bridge reviewer: @Emmanuel-coder-prog. Status: PENDING. The supplied PR141 review is AI review, not that approval.
+staff documentation impact: NONE
+allowed paths:
+  tests/bridge/test-quote.php
+  docs/workstreams/WS-02-COMMERCE-BRIDGE/evidence/QUOTE-BRIDGE-TIMING-01.md
+  docs/workstreams/WS-02-COMMERCE-BRIDGE/evidence/QUOTE-BRIDGE-TIMING-01-scope.json
+  CURRENT-WORK.md
+forbidden: recorder, controller, engine, helper, plugin bootstrap, Makefile, shared fakes, BFF, schema, CI, themes, Delivery Engine, and every other path
+production effects: NONE
+readiness: NOT READY FOR PRODUCTION
+runtime authorization: NONE
+```
+
 ## #105 Admin/Manager control plane — ACTIVE P0
 
 Owner/user explicitly made #105 the next blocking implementation before final R9 closure.
