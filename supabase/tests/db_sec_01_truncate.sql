@@ -1,56 +1,63 @@
 -- DB-SEC-01 catalog assertions. Not the mirrored RLS suite.
 -- Synthetic privileges only. No staging connection and no remote DDL.
--- The unwanted grant is reproduced before the migration function removes it.
--- A no-op migration leaves the reproduced TRUNCATE in place and fails.
+-- The migration file grants TRUNCATE and then its own final statement
+-- removes it. This test does not call the helper. If that invocation is
+-- omitted, the reproduced privilege remains and the repair assertions fail.
+-- A later omitted call is shown inside a savepoint and rolled back.
 
 BEGIN;
 
-SELECT plan(31);
+SELECT plan(24);
 
 SELECT ok(
   to_regprocedure('public.db_sec_01_revoke_authenticated_truncate()') IS NOT NULL,
   'migration installs the TRUNCATE repair function'
 );
 
-GRANT ALL ON TABLE
-  public.pos_cash_movements,
-  public.pos_devices,
-  public.pos_integration_watermarks,
-  public.pos_locations,
-  public.pos_organizations,
-  public.pos_outbox_events,
-  public.pos_pending_operations,
-  public.pos_registers,
-  public.pos_shifts,
-  public.pos_staff_location_assignments,
-  public.pos_staff_register_assignments
-TO authenticated;
+SELECT ok(NOT has_table_privilege('authenticated', 'public.pos_cash_movements', 'TRUNCATE'), 'runner invocation removes effective TRUNCATE on pos_cash_movements');
+SELECT ok(NOT has_table_privilege('authenticated', 'public.pos_devices', 'TRUNCATE'), 'runner invocation removes effective TRUNCATE on pos_devices');
+SELECT ok(NOT has_table_privilege('authenticated', 'public.pos_integration_watermarks', 'TRUNCATE'), 'runner invocation removes effective TRUNCATE on pos_integration_watermarks');
+SELECT ok(NOT has_table_privilege('authenticated', 'public.pos_locations', 'TRUNCATE'), 'runner invocation removes effective TRUNCATE on pos_locations');
+SELECT ok(NOT has_table_privilege('authenticated', 'public.pos_organizations', 'TRUNCATE'), 'runner invocation removes effective TRUNCATE on pos_organizations');
+SELECT ok(NOT has_table_privilege('authenticated', 'public.pos_outbox_events', 'TRUNCATE'), 'runner invocation removes effective TRUNCATE on pos_outbox_events');
+SELECT ok(NOT has_table_privilege('authenticated', 'public.pos_pending_operations', 'TRUNCATE'), 'runner invocation removes effective TRUNCATE on pos_pending_operations');
+SELECT ok(NOT has_table_privilege('authenticated', 'public.pos_registers', 'TRUNCATE'), 'runner invocation removes effective TRUNCATE on pos_registers');
+SELECT ok(NOT has_table_privilege('authenticated', 'public.pos_shifts', 'TRUNCATE'), 'runner invocation removes effective TRUNCATE on pos_shifts');
+SELECT ok(NOT has_table_privilege('authenticated', 'public.pos_staff_location_assignments', 'TRUNCATE'), 'runner invocation removes effective TRUNCATE on pos_staff_location_assignments');
+SELECT ok(NOT has_table_privilege('authenticated', 'public.pos_staff_register_assignments', 'TRUNCATE'), 'runner invocation removes effective TRUNCATE on pos_staff_register_assignments');
 
-SELECT ok(has_table_privilege('authenticated', 'public.pos_cash_movements', 'TRUNCATE'), 'reproduced TRUNCATE on pos_cash_movements before repair');
-SELECT ok(has_table_privilege('authenticated', 'public.pos_devices', 'TRUNCATE'), 'reproduced TRUNCATE on pos_devices before repair');
-SELECT ok(has_table_privilege('authenticated', 'public.pos_integration_watermarks', 'TRUNCATE'), 'reproduced TRUNCATE on pos_integration_watermarks before repair');
-SELECT ok(has_table_privilege('authenticated', 'public.pos_locations', 'TRUNCATE'), 'reproduced TRUNCATE on pos_locations before repair');
-SELECT ok(has_table_privilege('authenticated', 'public.pos_organizations', 'TRUNCATE'), 'reproduced TRUNCATE on pos_organizations before repair');
-SELECT ok(has_table_privilege('authenticated', 'public.pos_outbox_events', 'TRUNCATE'), 'reproduced TRUNCATE on pos_outbox_events before repair');
-SELECT ok(has_table_privilege('authenticated', 'public.pos_pending_operations', 'TRUNCATE'), 'reproduced TRUNCATE on pos_pending_operations before repair');
-SELECT ok(has_table_privilege('authenticated', 'public.pos_registers', 'TRUNCATE'), 'reproduced TRUNCATE on pos_registers before repair');
-SELECT ok(has_table_privilege('authenticated', 'public.pos_shifts', 'TRUNCATE'), 'reproduced TRUNCATE on pos_shifts before repair');
-SELECT ok(has_table_privilege('authenticated', 'public.pos_staff_location_assignments', 'TRUNCATE'), 'reproduced TRUNCATE on pos_staff_location_assignments before repair');
-SELECT ok(has_table_privilege('authenticated', 'public.pos_staff_register_assignments', 'TRUNCATE'), 'reproduced TRUNCATE on pos_staff_register_assignments before repair');
+SAVEPOINT omit_invocation;
+GRANT TRUNCATE ON TABLE public.pos_organizations TO authenticated;
+SELECT ok(
+  has_table_privilege('authenticated', 'public.pos_organizations', 'TRUNCATE'),
+  'omitting the automatic invocation leaves effective TRUNCATE'
+);
+ROLLBACK TO SAVEPOINT omit_invocation;
 
-SELECT public.db_sec_01_revoke_authenticated_truncate();
-
-SELECT ok(NOT has_table_privilege('authenticated', 'public.pos_cash_movements', 'TRUNCATE'), 'repair removes effective TRUNCATE on pos_cash_movements');
-SELECT ok(NOT has_table_privilege('authenticated', 'public.pos_devices', 'TRUNCATE'), 'repair removes effective TRUNCATE on pos_devices');
-SELECT ok(NOT has_table_privilege('authenticated', 'public.pos_integration_watermarks', 'TRUNCATE'), 'repair removes effective TRUNCATE on pos_integration_watermarks');
-SELECT ok(NOT has_table_privilege('authenticated', 'public.pos_locations', 'TRUNCATE'), 'repair removes effective TRUNCATE on pos_locations');
-SELECT ok(NOT has_table_privilege('authenticated', 'public.pos_organizations', 'TRUNCATE'), 'repair removes effective TRUNCATE on pos_organizations');
-SELECT ok(NOT has_table_privilege('authenticated', 'public.pos_outbox_events', 'TRUNCATE'), 'repair removes effective TRUNCATE on pos_outbox_events');
-SELECT ok(NOT has_table_privilege('authenticated', 'public.pos_pending_operations', 'TRUNCATE'), 'repair removes effective TRUNCATE on pos_pending_operations');
-SELECT ok(NOT has_table_privilege('authenticated', 'public.pos_registers', 'TRUNCATE'), 'repair removes effective TRUNCATE on pos_registers');
-SELECT ok(NOT has_table_privilege('authenticated', 'public.pos_shifts', 'TRUNCATE'), 'repair removes effective TRUNCATE on pos_shifts');
-SELECT ok(NOT has_table_privilege('authenticated', 'public.pos_staff_location_assignments', 'TRUNCATE'), 'repair removes effective TRUNCATE on pos_staff_location_assignments');
-SELECT ok(NOT has_table_privilege('authenticated', 'public.pos_staff_register_assignments', 'TRUNCATE'), 'repair removes effective TRUNCATE on pos_staff_register_assignments');
+SELECT ok(
+  NOT has_function_privilege('anon', 'public.db_sec_01_revoke_authenticated_truncate()', 'EXECUTE'),
+  'anon lacks effective EXECUTE on the repair function'
+);
+SELECT ok(
+  NOT has_function_privilege('authenticated', 'public.db_sec_01_revoke_authenticated_truncate()', 'EXECUTE'),
+  'authenticated lacks effective EXECUTE on the repair function'
+);
+SELECT ok(
+  EXISTS (
+    SELECT 1
+    FROM pg_proc
+    WHERE oid = 'public.db_sec_01_revoke_authenticated_truncate()'::regprocedure
+      AND proacl IS NOT NULL
+  )
+  AND NOT EXISTS (
+    SELECT 1
+    FROM pg_proc AS repair_fn, aclexplode(repair_fn.proacl) AS acl
+    WHERE repair_fn.oid = 'public.db_sec_01_revoke_authenticated_truncate()'::regprocedure
+      AND acl.grantee = 0
+      AND acl.privilege_type = 'EXECUTE'
+  ),
+  'PUBLIC has no EXECUTE grant; a null proacl would be the default PUBLIC EXECUTE'
+);
 
 SELECT ok(has_table_privilege('authenticated', 'public.pos_organizations', 'SELECT'), 'organizations SELECT remains');
 SELECT ok(has_table_privilege('authenticated', 'public.pos_shifts', 'INSERT'), 'shifts INSERT remains');
@@ -62,8 +69,9 @@ SELECT ok(
   'authenticated shift-topology RPC execute remains'
 );
 SELECT ok(
-  has_table_privilege('authenticated', 'public.pos_organizations', 'UPDATE'),
-  'hosted UPDATE remains after the minimum TRUNCATE revoke and is a separate decision'
+  position('REVOKE UPDATE' in pg_get_functiondef('public.db_sec_01_revoke_authenticated_truncate()'::regprocedure)) = 0
+  AND position('REVOKE TRUNCATE' in pg_get_functiondef('public.db_sec_01_revoke_authenticated_truncate()'::regprocedure)) > 0,
+  'repair function revokes TRUNCATE and does not revoke UPDATE'
 );
 SELECT ok(NOT has_table_privilege('anon', 'public.pos_organizations', 'TRUNCATE'), 'anon still lacks TRUNCATE');
 

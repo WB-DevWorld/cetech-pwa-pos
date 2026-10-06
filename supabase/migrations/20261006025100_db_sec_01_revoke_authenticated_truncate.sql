@@ -30,4 +30,22 @@ $$;
 REVOKE ALL ON FUNCTION public.db_sec_01_revoke_authenticated_truncate()
   FROM PUBLIC, anon, authenticated;
 
+-- Reproduce the hosted TRUNCATE grant inside this same migration transaction,
+-- then let the statement below remove it. The committed result is the revoke.
+-- A runner that drops only that invocation leaves the reproduced privilege.
+
+GRANT TRUNCATE ON TABLE
+  public.pos_cash_movements,
+  public.pos_devices,
+  public.pos_integration_watermarks,
+  public.pos_locations,
+  public.pos_organizations,
+  public.pos_outbox_events,
+  public.pos_pending_operations,
+  public.pos_registers,
+  public.pos_shifts,
+  public.pos_staff_location_assignments,
+  public.pos_staff_register_assignments
+TO authenticated;
+
 SELECT public.db_sec_01_revoke_authenticated_truncate();
