@@ -20,6 +20,7 @@ PHP_SOURCES := \
 	includes/class-woo-runtime.php \
 	includes/class-quote-request.php \
 	includes/class-quote-store.php \
+	includes/class-quote-timing.php \
 	includes/class-quote-engine.php \
 	includes/class-quote-controller.php \
 	includes/class-request-hash.php \

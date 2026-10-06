@@ -1,3 +1,43 @@
+## QUOTE-BRIDGE-TIMING-01 — WS3 implementation lease
+
+Owner instruction recorded before product edits. This does not rewrite `OWNERSHIP.md`, architecture, or earlier leases. Historical #105, R9, and sale-recovery text below stays in place. Those leases do not list the ten paths below. No competing editor was found on those paths at this assignment's start; nothing was erased.
+
+```text
+task: QUOTE-BRIDGE-TIMING-01
+original implementing owner / workstream: @Emmanuel-coder-prog / WS2
+new implementing owner / workstream: @wbdevworld / WS3
+canonical owner: @wbdevworld
+authority: DIRECT_OWNER_INSTRUCTION 2026-10-05T23:28:29Z
+authority quote: stop implementation... let ws3 do all implementations
+reason: originating implementation session stopped; WS3 performs further implementation for this POS mission, including this bridge diagnostic. Ben and Emmanuel may give domain advice and independent human review. They are not assigned implementation in this batch.
+branch: ws3/quote-bridge-timing-01
+parent / declared integration baseline: origin/integration/r9-staff-remediation-final 1021cd113c783e25030fe9c0bda1be9ddcf5888c
+why this parent: bridge tree 9aaa031e4d1342cdb729cfdfb5373cd57ad2ca02 matches the reviewed shared bridge subtree. Protected main c49045dd has a different bridge tree. Candidate #140 0e383d84 is a descendant and is not imported.
+start: 2026-10-05T23:56:15Z
+expiry: this source batch handoff for QUOTE-BRIDGE-TIMING-01. Later tasks need their own path manifests. This lease is not an unlimited file lease.
+dependencies: integration 1021cd11 accepted as the source parent. #139 and #140 stay separate and keep their original provenance. Runtime training install is not a dependency of this source commit.
+contributor lease reconciliation: no active lease on the ten paths. #105 remains its own lease and is not extended.
+handoff / notification: not sent. No person-directed review request in this batch.
+independent reviewer: a different competent human on the final tested head. Preferred bridge reviewer: @Emmanuel-coder-prog. Status: PENDING. AI review is not approval. WS3 does not self-approve.
+staff documentation impact: NONE
+allowed paths:
+  wordpress/cetech-pos-bridge/includes/class-quote-controller.php
+  wordpress/cetech-pos-bridge/includes/class-quote-engine.php
+  wordpress/cetech-pos-bridge/includes/class-quote-timing.php
+  wordpress/cetech-pos-bridge/cetech-pos-bridge.php
+  wordpress/cetech-pos-bridge/Makefile
+  tests/bridge/bootstrap.php
+  tests/bridge/test-quote.php
+  docs/workstreams/WS-02-COMMERCE-BRIDGE/evidence/QUOTE-BRIDGE-TIMING-01.md
+  docs/workstreams/WS-02-COMMERCE-BRIDGE/evidence/QUOTE-BRIDGE-TIMING-01-scope.json
+  CURRENT-WORK.md
+forbidden: every other path, including class-woo-runtime.php, tests/bridge/run.php, BFF, contracts, schema, migrations, CI, themes, and Delivery Engine
+production effects: NONE
+readiness: NOT READY FOR PRODUCTION
+```
+
+SOURCE verification on this branch, before the commit SHA existed: bridge check exit 0, bridge test 2913 passed / 0 failed, parity 138 passed / 0 failed / 19 skipped, `python scripts/verify_control_plane.py` PASS. `python3` is not on PATH. Windows GNU make needed `SHELL=C:/PROGRA~1/Git/usr/bin/sh.exe` to run the POSIX recipe. The published SHA is the commit that contains this checkpoint and is copied into the PR handoff. Independent review remains PENDING. No runtime install.
+
 ## #105 Admin/Manager control plane — ACTIVE P0
 
 Owner/user explicitly made #105 the next blocking implementation before final R9 closure.

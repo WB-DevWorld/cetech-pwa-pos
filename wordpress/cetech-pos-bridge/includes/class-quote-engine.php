@@ -20,10 +20,17 @@ final class Cetech_Pos_Bridge_Quote_Engine {
 	}
 
 	/**
-	 * @param array<string,mixed> $raw_request
+	 * The second argument is optional so prepare and nested quotes keep the
+	 * existing one-argument call. The recorder is not stored on this engine.
+	 *
+	 * @param array<string,mixed>                  $raw_request
+	 * @param Cetech_Pos_Bridge_Quote_Timing|null  $timing
 	 * @return array<string,mixed>|WP_Error
 	 */
-	public function quote( array $raw_request ) {
+	public function quote( array $raw_request, $timing = null ) {
+		if ( ! $timing instanceof Cetech_Pos_Bridge_Quote_Timing ) {
+			$timing = null;
+		}
 		$parsed = Cetech_Pos_Bridge_Quote_Request::parse( $raw_request );
 		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $parsed ) ) {
 			return $parsed;
@@ -37,7 +44,13 @@ final class Cetech_Pos_Bridge_Quote_Engine {
 				503
 			);
 		}
-		$snapshot = $this->runtime->snapshot();
+		$this->quote_timing_begin( $timing, 'context' );
+		try {
+			$snapshot = $this->runtime->snapshot();
+		} catch ( \Throwable $snapshot_error ) {
+			$this->quote_timing_close( $timing );
+			throw $snapshot_error;
+		}
 		try {
 			if ( method_exists( $this->runtime, 'isolate_counter_sale_shipping' ) ) {
 				$this->runtime->isolate_counter_sale_shipping();
@@ -50,6 +63,8 @@ final class Cetech_Pos_Bridge_Quote_Engine {
 			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $reset ) ) {
 				return $reset;
 			}
+			$this->quote_timing_close( $timing );
+			$this->quote_timing_begin( $timing, 'pricing' );
 			foreach ( $parsed['lines'] as $line ) {
 				$added = $this->runtime->add_line( $line );
 				if ( Cetech_Pos_Bridge_Quote_Request::is_error( $added ) ) {
@@ -60,6 +75,8 @@ final class Cetech_Pos_Bridge_Quote_Engine {
 			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $calculated ) ) {
 				return $calculated;
 			}
+			$this->quote_timing_close( $timing );
+			$this->quote_timing_begin( $timing, 'result' );
 			$priced = $this->runtime->get_priced_cart();
 			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $priced ) ) {
 				return $priced;
@@ -85,7 +102,31 @@ final class Cetech_Pos_Bridge_Quote_Engine {
 			$this->store->put( $quote );
 			return $quote;
 		} finally {
-			$this->runtime->restore( $snapshot );
+			$this->quote_timing_begin( $timing, 'restore' );
+			try {
+				$this->runtime->restore( $snapshot );
+			} finally {
+				$this->quote_timing_close( $timing );
+			}
+		}
+	}
+
+	/**
+	 * @param Cetech_Pos_Bridge_Quote_Timing|null $timing
+	 * @param string                              $phase
+	 */
+	private function quote_timing_begin( $timing, $phase ) {
+		if ( $timing instanceof Cetech_Pos_Bridge_Quote_Timing ) {
+			$timing->begin( $phase );
+		}
+	}
+
+	/**
+	 * @param Cetech_Pos_Bridge_Quote_Timing|null $timing
+	 */
+	private function quote_timing_close( $timing ) {
+		if ( $timing instanceof Cetech_Pos_Bridge_Quote_Timing ) {
+			$timing->close_open();
 		}
 	}
 

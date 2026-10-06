@@ -193,6 +193,7 @@ require_once $plugin_dir . '/includes/class-ephemeral-session.php';
 require_once $plugin_dir . '/includes/class-woo-runtime.php';
 require_once $plugin_dir . '/includes/class-quote-request.php';
 require_once $plugin_dir . '/includes/class-quote-store.php';
+require_once $plugin_dir . '/includes/class-quote-timing.php';
 require_once $plugin_dir . '/includes/class-quote-engine.php';
 require_once $plugin_dir . '/includes/class-quote-controller.php';
 require_once $plugin_dir . '/includes/class-request-hash.php';
