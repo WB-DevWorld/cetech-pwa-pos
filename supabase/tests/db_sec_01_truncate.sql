@@ -1,9 +1,10 @@
 -- DB-SEC-01 catalog assertions. Not the mirrored RLS suite.
 -- Synthetic privileges only. No staging connection and no remote DDL.
--- The migration file grants TRUNCATE and then its own final statement
--- removes it. This test does not call the helper. If that invocation is
--- omitted, the reproduced privilege remains and the repair assertions fail.
--- A later omitted call is shown inside a savepoint and rolled back.
+-- The shipping migration does not grant TRUNCATE. This test does not call
+-- the helper. The disposable replay proof seeds the grant and applies the
+-- migration file outside this suite, including a copy that omits only the
+-- final invocation. The savepoint below shows that an omitted call leaves
+-- the seeded privilege; it is not that modified-migration run.
 
 BEGIN;
 

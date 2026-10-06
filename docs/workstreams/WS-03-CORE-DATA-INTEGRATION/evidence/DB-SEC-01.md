@@ -23,7 +23,7 @@ The live `SELECT`, `INSERT`, `UPDATE`, `DELETE`, and `TRUNCATE` set matches a ho
 
 `supabase/migrations/20261006025100_db_sec_01_revoke_authenticated_truncate.sql`
 
-The migration defines `db_sec_01_revoke_authenticated_truncate()` and, in the same transaction, grants `TRUNCATE` to `authenticated` and then runs the function once. The committed result is the revoke. Dropping only the final invocation leaves the reproduced privilege, which the test rejects. The function revokes `TRUNCATE` from `PUBLIC`, `anon`, and `authenticated` on the 11 observed tables. Execute is revoked from `PUBLIC`, `anon`, and `authenticated`. Version `20261006025100` sorts after both the source filename `20261003072537` and the live history version `20261003083357`. Existing migration filenames are not rewritten.
+The migration defines `db_sec_01_revoke_authenticated_truncate()` and runs it once. It does not grant `TRUNCATE`. The function revokes `TRUNCATE` from `PUBLIC`, `anon`, and `authenticated` on the 11 observed tables. Execute is revoked from `PUBLIC`, `anon`, and `authenticated`. Version `20261006025100` sorts after both the source filename `20261003072537` and the live history version `20261003083357`. Existing migration filenames are not rewritten.
 
 Preserved: row `SELECT`, `INSERT`, `UPDATE`, and `DELETE`; `service_role` grants; every RLS policy; `pos_lock_shift_topology(text, uuid)` execute for `authenticated`.
 
@@ -39,6 +39,8 @@ App rollback does not restore this grant. Re-granting `TRUNCATE` to `authenticat
 
 ## Tests
 
-`supabase/tests/db_sec_01_truncate.sql` does not call the repair function. The migration file grants `TRUNCATE` to `authenticated` and its final statement removes that grant in the same transaction. After `supabase db reset --local` applies that file, the test asserts effective `TRUNCATE` is false on all 11 tables. Granting `TRUNCATE` again and leaving it, without calling the function, fails those 11 assertions. That omission check was run on the disposable local database and then the function was used only to restore that database. The passing rerun of this file is 24 tests. The full local suite after the same reset is 20 files and 419 tests, PASS.
+`supabase/tests/db_sec_01_truncate.sql` does not call the repair function and the shipping migration does not grant `TRUNCATE`. After `supabase db reset --local`, the suite asserts effective `TRUNCATE` is false on all 11 tables, plus the execute and legitimate-grant checks below. Full local suite: 20 files, 419 tests, PASS.
+
+The replay proof is a disposable local transaction, rolled back at the end. It seeds `TRUNCATE` for `authenticated` on the 11 tables, then applies the shipping migration file. Effective `TRUNCATE` is false on all 11. A second transaction seeds the same grant and applies a temporary copy that omits only the final `SELECT`. Effective `TRUNCATE` stays true on all 11, so those removal assertions fail. Both transactions roll back. The one-table savepoint in the pgTAP file only shows that an omitted call leaves a seeded grant. It does not apply that temporary copy.
 
 The test also asserts `anon` and `authenticated` lack effective `EXECUTE`, and that `proacl` is not null and has no `PUBLIC` (`grantee` 0) `EXECUTE` grant. `SELECT` and `INSERT` grants, `service_role` `SELECT`, and `authenticated` execute on `pos_lock_shift_topology(text, uuid)` remain. The function body revokes `TRUNCATE` and does not revoke `UPDATE`. Local `authenticated` does not have the hosted `UPDATE` grant, so that residual is not asserted as a live privilege. Staff documentation impact: none.
