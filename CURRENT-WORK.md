@@ -1,3 +1,29 @@
+## RELEASE-CANDIDATE-140 — pin only
+
+Owner execution assignment 2026-10-06. Application candidate is the unchanged #140 head. This lease records the pin. It does not authorize a price-delay edit, a quote, a sale repair, a migration, or a production promotion.
+
+```text
+human / implementing editor: @wbdevworld
+workstream: WS3
+task: RELEASE-CANDIDATE-140
+branch: ws3/release-candidate-2026-10-06
+application candidate: 0e383d84f11573ca89d6533c8cb7c35d79d7b261
+includes: #139 3c2a5a6af4ab202988e46bb3af6d3ae365147be8
+excludes: #141 4b1febb725c843cf0bf48f86dd9836d4a87b5bbe
+allowed:
+  CURRENT-WORK.md
+  docs/workstreams/WS-03-CORE-DATA-INTEGRATION/evidence/RELEASE-CANDIDATE-2026-10-06.md
+forbidden:
+  application code
+  bridge installation
+  supabase migrations
+  quote execution
+  sale/payment/stock mutation
+  production promotion
+  importing #141
+staff documentation impact: NONE
+```
+
 ## #105 Admin/Manager control plane — ACTIVE P0
 
 Owner/user explicitly made #105 the next blocking implementation before final R9 closure.
