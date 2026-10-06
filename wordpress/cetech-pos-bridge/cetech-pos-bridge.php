@@ -37,6 +37,7 @@ require_once CETECH_POS_BRIDGE_DIR . '/includes/class-ephemeral-session.php';
 require_once CETECH_POS_BRIDGE_DIR . '/includes/class-woo-runtime.php';
 require_once CETECH_POS_BRIDGE_DIR . '/includes/class-quote-request.php';
 require_once CETECH_POS_BRIDGE_DIR . '/includes/class-quote-store.php';
+require_once CETECH_POS_BRIDGE_DIR . '/includes/class-quote-timing.php';
 require_once CETECH_POS_BRIDGE_DIR . '/includes/class-quote-engine.php';
 require_once CETECH_POS_BRIDGE_DIR . '/includes/class-quote-controller.php';
 require_once CETECH_POS_BRIDGE_DIR . '/includes/class-request-hash.php';
