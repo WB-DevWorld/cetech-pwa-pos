@@ -104,6 +104,19 @@ Unrelated global shop_order counts are **not** this transaction's invariant.
 | Historical gap | Recorded as **UNVERIFIED**; not inferred from the completed sale |
 | Current-generation native FPM reflection for `assert_prepared_order_operation_identity` | **No fixed operator probe present** on host for that method. Narrow new probe would need explicit operator scope; not manufactured here |
 
+## Parallel backup identity (read-only; not a restore)
+
+| Artifact class | Observed |
+| --- | --- |
+| Plugin rollback for this install | `…/cetech-pos-bridge-0.6.0-stg05-pre-ab5c7e1-20261008T164117Z.tgz` (`c20239f1…`) — **plugin only** |
+| Other bridge tarballs | Multiple `0.2.x` / pre-stg / pre-ux / before-d0480d33 under `/home/cetechtraining/backups/` — identity only |
+| Training DB dumps found | Task-scoped SQL under geo/city/shipment/pdp/rc12/checkout folders — **not** a complete current Woo+POS restore set for this candidate |
+| `backups/databases/` | Directory present but **empty** (only `.gitignore`) — no dump stored there |
+| Isolated disposable restore | **UNEXECUTED** — no named non-shared clone authorized/available in this session; shared training host restore remains out of scope |
+| Shared/paid/remote restore | **Excluded** (RD-03) |
+
+Plugin backup alone does **not** prove Woo/database/POS restoration.
+
 ## Publish note
 
-Prior published tip `6a7dc31` still said A+D/install stopped. This closure supersedes that progress for installer + sale facts without authorizing another sale.
+Prior published tip `6a7dc31` still said A+D/install stopped. This closure supersedes that progress for installer + sale facts without authorizing another sale. Published tip after closure: `44bcb82…`.
