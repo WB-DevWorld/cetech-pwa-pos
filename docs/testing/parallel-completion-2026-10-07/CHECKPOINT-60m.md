@@ -14,16 +14,17 @@ Local/source gates that were green on the `#140` baseline: checkout/recovery sui
 
 | Field | Value |
 |---|---|
-| Combined tip (PR #144) | `ab5c7e1f3849ff65100a84058e92f8b281a14be2` |
-| Product repair | `27e95b3565dbdf3c5487257a08042e09a51620a4` |
+| Product tip (PR #144) | `ab5c7e1f3849ff65100a84058e92f8b281a14be2` |
+| Docs tip (PR HEAD) | `ad5ccbc7eb6807f56018d6e71af1b0c1c715c6e7` |
+| Product repair | `27e95b3565dbdf3c5487257a08042e09a51620a4` + final correction in `ab5c7e1` |
 | Application baseline SHA | `0e383d84f11573ca89d6533c8cb7c35d79d7b261` (`#140`) |
-| Includes | #139 `3c2a5a6a…`; race product `daac7e0…`; #143 `c512b10…`; R144 `27e95b3…` |
-| Docs tip under review | `ab5c7e1…` |
+| Includes | #139 `3c2a5a6a…`; race product `daac7e0…`; #143 `c512b10…`; R144 `ab5c7e1…` |
 | Security candidate (imported, hosted DDL unauthorized) | #143 `c512b10…` blob `6936b0e…` |
 | Excludes | #141 diagnostic |
 | Rollback (app) | `0e383d84…` (DB TRUNCATE must not be re-granted) |
 | Tester source (do not move) | `816e0bb…` / `dpl_nxWG…` READY |
-| Candidate Preview (unpromoted) | `dpl_CBSA…` READY — tip `ab5c7e1…` |
+| Product Preview (unpromoted) | `dpl_CBSA…` READY — tip `ab5c7e1…` |
+| Docs Preview (unpromoted) | `dpl_GDqi…` READY — tip `ad5ccbc…` |
 | Deployment manifest | `CANDIDATE-DEPLOYMENT-MANIFEST.md` |
 | Runtime decisions | `RUNTIME-DECISIONS-MANIFEST.md` |
 | RD decision sheet | `QUALIFICATION-RD-DECISIONS.md` |

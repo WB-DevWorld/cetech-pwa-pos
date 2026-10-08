@@ -8,14 +8,15 @@ Hosted DDL / live commerce / device rehearsals: **not authorized by this file**
 This document records three **independent** human decisions. Approving Section 1 does **not** authorize Section 2 or 3. Approving Section 2 does **not** authorize Section 1 or 3. Approving Section 3 does **not** authorize Section 1 or 2. Each section needs its own named human authorizer, UTC timestamp, and scope note before any side effects for that section may begin.
 
 Combined final candidate (PR [#144](https://github.com/WB-DevWorld/cetech-pwa-pos/pull/144)) on `ws3/combined-candidate-2026-10-08`.  
-Candidate tip (CI-verified Preview): `ab5c7e1f3849ff65100a84058e92f8b281a14be2` → `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` READY.  
+Product tip (bridge review): `ab5c7e1f3849ff65100a84058e92f8b281a14be2` → `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` READY (CI 37798960261).  
+Docs tip (PR HEAD): `ad5ccbc7eb6807f56018d6e71af1b0c1c715c6e7` → `dpl_GDqiWutGEkJq6CYwps7uQDTG89zi` READY (CI 37800535612).  
 Prior Preview tip `5ea92dc…` / `dpl_fQq…` is superseded — do not qualify by inheritance.  
 R144 product repair: `27e95b3565dbdf3c5487257a08042e09a51620a4` + final correction in `ab5c7e1` (see `R144-FINAL-CORRECTION-01.md`).  
 Prior reviewed tip (REQUEST CHANGES): `7d75c3944d41a5990aa64004c9e96954779c9730`  
 Application baseline (included): `#140` `0e383d84f11573ca89d6533c8cb7c35d79d7b261`  
 Security candidate (Section 1 only): `#143` `c512b106bce1a0efcfd9c2caeddd54ad9e43dccd` (blob `6936b0e…`; **hosted apply still unauthorized**)  
 Race-fix **product** identity (pre-R144): `daac7e035d992c2798a317a0cf371f2925a9fe35` — **WS3-owned, in this combined candidate** (not concurrent elsewhere); superseded for prepare/quote guards by `27e95b3` / `ab5c7e1`.  
-Documentation-only tips: `58af8dc…`, `a0d93de…`, `7d75c39…`, `712cab7…`, `1ea4234…`, `5cef7c2…`, `5ea92dc…`. Distinguish from product tip `ab5c7e1`.  
+Documentation-only tips: `58af8dc…`, `a0d93de…`, `7d75c39…`, `712cab7…`, `1ea4234…`, `5cef7c2…`, `5ea92dc…`, `ad5ccbc…`. Product tip remains `ab5c7e1`.  
 Race-fix / R144 live status: **not** installed on training bridge yet. This manifest does not authorize live apply or plugin install.
 
 Concrete operator decision sheet (targets / caps / rollback): `QUALIFICATION-RD-DECISIONS.md`.
@@ -32,10 +33,12 @@ Concrete operator decision sheet (targets / caps / rollback): `QUALIFICATION-RD-
 | Authenticated SELECT + INSERT | **True** on all 11 |
 | `service_role` SELECT | **True** on all 11 |
 | Shared tester BFF | `dpl_nxWGrSLqaLBGNNN683QjdixNBjF6` **READY** — `BUILD_ID` `816e0bb…` |
-| Reviewed candidate Preview | tip `ab5c7e1…` → `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` **READY** (CI 2026-10-08); prior `5ea92dc…`/`dpl_fQq…` superseded |
+| Product Preview | tip `ab5c7e1…` → `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` **READY** (CI 37798960261) |
+| Docs tip Preview | tip `ad5ccbc…` → `dpl_GDqiWutGEkJq6CYwps7uQDTG89zi` **READY** (CI 37800535612) |
+| Prior Preview | tip `5ea92dc…` → `dpl_fQq…` **superseded** |
 | `#143` blob `6936b0e…` | Still **unauthorized** for hosted apply |
 
-**Wording (do not blanket “NOT DEPLOYED”):** the candidate has an **automatic unpromoted Preview** (`dpl_CBSA…` READY for tip `ab5c7e1`). Woo bridge remains **uninstalled** on training (`0.6.0-stg05`). Runtime qualification is **incomplete**. Tester alias unchanged. Verdict: **NOT READY FOR PRODUCTION**.
+**Wording (do not blanket “NOT DEPLOYED”):** the candidate has **automatic unpromoted Previews** (`dpl_CBSA…` for product tip `ab5c7e1`; `dpl_GDqi…` for docs tip `ad5ccbc`). Woo bridge remains **uninstalled** on training (`0.6.0-stg05`). Runtime qualification is **incomplete**. Tester alias unchanged. Verdict: **NOT READY FOR PRODUCTION**.
 
 Lane-2 read-only fill window: `2026-10-08T14:12Z`–`2026-10-08T14:22Z` UTC (SSH training + public tester BFF probes). Root verify window: `2026-10-08T15:02Z`. Qualification-prep docs reconcile after that. No hosted DDL, no tester-alias move, no commercial effects.
 

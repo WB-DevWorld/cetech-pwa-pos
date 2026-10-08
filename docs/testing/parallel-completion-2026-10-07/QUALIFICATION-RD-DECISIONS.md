@@ -8,9 +8,10 @@ Verdict: **NOT READY FOR PRODUCTION**
 This sheet makes RD-01 / RD-02 / RD-03 concrete for human authorization. Approving one section does **not** authorize the others. Fill authorizer + UTC before any side effects for that section.
 
 Root-verified staging facts: `2026-10-08T15:02Z` (see `RUNTIME-DECISIONS-MANIFEST.md` §0).  
-Candidate tip (CI-verified Preview): `ab5c7e1f3849ff65100a84058e92f8b281a14be2` → `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` READY.  
+Product tip (bridge review): `ab5c7e1f3849ff65100a84058e92f8b281a14be2` → `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` READY (CI 37798960261).  
+Docs tip (PR HEAD): `ad5ccbc7eb6807f56018d6e71af1b0c1c715c6e7` → `dpl_GDqiWutGEkJq6CYwps7uQDTG89zi` READY (CI 37800535612).  
 Prior Preview `5ea92dc…` / `dpl_fQq…` superseded — do not qualify by inheritance.  
-Product tip: `ab5c7e1` (includes `27e95b3` R144 repair + final correction).  
+Product tip includes `27e95b3` R144 repair + final correction.  
 Issues **#115** / **#132** remain **OPEN**. Profiler **PARKED**.
 
 ---

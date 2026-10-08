@@ -8,7 +8,8 @@ Lane D prepared the `#140` application pin on 2026-10-07 after local automated +
 
 | Field | Value |
 | --- | --- |
-| Candidate tip (CI-verified) | `ab5c7e1f3849ff65100a84058e92f8b281a14be2` |
+| Product tip (CI-verified) | `ab5c7e1f3849ff65100a84058e92f8b281a14be2` (`dpl_CBSA…`; CI 37798960261) |
+| Docs tip (PR HEAD) | `ad5ccbc7eb6807f56018d6e71af1b0c1c715c6e7` (`dpl_GDqi…`; CI 37800535612) |
 | R144 product repair | `27e95b3565dbdf3c5487257a08042e09a51620a4` + final correction in `ab5c7e1` |
 | Prior tip | `5ea92dc1258006186ba696e9d4f91f769d97aa11` (`dpl_fQq…` superseded) |
 | Prior REQUEST CHANGES tip | `7d75c3944d41a5990aa64004c9e96954779c9730` |
@@ -25,11 +26,12 @@ Lane D prepared the `#140` application pin on 2026-10-07 after local automated +
 | Protected main (context only) | `c49045dd02c46574af5d341cc65c177116fa7306` |
 | Shared tester baseline (must remain unchanged) | `816e0bb6963aff760609a3c7e4817e603c4ffdf0` |
 | Shared tester deployment | `dpl_nxWGrSLqaLBGNNN683QjdixNBjF6` **READY** (root-verified `2026-10-08T15:02Z`) |
-| Reviewed candidate Preview | `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` **READY** — tip `ab5c7e1…` |
+| Product Preview | `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` **READY** — tip `ab5c7e1…` |
+| Docs Preview | `dpl_GDqiWutGEkJq6CYwps7uQDTG89zi` **READY** — tip `ad5ccbc…` |
 
-**Deploy wording:** candidate has an **automatic unpromoted Preview** (`dpl_CBSA…` READY for tip `ab5c7e1`). That is **not** shared-tester alias promotion and **not** production. Woo bridge remains uninstalled on training; runtime qualification incomplete. Do not blanket-claim “NOT DEPLOYED.”
+**Deploy wording:** candidate has **automatic unpromoted Previews** (`dpl_CBSA…` for product `ab5c7e1`; `dpl_GDqi…` for docs `ad5ccbc`). That is **not** shared-tester alias promotion and **not** production. Woo bridge remains uninstalled on training; runtime qualification incomplete. Do not blanket-claim “NOT DEPLOYED.”
 
-**Product vs documentation tip:** candidate tip `ab5c7e1` is the product + docs head. Prior `5ea92dc`/`dpl_fQq` must not be qualified by inheritance.
+**Product vs documentation tip:** bridge review targets product tip `ab5c7e1`. Docs tip `ad5ccbc` only pins qualification manifests. Prior `5ea92dc`/`dpl_fQq` must not be qualified by inheritance.
 
 ## Local build proof (Lane D on app baseline)
 
@@ -47,7 +49,7 @@ Evidence: `LANE-D-RESULT.md`, `browser-desktop-evidence.json`. Combined tip has 
 
 ## Authorized deployment shape (when integration editor dispatches)
 
-Follow `docs/runbooks/CD-01-STAGING-DEPLOYMENT.md` Exact SHA Preview path for **new** dispatches. Current Preview `dpl_CBSA…` already exists as automatic unpromoted Preview for tip `ab5c7e1…` (prior `dpl_fQq…`/`5ea92dc…` superseded).
+Follow `docs/runbooks/CD-01-STAGING-DEPLOYMENT.md` Exact SHA Preview path for **new** dispatches. Product Preview `dpl_CBSA…` exists for tip `ab5c7e1…`; docs Preview `dpl_GDqi…` exists for tip `ad5ccbc…` (prior `dpl_fQq…`/`5ea92dc…` superseded).
 
 1. Require open PR whose head equals the authorized candidate SHA.
 2. Require CI jobs `control-plane` and `control-plane-windows` SUCCESS for that SHA.
@@ -78,7 +80,7 @@ gh workflow run "Exact SHA Preview" --ref main \
 
 ## Post-deploy verification checklist (Preview; not Lane D)
 
-- [x] Immutable Preview URL recorded — https://cetech-pos-staging-pji89co71-wbdevworlds-projects.vercel.app (`dpl_CBSA…` READY, tip `ab5c7e1…`)
+- [x] Immutable Preview IDs recorded — product `dpl_CBSA…` (tip `ab5c7e1…`); docs `dpl_GDqi…` (tip `ad5ccbc…`)
 - [ ] Running application `BUILD_ID` observed = authorized candidate SHA (operator confirm on Preview)
 - [ ] Release-policy endpoint returns no-store + matching builds
 - [ ] Desktop browser reload retains drafts/journal (no storage wipe)

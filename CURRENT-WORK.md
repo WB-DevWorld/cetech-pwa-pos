@@ -6,17 +6,20 @@ bridge reviewer: @Emmanuel-coder-prog / WS2
 task: R144-FINAL-CORRECTION-01 + qualification docs pin
 branch: ws3/combined-candidate-2026-10-08
 product_tip: ab5c7e1f3849ff65100a84058e92f8b281a14be2
+docs_tip: ad5ccbc7eb6807f56018d6e71af1b0c1c715c6e7
 prior_tip: 5ea92dc1258006186ba696e9d4f91f769d97aa11
 prior_product: 27e95b3565dbdf3c5487257a08042e09a51620a4
 includes: #140 0e383d84… + #143 c512b10… + race fix + R144 repair + final correction
 excludes: #141
 pr: https://github.com/WB-DevWorld/cetech-pwa-pos/pull/144
-ci: 37798960261 PASS on ab5c7e1
+ci_product: 37798960261 PASS on ab5c7e1
+ci_docs: 37800535612 PASS on ad5ccbc
 scope: docs/testing/parallel-completion-2026-10-07/scope-r144-final-correction.json
 evidence: docs/testing/parallel-completion-2026-10-07/R144-FINAL-CORRECTION-01.md
 runtime_decisions: docs/testing/parallel-completion-2026-10-07/RUNTIME-DECISIONS-MANIFEST.md
 qualification_rds: docs/testing/parallel-completion-2026-10-07/QUALIFICATION-RD-DECISIONS.md
-preview: dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2 READY (unpromoted; tip ab5c7e1; prior 5ea92dc/dpl_fQq superseded)
+preview_product: dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2 READY (tip ab5c7e1)
+preview_docs: dpl_GDqiWutGEkJq6CYwps7uQDTG89zi READY (tip ad5ccbc; docs-only; prior 5ea92dc/dpl_fQq superseded)
 tester: dpl_nxWGrSLqaLBGNNN683QjdixNBjF6 READY / 816e0bb (alias unchanged)
 staging_supabase: iegxncvpsyaitkpzywcr ACTIVE_HEALTHY; #143 20261006025100 ABSENT
 local_bridge: 1961 passed / 0 failed (excl. env-fatal generated return-effects); CI uses full run.php

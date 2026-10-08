@@ -4,8 +4,9 @@
 - Acting human / workstream: `@wbdevworld` / WS3
 - Bridge domain reviewer: `@Emmanuel-coder-prog` / WS2
 - Branch: `ws3/combined-candidate-2026-10-08`
-- Docs tip under review: `ab5c7e1f3849ff65100a84058e92f8b281a14be2`
-- Product tip: `27e95b3565dbdf3c5487257a08042e09a51620a4`
+- Product tip (bridge review): `ab5c7e1f3849ff65100a84058e92f8b281a14be2`
+- Docs tip (PR HEAD): `ad5ccbc7eb6807f56018d6e71af1b0c1c715c6e7`
+- Prior product repair: `27e95b3565dbdf3c5487257a08042e09a51620a4`
 - Prior reviewed tip (REQUEST CHANGES): `7d75c3944d41a5990aa64004c9e96954779c9730`
 - PR: https://github.com/WB-DevWorld/cetech-pwa-pos/pull/144
 - Staff-documentation impact: NONE
@@ -18,15 +19,17 @@
 ## Qualification prep (docs only — this handoff)
 - Root-verified staging facts `2026-10-08T15:02Z` recorded in `RUNTIME-DECISIONS-MANIFEST.md` §0.
 - Concrete RD-01/02/03 targets/caps/rollback in `QUALIFICATION-RD-DECISIONS.md`.
-- Preview wording: automatic unpromoted Preview READY (`dpl_CBSA…` for tip `ab5c7e1`); prior `dpl_fQq…`/`5ea92dc…` superseded; Woo bridge uninstalled; runtime qualification incomplete — not blanket “NOT DEPLOYED.”
+- Preview wording: product Preview READY (`dpl_CBSA…` / `ab5c7e1`); docs Preview READY (`dpl_GDqi…` / `ad5ccbc`); prior `dpl_fQq…`/`5ea92dc…` superseded; Woo bridge uninstalled; runtime qualification incomplete — not blanket “NOT DEPLOYED.”
 
 ## Evidence
 - Local focused: `php tests/bridge/run-excl-generated.php` → **1961 passed, 0 failed** (on tip `ab5c7e1`)
-- Full CI: run [37798960261](https://github.com/WB-DevWorld/cetech-pwa-pos/actions/runs/37798960261) PASS on `ab5c7e1`
+- Full CI product: [37798960261](https://github.com/WB-DevWorld/cetech-pwa-pos/actions/runs/37798960261) PASS on `ab5c7e1`
+- Full CI docs: [37800535612](https://github.com/WB-DevWorld/cetech-pwa-pos/actions/runs/37800535612) PASS on `ad5ccbc`
 - Repair notes: `R144-REPAIR-01.md`, `R144-FINAL-CORRECTION-01.md`
 - Runtime sheet: `RUNTIME-DECISIONS-MANIFEST.md`
 - Decision sheet: `QUALIFICATION-RD-DECISIONS.md`
-- Preview: https://cetech-pos-staging-pji89co71-wbdevworlds-projects.vercel.app (`dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` READY — tip `ab5c7e1`)
+- Product Preview: `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` READY — tip `ab5c7e1`
+- Docs Preview: `dpl_GDqiWutGEkJq6CYwps7uQDTG89zi` READY — tip `ad5ccbc`
 - Tester (unchanged): `dpl_nxWGrSLqaLBGNNN683QjdixNBjF6` READY / `816e0bb…`
 
 ## Next (human)

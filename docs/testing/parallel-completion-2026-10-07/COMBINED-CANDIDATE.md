@@ -2,12 +2,13 @@
 
 **Automatic unpromoted Preview exists. Woo bridge uninstalled on training. Runtime qualification incomplete. NOT READY FOR PRODUCTION.** Tester alias unchanged.
 
-Do **not** blanket-say “NOT DEPLOYED”: Vercel Preview `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` is **READY** for tip `ab5c7e1…` (CI-verified). Prior Preview `dpl_fQq…` for tip `5ea92dc…` is superseded — do not qualify by inheritance. Preview is not shared-tester alias, not production, and not live commerce qualification.
+Do **not** blanket-say “NOT DEPLOYED”: product Preview `dpl_CBSA…` READY for tip `ab5c7e1…`; docs tip Preview `dpl_GDqi…` READY for tip `ad5ccbc…`. Prior `dpl_fQq…`/`5ea92dc…` superseded — do not qualify by inheritance. Preview is not shared-tester alias, not production, and not live commerce qualification.
 
 | Field | Value |
 |---|---|
 | PR | [#144](https://github.com/WB-DevWorld/cetech-pwa-pos/pull/144) |
-| Candidate tip | `ab5c7e1f3849ff65100a84058e92f8b281a14be2` (`dpl_CBSA…` READY) |
+| Product tip (bridge review) | `ab5c7e1f3849ff65100a84058e92f8b281a14be2` (`dpl_CBSA…` READY; CI 37798960261) |
+| Docs tip (PR HEAD) | `ad5ccbc7eb6807f56018d6e71af1b0c1c715c6e7` (`dpl_GDqi…` READY; CI 37800535612) |
 | Prior tip | `5ea92dc1258006186ba696e9d4f91f769d97aa11` (`dpl_fQq…` superseded) |
 | R144 product repair | `27e95b3565dbdf3c5487257a08042e09a51620a4` + final correction in `ab5c7e1` |
 | Prior tip (REQUEST CHANGES) | `7d75c3944d41a5990aa64004c9e96954779c9730` |
@@ -16,7 +17,8 @@ Do **not** blanket-say “NOT DEPLOYED”: Vercel Preview `dpl_CBSAUNVvXLmuXetnw
 | Privilege repair #143 | `c512b106bce1a0efcfd9c2caeddd54ad9e43dccd` (blob `6936b0e…`; hosted DDL still unauthorized) |
 | Branch | `ws3/combined-candidate-2026-10-08` |
 | Shared tester BFF | `dpl_nxWGrSLqaLBGNNN683QjdixNBjF6` READY — `816e0bb…` |
-| Candidate Preview | `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` READY — tip `ab5c7e1…` |
+| Product Preview | `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` READY — tip `ab5c7e1…` |
+| Docs Preview | `dpl_GDqiWutGEkJq6CYwps7uQDTG89zi` READY — tip `ad5ccbc…` |
 | Excludes | #141 diagnostic |
 | Rollback | `0e383d84` (app); DB TRUNCATE must not be re-granted on rollback |
 | Open issues (unchanged) | #115, #132 |
@@ -31,7 +33,8 @@ Do **not** blanket-say “NOT DEPLOYED”: Vercel Preview `dpl_CBSAUNVvXLmuXetnw
 ## Local / CI checks
 
 - Local excl. env-fatal generated return-effects: **1961 passed / 0 failed**; hooks-only **145 passed / 0 failed**.
-- Full CI on tip `ab5c7e1`: run [37798960261](https://github.com/WB-DevWorld/cetech-pwa-pos/actions/runs/37798960261) PASS.
+- Full CI on product tip `ab5c7e1`: run [37798960261](https://github.com/WB-DevWorld/cetech-pwa-pos/actions/runs/37798960261) PASS.
+- Full CI on docs tip `ad5ccbc`: run [37800535612](https://github.com/WB-DevWorld/cetech-pwa-pos/actions/runs/37800535612) PASS.
 
 ## Remaining live gates (separate authorizations)
 
