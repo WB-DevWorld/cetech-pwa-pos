@@ -10,17 +10,17 @@ freeze_tip: f0feb44e9b3b241f0f712d3e306a9b768e0a070a
 product_tip: ab5c7e1f3849ff65100a84058e92f8b281a14be2
 bridge_tree: fc8f2d05e7fe36001c3e9265cad0b4754417fedd
 preview_frozen: dpl_8pUT… READY but FORBIDDEN session origin + BUILD_ID=local-dev
-preview_replacement: STOPPED — trusted Exact SHA Preview cannot deploy f0feb44 (PR head 8f6612d; no GitHub independent APPROVED; payload lacks APP_ORIGIN override; agent has no VERCEL_TOKEN)
-tester: dpl_nxWG… / 816e0bb; session org_a / manager_a; assigned loc/reg present; register/device/shift NULL — A+D STOPPED (no open shift)
+preview_replacement: STOPPED — owner exception permits one f0feb44 Preview with BUILD_ID + empty APP_ORIGIN overrides; local Vercel CLI/token/~/.vercel absent (missing authenticated operator access; not another owner approval)
+tester: dpl_nxWGrSLqaLBGNNN683QjdixNBjF6 / 816e0bb…; org_a / loc_a1 / reg_a / shift e82217c6-…; A+D CAP CONSUMED
 rd01: COMPLETE — do not re-apply
-bridge_backup: /home/cetechtraining/backups/cetech-pos-bridge-0.6.0-stg05-pre-ab5c7e1-20261008T164117Z.tgz (sha c20239f1…)
-bridge_candidate_on_host: /home/cetechtraining/tmp/cetech-pos-bridge-ab5c7e1-fc8f2d05.zip (sha e875ec3a… verified); install STOPPED pending signed generation-exchange for this artifact
-progress: docs/testing/parallel-completion-2026-10-07/RD-02-EXECUTION-PROGRESS-01.md
+bridge_install: COMPLETE — live 63094753… / 89e4461c…; identity grep 2; native FPM cutover proof UNVERIFIED (timing verifier wrong package)
+A+D: CLOSED — txn 33326bbc-… / sale-50317 / Woo 50317 processing / stock 49111 4→3; root POS ops prepare+cash+finalize only; evidence RD-02-AD-EVIDENCE-CLOSURE.md
+progress: docs/testing/parallel-completion-2026-10-07/RD-02-AD-EVIDENCE-CLOSURE.md
 profiler: PARKED
 #115 / #132: remain OPEN
 production_effects: NONE
 verdict: NOT READY FOR PRODUCTION
-next: operator Preview with BUILD_ID+origin admission; open existing shift on qual session; signed whole-generation bridge exchange
+next: authenticate Vercel; create one f0 Preview per reviewed payload; receipt reprint + candidate local device checks; FPM native probe scope if pursued
 ```
 
 ## DB-SEC-01 — staging APPLIED AND VERIFIED (RD-01 complete)

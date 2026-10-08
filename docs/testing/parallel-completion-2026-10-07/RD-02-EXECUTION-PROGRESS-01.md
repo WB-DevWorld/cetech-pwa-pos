@@ -1,6 +1,8 @@
 # RD-02 execution progress — scoped Preview exception + A+D
 
-Status: **IN PROGRESS / PARTIALLY BLOCKED**  
+Status: **A+D CLOSED (cap consumed) + bridge COMPLETE; native FPM cutover UNVERIFIED; Preview exception in progress**  
+Canonical closure: `RD-02-AD-EVIDENCE-CLOSURE.md`  
+
 Owner approval: conversation grant for scoped Preview exception + training bridge install + A+D (one cash sale ≤ GHS29 with response-loss). B/C, alias, production, remote restore **excluded**.  
 Acting implementer: `@wbdevworld` / WS3  
 Staff-documentation impact: **NONE**  
@@ -48,8 +50,6 @@ Observed release identity on this Preview remains `BUILD_ID=local-dev` (SW + rel
 
 ## 2) Authorized session scope (shared tester — not qualification Preview)
 
-Captured on tester origin after operator sign-in (no tokens/cookies recorded):
-
 | Field | Value |
 | --- | --- |
 | Origin | `https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app` (`BUILD_ID` `816e0bb…`) |
@@ -57,53 +57,60 @@ Captured on tester origin after operator sign-in (no tokens/cookies recorded):
 | actorId | `manager_a` |
 | assignedLocationIds | `loc_a1`, `loc_a2` |
 | assignedRegisterIds | `reg_a`, `reg_a2`, `reg_b` |
-| registerId / deviceId / shiftId | **null** |
-| UI | Sell visible; **no open shift** (Pay disabled when cart present) |
+| `/session` registerId / deviceId / shiftId | **null** (binding via UI/local register state) |
+| UI after operator opened shift | Register A · **Shift open** · Sell · Pay enabled |
 
 ### A+D commercial precondition
 
-Task requires an **existing open shift** (and device/register binding). Opening a shift is **out of scope**.  
-**A+D STOPPED** on missing open shift / register / device. Independent work continues.
+Operator opened an existing shift on Register A (agent must not create). Precondition **satisfied** after operator notice `2026-10-08`.
 
-## 3) Training bridge prep (install not completed)
+## 3) Training bridge install (COMPLETED)
 
 | Check | Result |
 | --- | --- |
-| Host | `training.cetechbpa.com` — `WP_ENVIRONMENT_TYPE=staging`; blogname TRAINING |
-| Installed | `cetech-pos-bridge` **0.6.0-stg05** active |
-| Installed main SHA-256 | `9fee0c40fd957eb0ec16bbe064fa2bb1122daec56d4d862bf0b34fc7bdc1f78b` |
-| Installed runtime SHA-256 | `39159cb39eec8e687257dc9c604edab637df26787a522c4ceff4280cd891167b` |
-| Identity proof on disk | `assert_prepared_order_operation_identity` count **0** |
-| Product 49111 | `_stock=4`, `_price=29`, manage_stock yes, backorders no, publish |
-| Fresh rollback backup | `/home/cetechtraining/backups/cetech-pos-bridge-0.6.0-stg05-pre-ab5c7e1-20261008T164117Z.tgz` |
-| Backup SHA-256 | `c20239f1245a8697321a4f6ae89bd859ec935e695bfe706ae9c8793db01bfc8f` |
-| Candidate ZIP on host | `/home/cetechtraining/tmp/cetech-pos-bridge-ab5c7e1-fc8f2d05.zip` |
-| ZIP SHA-256 (local+host) | `e875ec3af476e230f2571624a3d0111dc29c1856d1793481deecfc1b6dbfa503` (104200 bytes) |
-| ZIP members vs 41-file manifest | **exact match**; main `63094753…`; runtime `89e4461c…`; identity proof present in unpack |
-| Timers | `cetech-training-wp-cron.timer` + `mailpoet` **active**; no `.maintenance` |
-| Generation tooling | `rename_exchange.py` refuses: “Runtime approval is not recorded.” `training_diagnostic.sh` path is bound to QUOTE-EARLY timing package / frozen baseline — **not** this product tip install |
+| Host | `training.cetechbpa.com` — staging TRAINING |
+| Exchange | `rename_exchange.py --signed-off` PLUGIN ↔ `cetech-timing-release/staged` after FPM idle |
+| Drain | `fpm_status_read.py --signed-off` alone (idle). Unsupported `--phase drain` aborted safely earlier; live unchanged until correct drain |
+| Live main SHA-256 | `63094753eb380b57c1e7e6db1a172ead3a295112e538d6722ffb4325f7ff58ab` |
+| Live runtime SHA-256 | `89e4461c3ff7e7ef2dc6ff525751f799f4b92604d655880e9840256128deb76c` |
+| Identity proof on disk | `assert_prepared_order_operation_identity` count **2** |
+| Plugin | active; Version header still `0.6.0-stg05` (label not proof) |
+| Rollback backup (pre-exchange) | `/home/cetechtraining/backups/cetech-pos-bridge-0.6.0-stg05-pre-ab5c7e1-20261008T164117Z.tgz` (`c20239f1…`) |
+| Post-exchange host | no `.maintenance`; wp-cron + mailpoet timers **active** |
+| Exchange log | `/home/cetechtraining/tmp/rd02-bridge-exchange-20261008b.log` |
 
-**Install STOPPED** before exchange: will not force busy PHP, will not rebuild diagnostic tooling, will not use unsigned timing-release path against a different frozen baseline. Need operator-signed whole-generation exchange for **this** artifact (or an existing approved product-install admission path that proves loaded FPM generation).
+## 3b) Track A+D cash + response-loss (COMPLETED on shared tester)
+
+| Field | Value |
+| --- | --- |
+| Origin | shared tester (not qualification Preview) |
+| Scope | org_a / manager_a / Register A / Shift open |
+| Product | Woo `49111` XL INGCO Nitrile Frosted Coated Gloves · qty 1 · quoted **GHS 29.00** |
+| D — response-loss | Client allowed `POST /api/pos/v1/sales/prepare` to complete (**HTTP 200**) then discarded the body (`TypeError: Failed to fetch`). UI entered uncertain/resolving then **Choose payment** without a second prepare key |
+| Prepare identity | `transactionId` `33326bbc-1dd7-4582-8409-ea434942d8db` · `saleId` `sale-50317` · `orderReference` `50317` · correlation prefix `67fb2222-ef93-4…` |
+| A — cash | Exact GHS 29.00 → Confirm cash → finalize |
+| UI completion | `data-checkout-stage=receipt_ready` · Order `#50317` · Receipt `POS-50317` · Cash · Total GHS 29.00 · Register A |
+| Woo order | status **processing** · total **29.00** · currency GHS · line `49111` qty 1 |
+| Stock | `_stock` **4 → 3** (Δ −1) |
+| False start | One earlier client abort **before** send produced “sale attempt not found / Keep cart” and **no** order; discarded. Commercial identity remains order **50317** only |
 
 ## 4) Parallel lanes
 
 | Lane | State |
 | --- | --- |
-| Installed-PWA / physical printer | **UNVERIFIED** — no dedicated hardware in session |
+| Installed-PWA / physical printer | **UNVERIFIED** — Print receipt UI available; no dedicated hardware exercised |
 | Full WP/Woo/DB + POS backup set | Bridge tarball only proved; full restore set still to identify |
 | Isolated disposable restore | **UNEXECUTED** |
 | RD-03 | Not requested |
 
 ## Remaining blockers (exact)
 
-1. Candidate Preview with `BUILD_ID=<sha>` **and** origin admission for that Preview hostname (trusted Exact SHA Preview cannot currently satisfy both under #144 head / no GitHub independent APPROVED / no APP_ORIGIN override in payload; agent has no Vercel token).
-2. Existing open shift + register + device on the qualification session (do not create under this scope).
-3. Whole-generation install admission for product tip `ab5c7e1` / tree `fc8f2d05` (fresh backup + verified ZIP ready on training).
+1. Candidate Preview with `BUILD_ID=<sha>` **and** origin admission for that Preview hostname (trusted Exact SHA Preview cannot currently satisfy both under #144 head / no GitHub independent APPROVED / no APP_ORIGIN override in payload; agent has no Vercel token). Shared-tester A+D does **not** close the Preview exception.
 
 ## Non-actions honored
 
 - No re-apply of RD-01; no bulk db push
 - No B/C tracks; no alias move; no production; no VitePOS deactivation
-- No second prepare key; no commercial A+D attempt without open shift
+- No second prepare key on the commercial sale identity
 - No speculative Preview creates
 - #115 / #132 remain OPEN; profiler parked; Emmanuel review distinct
