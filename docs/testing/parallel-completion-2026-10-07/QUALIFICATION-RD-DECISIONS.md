@@ -185,10 +185,10 @@ notes:
 | Blocker | State |
 | --- | --- |
 | Hosted #143 apply (RD-01) | **COMPLETE** — staging `20261008151307`; do not re-apply |
-| Training bridge install of product tip `ab5c7e1` | RD-02 request ready (`RD-02-EXECUTION-REQUEST.md`); not installed |
-| Track C last-unit fixture | 49111@stock=4 insufficient; need stock=1 fixture or reduce / STOP C |
-| Org/location/register/shift session ids | UNVERIFIED — Preview sign-in Access denied / AUTH_REQUIRED without staff session |
-| Preview BUILD_ID binding | Observed `local-dev` on `dpl_8pUT` / `dpl_CBSA` (gap vs git SHA) |
+| Training bridge install of product tip `ab5c7e1` | Owner-approved; fresh backup + verified ZIP on host; **install STOPPED** pending signed generation-exchange (`RD-02-EXECUTION-PROGRESS-01.md`) |
+| A+D cash + response-loss | Owner-approved; **STOPPED** — session has no open shift/register/device (must not create under scope) |
+| Track C last-unit fixture | Excluded from this approval |
+| Preview origin / BUILD_ID | FORBIDDEN `session origin is not allowed` on `dpl_8pUT`; `BUILD_ID=local-dev`; replacement Preview **STOPPED** (capability limit) |
 | Installed-PWA / physical printer | Desktop ≠ installed; device absent; UNVERIFIED |
 | #115 / #132 | Remain OPEN |
 | Profiler | PARKED |

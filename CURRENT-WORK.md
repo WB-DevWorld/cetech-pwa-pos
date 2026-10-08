@@ -1,29 +1,26 @@
-## COMBINED-CANDIDATE-2026-10-08 — ACTIVE runtime qualification (WS3 sole implementer)
+## COMBINED-CANDIDATE-2026-10-08 — ACTIVE RD-02 execution (WS3 sole implementer)
 
 ```text
 human / integration editor: @wbdevworld / WS3
 bridge reviewer: @Emmanuel-coder-prog / WS2 (distinct; unrecorded)
-task: RUNTIME-QUALIFICATION-CONTINUATION-01
+task: RD-02-EXECUTION (scoped Preview exception + A+D)
+owner_approval: scoped Preview exception + training bridge install + A+D ≤GHS29 response-loss; B/C/alias/prod/remote-restore EXCLUDED
 branch: ws3/combined-candidate-2026-10-08
 freeze_tip: f0feb44e9b3b241f0f712d3e306a9b768e0a070a
 product_tip: ab5c7e1f3849ff65100a84058e92f8b281a14be2
 bridge_tree: fc8f2d05e7fe36001c3e9265cad0b4754417fedd
-preview_frozen: dpl_8pUT6fhYPKxR6B7uFhoUVUx2ZYJL READY (f0feb44)
-preview_url: https://cetech-pos-staging-d299u3ex7-wbdevworlds-projects.vercel.app
-preview_product_optional: dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2 (acs2cuq3m URL; not pji89co71)
-tester: dpl_nxWGrSLqaLBGNNN683QjdixNBjF6 READY / 816e0bb (alias unchanged)
-observed_preview_BUILD_ID: local-dev (binding gap vs git SHA; tester still 816e0bb)
-rd01: COMPLETE hosted 20261008151307 — do not re-apply
-rd02_request: docs/testing/parallel-completion-2026-10-07/RD-02-EXECUTION-REQUEST.md
-runtime_evidence: docs/testing/parallel-completion-2026-10-07/RUNTIME-QUALIFICATION-CONTINUATION-01.md
-bridge_artifact: docs/testing/parallel-completion-2026-10-07/bridge-artifact-ab5c7e1/
-r144_source: ACCEPTED (root technical); Emmanuel domain review distinct
+preview_frozen: dpl_8pUT… READY but FORBIDDEN session origin + BUILD_ID=local-dev
+preview_replacement: STOPPED — trusted Exact SHA Preview cannot deploy f0feb44 (PR head 8f6612d; no GitHub independent APPROVED; payload lacks APP_ORIGIN override; agent has no VERCEL_TOKEN)
+tester: dpl_nxWG… / 816e0bb; session org_a / manager_a; assigned loc/reg present; register/device/shift NULL — A+D STOPPED (no open shift)
+rd01: COMPLETE — do not re-apply
+bridge_backup: /home/cetechtraining/backups/cetech-pos-bridge-0.6.0-stg05-pre-ab5c7e1-20261008T164117Z.tgz (sha c20239f1…)
+bridge_candidate_on_host: /home/cetechtraining/tmp/cetech-pos-bridge-ab5c7e1-fc8f2d05.zip (sha e875ec3a… verified); install STOPPED pending signed generation-exchange for this artifact
+progress: docs/testing/parallel-completion-2026-10-07/RD-02-EXECUTION-PROGRESS-01.md
 profiler: PARKED
 #115 / #132: remain OPEN
 production_effects: NONE
-forbidden_remote: re-apply #143; bulk db push; alias move; production; unapproved bridge install/commerce
 verdict: NOT READY FOR PRODUCTION
-next: operator Preview sign-in; owner RD-02 (A+D ready; C needs stock=1); RD-03 only if shared/paid/alias
+next: operator Preview with BUILD_ID+origin admission; open existing shift on qual session; signed whole-generation bridge exchange
 ```
 
 ## DB-SEC-01 — staging APPLIED AND VERIFIED (RD-01 complete)
