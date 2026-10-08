@@ -1,26 +1,30 @@
-## COMBINED-CANDIDATE-2026-10-08 — ACTIVE RD-02 execution (WS3 sole implementer)
+## COMBINED-CANDIDATE-2026-10-08 — ACTIVE Print/PWA/Recovery completion (WS3)
 
 ```text
 human / integration editor: @wbdevworld / WS3
-bridge reviewer: @Emmanuel-coder-prog / WS2 (distinct; unrecorded)
-task: RD-02-EXECUTION (scoped Preview exception + A+D)
-owner_approval: scoped Preview exception + training bridge install + A+D ≤GHS29 response-loss; B/C/alias/prod/remote-restore EXCLUDED
+bridge reviewer: @Emmanuel-coder-prog / WS2 (distinct; review only)
+task: PRINT-PWA-RECOVERY-COMPLETION (Lane 1 history reprint + Lane 2 device/PWA + Lane 3 restore/FPM/B-C prep)
+owner_approval: CETECH-POS-WS3-Print-PWA-Recovery-Completion.md; no prod; no second cash sale; no RD-01 re-apply; no new f0 Preview exception; no shared alias move
 branch: ws3/combined-candidate-2026-10-08
+selected_base: 7d5778fe904792360947d88122050e529587aa51 (#144 head; product source unchanged)
 freeze_tip: f0feb44e9b3b241f0f712d3e306a9b768e0a070a
 product_tip: ab5c7e1f3849ff65100a84058e92f8b281a14be2
 bridge_tree: fc8f2d05e7fe36001c3e9265cad0b4754417fedd
-preview_frozen: dpl_8pUT… retained; release-lifecycle qualification incomplete (FORBIDDEN origin + BUILD_ID=local-dev)
-preview_replacement: READY + RECEIPT/PWA CHECKS DONE — dpl_4Vk3XQ… / gqg6tjedt / BUILD_ID f0feb44…; receipt 33326bbc display+reload OK; SW controlling f0 build; quote-only 49111 cleared; Reprint UI absent (no printer port); physical scanner/printer UNVERIFIED
+preview_frozen: dpl_8pUT… retained; release-lifecycle qualification incomplete
+preview_replacement: dpl_4Vk3XQ… / gqg6tjedt / BUILD_ID f0feb44… — receipt display+reload OK; SW controlling; Reprint was absent (checkout-gated ports); Lane 1 correcting history ports
 tester: dpl_nxWGr… / 816e0bb…; A+D CAP CONSUMED — do not repeat sale
 rd01: COMPLETE — do not re-apply
 bridge_install: COMPLETE — live 63094753… / 89e4461c…; native FPM cutover UNVERIFIED
-A+D: CLOSED — txn 33326bbc-… / sale-50317
-progress: RD-02-AD-EVIDENCE-CLOSURE.md + RD-02-PREVIEW-F0-CREATE-01.md + RD-02-PREVIEW-F0-RECEIPT-PWA-01.md
+A+D: CLOSED — txn 33326bbc-… / sale-50317 / rcpt-33326bbc
+lane1: SOURCE COMPLETE — history receipt/print ports + pos-app.receipt-reprint.test.tsx; LANE1-PRINT-HISTORY-REPRINT-01.md; Preview reprint pending owner deploy decision
+lane2: PARTIAL — LANE2-PWA-DEVICE-01.md (harness search/add OK; installed PWA/offline/hardware NOT RUN)
+lane3: PREP — LANE3-RECOVERY-BC-PREP-01.md (inventory + FPM honesty + B/C decision; restore/B/C NOT EXECUTED)
+handoff: HANDOFF-PRINT-PWA-RECOVERY-COMPLETION.md
 profiler: PARKED
 #115 / #132: remain OPEN
 production_effects: NONE
 verdict: NOT READY FOR PRODUCTION
-next: optional narrow FPM native probe scope; full WP/DB+POS backup/restore identity; hardware printer/scanner when available
+staff_documentation_impact: NONE
 ```
 
 ## DB-SEC-01 — staging APPLIED AND VERIFIED (RD-01 complete)

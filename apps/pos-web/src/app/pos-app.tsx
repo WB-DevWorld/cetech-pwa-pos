@@ -12,6 +12,7 @@ import {
   createBrowserReturnPort,
   createBrowserSalesResolvePort,
 } from "./checkout-client";
+import { workspaceReceiptPrintPorts } from "./history-receipt-ports";
 import {
   checkoutBlockedByLocalRecovery,
   attentionRecoveryFeedback,
@@ -437,6 +438,11 @@ export function PosRuntime({
             })
           : null;
       const capabilities = await fetchPaymentMethodCapabilities(fetchImpl);
+      const historyPrint = workspaceReceiptPrintPorts({
+        presentationOnly: !!current.presentationOnly,
+        checkout,
+        fetchImpl,
+      });
       setProjectionAvailability(availability);
       setPorts({
         catalog: createLocalCatalogPort({ db }),
@@ -459,8 +465,8 @@ export function PosRuntime({
         checkout: checkout?.checkout,
         payments: checkout?.payments,
         sales: checkout?.sales,
-        receipts: checkout?.receipts,
-        printer: checkout?.printer,
+        receipts: historyPrint.receipts,
+        printer: historyPrint.printer,
         checkoutScope: checkout?.scope,
         catalogAvailability: availability,
         catalogProjectionGeneration,
