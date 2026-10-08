@@ -6,15 +6,18 @@ bridge reviewer: @Emmanuel-coder-prog / WS2
 task: R144-REPAIR-01 (close R144-1/2/3 on PR #144)
 branch: ws3/combined-candidate-2026-10-08
 reviewed_head: 7d75c3944d41a5990aa64004c9e96954779c9730
+corrected_tip: 27e95b3565dbdf3c5487257a08042e09a51620a4
 includes: #140 0e383d84… + #143 c512b10… + race fix + R144 repair
 excludes: #141
 pr: https://github.com/WB-DevWorld/cetech-pwa-pos/pull/144
 scope: docs/testing/parallel-completion-2026-10-07/scope-r144-repair.json
-evidence: docs/testing/parallel-completion-2026-10-07/
+evidence: docs/testing/parallel-completion-2026-10-07/R144-REPAIR-01.md
 runtime_decisions: docs/testing/parallel-completion-2026-10-07/RUNTIME-DECISIONS-MANIFEST.md
+local_bridge: 1942 passed / 0 failed (excl. env-fatal generated return-effects)
 profiler: PARKED
 production_effects: NONE
 forbidden_remote: bridge install, hosted DDL, alias move, commercial writes
+verdict: NOT READY FOR PRODUCTION
 ```
 
 ## DB-SEC-01 — review candidate, not applied
