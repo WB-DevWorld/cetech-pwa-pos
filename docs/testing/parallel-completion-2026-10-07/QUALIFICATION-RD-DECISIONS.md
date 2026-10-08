@@ -7,11 +7,11 @@ Verdict: **NOT READY FOR PRODUCTION**
 
 This sheet makes RD-01 / RD-02 / RD-03 concrete for human authorization. Approving one section does **not** authorize the others. Fill authorizer + UTC before any side effects for that section.
 
-Root-verified staging facts: `2026-10-08T15:02Z` (see `RUNTIME-DECISIONS-MANIFEST.md` §0).  
-Product tip (bridge review): `ab5c7e1f3849ff65100a84058e92f8b281a14be2` → `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` READY (CI 37798960261).  
-Docs tip (PR HEAD): `ad5ccbc7eb6807f56018d6e71af1b0c1c715c6e7` → `dpl_GDqiWutGEkJq6CYwps7uQDTG89zi` READY (CI 37800535612).  
-Prior Preview `5ea92dc…` / `dpl_fQq…` superseded — do not qualify by inheritance.  
-Product tip includes `27e95b3` R144 repair + final correction.  
+Root-verified staging facts: `2026-10-08T15:02Z` + RD-01 apply (see `RUNTIME-DECISIONS-MANIFEST.md` §0).  
+**Frozen qualification Preview:** tip `f0feb44…` → `dpl_8pUT6fhYPKxR6B7uFhoUVUx2ZYJL` READY — https://cetech-pos-staging-d299u3ex7-wbdevworlds-projects.vercel.app  
+Product tip: `ab5c7e1…` / bridge tree `fc8f2d05…` (≡ freeze). Optional product Preview `dpl_CBSA…` at `acs2cuq3m` URL (not `pji89co71`).  
+Observed Preview `BUILD_ID`: **`local-dev`** (binding gap). Tester remains `816e0bb…` / `dpl_nxWG…`.  
+RD-01 **COMPLETE**. RD-02 request: `RD-02-EXECUTION-REQUEST.md`.  
 Issues **#115** / **#132** remain **OPEN**. Profiler **PARKED**.
 
 ---
@@ -78,9 +78,10 @@ notes: see RD-01-STAGING-EXECUTION-RECEIPT.md; production NOT authorized
 | Field | Value |
 | --- | --- |
 | Current installed (read-only `2026-10-08T14:14Z`) | `cetech-pos-bridge` **0.6.0-stg05** — still global order-count gate |
-| Candidate product SHA | `27e95b3…` (closes R144-1/2/3; includes identity prepare proof from `daac7e0…`) |
-| Install | **Separate authorization** — not granted by source merge or this sheet until filled |
-| Backup identity before install | Prefer existing `/home/cetechtraining/backups/` bridge tarball listing; mint new pre-install tarball if operator requires |
+| Candidate product SHA / tree | `ab5c7e1…` / `fc8f2d05…` (identity prepare + refund hooks + tax init) |
+| Artifact zip SHA-256 | `e875ec3af476e230f2571624a3d0111dc29c1856d1793481deecfc1b6dbfa503` |
+| Install | **Separate authorization** — see filled `RD-02-EXECUTION-REQUEST.md` |
+| Backup identity before install | Existing listing + **mint fresh** pre-install tarball (required) |
 
 Without install, live tracks must either **STOP** or explicitly accept fail-closed risk on the old global order-count gate in the authorization note.
 
@@ -149,7 +150,7 @@ Local cashier device install, local printer/reprint rehearsal, and **isolated di
 
 | Action | Note |
 | --- | --- |
-| Use existing unpromoted Preview `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` | Already deployed automatically; not aliased |
+| Use frozen unpromoted Preview `dpl_8pUT6fhYPKxR6B7uFhoUVUx2ZYJL` (or optional `dpl_CBSA…`) | Already deployed automatically; not aliased |
 | Installed-PWA / printer steps on a **dedicated** cashier device against Preview or current tester | Device evidence only; record BUILD_ID |
 | Isolated disposable restore onto a **named non-shared** clone | Authorizer still names hostname/project; never overwrite shared staging cashiers “because convenient” |
 
@@ -158,7 +159,7 @@ Local cashier device install, local printer/reprint rehearsal, and **isolated di
 | Pin | Value |
 | --- | --- |
 | Shared tester BFF | `dpl_nxWGrSLqaLBGNNN683QjdixNBjF6` READY — `BUILD_ID` `816e0bb6963aff760609a3c7e4817e603c4ffdf0` |
-| Reviewed candidate Preview | `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` READY — tip `ab5c7e1…` — https://cetech-pos-staging-pji89co71-wbdevworlds-projects.vercel.app |
+| Frozen candidate Preview | `dpl_8pUT6fhYPKxR6B7uFhoUVUx2ZYJL` READY — tip `f0feb44…` — https://cetech-pos-staging-d299u3ex7-wbdevworlds-projects.vercel.app |
 | App rollback known-good | Tester `816e0bb…` (code only; ≠ commerce reversal) |
 | DB rollback | Never re-GRANT TRUNCATE |
 
@@ -184,10 +185,11 @@ notes:
 | Blocker | State |
 | --- | --- |
 | Hosted #143 apply (RD-01) | **COMPLETE** — staging `20261008151307`; do not re-apply |
-| Training bridge install of product tip `ab5c7e1` | Not authorized / not installed (`0.6.0-stg05`) |
-| Track C last-unit fixture | 49111@stock=4 insufficient; need stock=1 fixture or reduce |
-| Org/location/register/shift session ids | UNVERIFIED without staff BFF session |
-| Installed-PWA / physical printer | Desktop ≠ installed; UNVERIFIED |
+| Training bridge install of product tip `ab5c7e1` | RD-02 request ready (`RD-02-EXECUTION-REQUEST.md`); not installed |
+| Track C last-unit fixture | 49111@stock=4 insufficient; need stock=1 fixture or reduce / STOP C |
+| Org/location/register/shift session ids | UNVERIFIED — Preview sign-in Access denied / AUTH_REQUIRED without staff session |
+| Preview BUILD_ID binding | Observed `local-dev` on `dpl_8pUT` / `dpl_CBSA` (gap vs git SHA) |
+| Installed-PWA / physical printer | Desktop ≠ installed; device absent; UNVERIFIED |
 | #115 / #132 | Remain OPEN |
 | Profiler | PARKED |
 | Production | **NOT READY FOR PRODUCTION** |
@@ -195,6 +197,8 @@ notes:
 ## Related
 
 - `RD-01-STAGING-EXECUTION-RECEIPT.md` (RD-01 closed)
+- `RD-02-EXECUTION-REQUEST.md` (owner decision)
+- `RUNTIME-QUALIFICATION-CONTINUATION-01.md`
 - `RUNTIME-DECISIONS-MANIFEST.md` (full preflight + track detail)
 - `CANDIDATE-DEPLOYMENT-MANIFEST.md`
 - `COMBINED-CANDIDATE.md`

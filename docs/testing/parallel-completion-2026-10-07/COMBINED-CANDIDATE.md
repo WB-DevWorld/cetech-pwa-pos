@@ -2,13 +2,14 @@
 
 **Automatic unpromoted Preview exists. Woo bridge uninstalled on training. Runtime qualification incomplete. NOT READY FOR PRODUCTION.** Tester alias unchanged.
 
-Do **not** blanket-say “NOT DEPLOYED”: product Preview `dpl_CBSA…` READY for tip `ab5c7e1…`; docs tip Preview `dpl_GDqi…` READY for tip `ad5ccbc…`. Prior `dpl_fQq…`/`5ea92dc…` superseded — do not qualify by inheritance. Preview is not shared-tester alias, not production, and not live commerce qualification.
+Do **not** blanket-say “NOT DEPLOYED”: frozen Preview `dpl_8pUT…` READY for tip `f0feb44…`; product tip `ab5c7e1` / bridge tree `fc8f2d05` equivalent. Do not restart qual for docs-only tips. Preview is not shared-tester alias, not production, and not live commerce qualification.
 
 | Field | Value |
 |---|---|
 | PR | [#144](https://github.com/WB-DevWorld/cetech-pwa-pos/pull/144) |
-| Product tip (bridge review) | `ab5c7e1f3849ff65100a84058e92f8b281a14be2` (`dpl_CBSA…` READY; CI 37798960261) |
-| Docs tip (PR HEAD) | `ad5ccbc7eb6807f56018d6e71af1b0c1c715c6e7` (`dpl_GDqi…` READY; CI 37800535612) |
+| Frozen Preview | `dpl_8pUT6fhYPKxR6B7uFhoUVUx2ZYJL` — tip `f0feb44…` — https://cetech-pos-staging-d299u3ex7-wbdevworlds-projects.vercel.app |
+| Product tip | `ab5c7e1f3849ff65100a84058e92f8b281a14be2` / bridge tree `fc8f2d05…` |
+| Observed Preview BUILD_ID | `local-dev` (binding gap; tester remains `816e0bb…`) |
 | Prior tip | `5ea92dc1258006186ba696e9d4f91f769d97aa11` (`dpl_fQq…` superseded) |
 | R144 product repair | `27e95b3565dbdf3c5487257a08042e09a51620a4` + final correction in `ab5c7e1` |
 | Prior tip (REQUEST CHANGES) | `7d75c3944d41a5990aa64004c9e96954779c9730` |
@@ -17,8 +18,8 @@ Do **not** blanket-say “NOT DEPLOYED”: product Preview `dpl_CBSA…` READY f
 | Privilege repair #143 | `c512b106bce1a0efcfd9c2caeddd54ad9e43dccd` (blob `6936b0e…`) — staging **APPLIED** hosted `20261008151307` |
 | Branch | `ws3/combined-candidate-2026-10-08` |
 | Shared tester BFF | `dpl_nxWGrSLqaLBGNNN683QjdixNBjF6` READY — `816e0bb…` |
-| Product Preview | `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` READY — tip `ab5c7e1…` |
-| Docs Preview | `dpl_GDqiWutGEkJq6CYwps7uQDTG89zi` READY — tip `ad5ccbc…` |
+| Optional product Preview | `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` — `acs2cuq3m` URL (not `pji89co71`) |
+| RD-02 package | `RD-02-EXECUTION-REQUEST.md` + `bridge-artifact-ab5c7e1/` |
 | Excludes | #141 diagnostic |
 | Rollback | `0e383d84` (app); DB TRUNCATE must not be re-granted on rollback |
 | Open issues (unchanged) | #115, #132 |
@@ -38,4 +39,4 @@ Do **not** blanket-say “NOT DEPLOYED”: product Preview `dpl_CBSA…` READY f
 
 ## Remaining live gates (separate authorizations)
 
-See `RUNTIME-DECISIONS-MANIFEST.md` + `QUALIFICATION-RD-DECISIONS.md`: **RD-01 complete**; remaining RD-02 training bridge install + bounded tracks, RD-03 shared/paid restore or release-switch. Profiler parked. **NOT READY FOR PRODUCTION.**
+See `RUNTIME-QUALIFICATION-CONTINUATION-01.md` + `RD-02-EXECUTION-REQUEST.md`: **RD-01 complete**; RD-02 request ready (A+D; C needs stock=1); Lane 1 needs operator sign-in; RD-03 only if shared/paid/alias. Profiler parked. **NOT READY FOR PRODUCTION.**

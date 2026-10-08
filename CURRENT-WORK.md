@@ -1,34 +1,29 @@
-## COMBINED-CANDIDATE-2026-10-08 — ACTIVE qualification (RD-01 complete)
+## COMBINED-CANDIDATE-2026-10-08 — ACTIVE runtime qualification (WS3 sole implementer)
 
 ```text
 human / integration editor: @wbdevworld / WS3
-bridge reviewer: @Emmanuel-coder-prog / WS2
-task: RD-01 receipt + remaining RD-02/03 qualification
+bridge reviewer: @Emmanuel-coder-prog / WS2 (distinct; unrecorded)
+task: RUNTIME-QUALIFICATION-CONTINUATION-01
 branch: ws3/combined-candidate-2026-10-08
+freeze_tip: f0feb44e9b3b241f0f712d3e306a9b768e0a070a
 product_tip: ab5c7e1f3849ff65100a84058e92f8b281a14be2
-docs_tip: ad5ccbc7eb6807f56018d6e71af1b0c1c715c6e7
-prior_tip: 5ea92dc1258006186ba696e9d4f91f769d97aa11
-prior_product: 27e95b3565dbdf3c5487257a08042e09a51620a4
-includes: #140 0e383d84… + #143 c512b10… + race fix + R144 repair + final correction
-excludes: #141
-pr: https://github.com/WB-DevWorld/cetech-pwa-pos/pull/144
-ci_product: 37798960261 PASS on ab5c7e1
-ci_docs: 37800535612 PASS on ad5ccbc
-rd01_receipt: docs/testing/parallel-completion-2026-10-07/RD-01-STAGING-EXECUTION-RECEIPT.md
-runtime_decisions: docs/testing/parallel-completion-2026-10-07/RUNTIME-DECISIONS-MANIFEST.md
-qualification_rds: docs/testing/parallel-completion-2026-10-07/QUALIFICATION-RD-DECISIONS.md
-preview_product: dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2 READY (tip ab5c7e1)
-preview_docs: dpl_GDqiWutGEkJq6CYwps7uQDTG89zi READY (tip ad5ccbc)
+bridge_tree: fc8f2d05e7fe36001c3e9265cad0b4754417fedd
+preview_frozen: dpl_8pUT6fhYPKxR6B7uFhoUVUx2ZYJL READY (f0feb44)
+preview_url: https://cetech-pos-staging-d299u3ex7-wbdevworlds-projects.vercel.app
+preview_product_optional: dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2 (acs2cuq3m URL; not pji89co71)
 tester: dpl_nxWGrSLqaLBGNNN683QjdixNBjF6 READY / 816e0bb (alias unchanged)
-staging_supabase: iegxncvpsyaitkpzywcr ACTIVE_HEALTHY; RD-01 APPLIED hosted 20261008151307 (source 20261006025100 / blob 6936b0e…); do not re-apply
-local_bridge: 1961 passed / 0 failed (excl. env-fatal generated return-effects); CI uses full run.php
-r144_source: CLOSED on ab5c7e1 (refund hooks + prices_include_tax + bootstrap chaining)
+observed_preview_BUILD_ID: local-dev (binding gap vs git SHA; tester still 816e0bb)
+rd01: COMPLETE hosted 20261008151307 — do not re-apply
+rd02_request: docs/testing/parallel-completion-2026-10-07/RD-02-EXECUTION-REQUEST.md
+runtime_evidence: docs/testing/parallel-completion-2026-10-07/RUNTIME-QUALIFICATION-CONTINUATION-01.md
+bridge_artifact: docs/testing/parallel-completion-2026-10-07/bridge-artifact-ab5c7e1/
+r144_source: ACCEPTED (root technical); Emmanuel domain review distinct
 profiler: PARKED
 #115 / #132: remain OPEN
 production_effects: NONE
-forbidden_remote: re-apply #143; bulk db push; alias move; production promotion
-verdict: NOT READY FOR PRODUCTION (RD-01 done; Woo bridge uninstalled; runtime qual incomplete)
-next: @Emmanuel-coder-prog bridge review of ab5c7e1; owner RD-02/03
+forbidden_remote: re-apply #143; bulk db push; alias move; production; unapproved bridge install/commerce
+verdict: NOT READY FOR PRODUCTION
+next: operator Preview sign-in; owner RD-02 (A+D ready; C needs stock=1); RD-03 only if shared/paid/alias
 ```
 
 ## DB-SEC-01 — staging APPLIED AND VERIFIED (RD-01 complete)
