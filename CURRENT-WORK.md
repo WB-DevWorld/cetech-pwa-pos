@@ -9,18 +9,18 @@ branch: ws3/combined-candidate-2026-10-08
 freeze_tip: f0feb44e9b3b241f0f712d3e306a9b768e0a070a
 product_tip: ab5c7e1f3849ff65100a84058e92f8b281a14be2
 bridge_tree: fc8f2d05e7fe36001c3e9265cad0b4754417fedd
-preview_frozen: dpl_8pUT… READY but FORBIDDEN session origin + BUILD_ID=local-dev
-preview_replacement: STOPPED — owner exception permits one f0feb44 Preview with BUILD_ID + empty APP_ORIGIN overrides; local Vercel CLI/token/~/.vercel absent (missing authenticated operator access; not another owner approval)
-tester: dpl_nxWGrSLqaLBGNNN683QjdixNBjF6 / 816e0bb…; org_a / loc_a1 / reg_a / shift e82217c6-…; A+D CAP CONSUMED
+preview_frozen: dpl_8pUT… retained; release-lifecycle qualification incomplete (FORBIDDEN origin + BUILD_ID=local-dev)
+preview_replacement: CREATED READY — dpl_4Vk3XQsjoqweKD6jH1qiE1echsMy / https://cetech-pos-staging-gqg6tjedt-wbdevworlds-projects.vercel.app / gitSha f0feb44… / target preview / release-policy BUILD_ID=f0feb44… / same-origin session AUTH_REQUIRED (not FORBIDDEN); shared tester alias preserved
+tester: dpl_nxWGrSLqaLBGNNN683QjdixNBjF6 / 816e0bb…; A+D CAP CONSUMED — do not repeat sale
 rd01: COMPLETE — do not re-apply
-bridge_install: COMPLETE — live 63094753… / 89e4461c…; identity grep 2; native FPM cutover proof UNVERIFIED (timing verifier wrong package)
-A+D: CLOSED — txn 33326bbc-… / sale-50317 / Woo 50317 processing / stock 49111 4→3; root POS ops prepare+cash+finalize only; evidence RD-02-AD-EVIDENCE-CLOSURE.md
+bridge_install: COMPLETE — live 63094753… / 89e4461c…; identity grep 2; native FPM cutover proof UNVERIFIED
+A+D: CLOSED — txn 33326bbc-… / sale-50317; evidence RD-02-AD-EVIDENCE-CLOSURE.md
 progress: docs/testing/parallel-completion-2026-10-07/RD-02-AD-EVIDENCE-CLOSURE.md
 profiler: PARKED
 #115 / #132: remain OPEN
 production_effects: NONE
 verdict: NOT READY FOR PRODUCTION
-next: authenticate Vercel; create one f0 Preview per reviewed payload; receipt reprint + candidate local device checks; FPM native probe scope if pursued
+next: operator staff sign-in on gqg6tjedt Preview → GET/reprint receipt 33326bbc-… + candidate PWA/local checks (no second sale)
 ```
 
 ## DB-SEC-01 — staging APPLIED AND VERIFIED (RD-01 complete)
