@@ -1,0 +1,17 @@
+﻿{
+  "task": "PARALLEL-LANE-D-PWA",
+  "base": "0e383d84f11573ca89d6533c8cb7c35d79d7b261",
+  "allowed": [
+    "apps/pos-web/src/local/service-worker*",
+    "apps/pos-web/src/app/**",
+    "apps/pos-web/public/**",
+    "tests/frontend/**",
+    "tests/integration/sync/**",
+    "docs/testing/parallel-completion-2026-10-07/**",
+    "docs/integration/evidence/**",
+    "CURRENT-WORK.md"
+  ],
+  "forbidden": ["production promotion", "storage wipe", "changing tester alias", "hosted DDL"],
+  "staff_documentation_impact": "DECLARE_IF_AFFECTED",
+  "production_effects": "NONE"
+}
