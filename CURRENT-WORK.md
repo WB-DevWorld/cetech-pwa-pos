@@ -1,22 +1,23 @@
-## COMBINED-CANDIDATE-2026-10-08 — ACTIVE source repair (R144)
+## COMBINED-CANDIDATE-2026-10-08 — ACTIVE final correction (R144)
 
 ```text
 human / integration editor: @wbdevworld / WS3
 bridge reviewer: @Emmanuel-coder-prog / WS2
-task: R144-REPAIR-01 (close R144-1/2/3 on PR #144)
+task: R144-FINAL-CORRECTION-01 (refund hooks + prices_include_tax)
 branch: ws3/combined-candidate-2026-10-08
-reviewed_head: 7d75c3944d41a5990aa64004c9e96954779c9730
-corrected_tip: 27e95b3565dbdf3c5487257a08042e09a51620a4
-includes: #140 0e383d84… + #143 c512b10… + race fix + R144 repair
+prior_tip: 5ea92dc1258006186ba696e9d4f91f769d97aa11
+prior_product: 27e95b3565dbdf3c5487257a08042e09a51620a4
+includes: #140 0e383d84… + #143 c512b10… + race fix + R144 repair + final correction
 excludes: #141
 pr: https://github.com/WB-DevWorld/cetech-pwa-pos/pull/144
-scope: docs/testing/parallel-completion-2026-10-07/scope-r144-repair.json
-evidence: docs/testing/parallel-completion-2026-10-07/R144-REPAIR-01.md
+scope: docs/testing/parallel-completion-2026-10-07/scope-r144-final-correction.json
+evidence: docs/testing/parallel-completion-2026-10-07/R144-FINAL-CORRECTION-01.md
 runtime_decisions: docs/testing/parallel-completion-2026-10-07/RUNTIME-DECISIONS-MANIFEST.md
-local_bridge: 1942 passed / 0 failed (excl. env-fatal generated return-effects)
+qualification_rds: docs/testing/parallel-completion-2026-10-07/QUALIFICATION-RD-DECISIONS.md
+local_bridge: 1961 passed / 0 failed (excl. env-fatal generated return-effects); CI uses full run.php
 profiler: PARKED
 production_effects: NONE
-forbidden_remote: bridge install, hosted DDL, alias move, commercial writes
+forbidden_remote: unapproved hosted DDL, alias move, production promotion
 verdict: NOT READY FOR PRODUCTION
 ```
 

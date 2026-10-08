@@ -217,7 +217,13 @@ function remove_action( $hook, $callback, $priority = 10 ) {
 	return remove_filter( $hook, $callback, $priority );
 }
 
-function cetech_pos_test_run_hooks( $hook, $args ) {
+/**
+ * @param string             $hook
+ * @param array<int,mixed>   $args
+ * @param bool               $chain_filter_returns WordPress apply_filters passes each return as arg0 to the next callback.
+ * @return mixed
+ */
+function cetech_pos_test_run_hooks( $hook, $args, $chain_filter_returns = false ) {
 	$hook = (string) $hook;
 	if ( ! isset( $GLOBALS['wp_filter'][ $hook ] ) || ! is_array( $GLOBALS['wp_filter'][ $hook ] ) ) {
 		return isset( $args[0] ) ? $args[0] : null;
@@ -236,19 +242,35 @@ function cetech_pos_test_run_hooks( $hook, $args ) {
 			}
 			$accepted = isset( $entry['accepted_args'] ) ? (int) $entry['accepted_args'] : 1;
 			$call     = array_slice( $args, 0, max( 0, $accepted ) );
-			$value    = call_user_func_array( $entry['function'], $call );
+			if ( $chain_filter_returns && $accepted >= 1 ) {
+				$call[0] = $value;
+			}
+			$result = call_user_func_array( $entry['function'], $call );
+			if ( $chain_filter_returns ) {
+				$value = $result;
+			}
 		}
 	}
 	return $value;
 }
 
 function do_action( $hook, ...$args ) {
-	cetech_pos_test_run_hooks( $hook, $args );
+	cetech_pos_test_run_hooks( $hook, $args, false );
 }
 
 function apply_filters( $hook, $value, ...$args ) {
 	array_unshift( $args, $value );
-	return cetech_pos_test_run_hooks( $hook, $args );
+	return cetech_pos_test_run_hooks( $hook, $args, true );
+}
+
+if ( ! function_exists( 'get_option' ) ) {
+	function get_option( $option, $default = false ) {
+		$key = (string) $option;
+		if ( isset( $GLOBALS['cetech_pos_test_options'] ) && is_array( $GLOBALS['cetech_pos_test_options'] ) && array_key_exists( $key, $GLOBALS['cetech_pos_test_options'] ) ) {
+			return $GLOBALS['cetech_pos_test_options'][ $key ];
+		}
+		return $default;
+	}
 }
 
 function wc_format_decimal( $price, $decimal_points = false, $trim_zeros = false ) {

@@ -461,14 +461,23 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		$state->delete = function () use ( $state ) {
 			++$state->deletes;
 		};
+		/*
+		 * WC 11.1.2: WC_Order_Refund::$object_type is order_refund, so save fires
+		 * woocommerce_before/after_order_refund_object_save (not order_object_save).
+		 * HPOS refund create omits woocommerce_new_order; delete uses
+		 * woocommerce_delete_order_refund.
+		 */
 		$hooks = array(
 			array( 'woocommerce_before_order_object_save', $state->create_before, 0, 1 ),
 			array( 'woocommerce_after_order_object_save', $state->create_after, 0, 1 ),
+			array( 'woocommerce_before_order_refund_object_save', $state->create_before, 0, 1 ),
+			array( 'woocommerce_after_order_refund_object_save', $state->create_after, 0, 1 ),
 			array( 'woocommerce_new_order', $state->new_order, 0, 2 ),
 			array( 'woocommerce_new_order_with_order_object', $state->new_order, 0, 2 ),
 			array( 'woocommerce_before_delete_order', $state->delete, 0, 0 ),
 			array( 'woocommerce_delete_order', $state->delete, 0, 0 ),
 			array( 'woocommerce_trash_order', $state->delete, 0, 0 ),
+			array( 'woocommerce_delete_order_refund', $state->delete, 0, 0 ),
 		);
 		foreach ( $hooks as $hook ) {
 			add_action( $hook[0], $hook[1], $hook[2], $hook[3] );
@@ -1341,6 +1350,19 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 			}
 			if ( method_exists( $intended, 'set_customer_id' ) ) {
 				$intended->set_customer_id( $customer_id );
+			}
+			// Match wc_create_order(): authoritative store prices_include_tax before first save.
+			if ( method_exists( $intended, 'set_prices_include_tax' ) && $this->environment->function_exists( 'get_option' ) ) {
+				$intended->set_prices_include_tax( 'yes' === get_option( 'woocommerce_prices_include_tax' ) );
+			}
+			if ( method_exists( $intended, 'set_currency' ) && $this->environment->function_exists( 'get_woocommerce_currency' ) && empty( $quote['currency'] ) ) {
+				$intended->set_currency( (string) get_woocommerce_currency() );
+			}
+			if ( method_exists( $intended, 'set_customer_ip_address' ) && $this->environment->class_exists( 'WC_Geolocation' ) && method_exists( 'WC_Geolocation', 'get_ip_address' ) ) {
+				$intended->set_customer_ip_address( (string) WC_Geolocation::get_ip_address() );
+			}
+			if ( method_exists( $intended, 'set_customer_user_agent' ) && $this->environment->function_exists( 'wc_get_user_agent' ) ) {
+				$intended->set_customer_user_agent( (string) wc_get_user_agent() );
 			}
 			if ( ! method_exists( $intended, 'save' ) ) {
 				return $this->unavailable( 'WC_Order does not expose save(); HPOS-safe create cannot run.' );
