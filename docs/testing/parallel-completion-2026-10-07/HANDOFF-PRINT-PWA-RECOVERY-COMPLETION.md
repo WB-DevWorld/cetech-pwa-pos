@@ -6,7 +6,7 @@ Task / batch / workstream: PRINT-PWA-RECOVERY-COMPLETION / WS3
 Owner / integration editor / requested human reviewer: @wbdevworld / WS3; bridge review remains @Emmanuel-coder-prog / WS2; independent source review separate
 Branch: ws3/combined-candidate-2026-10-08
 Starting/base SHA: 7d5778fe904792360947d88122050e529587aa51 (#144 head; product source unchanged vs freeze)
-Current/final task head SHA: (record after publish commit)
+Current/final task head SHA: 542d3ef2f862394a762de43eacf00c724b17aaec
 Allowed: apps/pos-web/src/app/pos-app.tsx, history-receipt-ports.ts, pos-app.receipt-reprint.test.tsx, CURRENT-WORK.md, docs/testing/parallel-completion-2026-10-07/**
 Forbidden: bridge/DB/contracts/SW/auth redesign; second cash sale; RD-01 re-apply; new silent f0 Preview; shared alias; production
 Files changed: see Lane 1 source + lane evidence docs
@@ -26,8 +26,10 @@ Staff-documentation impact: NONE
 | thermal-receipt-print e2e | **NOT RUN** | Playwright not executed this batch |
 | Native browser Reprint on corrected Preview | **NOT RUN** | f0 Preview still `f0feb44…`; no new exceptional deploy |
 | Lane 2 installed PWA standalone | **NOT RUN** | Cursor embedded browser only; display-mode browser |
-| Lane 2 product search/add draft | **PASSED** (partial) | LANE2-PWA-DEVICE-01.md — 49111 found; cart qty 1; quote permission fail-closed |
-| Lane 2 reload/offline draft persistence | **NOT RUN** | session lost on reload in harness |
+| Lane 2 product search/add draft | **PASSED** | LANE2-PWA-DEVICE-01.md — 49111; cart; Pay GHS 29.00; cleared |
+| Lane 2 draft after re-sign-in | **PASSED** | qty 1 + Pay GHS 29.00 restored |
+| Lane 2 offline → reconnect | **PASSED** | Offline local search + Pay disabled; Online Pay GHS 29.00 restored |
+| Lane 2 browser Reprint on f0 (open shift) | **PASSED** | “Print dialog opened.” for 50317; physical output NOT RUN |
 | Physical scanner/printer | **NOT RUN** | hardware unavailable |
 | Full WP/Woo/DB+POS backup capture | **NOT RUN** | inventory only — LANE3-RECOVERY-BC-PREP-01.md |
 | Disposable restore | **NOT RUN** | no named local target exercised |
@@ -40,8 +42,8 @@ Staff-documentation impact: NONE
 ## Reprint baseline vs correction
 
 - **Baseline:** checkout-scoped ports only → Orders hides Reprint without scope.
-- **Correction:** history ports for authenticated non-presentation staff; checkout scope unchanged.
-- **Runtime on f0:** still old composition until owner-authorized exact-SHA Preview.
+- **Correction:** history ports for authenticated non-presentation staff; checkout scope unchanged (`542d3ef…`).
+- **Runtime on f0:** still `f0feb44…` composition. With **open shift** this session, Reprint appeared via checkout ports and browser print dialog opened; no-scope path still needs corrected Preview.
 
 ## Ready B/C decision
 

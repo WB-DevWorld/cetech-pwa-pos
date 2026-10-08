@@ -1,8 +1,9 @@
 # Lane 2 — installed PWA / device / offline (f0 Preview)
 
-Status: **PARTIAL** · harness ≠ installed cashier PWA  
+Status: **PARTIAL (harness complete for safe draft/offline; installed PWA/hardware remain open)**  
 Preview: `dpl_4Vk3XQsjoqweKD6jH1qiE1echsMy` / https://cetech-pos-staging-gqg6tjedt-wbdevworlds-projects.vercel.app  
 BUILD_ID / release-policy: `f0feb44e9b3b241f0f712d3e306a9b768e0a070a`  
+Lane 1 published SHA (source only; not this Preview): `542d3ef2f862394a762de43eacf00c724b17aaec`  
 Staff-documentation impact: **NONE**  
 Production effects: **NONE** · no second sale · no IndexedDB wipe
 
@@ -15,6 +16,7 @@ Production effects: **NONE** · no second sale · no IndexedDB wipe
 | display-mode | **browser** (not standalone) |
 | Installed PWA / standalone launch | **NOT RUN** — ordinary embedded tab; manifest `display: standalone` alone is not install evidence |
 | Physical scanner / receipt printer | **NOT RUN** — hardware unavailable in this session |
+| Register chrome (this session) | **Register A · Shift open · Online** |
 
 ## Service worker / release
 
@@ -22,27 +24,30 @@ Production effects: **NONE** · no second sale · no IndexedDB wipe
 | --- | --- |
 | SW registration | 1 · scope Preview origin |
 | Active scriptURL | `/sw.js?build=f0feb44e9b3b241f0f712d3e306a9b768e0a070a` |
-| Controller | observed controlling after navigation; one sample showed controller null until reload |
+| Controller | **controlling=true** after signed-in session |
 | release-policy | recommended/latest/minimumSupported = `f0feb44…` |
 
 ## Safe local draft (no Pay)
 
 | Check | Result |
 | --- | --- |
-| Search `49111` | Found **XL INGCO Nitrile Frosted Coated Gloves** · SKU 49111 · In stock · listed GHS 29.00 |
-| Add qty 1 | Cart line present; quantity controls available |
-| Authoritative quote | **Failed closed** with cashier copy “You don't have permission to do this.” · Pay remained disabled · **truthful** (no silent price) |
-| Catalog banner | “Products may be out of date…” · Attention badge 1 |
-| Sample search latency | ~16 s wall time in harness (single sample; not a percentile; not attributed to reprint fix) |
-| Reload / close-reopen draft persistence | **NOT RUN** — full reload dropped staff session in this harness before draft re-check |
-| Offline → reconnect | **NOT RUN** (session lost before Network.emulateOffline) |
-| Clear test draft | **NOT RUN** after session loss (prior cart had no prepare/tender) |
+| Search `49111` | Found **XL INGCO Nitrile Frosted Coated Gloves** · SKU 49111 |
+| Add qty 1 | Cart line present |
+| Authoritative quote (later signed-in) | **Pay GHS 29.00** enabled (Register A / shift open) |
+| Draft after re-sign-in | **PASSED** — qty 1 + Pay GHS 29.00 restored without second sale |
+| Offline | Chrome **Offline**; local catalog searchable (`49111` found); cart qty retained; **Pay disabled** (truthful) |
+| Reconnect | Chrome **Online**; **Pay GHS 29.00** restored |
+| Clear test draft | **PASSED** — Clear sale confirmed; cart empty; Pay disabled; no commercial mutation |
+| Sample search latency | ~16 s earlier harness sample (single sample; not a percentile) |
 
 ## Print / hardware on f0
 
 | Check | Result |
 | --- | --- |
-| Browser print dialog on f0 (uncorrected composition) | Prior evidence: Reprint absent without printer ports; this session also had open shift on Register A but session ended before Orders re-check |
+| Orders detail 50317 | Walk-in · CashVerified · GHS 29.00 · Completed · POS-50317 |
+| UI **Reprint** (this session) | **Present** — open shift supplies checkout-scoped ports on uncorrected f0 composition |
+| Browser print after Reprint | Feedback **“Print dialog opened.”** (embedded Chromium; physical output not proven) |
+| No-scope Reprint gap | Still the Lane 1 defect on builds without register/shift; corrected Preview still required for that path |
 | Physical output width/totals | **NOT RUN** |
 | Rapid distinct/repeated scans | **NOT RUN** |
 

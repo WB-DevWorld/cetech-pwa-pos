@@ -2,6 +2,7 @@
 
 Status: **SOURCE COMPLETE (local verification)** · Preview reprint on corrected SHA **pending release decision**  
 Selected base: `7d5778fe904792360947d88122050e529587aa51`  
+Published Lane 1 SHA: `542d3ef2f862394a762de43eacf00c724b17aaec`  
 Staff-documentation impact: **NONE**  
 Production effects: **NONE**
 
@@ -44,9 +45,9 @@ Production effects: **NONE**
 Earlier one-off f0 Preview creation is **consumed**. Proposed exact-SHA Preview (do not run without owner decision):
 
 ```text
-# After publishing Lane 1 SHA <FINAL_SHA>:
-# Use repository release procedure with BUILD_ID=<FINAL_SHA> and empty APP_ORIGIN overrides.
-# Do not move shared tester alias. Do not label the result f0.
+# Corrected Preview candidate (owner decision required — do not run silently):
+# BUILD_ID=542d3ef2f862394a762de43eacf00c724b17aaec with empty APP_ORIGIN overrides
+# via the repository release procedure. Do not move shared tester alias. Do not label the result f0.
 ```
 
-f0 Preview `dpl_4Vk3XQ…` / `gqg6tjedt` remains valid for prior receipt display evidence only until a corrected Preview exists.
+f0 Preview `dpl_4Vk3XQ…` / `gqg6tjedt` remains `f0feb44…`. With an open shift, Reprint appeared via checkout ports; the Lane 1 no-scope fix still needs this corrected Preview.
