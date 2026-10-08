@@ -58,7 +58,7 @@ Omitting only the shipping migration’s final `SELECT public.db_sec_01_revoke_a
 
 ## Remaining blocker
 
-Hosted/staging apply of `20261006025100_db_sec_01_revoke_authenticated_truncate.sql` requires explicit human release authorization and a read-before/read-after privilege + row-count plan (documented in DB-SEC-01 evidence). This lane did not apply hosted DDL.
+Hosted/staging apply completed under RD-01 (owner-connected; not this lane): hosted version `20261008151307`, source `20261006025100` / blob `6936b0e…`. Receipt: `RD-01-STAGING-EXECUTION-RECEIPT.md`. This lane itself did not apply hosted DDL. Do not re-apply.
 
 ## Next action
 

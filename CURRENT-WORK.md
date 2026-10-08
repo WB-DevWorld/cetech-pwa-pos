@@ -1,9 +1,9 @@
-## COMBINED-CANDIDATE-2026-10-08 — ACTIVE qualification prep (post R144 final correction)
+## COMBINED-CANDIDATE-2026-10-08 — ACTIVE qualification (RD-01 complete)
 
 ```text
 human / integration editor: @wbdevworld / WS3
 bridge reviewer: @Emmanuel-coder-prog / WS2
-task: R144-FINAL-CORRECTION-01 + qualification docs pin
+task: RD-01 receipt + remaining RD-02/03 qualification
 branch: ws3/combined-candidate-2026-10-08
 product_tip: ab5c7e1f3849ff65100a84058e92f8b281a14be2
 docs_tip: ad5ccbc7eb6807f56018d6e71af1b0c1c715c6e7
@@ -14,45 +14,49 @@ excludes: #141
 pr: https://github.com/WB-DevWorld/cetech-pwa-pos/pull/144
 ci_product: 37798960261 PASS on ab5c7e1
 ci_docs: 37800535612 PASS on ad5ccbc
-scope: docs/testing/parallel-completion-2026-10-07/scope-r144-final-correction.json
-evidence: docs/testing/parallel-completion-2026-10-07/R144-FINAL-CORRECTION-01.md
+rd01_receipt: docs/testing/parallel-completion-2026-10-07/RD-01-STAGING-EXECUTION-RECEIPT.md
 runtime_decisions: docs/testing/parallel-completion-2026-10-07/RUNTIME-DECISIONS-MANIFEST.md
 qualification_rds: docs/testing/parallel-completion-2026-10-07/QUALIFICATION-RD-DECISIONS.md
 preview_product: dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2 READY (tip ab5c7e1)
-preview_docs: dpl_GDqiWutGEkJq6CYwps7uQDTG89zi READY (tip ad5ccbc; docs-only; prior 5ea92dc/dpl_fQq superseded)
+preview_docs: dpl_GDqiWutGEkJq6CYwps7uQDTG89zi READY (tip ad5ccbc)
 tester: dpl_nxWGrSLqaLBGNNN683QjdixNBjF6 READY / 816e0bb (alias unchanged)
-staging_supabase: iegxncvpsyaitkpzywcr ACTIVE_HEALTHY; #143 20261006025100 ABSENT
+staging_supabase: iegxncvpsyaitkpzywcr ACTIVE_HEALTHY; RD-01 APPLIED hosted 20261008151307 (source 20261006025100 / blob 6936b0e…); do not re-apply
 local_bridge: 1961 passed / 0 failed (excl. env-fatal generated return-effects); CI uses full run.php
+r144_source: CLOSED on ab5c7e1 (refund hooks + prices_include_tax + bootstrap chaining)
 profiler: PARKED
 #115 / #132: remain OPEN
 production_effects: NONE
-forbidden_remote: unapproved hosted DDL, alias move, production promotion
-verdict: NOT READY FOR PRODUCTION (Preview unpromoted; Woo bridge uninstalled; runtime qual incomplete)
-next: @Emmanuel-coder-prog bridge review; owner RD-01/02/03
+forbidden_remote: re-apply #143; bulk db push; alias move; production promotion
+verdict: NOT READY FOR PRODUCTION (RD-01 done; Woo bridge uninstalled; runtime qual incomplete)
+next: @Emmanuel-coder-prog bridge review of ab5c7e1; owner RD-02/03
 ```
 
-## DB-SEC-01 — review candidate, not applied
+## DB-SEC-01 — staging APPLIED AND VERIFIED (RD-01 complete)
 
-Owner execution assignment 2026-10-06 batch 2. Remote DDL is not authorized. This lease covers the local repair candidate only.
+Owner authorized staging apply 2026-10-08T15:07:56Z. Hosted version 20261008151307. Do not re-apply. Production apply not authorized. Docs lease only for receipt/mapping updates.
 
 ```text
 human / implementing editor: @wbdevworld
 workstream: WS3
-task: DB-SEC-01
-branch: ws3/db-sec-01
-base: 0e383d84f11573ca89d6533c8cb7c35d79d7b261
+task: DB-SEC-01 / RD-01 receipt
+branch: ws3/combined-candidate-2026-10-08
+status: staging APPLIED AND VERIFIED
+source: #143 c512b106bce1a0efcfd9c2caeddd54ad9e43dccd
+blob: 6936b0e68a5bb3fbd4e08bd4b5f50b08d78bfef5
+source_version: 20261006025100
+hosted_version: 20261008151307
+receipt: docs/testing/parallel-completion-2026-10-07/RD-01-STAGING-EXECUTION-RECEIPT.md
+evidence: docs/workstreams/WS-03-CORE-DATA-INTEGRATION/evidence/DB-SEC-01.md
 allowed:
   CURRENT-WORK.md
-  supabase/migrations/20261006025100_db_sec_01_revoke_authenticated_truncate.sql
-  supabase/tests/db_sec_01_truncate.sql
+  docs/testing/parallel-completion-2026-10-07/**
   docs/workstreams/WS-03-CORE-DATA-INTEGRATION/evidence/DB-SEC-01.md
 forbidden:
-  remote DDL or GRANT changes
-  RLS policy edits
-  revoking SELECT, INSERT, UPDATE, or DELETE
+  re-apply #143 / bulk db push
+  production DDL
+  RLS / GRANT TRUNCATE
   application code
   production promotion
-  #102 repair
 staff documentation impact: NONE
 ```
 

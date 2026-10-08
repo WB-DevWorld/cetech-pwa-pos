@@ -14,7 +14,7 @@ Do **not** blanket-say “NOT DEPLOYED”: product Preview `dpl_CBSA…` READY f
 | Prior tip (REQUEST CHANGES) | `7d75c3944d41a5990aa64004c9e96954779c9730` |
 | Race-fix **product** base | `daac7e035d992c2798a317a0cf371f2925a9fe35` |
 | Application baseline #140 | `0e383d84f11573ca89d6533c8cb7c35d79d7b261` |
-| Privilege repair #143 | `c512b106bce1a0efcfd9c2caeddd54ad9e43dccd` (blob `6936b0e…`; hosted DDL still unauthorized) |
+| Privilege repair #143 | `c512b106bce1a0efcfd9c2caeddd54ad9e43dccd` (blob `6936b0e…`) — staging **APPLIED** hosted `20261008151307` |
 | Branch | `ws3/combined-candidate-2026-10-08` |
 | Shared tester BFF | `dpl_nxWGrSLqaLBGNNN683QjdixNBjF6` READY — `816e0bb…` |
 | Product Preview | `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` READY — tip `ab5c7e1…` |
@@ -26,7 +26,7 @@ Do **not** blanket-say “NOT DEPLOYED”: product Preview `dpl_CBSA…` READY f
 
 ## Schema / files
 
-- Additive migration only: `supabase/migrations/20261006025100_db_sec_01_revoke_authenticated_truncate.sql` (from #143; hosted DDL still unauthorized; staging version **ABSENT** as of root verify `2026-10-08T15:02Z`).
+- Additive migration: `supabase/migrations/20261006025100_db_sec_01_revoke_authenticated_truncate.sql` (from #143; staging **APPLIED** as hosted `20261008151307` — see `RD-01-STAGING-EXECUTION-RECEIPT.md`; do not re-apply).
 - Bridge: owned-object recovery binder + request-local prepare/quote CRUD guards including refund hook family + `prices_include_tax` — tip `ab5c7e1…`; **not** installed on training (`0.6.0-stg05`).
 - Evidence under `docs/testing/parallel-completion-2026-10-07/`.
 
@@ -38,4 +38,4 @@ Do **not** blanket-say “NOT DEPLOYED”: product Preview `dpl_CBSA…` READY f
 
 ## Remaining live gates (separate authorizations)
 
-See `RUNTIME-DECISIONS-MANIFEST.md` + `QUALIFICATION-RD-DECISIONS.md`: RD-01 staging #143 apply, RD-02 training bridge install + bounded tracks, RD-03 shared/paid restore or release-switch. Profiler parked. **NOT READY FOR PRODUCTION.**
+See `RUNTIME-DECISIONS-MANIFEST.md` + `QUALIFICATION-RD-DECISIONS.md`: **RD-01 complete**; remaining RD-02 training bridge install + bounded tracks, RD-03 shared/paid restore or release-switch. Profiler parked. **NOT READY FOR PRODUCTION.**

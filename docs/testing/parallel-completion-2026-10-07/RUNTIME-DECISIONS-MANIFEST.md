@@ -14,41 +14,40 @@ Prior Preview tip `5ea92dc…` / `dpl_fQq…` is superseded — do not qualify b
 R144 product repair: `27e95b3565dbdf3c5487257a08042e09a51620a4` + final correction in `ab5c7e1` (see `R144-FINAL-CORRECTION-01.md`).  
 Prior reviewed tip (REQUEST CHANGES): `7d75c3944d41a5990aa64004c9e96954779c9730`  
 Application baseline (included): `#140` `0e383d84f11573ca89d6533c8cb7c35d79d7b261`  
-Security candidate (Section 1 only): `#143` `c512b106bce1a0efcfd9c2caeddd54ad9e43dccd` (blob `6936b0e…`; **hosted apply still unauthorized**)  
+Security repair (Section 1 / RD-01): `#143` `c512b106bce1a0efcfd9c2caeddd54ad9e43dccd` (blob `6936b0e…`) — **staging APPLIED** as hosted `20261008151307` (see `RD-01-STAGING-EXECUTION-RECEIPT.md`; **do not re-apply**)  
 Race-fix **product** identity (pre-R144): `daac7e035d992c2798a317a0cf371f2925a9fe35` — **WS3-owned, in this combined candidate** (not concurrent elsewhere); superseded for prepare/quote guards by `27e95b3` / `ab5c7e1`.  
 Documentation-only tips: `58af8dc…`, `a0d93de…`, `7d75c39…`, `712cab7…`, `1ea4234…`, `5cef7c2…`, `5ea92dc…`, `ad5ccbc…`. Product tip remains `ab5c7e1`.  
 Race-fix / R144 live status: **not** installed on training bridge yet. This manifest does not authorize live apply or plugin install.
 
 Concrete operator decision sheet (targets / caps / rollback): `QUALIFICATION-RD-DECISIONS.md`.
 
-### §0 Root-verified facts — `2026-10-08T15:02Z`
+### §0 Root-verified facts — preflight `2026-10-08T15:02Z` + RD-01 apply `2026-10-08T15:10Z`–`15:13Z`
 
 | Fact | Value |
 | --- | --- |
 | Staging Supabase | ref `iegxncvpsyaitkpzywcr` — **ACTIVE_HEALTHY** |
-| Applied migrations | **24**; latest version **`20261003083357`** |
-| `#143` version `20261006025100` | **ABSENT** (not applied) |
-| Authenticated TRUNCATE | **True** on all **11** named tables (gap still present) |
+| Applied migrations | **25**; hosted `#143` version **`20261008151307`** (source `20261006025100` / blob `6936b0e…`) |
+| Authenticated TRUNCATE | **False** on all **11** named tables (RD-01 verified) |
 | Anon / PUBLIC TRUNCATE | **False** |
-| Authenticated SELECT + INSERT | **True** on all 11 |
-| `service_role` SELECT | **True** on all 11 |
+| Authenticated SELECT + INSERT | **True** on all 11 (unchanged) |
+| `service_role` SELECT | **True** on all 11 (unchanged) |
 | Shared tester BFF | `dpl_nxWGrSLqaLBGNNN683QjdixNBjF6` **READY** — `BUILD_ID` `816e0bb…` |
 | Product Preview | tip `ab5c7e1…` → `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` **READY** (CI 37798960261) |
 | Docs tip Preview | tip `ad5ccbc…` → `dpl_GDqiWutGEkJq6CYwps7uQDTG89zi` **READY** (CI 37800535612) |
 | Prior Preview | tip `5ea92dc…` → `dpl_fQq…` **superseded** |
-| `#143` blob `6936b0e…` | Still **unauthorized** for hosted apply |
+| RD-01 receipt | `RD-01-STAGING-EXECUTION-RECEIPT.md` — **APPLIED AND VERIFIED**; do not re-apply |
 
-**Wording (do not blanket “NOT DEPLOYED”):** the candidate has **automatic unpromoted Previews** (`dpl_CBSA…` for product tip `ab5c7e1`; `dpl_GDqi…` for docs tip `ad5ccbc`). Woo bridge remains **uninstalled** on training (`0.6.0-stg05`). Runtime qualification is **incomplete**. Tester alias unchanged. Verdict: **NOT READY FOR PRODUCTION**.
+**Wording (do not blanket “NOT DEPLOYED”):** the candidate has **automatic unpromoted Previews** (`dpl_CBSA…` for product tip `ab5c7e1`; `dpl_GDqi…` for docs tip `ad5ccbc`). Staging `#143` privilege repair is **applied**. Woo bridge remains **uninstalled** on training (`0.6.0-stg05`). Runtime qualification is **incomplete**. Tester alias unchanged. Verdict: **NOT READY FOR PRODUCTION**.
 
-Lane-2 read-only fill window: `2026-10-08T14:12Z`–`2026-10-08T14:22Z` UTC (SSH training + public tester BFF probes). Root verify window: `2026-10-08T15:02Z`. Qualification-prep docs reconcile after that. No hosted DDL, no tester-alias move, no commercial effects.
+Lane-2 read-only fill window: `2026-10-08T14:12Z`–`2026-10-08T14:22Z` UTC. Root preflight: `2026-10-08T15:02Z`. Owner RD-01 apply: `2026-10-08T15:10:42Z`–`15:13:21Z`. No tester-alias move, no commercial effects from RD-01.
 
 ---
 
 ## Section 1 — Staging privilege repair
 
 **Decision ID:** `RD-01-STAGING-TRUNCATE-REVOKE`  
-**Approval of this section:** staging preflight + (when separately authorized) hosted apply of the pinned shipping migration only.  
-**Does not authorize:** live cash/stock/payment (Section 2), installed-PWA/printer/backup rehearsals (Section 3), production, residual UPDATE/DELETE/default-privilege work, or any GRANT TRUNCATE.
+**Status:** **COMPLETE — APPLIED AND VERIFIED** on staging (see `RD-01-STAGING-EXECUTION-RECEIPT.md`).  
+**Does not authorize:** re-apply, bulk migration push, live cash/stock/payment (Section 2), installed-PWA/printer/backup rehearsals (Section 3), production, residual UPDATE/DELETE/default-privilege work, or any GRANT TRUNCATE.
 
 ### 1.1 Shipping migration path (exact)
 
@@ -78,20 +77,20 @@ Local Lane A proof (not a hosted apply): `LANE-A-RESULT.md` — disposable seed/
 | Unchanged | `SELECT` / `INSERT` (and existing `UPDATE`/`DELETE` where already granted), RLS policies, `service_role` privileges |
 | Out of this section | Residual `UPDATE`/`DELETE` hardening; future-table default privileges; any speculative indexes/policies |
 
-### 1.4 Preflight checklist (must complete before any hosted DDL)
+### 1.4 Preflight → apply checklist (historical + completed)
 
-Hosted DDL remains **UNAPPROVED** until a separate CURRENT-WORK / operator note names the authorizer, staging project, and write window. This subsection is **preflight only**.
+Owner authorized staging apply at conversation `2026-10-08T15:07:56Z`. Execution used one `apply_migration` (no retry). Full matrix: `RD-01-STAGING-EXECUTION-RECEIPT.md`.
 
 | # | Check | Record / gate |
 | --- | --- | --- |
-| 1 | Identify staging Supabase project (ref / project id / dashboard URL) | **ROOT-VERIFIED `2026-10-08T15:02Z`** — ref `iegxncvpsyaitkpzywcr` **ACTIVE_HEALTHY**. Dashboard: `https://supabase.com/dashboard/project/iegxncvpsyaitkpzywcr`. |
-| 2 | Confirm authorized DB access path (`SUPABASE_DB_URL` or linked CLI) without pasting secrets into git/agent prompts | **ROOT path used for §0 verify** — agent/local session may still lack tokens; do **not** paste secrets into prompts. Operator apply path remains human-held. |
-| 3 | Migration history: confirm `20261006025100_db_sec_01_revoke_authenticated_truncate` is **not** already applied, or record prior apply SHA/operator | **ROOT-VERIFIED `2026-10-08T15:02Z`** — **24** applied migrations; latest **`20261003083357`**; version **`20261006025100` ABSENT** |
-| 4 | Before: effective TRUNCATE for `authenticated` / `anon` / `PUBLIC` on all 11 tables | **ROOT-VERIFIED `2026-10-08T15:02Z`** — Authenticated TRUNCATE **True** on all 11; Anon/PUBLIC TRUNCATE **False**. Matches prior DB-SEC-01 observation pattern. |
-| 5 | Before: legitimate access — authenticated `SELECT` (and app-required `INSERT` paths) still true on the 11 tables | **ROOT-VERIFIED `2026-10-08T15:02Z`** — Authenticated SELECT + INSERT **True** on all 11; `service_role` SELECT **True** on all 11 |
-| 6 | Before: row counts on the 11 tables (or agreed subset) with UTC timestamp | **UNVERIFIED this pass** — privilege/history verified; operator should fingerprint counts immediately before authorized apply |
-| 7 | After (only if apply authorized): same privilege + access + count queries | N/A — hosted apply **not authorized** / not performed (blob `6936b0e…` still unauthorized) |
-| 8 | Lock / stop conditions | STOP if production project selected; STOP if migration history conflicted; STOP if SELECT/INSERT regresses; STOP if unexpected DDL beyond this file; STOP if operator cannot identify staging project; STOP if bulk/pending batch would apply anything other than pinned `20261006025100` |
+| 1 | Identify staging Supabase project | **DONE** — `iegxncvpsyaitkpzywcr` **ACTIVE_HEALTHY** |
+| 2 | Authorized DB access path without secrets in git/agent prompts | **DONE** — owner-connected apply path |
+| 3 | Migration history mapping | **DONE** — source `20261006025100` / blob `6936b0e…` → hosted `20261008151307`; history **25** rows; prior 24 unchanged |
+| 4 | Before TRUNCATE matrix | **DONE** `2026-10-08T15:10:42Z` — Authenticated TRUNCATE **True** on all 11; Anon/PUBLIC **False** |
+| 5 | Before SELECT/INSERT | **DONE** — Authenticated SELECT + INSERT **True** on all 11 |
+| 6 | Before row counts | **DONE** — see receipt table (all 11 fingerprinted) |
+| 7 | After privilege + access + counts | **DONE** `2026-10-08T15:13:21Z` — Authenticated/anon/PUBLIC TRUNCATE **False**; SELECT/INSERT preserved; counts identical |
+| 8 | Lock / stop conditions | Apply succeeded once; **do not re-apply**; STOP on any future bulk/pending push of this repair |
 
 ### 1.5 Rollback
 
@@ -105,17 +104,17 @@ Hosted DDL remains **UNAPPROVED** until a separate CURRENT-WORK / operator note 
 - Whether default privileges for future tables need a separate migration once the granting role is known.
 - Production apply of the same file (never implied by staging preflight or staging apply).
 
-### 1.7 Section approval block
+### 1.7 Section approval block (filled)
 
 ```text
 decision: RD-01-STAGING-TRUNCATE-REVOKE
-authorizer: ________________
-utc: ________________
-staging_project: iegxncvpsyaitkpzywcr   # ACTIVE_HEALTHY; preflight root-verified 2026-10-08T15:02Z
-scope: preflight only | preflight + pinned hosted apply (circle one)
-hosted_ddl_authorized: NO (default) / YES (requires explicit note)
+authorizer: owner (conversation 2026-10-08T15:07:56Z)
+utc: before 2026-10-08T15:10:42.729037Z / after 2026-10-08T15:13:21.829384Z
+staging_project: iegxncvpsyaitkpzywcr
+scope: preflight + pinned hosted apply
+hosted_ddl_authorized: YES (staging completed; production NOT authorized)
 bulk_pending_forbidden: YES
-notes: see QUALIFICATION-RD-DECISIONS.md RD-01 for timeouts + verify matrix
+notes: RD-01-STAGING-EXECUTION-RECEIPT.md — APPLIED AND VERIFIED; do not re-apply
 ```
 
 ---
@@ -334,8 +333,8 @@ notes: see QUALIFICATION-RD-DECISIONS.md RD-03
 
 | Field | Section | Why |
 | --- | --- | --- |
-| Staging row-count fingerprint immediately before apply | 1 | Privileges/history root-verified; counts still operator step |
-| Hosted TRUNCATE apply | 1 | Preflight green; blob `6936b0e…` **still unauthorized** |
+| ~~Staging row-count fingerprint~~ | 1 | **CLOSED** — see RD-01 receipt |
+| ~~Hosted TRUNCATE apply (staging)~~ | 1 | **CLOSED** — hosted `20261008151307`; do not re-apply |
 | Org / location / register / device / shift / cashier session | 2 | **UNVERIFIED** — BFF health requires staff session (`AUTH_REQUIRED`) |
 | Track C last-unit fixture | 2 | `49111` @ stock **4** insufficient for two qty-1 last-unit proof |
 | Training bridge install of `27e95b3` | 2 | Not authorized / not installed |
@@ -355,4 +354,4 @@ notes: see QUALIFICATION-RD-DECISIONS.md RD-03
 | Lane-2 fill | WS3 Lane 2 read-only facts `2026-10-08` |
 | Root verify | `2026-10-08T15:02Z` staging + Preview/tester READY pins |
 | Qualification prep | WS3 docs reconcile on tip `ab5c7e1…` / Preview `dpl_CBSA…` |
-| Related | `QUALIFICATION-RD-DECISIONS.md`, `CHECKPOINT-60m.md`, `LANE-A-RESULT.md`, `LANE-B-RESULT.md`, `LANE-B-LIVE-RUNTIME-PLAN.md`, `LANE-C-RESULT.md`, `LANE-D-RESULT.md`, `CANDIDATE-DEPLOYMENT-MANIFEST.md`, `browser-desktop-evidence.json`, `COMBINED-CANDIDATE.md` |
+| Related | `RD-01-STAGING-EXECUTION-RECEIPT.md`, `QUALIFICATION-RD-DECISIONS.md`, `CHECKPOINT-60m.md`, `LANE-A-RESULT.md`, `LANE-B-RESULT.md`, `LANE-B-LIVE-RUNTIME-PLAN.md`, `LANE-C-RESULT.md`, `LANE-D-RESULT.md`, `CANDIDATE-DEPLOYMENT-MANIFEST.md`, `browser-desktop-evidence.json`, `COMBINED-CANDIDATE.md` |

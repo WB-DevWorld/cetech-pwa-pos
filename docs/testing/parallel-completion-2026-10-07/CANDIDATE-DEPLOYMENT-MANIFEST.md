@@ -15,7 +15,7 @@ Lane D prepared the `#140` application pin on 2026-10-07 after local automated +
 | Prior REQUEST CHANGES tip | `7d75c3944d41a5990aa64004c9e96954779c9730` |
 | Application baseline SHA (`#140`) | `0e383d84f11573ca89d6533c8cb7c35d79d7b261` |
 | Race-fix **product** SHA | `daac7e035d992c2798a317a0cf371f2925a9fe35` |
-| Privilege repair (`#143`) | `c512b106bce1a0efcfd9c2caeddd54ad9e43dccd` (blob `6936b0e…`; hosted DDL still unauthorized) |
+| Privilege repair (`#143`) | `c512b106bce1a0efcfd9c2caeddd54ad9e43dccd` (blob `6936b0e…`) — staging **APPLIED** hosted `20261008151307` (do not re-apply) |
 | Short app baseline | `0e383d8` |
 | Branch | `ws3/combined-candidate-2026-10-08` |
 | Application package | `apps/pos-web` |

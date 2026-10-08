@@ -19,7 +19,9 @@ Issues **#115** / **#132** remain **OPEN**. Profiler **PARKED**.
 ## RD-01 — Staging #143 apply (pinned migration only)
 
 **Decision ID:** `RD-01-STAGING-TRUNCATE-REVOKE`  
-**Target project:** Supabase staging `iegxncvpsyaitkpzywcr` (`ACTIVE_HEALTHY` at root verify `2026-10-08T15:02Z`)
+**Status:** **COMPLETE — APPLIED AND VERIFIED** on staging `iegxncvpsyaitkpzywcr`  
+**Receipt:** `RD-01-STAGING-EXECUTION-RECEIPT.md`  
+**Do not re-apply.** Do not bulk-push mismatched historic timestamps.
 
 ### Exact artifact
 
@@ -28,52 +30,40 @@ Issues **#115** / **#132** remain **OPEN**. Profiler **PARKED**.
 | Shipping file | `supabase/migrations/20261006025100_db_sec_01_revoke_authenticated_truncate.sql` |
 | PR / commit | `#143` / `c512b106bce1a0efcfd9c2caeddd54ad9e43dccd` |
 | Blob | `6936b0e68a5bb3fbd4e08bd4b5f50b08d78bfef5` (1332 bytes) |
-| Hosted apply | **STILL UNAUTHORIZED** until authorizer fills §Approval below |
-| Bulk pending apply | **FORBIDDEN** — do not run “apply all pending” / unbounded migration batch |
+| Source version | `20261006025100` |
+| Hosted version | `20261008151307` (`db_sec_01_revoke_authenticated_truncate`) |
+| Hosted apply | **DONE** — one `apply_migration` success; no retry |
+| Bulk pending apply | **FORBIDDEN** — still forbidden forever for this repair |
 
-### Preflight (already root-verified `2026-10-08T15:02Z`)
+### Preflight (root-verified `2026-10-08T15:02Z`, before owner apply)
 
 | Check | Result |
 | --- | --- |
-| Applied migrations count | **24** |
-| Latest applied version | `20261003083357` |
-| Version `20261006025100` | **ABSENT** (safe to apply this pin when authorized) |
-| Authenticated TRUNCATE on 11 named tables | **True** (gap still present) |
-| Anon / PUBLIC TRUNCATE | **False** |
-| Authenticated SELECT + INSERT on all 11 | **True** |
-| `service_role` SELECT on all 11 | **True** |
+| Applied migrations count | **24** (pre-apply) → **25** (post-apply) |
+| Latest applied (pre) | `20261003083357` |
+| Source version `20261006025100` | Mapped to hosted `20261008151307` (API-generated timestamp) |
+| Authenticated TRUNCATE on 11 named tables | **False** after apply (was True) |
+| Anon / PUBLIC TRUNCATE | **False** (unchanged) |
+| Authenticated SELECT + INSERT on all 11 | **True** (unchanged) |
+| Row counts on all 11 | Identical before/after (see receipt) |
 
-Named tables (must match shipping file):  
-`pos_cash_movements`, `pos_devices`, `pos_integration_watermarks`, `pos_locations`, `pos_organizations`, `pos_outbox_events`, `pos_pending_operations`, `pos_registers`, `pos_shifts`, `pos_staff_location_assignments`, `pos_staff_register_assignments`.
-
-### Apply procedure (when authorized)
-
-1. Confirm project ref is **staging** `iegxncvpsyaitkpzywcr` (STOP if production).
-2. Re-read migration history: assert `20261006025100` still absent; do **not** apply any other pending file in the same window.
-3. Apply **only** the pinned shipping SQL (provider SQL editor / linked CLI single-file path — operator choice; secrets never pasted into agent prompts).
-4. Ensure final `SELECT public.db_sec_01_revoke_authenticated_truncate();` runs (definition alone is insufficient).
-5. **Timeouts (proposed caps):** connect ≤ 30s; single-statement apply ≤ 60s; full verify query suite ≤ 120s. STOP and escalate if any step exceeds its cap or hangs.
-6. **Verify all 11 tables:** Authenticated TRUNCATE **False**; Anon/PUBLIC TRUNCATE **False**; Authenticated SELECT/INSERT still **True**; `service_role` SELECT still **True**; row-count sample unchanged vs preflight fingerprint (record UTC).
-7. Record operator, UTC, before/after privilege matrix, and applied version `20261006025100`.
-
-### Rollback
-
-- **Forward only.** Do **not** GRANT TRUNCATE to `authenticated` / `anon` / `PUBLIC` to “undo.”
-- App rollback does not reverse a successful revoke and must not invent a GRANT.
-- If apply fails mid-way: STOP; re-read privileges; forward-repair only after human review.
-
-### Approval block
+### Approval / execution (filled)
 
 ```text
 decision: RD-01-STAGING-TRUNCATE-REVOKE
-authorizer: ________________
-utc: ________________
+authorizer: owner (conversation 2026-10-08T15:07:56Z)
+utc: before 2026-10-08T15:10:42.729037Z / after 2026-10-08T15:13:21.829384Z
 staging_project: iegxncvpsyaitkpzywcr
-scope: preflight only | preflight + pinned hosted apply (circle one)
-hosted_ddl_authorized: NO (default) / YES
+scope: preflight + pinned hosted apply
+hosted_ddl_authorized: YES (staging only; completed)
 bulk_pending_forbidden: YES
-notes:
+notes: see RD-01-STAGING-EXECUTION-RECEIPT.md; production NOT authorized
 ```
+
+### Rollback (still forward-only)
+
+- **Forward only.** Do **not** GRANT TRUNCATE to `authenticated` / `anon` / `PUBLIC` to “undo.”
+- App rollback does not reverse a successful revoke and must not invent a GRANT.
 
 ---
 
@@ -193,8 +183,8 @@ notes:
 
 | Blocker | State |
 | --- | --- |
-| Hosted #143 apply | Preflight green; **apply unauthorized** (blob `6936b0e…`) |
-| Training bridge install of `27e95b3` | Not authorized / not installed (`0.6.0-stg05`) |
+| Hosted #143 apply (RD-01) | **COMPLETE** — staging `20261008151307`; do not re-apply |
+| Training bridge install of product tip `ab5c7e1` | Not authorized / not installed (`0.6.0-stg05`) |
 | Track C last-unit fixture | 49111@stock=4 insufficient; need stock=1 fixture or reduce |
 | Org/location/register/shift session ids | UNVERIFIED without staff BFF session |
 | Installed-PWA / physical printer | Desktop ≠ installed; UNVERIFIED |
@@ -204,6 +194,7 @@ notes:
 
 ## Related
 
+- `RD-01-STAGING-EXECUTION-RECEIPT.md` (RD-01 closed)
 - `RUNTIME-DECISIONS-MANIFEST.md` (full preflight + track detail)
 - `CANDIDATE-DEPLOYMENT-MANIFEST.md`
 - `COMBINED-CANDIDATE.md`

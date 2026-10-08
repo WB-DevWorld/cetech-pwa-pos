@@ -34,7 +34,7 @@
 
 ## Next (human)
 1. Confirm CI green on tip under review; `@Emmanuel-coder-prog` domain review of exact tip `ab5c7e1` (distinct from this WS3 docs prep).
-2. RD-01: authorize pinned staging `#143` apply only (blob `6936b0e…` still unauthorized until then).
+2. RD-01: **COMPLETE** — staging hosted `20261008151307` (`RD-01-STAGING-EXECUTION-RECEIPT.md`); do not re-apply.
 3. RD-02: authorize training bridge install of tip `ab5c7e1` (includes `27e95b3` + final correction) + bounded cash / electronic-TEST / stock / recovery tracks; fix Track C fixture (49111@stock=4 cannot prove last-unit with two qty-1).
 4. RD-03: only for shared/paid/remote restore or tester alias / release-switch.
 5. Keep #115/#132 open; profiler parked.
