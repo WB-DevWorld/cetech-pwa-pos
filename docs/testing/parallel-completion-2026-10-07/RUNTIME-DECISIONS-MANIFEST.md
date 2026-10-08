@@ -58,12 +58,12 @@ Hosted DDL remains **UNAPPROVED** until a separate CURRENT-WORK / operator note 
 
 | # | Check | Record / gate |
 | --- | --- | --- |
-| 1 | Identify staging Supabase project (ref / project id / dashboard URL) | **BLOCKED** — no project ref/id/dashboard URL in repo evidence; no linked `supabase` project / `SUPABASE_ACCESS_TOKEN` / `SUPABASE_DB_URL` in this session (`LANE-A-RESULT.md` same gap). Not an owner-approval gap. |
-| 2 | Confirm authorized DB access path (`SUPABASE_DB_URL` or linked CLI) without pasting secrets into git/agent prompts | **BLOCKED** — same as #1; `npx supabase` present (2.120.0) but unauthenticated / unlinked |
-| 3 | Migration history: confirm `20261006025100_db_sec_01_revoke_authenticated_truncate` is **not** already applied, or record prior apply SHA/operator | **UNVERIFIED** — needs hosted SQL/`supabase_migrations` read (blocked by #1/#2). Historical note only: DB-SEC-01 observed live history version `20261003083357` before this shipping version; no hosted apply of `20261006025100` recorded |
-| 4 | Before: effective TRUNCATE for `authenticated` / `anon` / `PUBLIC` on all 11 tables | **UNVERIFIED** — prior observation `2026-10-06T02:43:00Z` / `02:44:21Z` (DB-SEC-01): `authenticated` TRUNCATE true on 11; `anon` none. **PUBLIC** must be re-read via `relacl` / catalog ACL (not `has_table_privilege` login assumption). Fresh re-read blocked by #1/#2 |
-| 5 | Before: legitimate access — authenticated `SELECT` (and app-required `INSERT` paths) still true on a sample of the 11 tables | **UNVERIFIED** — blocked by #1/#2; intended post-condition remains SELECT/INSERT preserved |
-| 6 | Before: row counts on the 11 tables (or agreed subset) with UTC timestamp | **UNVERIFIED** — blocked by #1/#2 |
+| 1 | Identify staging Supabase project (ref / project id / dashboard URL) | **RECORDED (historical)** — ref `iegxncvpsyaitkpzywcr` as healthy CETECH POS staging in `tests/frontend/evidence/ui-receipt-owner-review-2026-10-03.md` (2026-10-03). Dashboard: `https://supabase.com/dashboard/project/iegxncvpsyaitkpzywcr`. **Live re-confirm this session BLOCKED** — no linked CLI / `SUPABASE_ACCESS_TOKEN` / `SUPABASE_DB_URL` (access gap only; not an owner-approval gap). |
+| 2 | Confirm authorized DB access path (`SUPABASE_DB_URL` or linked CLI) without pasting secrets into git/agent prompts | **BLOCKED** — env unset; CLI unlinked/unauthenticated (`LANE-A-RESULT.md` same gap). Privileges / migration history / counts cannot be re-read until this returns. |
+| 3 | Migration history: confirm `20261006025100_db_sec_01_revoke_authenticated_truncate` is **not** already applied, or record prior apply SHA/operator | **UNVERIFIED** — needs hosted `supabase_migrations` read (blocked by #2). Historical: DB-SEC-01 noted live history version `20261003083357` before this shipping version; receipt evidence recorded `20261003012953_receipt_presentation` applied; **no** hosted apply of `20261006025100` recorded |
+| 4 | Before: effective TRUNCATE for `authenticated` / `anon` / `PUBLIC` on all 11 tables | **UNVERIFIED** — prior observation `2026-10-06T02:43:00Z` / `02:44:21Z` (DB-SEC-01): `authenticated` TRUNCATE true on 11; `anon` none. **PUBLIC ACL:** do **not** treat `PUBLIC` as a login role for `has_table_privilege`; re-read via `pg_catalog` `relacl` / ACL catalog (and spot-check default privileges). Fresh re-read blocked by #2 |
+| 5 | Before: legitimate access — authenticated `SELECT` (and app-required `INSERT` paths) still true on a sample of the 11 tables | **UNVERIFIED** — blocked by #2; intended post-condition remains SELECT/INSERT preserved |
+| 6 | Before: row counts on the 11 tables (or agreed subset) with UTC timestamp | **UNVERIFIED** — blocked by #2 |
 | 7 | After (only if apply authorized): same privilege + access + count queries | N/A — hosted apply **not authorized** / not performed |
 | 8 | Lock / stop conditions | STOP if production project selected; STOP if migration history conflicted; STOP if SELECT/INSERT regresses; STOP if unexpected DDL beyond this file; STOP if operator cannot identify staging project |
 
@@ -85,7 +85,7 @@ Hosted DDL remains **UNAPPROVED** until a separate CURRENT-WORK / operator note 
 decision: RD-01-STAGING-TRUNCATE-REVOKE
 authorizer: ________________
 utc: ________________
-staging_project: ________________   # BLOCKED until hosted identity/access available
+staging_project: iegxncvpsyaitkpzywcr   # historical recorded; live access still BLOCKED
 scope: preflight only | preflight + hosted apply (circle one)
 hosted_ddl_authorized: NO (default) / YES (requires explicit note)
 notes:
@@ -197,6 +197,15 @@ These are concrete proposed ceilings for an operator authorization note. They do
 | C — Concurrent stock | **One** last-unit (or qty=1 vs concurrent second prepare) on stock-managed `49111` after operator records a fresh `_stock` fingerprint; stop on any unexplained second reservation/order | Do not start from Lane B unit fixtures alone |
 | D — Response-loss | **One** prepare with intentional dropped HTTP once; resolve/remount only; **no** second prepare key; pairs with Track A identity rules | No extra commercial completion beyond the single authorized sale |
 
+### 2.5b Proposed recovery plan (plan only — not authorized / not executed)
+
+| Track | On ambiguity / fail | Explicit non-recovery |
+| --- | --- | --- |
+| A — Cash | Keep original `transactionId` + prepare/cash/finalize keys; `SalesPort.resolve` / Needs attention; reconcile Woo order id vs POS sale before any retry; STOP if order delta ≠ +1 or stock delta unexplained | No new prepare key; no duplicate cash; no journal/attention deletion; no production host |
+| B — Electronic TEST | Resolve provider reference + Woo/POS binding first; unknown/pending → wait/reconcile; webhook replay must map to same payment | No live Paystack; no new initialize while pending; do not reuse R7 reference as PASS |
+| C — Concurrent stock | Exactly one winner commitment; loser fail-closed; re-fingerprint `_stock` / HPOS; STOP on second reservation or oversell | No force-complete loser; no manual stock edit to “clean” evidence |
+| D — Response-loss | Dropped prepare HTTP once → GET/resolve original prepared sale; remount same register scope; retain journal identity | No blind Pay retry with a **new** prepare key while unresolved |
+
 ### 2.6 Section approval block
 
 ```text
@@ -222,7 +231,7 @@ notes:
 
 ### 3.1 Installed PWA + cashier device / printer checklist (executable)
 
-Record model/OS/build before starting. Candidate context: `0e383d84f11573ca89d6533c8cb7c35d79d7b261` (`CANDIDATE-DEPLOYMENT-MANIFEST.md`). Procedure spine: `docs/runbooks/R10-DEVICE-AND-PWA-REHEARSAL.md` + Lane C hardware steps in `LANE-C-RESULT.md`.
+Record model/OS/build before starting. Combined candidate context: PR #144 tip `7d75c39…` (app baseline `0e383d84…`; see `CANDIDATE-DEPLOYMENT-MANIFEST.md` + `COMBINED-CANDIDATE.md`). Lane D local desktop proof remains on `0e383d84…`. Procedure spine: `docs/runbooks/R10-DEVICE-AND-PWA-REHEARSAL.md` + Lane C hardware steps in `LANE-C-RESULT.md`.
 
 | # | Step | Result |
 | --- | --- | --- |
@@ -251,11 +260,11 @@ Lane D local status to cite (not substitute): desktop 7/7 + 122 focused tests PA
 
 **Disposable restore demo scope** (prepare only; execute only under RD-03 approval):
 
-1. Choose an **isolated** restore target (never production; never shared tester destructive restore).
+1. Choose an **isolated** restore target (never production; never shared tester destructive restore). **Proposed target class:** disposable WP DB/files restore from `/home/cetechtraining/backups/` bridge/WP artifacts onto a **non-shared** training clone host **or** provider-supported isolated Supabase project (not `iegxncvpsyaitkpzywcr` live cashiers). Exact clone hostname / isolated Supabase project id: **UNVERIFIED** until the RD-03 authorizer names them.
 2. Restore disposable WP DB/files snapshot **or** provider-supported isolated Supabase target — not over live staging cashiers.
 3. Verify representative records: one known Woo order, one product/stock row, one POS transaction/shift/receipt reference (redact secrets).
 4. Run read-only health/consistency checks; record elapsed steps and missing dependencies.
-5. Separately rehearse **application** rollback to prior known-good build without deleting newer business rows.
+5. Separately rehearse **application** rollback to prior known-good build (`816e0bb…` tester baseline or prior Preview) without deleting newer business rows; app rollback ≠ commerce reversal.
 6. Record BLOCKED if provider restore cannot be rehearsed safely; do not invent PASS.
 
 ### 3.3 Section approval block
@@ -276,9 +285,11 @@ notes:
 | Item | State |
 | --- | --- |
 | Staff-doc impact | **NONE** |
-| Production promotion | **NONE** / not authorized |
+| Production promotion | **NONE** / not authorized / **NOT READY FOR PRODUCTION** |
 | Lane E profiler | **Parked** — no new profiler lease |
-| Order-count race fix | **WS3-owned**, **implemented on combined candidate** (`daac7e0` in PR #144 tip ancestry). **Not** installed on training (`0.6.0-stg05` still global order-count). Not authorized for live apply by this manifest |
+| Issues #115 / #132 | Remain **OPEN** — not closed by PR #144 |
+| Order-count race fix | **WS3-owned**, **implemented on combined candidate** (`daac7e0` in PR #144 tip ancestry). **Not** concurrent elsewhere. **Not** installed on training (`0.6.0-stg05` still global order-count). Not authorized for live apply by this manifest |
+| Product vs docs tip | Product/race: `daac7e0` (+ pending Lane 1 R144 repairs). Docs-only: `58af8dc` / `a0d93de` / `7d75c39`. Reviewed tip to preserve until Lane 1 pushes: `7d75c39` |
 | Shared tester BFF | Origin `https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app`; `BUILD_ID=816e0bb6963aff760609a3c7e4817e603c4ffdf0`; docs deployment pin `dpl_nxWGrSLqaLBGNNN683QjdixNBjF6` |
 | Section independence | Approval of any one RD-0N never implies the others |
 
@@ -286,10 +297,11 @@ notes:
 
 | Field | Section | Why |
 | --- | --- | --- |
-| Staging Supabase project identity | 1 | **BLOCKED** — no linked CLI / access token / project ref in session |
-| Staging DB URL / migration history / fresh ACL+counts | 1 | **BLOCKED** — same access gap (PUBLIC via `relacl` still required when access returns) |
+| Staging Supabase project identity (live re-confirm) | 1 | Ref `iegxncvpsyaitkpzywcr` **recorded** historically; **live access BLOCKED** (no linked CLI / token / DB URL) |
+| Staging DB URL / migration history / fresh ACL+counts | 1 | **BLOCKED** — same access gap (PUBLIC via `relacl`, not login-role `has_table_privilege`) |
 | Org / location / register / device / shift / cashier session | 2 | **UNVERIFIED** — BFF health requires staff session (`AUTH_REQUIRED`) |
 | Installed PWA / physical printer / scanner | 3 | Desktop ≠ installed; appserver has no CUPS; hardware UNVERIFIED |
+| Isolated restore target hostname / isolated Supabase id | 3 | Proposed class only; authorizer must name exact target |
 | Backup restore rehearsal | 3 | Runbook PREPARED; backups identity listed only |
 | Fresh Vercel `dpl_*` API re-inspect | 2/3 | **BLOCKED** — local Vercel token expired 2026-10-07 |
 | Electronic sandbox IDs for this candidate | 2 | Must be newly recorded; do not reuse R7 as PASS |

@@ -147,12 +147,108 @@ function register_rest_route( $namespace, $route, $args ) {
 	return true;
 }
 
-function add_action( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
-	return true;
+/**
+ * Minimal WP-compatible hook table for production-runtime hook tests.
+ * Closures are keyed by spl_object_hash so remove_* can target the same instance.
+ */
+if ( ! isset( $GLOBALS['wp_filter'] ) || ! is_array( $GLOBALS['wp_filter'] ) ) {
+	$GLOBALS['wp_filter'] = array();
+}
+$GLOBALS['cetech_pos_wp_filter_uid'] = 0;
+
+function cetech_pos_test_hook_id( $callback ) {
+	if ( is_object( $callback ) && ( $callback instanceof Closure ) ) {
+		return 'closure_' . spl_object_hash( $callback );
+	}
+	if ( is_array( $callback ) ) {
+		$obj = isset( $callback[0] ) ? $callback[0] : null;
+		$m   = isset( $callback[1] ) ? (string) $callback[1] : '';
+		if ( is_object( $obj ) ) {
+			return 'obj_' . spl_object_hash( $obj ) . '::' . $m;
+		}
+		return 'arr_' . (string) $obj . '::' . $m;
+	}
+	if ( is_string( $callback ) ) {
+		return 'str_' . $callback;
+	}
+	$GLOBALS['cetech_pos_wp_filter_uid']++;
+	return 'uid_' . (string) $GLOBALS['cetech_pos_wp_filter_uid'];
 }
 
 function add_filter( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
+	$hook     = (string) $hook;
+	$priority = (int) $priority;
+	$id       = cetech_pos_test_hook_id( $callback );
+	if ( ! isset( $GLOBALS['wp_filter'][ $hook ] ) || ! is_array( $GLOBALS['wp_filter'][ $hook ] ) ) {
+		$GLOBALS['wp_filter'][ $hook ] = array();
+	}
+	if ( ! isset( $GLOBALS['wp_filter'][ $hook ][ $priority ] ) || ! is_array( $GLOBALS['wp_filter'][ $hook ][ $priority ] ) ) {
+		$GLOBALS['wp_filter'][ $hook ][ $priority ] = array();
+	}
+	$GLOBALS['wp_filter'][ $hook ][ $priority ][ $id ] = array(
+		'function'      => $callback,
+		'accepted_args' => (int) $accepted_args,
+	);
 	return true;
+}
+
+function add_action( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
+	return add_filter( $hook, $callback, $priority, $accepted_args );
+}
+
+function remove_filter( $hook, $callback, $priority = 10 ) {
+	$hook     = (string) $hook;
+	$priority = (int) $priority;
+	$id       = cetech_pos_test_hook_id( $callback );
+	if ( isset( $GLOBALS['wp_filter'][ $hook ][ $priority ][ $id ] ) ) {
+		unset( $GLOBALS['wp_filter'][ $hook ][ $priority ][ $id ] );
+		if ( $GLOBALS['wp_filter'][ $hook ][ $priority ] === array() ) {
+			unset( $GLOBALS['wp_filter'][ $hook ][ $priority ] );
+		}
+		if ( isset( $GLOBALS['wp_filter'][ $hook ] ) && $GLOBALS['wp_filter'][ $hook ] === array() ) {
+			unset( $GLOBALS['wp_filter'][ $hook ] );
+		}
+		return true;
+	}
+	return false;
+}
+
+function remove_action( $hook, $callback, $priority = 10 ) {
+	return remove_filter( $hook, $callback, $priority );
+}
+
+function cetech_pos_test_run_hooks( $hook, $args ) {
+	$hook = (string) $hook;
+	if ( ! isset( $GLOBALS['wp_filter'][ $hook ] ) || ! is_array( $GLOBALS['wp_filter'][ $hook ] ) ) {
+		return isset( $args[0] ) ? $args[0] : null;
+	}
+	$priorities = array_keys( $GLOBALS['wp_filter'][ $hook ] );
+	sort( $priorities, SORT_NUMERIC );
+	$value = isset( $args[0] ) ? $args[0] : null;
+	foreach ( $priorities as $priority ) {
+		$bucket = $GLOBALS['wp_filter'][ $hook ][ $priority ];
+		if ( ! is_array( $bucket ) ) {
+			continue;
+		}
+		foreach ( $bucket as $entry ) {
+			if ( ! is_array( $entry ) || ! isset( $entry['function'] ) || ! is_callable( $entry['function'] ) ) {
+				continue;
+			}
+			$accepted = isset( $entry['accepted_args'] ) ? (int) $entry['accepted_args'] : 1;
+			$call     = array_slice( $args, 0, max( 0, $accepted ) );
+			$value    = call_user_func_array( $entry['function'], $call );
+		}
+	}
+	return $value;
+}
+
+function do_action( $hook, ...$args ) {
+	cetech_pos_test_run_hooks( $hook, $args );
+}
+
+function apply_filters( $hook, $value, ...$args ) {
+	array_unshift( $args, $value );
+	return cetech_pos_test_run_hooks( $hook, $args );
 }
 
 function wc_format_decimal( $price, $decimal_points = false, $trim_zeros = false ) {

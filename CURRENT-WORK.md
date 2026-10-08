@@ -1,19 +1,20 @@
-## COMBINED-CANDIDATE-2026-10-08 — ACTIVE source review
+## COMBINED-CANDIDATE-2026-10-08 — ACTIVE source repair (R144)
 
 ```text
 human / integration editor: @wbdevworld / WS3
 bridge reviewer: @Emmanuel-coder-prog / WS2
-task: RACE-FIX-ORDER-COUNT-01 + #143 import
+task: R144-REPAIR-01 (close R144-1/2/3 on PR #144)
 branch: ws3/combined-candidate-2026-10-08
-combined_head: 58af8dc8389ea6628bc947f4f56d8284c8f38e5f
-race_fix_product: daac7e035d992c2798a317a0cf371f2925a9fe35
-includes: #140 0e383d84… + #143 c512b10… + race fix 7242d42…
+reviewed_head: 7d75c3944d41a5990aa64004c9e96954779c9730
+includes: #140 0e383d84… + #143 c512b10… + race fix + R144 repair
 excludes: #141
 pr: https://github.com/WB-DevWorld/cetech-pwa-pos/pull/144
-evidence: docs/testing/parallel-completion-2026-10-07/COMBINED-CANDIDATE.md
+scope: docs/testing/parallel-completion-2026-10-07/scope-r144-repair.json
+evidence: docs/testing/parallel-completion-2026-10-07/
 runtime_decisions: docs/testing/parallel-completion-2026-10-07/RUNTIME-DECISIONS-MANIFEST.md
 profiler: PARKED
 production_effects: NONE
+forbidden_remote: bridge install, hosted DDL, alias move, commercial writes
 ```
 
 ## DB-SEC-01 — review candidate, not applied

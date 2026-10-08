@@ -374,33 +374,151 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 			return $this->unavailable( 'WooCommerce cart totals cannot be calculated.' );
 		}
 		/*
-		 * Same-request order-create observers only. Global wc_orders COUNT is not
-		 * used: concurrent storefront/HPOS inserts in other requests must not fail
-		 * a clean quote. Raw SQL / unhooked inserts are an unsupported bypass.
+		 * Same-request supported order CRUD observers only. Global wc_orders COUNT
+		 * is not used: concurrent storefront/HPOS inserts in other requests must
+		 * not fail a clean quote. WC 11.1.2 omits woocommerce_new_order for
+		 * auto-draft/draft/checkout-draft and HPOS refund creates, so observation
+		 * includes before_order_object_save (id 0) plus delete/trash hooks.
+		 * Raw SQL / unhooked inserts remain an unsupported bypass.
 		 */
-		$order_create_observed = false;
-		$observer                = function () use ( &$order_create_observed ) {
-			$order_create_observed = true;
-		};
-		$hooked = false;
-		if ( $this->environment->function_exists( 'add_action' ) ) {
-			add_action( 'woocommerce_new_order', $observer, 0, 0 );
-			add_action( 'woocommerce_new_order_with_order_object', $observer, 0, 0 );
-			$hooked = true;
+		$guard = $this->arm_same_request_order_crud_guard();
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $guard ) ) {
+			return $guard;
 		}
 		try {
 			$wc->cart->calculate_totals();
 		} finally {
-			if ( $hooked && $this->environment->function_exists( 'remove_action' ) ) {
-				remove_action( 'woocommerce_new_order', $observer, 0 );
-				remove_action( 'woocommerce_new_order_with_order_object', $observer, 0 );
-			}
+			$this->disarm_same_request_order_crud_guard( $guard );
 		}
-		if ( $order_create_observed ) {
+		if ( $this->same_request_order_crud_observed( $guard ) ) {
 			++$this->side_effects['orders'];
 			return $this->unavailable( 'Quote mutated Woo orders; quoting aborted.' );
 		}
 		return true;
+	}
+
+	/**
+	 * Arm request-local observers for supported Woo order/refund creates and deletes.
+	 * State is a stdClass so closures and the caller share one mutable bag (arrays would copy).
+	 *
+	 * @return object|WP_Error
+	 */
+	protected function arm_same_request_order_crud_guard() {
+		if ( ! $this->environment->function_exists( 'add_action' ) || ! $this->environment->function_exists( 'remove_action' ) ) {
+			return $this->unavailable( 'Woo order CRUD observation hooks are unavailable; refusing to proceed without request-local guards.' );
+		}
+		$state               = new stdClass();
+		$state->creates      = 0;
+		$state->deletes      = 0;
+		$state->created_ids  = array();
+		$state->pending      = array();
+		$state->hooks        = array();
+		$state->create_before = function ( $order ) use ( $state ) {
+			if ( ! is_object( $order ) || ! method_exists( $order, 'get_id' ) ) {
+				return;
+			}
+			if ( (int) $order->get_id() > 0 ) {
+				return;
+			}
+			$state->pending[ spl_object_id( $order ) ] = true;
+		};
+		$state->create_after = function ( $order ) use ( $state ) {
+			if ( ! is_object( $order ) || ! method_exists( $order, 'get_id' ) ) {
+				return;
+			}
+			$oid = spl_object_id( $order );
+			if ( empty( $state->pending[ $oid ] ) ) {
+				return;
+			}
+			unset( $state->pending[ $oid ] );
+			$id = (int) $order->get_id();
+			if ( $id <= 0 ) {
+				return;
+			}
+			++$state->creates;
+			$state->created_ids[] = (string) $id;
+		};
+		$state->new_order = function ( $order_id = 0, $order = null ) use ( $state ) {
+			$id = 0;
+			if ( is_object( $order_id ) && method_exists( $order_id, 'get_id' ) ) {
+				$id = (int) $order_id->get_id();
+			} elseif ( is_numeric( $order_id ) ) {
+				$id = (int) $order_id;
+			} elseif ( is_object( $order ) && method_exists( $order, 'get_id' ) ) {
+				$id = (int) $order->get_id();
+			}
+			if ( $id <= 0 ) {
+				++$state->creates;
+				return;
+			}
+			$key = (string) $id;
+			if ( in_array( $key, $state->created_ids, true ) ) {
+				return;
+			}
+			++$state->creates;
+			$state->created_ids[] = $key;
+		};
+		$state->delete = function () use ( $state ) {
+			++$state->deletes;
+		};
+		$hooks = array(
+			array( 'woocommerce_before_order_object_save', $state->create_before, 0, 1 ),
+			array( 'woocommerce_after_order_object_save', $state->create_after, 0, 1 ),
+			array( 'woocommerce_new_order', $state->new_order, 0, 2 ),
+			array( 'woocommerce_new_order_with_order_object', $state->new_order, 0, 2 ),
+			array( 'woocommerce_before_delete_order', $state->delete, 0, 0 ),
+			array( 'woocommerce_delete_order', $state->delete, 0, 0 ),
+			array( 'woocommerce_trash_order', $state->delete, 0, 0 ),
+		);
+		foreach ( $hooks as $hook ) {
+			add_action( $hook[0], $hook[1], $hook[2], $hook[3] );
+			$state->hooks[] = $hook;
+		}
+		return $state;
+	}
+
+	/**
+	 * @param object|array<string,mixed>|null $state
+	 */
+	protected function disarm_same_request_order_crud_guard( $state ) {
+		$hooks = null;
+		if ( is_object( $state ) && isset( $state->hooks ) && is_array( $state->hooks ) ) {
+			$hooks = $state->hooks;
+		} elseif ( is_array( $state ) && isset( $state['hooks'] ) && is_array( $state['hooks'] ) ) {
+			$hooks = $state['hooks'];
+		}
+		if ( ! is_array( $hooks ) || $hooks === array() ) {
+			return;
+		}
+		if ( ! $this->environment->function_exists( 'remove_action' ) ) {
+			return;
+		}
+		foreach ( $hooks as $hook ) {
+			if ( ! is_array( $hook ) || count( $hook ) < 3 ) {
+				continue;
+			}
+			remove_action( $hook[0], $hook[1], $hook[2] );
+		}
+	}
+
+	/**
+	 * @param object|array<string,mixed>|null $state
+	 * @return bool
+	 */
+	protected function same_request_order_crud_observed( $state ) {
+		if ( is_object( $state ) ) {
+			$creates = isset( $state->creates ) ? (int) $state->creates : 0;
+			$deletes = isset( $state->deletes ) ? (int) $state->deletes : 0;
+			$pending = isset( $state->pending ) && is_array( $state->pending ) ? count( $state->pending ) : 0;
+			return ( $creates > 0 || $deletes > 0 || $pending > 0 );
+		}
+		if ( ! is_array( $state ) ) {
+			return false;
+		}
+		$creates = isset( $state['creates'] ) ? (int) $state['creates'] : 0;
+		$deletes = isset( $state['deletes'] ) ? (int) $state['deletes'] : 0;
+		$pending = isset( $state['pending'] ) && is_array( $state['pending'] ) ? count( $state['pending'] ) : 0;
+		return ( $creates > 0 || $deletes > 0 || $pending > 0 );
 	}
 
 	/**
@@ -1011,7 +1129,7 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		if ( ! is_string( $recovery_token ) || ! preg_match( '/^[0-9a-f]{64}$/', $recovery_token ) ) {
 			return $this->unavailable( 'A high-entropy Woo recovery token is required before order create.' );
 		}
-		if ( ! $this->environment->function_exists( 'wc_create_order' ) ) {
+		if ( ! $this->environment->function_exists( 'wc_create_order' ) && ! $this->environment->class_exists( 'WC_Order' ) ) {
 			return $this->unavailable( 'wc_create_order is not available; HPOS-safe order create cannot run.' );
 		}
 		$disable_mail = function () {
@@ -1020,6 +1138,14 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		if ( $this->environment->function_exists( 'add_filter' ) ) {
 			add_filter( 'woocommerce_email_enabled_new_order', $disable_mail, 99 );
 			add_filter( 'woocommerce_email_enabled_customer_on_hold_order', $disable_mail, 99 );
+		}
+		$create_guard = $this->arm_same_request_order_crud_guard();
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $create_guard ) ) {
+			if ( $this->environment->function_exists( 'remove_filter' ) ) {
+				remove_filter( 'woocommerce_email_enabled_new_order', $disable_mail, 99 );
+				remove_filter( 'woocommerce_email_enabled_customer_on_hold_order', $disable_mail, 99 );
+			}
+			return $create_guard;
 		}
 		try {
 			$order = $this->persist_initial_order_with_recovery_token( $quote, $recovery_token, $transaction_id, $request_hash );
@@ -1085,8 +1211,13 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $identity ) ) {
 				return $identity;
 			}
+			$extra = $this->assert_no_unexpected_same_request_order_creates( $create_guard, $order_id );
+			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $extra ) ) {
+				return $extra;
+			}
 			return $described;
 		} finally {
+			$this->disarm_same_request_order_crud_guard( $create_guard );
 			if ( $this->environment->function_exists( 'remove_filter' ) ) {
 				remove_filter( 'woocommerce_email_enabled_new_order', $disable_mail, 99 );
 				remove_filter( 'woocommerce_email_enabled_customer_on_hold_order', $disable_mail, 99 );
@@ -1095,8 +1226,45 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 	}
 
 	/**
-	 * Bind the recovery token into the INITIAL wc_create_order save via Woo CRUD
+	 * Reject prepare when request-local observation saw supported creates other than the intended order.
+	 *
+	 * @param object|array<string,mixed> $state
+	 * @param string                     $intended_order_id
+	 * @return true|WP_Error
+	 */
+	protected function assert_no_unexpected_same_request_order_creates( $state, $intended_order_id ) {
+		if ( is_object( $state ) ) {
+			$created = isset( $state->created_ids ) && is_array( $state->created_ids ) ? $state->created_ids : array();
+			$pending = isset( $state->pending ) && is_array( $state->pending ) ? count( $state->pending ) : 0;
+		} elseif ( is_array( $state ) ) {
+			$created = isset( $state['created_ids'] ) && is_array( $state['created_ids'] ) ? $state['created_ids'] : array();
+			$pending = isset( $state['pending'] ) && is_array( $state['pending'] ) ? count( $state['pending'] ) : 0;
+		} else {
+			return $this->unavailable( 'Prepare could not prove request-local order-create observation.' );
+		}
+		if ( $pending > 0 ) {
+			return $this->unavailable( 'Prepare observed an incomplete same-request Woo order create.' );
+		}
+		$unique = array();
+		foreach ( $created as $id ) {
+			$key = (string) $id;
+			if ( $key === '' || $key === '0' ) {
+				continue;
+			}
+			$unique[ $key ] = true;
+		}
+		$ids = array_keys( $unique );
+		if ( count( $ids ) !== 1 || (string) $ids[0] !== (string) $intended_order_id ) {
+			return $this->unavailable( 'Prepare observed an unexpected same-request Woo order create.' );
+		}
+		return true;
+	}
+
+	/**
+	 * Bind the recovery token into the INITIAL owned WC_Order save via Woo CRUD
 	 * properties (order_key + meta) set on woocommerce_before_order_object_save.
+	 * The binder is one-shot and matches the exact intended object identity so a
+	 * nested fresh WC_Order cannot steal POS recovery metadata.
 	 *
 	 * @param array<string,mixed> $quote
 	 * @param string              $recovery_token
@@ -1115,9 +1283,21 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		if ( ! is_string( $frozen_json ) || $frozen_json === '' ) {
 			return $this->unavailable( 'Frozen prepare evidence could not be encoded before the Woo order save.' );
 		}
+		if ( ! $this->environment->class_exists( 'WC_Order' ) ) {
+			return $this->unavailable( 'WC_Order is not available; HPOS-safe owned order create cannot run.' );
+		}
+		if ( ! $this->environment->function_exists( 'add_action' ) || ! $this->environment->function_exists( 'remove_action' ) ) {
+			return $this->unavailable( 'Woo before-save hooks are unavailable; recovery identity cannot be bound safely.' );
+		}
+		$intended       = new WC_Order();
+		$intended_oid   = spl_object_id( $intended );
 		$binder_applied = false;
-		$binder         = function ( $order ) use ( $recovery_token, $quote, $customer_id, $transaction_id, $request_hash, $frozen_json, &$binder_applied ) {
+		$binder         = function ( $order ) use ( $intended_oid, $recovery_token, $quote, $customer_id, $transaction_id, $request_hash, $frozen_json, &$binder_applied ) {
 			if ( $binder_applied || ! is_object( $order ) ) {
+				return;
+			}
+			// Exact intended object only — never the first unsaved stranger.
+			if ( spl_object_id( $order ) !== (int) $intended_oid ) {
 				return;
 			}
 			// Never stamp recovery identity onto an already-persisted order (nested saves).
@@ -1151,26 +1331,29 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 				$order->update_meta_data( Cetech_Pos_Bridge_Constants::ORDER_META_FROZEN_PREPARE, $frozen_json );
 			}
 		};
-		if ( $this->environment->function_exists( 'add_action' ) ) {
-			add_action( 'woocommerce_before_order_object_save', $binder, 0, 1 );
-		}
+		add_action( 'woocommerce_before_order_object_save', $binder, 0, 1 );
 		try {
-			$order = wc_create_order(
-				array(
-					'status'      => 'pending',
-					'created_via' => 'cetech-pos',
-					'customer_id' => $customer_id,
-				)
-			);
-		} finally {
-			if ( $this->environment->function_exists( 'remove_action' ) ) {
-				remove_action( 'woocommerce_before_order_object_save', $binder, 0 );
+			if ( method_exists( $intended, 'set_status' ) ) {
+				$intended->set_status( 'pending' );
 			}
+			if ( method_exists( $intended, 'set_created_via' ) ) {
+				$intended->set_created_via( 'cetech-pos' );
+			}
+			if ( method_exists( $intended, 'set_customer_id' ) ) {
+				$intended->set_customer_id( $customer_id );
+			}
+			if ( ! method_exists( $intended, 'save' ) ) {
+				return $this->unavailable( 'WC_Order does not expose save(); HPOS-safe create cannot run.' );
+			}
+			$intended->save();
+			$order = $intended;
+		} finally {
+			remove_action( 'woocommerce_before_order_object_save', $binder, 0 );
 		}
 		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $order ) || ! is_object( $order ) ) {
 			return $this->unavailable( 'Woo did not create a pending order.' );
 		}
-		if ( ! $this->order_carries_recovery_token( $order, $recovery_token ) ) {
+		if ( ! $binder_applied || ! $this->order_carries_recovery_token( $order, $recovery_token ) ) {
 			return $this->unavailable( 'Woo did not persist the recovery identity during the initial order save.' );
 		}
 		return $order;

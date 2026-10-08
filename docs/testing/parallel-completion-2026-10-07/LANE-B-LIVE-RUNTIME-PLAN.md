@@ -17,7 +17,7 @@ recovery identity on live fixtures, without Lane B executing those effects.
 4. Stock-managed simple product with known `_stock` before-state (do not use manage_stock=NO catalog).
 5. Synthetic walk-in customer only (`*.training.invalid` if Woo requires an email).
 6. Open shift on seed cashier/register; one Idempotency-Key UUID per command mint at execution.
-7. **WS2 global order-count race** either fixed on the installed bridge or accepted as a known fail-closed risk during the rehearsal window (see `LANE-B-RESULT.md`).
+7. **Global order-count race** is fixed in combined **source** (PR #144 product `daac7e0`). Installed training bridge must either already expose that identity-based prepare proof **or** the authorization note must explicitly accept fail-closed risk during the rehearsal window (see `LANE-B-RESULT.md`, `RUNTIME-DECISIONS-MANIFEST.md`). Optional unrepaired-race acceptance is not the default once the combined artifact is the intended install.
 
 ## Fixture identity (fill at execution; do not reuse harness UUIDs)
 
