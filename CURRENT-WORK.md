@@ -10,17 +10,17 @@ freeze_tip: f0feb44e9b3b241f0f712d3e306a9b768e0a070a
 product_tip: ab5c7e1f3849ff65100a84058e92f8b281a14be2
 bridge_tree: fc8f2d05e7fe36001c3e9265cad0b4754417fedd
 preview_frozen: dpl_8pUT… retained; release-lifecycle qualification incomplete (FORBIDDEN origin + BUILD_ID=local-dev)
-preview_replacement: CREATED READY — dpl_4Vk3XQsjoqweKD6jH1qiE1echsMy / https://cetech-pos-staging-gqg6tjedt-wbdevworlds-projects.vercel.app / gitSha f0feb44… / target preview / release-policy BUILD_ID=f0feb44… / same-origin session AUTH_REQUIRED (not FORBIDDEN); shared tester alias preserved
-tester: dpl_nxWGrSLqaLBGNNN683QjdixNBjF6 / 816e0bb…; A+D CAP CONSUMED — do not repeat sale
+preview_replacement: READY + RECEIPT/PWA CHECKS DONE — dpl_4Vk3XQ… / gqg6tjedt / BUILD_ID f0feb44…; receipt 33326bbc display+reload OK; SW controlling f0 build; quote-only 49111 cleared; Reprint UI absent (no printer port); physical scanner/printer UNVERIFIED
+tester: dpl_nxWGr… / 816e0bb…; A+D CAP CONSUMED — do not repeat sale
 rd01: COMPLETE — do not re-apply
-bridge_install: COMPLETE — live 63094753… / 89e4461c…; identity grep 2; native FPM cutover proof UNVERIFIED
-A+D: CLOSED — txn 33326bbc-… / sale-50317; evidence RD-02-AD-EVIDENCE-CLOSURE.md
-progress: docs/testing/parallel-completion-2026-10-07/RD-02-AD-EVIDENCE-CLOSURE.md
+bridge_install: COMPLETE — live 63094753… / 89e4461c…; native FPM cutover UNVERIFIED
+A+D: CLOSED — txn 33326bbc-… / sale-50317
+progress: RD-02-AD-EVIDENCE-CLOSURE.md + RD-02-PREVIEW-F0-CREATE-01.md + RD-02-PREVIEW-F0-RECEIPT-PWA-01.md
 profiler: PARKED
 #115 / #132: remain OPEN
 production_effects: NONE
 verdict: NOT READY FOR PRODUCTION
-next: operator staff sign-in on gqg6tjedt Preview → GET/reprint receipt 33326bbc-… + candidate PWA/local checks (no second sale)
+next: optional narrow FPM native probe scope; full WP/DB+POS backup/restore identity; hardware printer/scanner when available
 ```
 
 ## DB-SEC-01 — staging APPLIED AND VERIFIED (RD-01 complete)
