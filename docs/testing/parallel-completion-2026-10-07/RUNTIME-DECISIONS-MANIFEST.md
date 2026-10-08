@@ -7,13 +7,15 @@ Hosted DDL / live commerce / device rehearsals: **not authorized by this file**
 
 This document records three **independent** human decisions. Approving Section 1 does **not** authorize Section 2 or 3. Approving Section 2 does **not** authorize Section 1 or 3. Approving Section 3 does **not** authorize Section 1 or 2. Each section needs its own named human authorizer, UTC timestamp, and scope note before any side effects for that section may begin.
 
-Combined final candidate (PR [#144](https://github.com/WB-DevWorld/cetech-pwa-pos/pull/144)): tip `5ea92dc1258006186ba696e9d4f91f769d97aa11` on `ws3/combined-candidate-2026-10-08`  
-R144 product repair: `27e95b3565dbdf3c5487257a08042e09a51620a4` (closes R144-1/2/3; see `R144-REPAIR-01.md`)  
+Combined final candidate (PR [#144](https://github.com/WB-DevWorld/cetech-pwa-pos/pull/144)) on `ws3/combined-candidate-2026-10-08`.  
+Candidate tip (CI-verified Preview): `ab5c7e1f3849ff65100a84058e92f8b281a14be2` → `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` READY.  
+Prior Preview tip `5ea92dc…` / `dpl_fQq…` is superseded — do not qualify by inheritance.  
+R144 product repair: `27e95b3565dbdf3c5487257a08042e09a51620a4` + final correction in `ab5c7e1` (see `R144-FINAL-CORRECTION-01.md`).  
 Prior reviewed tip (REQUEST CHANGES): `7d75c3944d41a5990aa64004c9e96954779c9730`  
 Application baseline (included): `#140` `0e383d84f11573ca89d6533c8cb7c35d79d7b261`  
 Security candidate (Section 1 only): `#143` `c512b106bce1a0efcfd9c2caeddd54ad9e43dccd` (blob `6936b0e…`; **hosted apply still unauthorized**)  
-Race-fix **product** identity (pre-R144): `daac7e035d992c2798a317a0cf371f2925a9fe35` — **WS3-owned, in this combined candidate** (not concurrent elsewhere); superseded for prepare/quote guards by `27e95b3`.  
-Documentation-only tips: `58af8dc…`, `a0d93de…`, `7d75c39…`, `712cab7…`, `1ea4234…`, `5cef7c2…`, `5ea92dc…`. Distinguish these from product SHAs `daac7e0` / `27e95b3`.  
+Race-fix **product** identity (pre-R144): `daac7e035d992c2798a317a0cf371f2925a9fe35` — **WS3-owned, in this combined candidate** (not concurrent elsewhere); superseded for prepare/quote guards by `27e95b3` / `ab5c7e1`.  
+Documentation-only tips: `58af8dc…`, `a0d93de…`, `7d75c39…`, `712cab7…`, `1ea4234…`, `5cef7c2…`, `5ea92dc…`. Distinguish from product tip `ab5c7e1`.  
 Race-fix / R144 live status: **not** installed on training bridge yet. This manifest does not authorize live apply or plugin install.
 
 Concrete operator decision sheet (targets / caps / rollback): `QUALIFICATION-RD-DECISIONS.md`.
@@ -30,10 +32,10 @@ Concrete operator decision sheet (targets / caps / rollback): `QUALIFICATION-RD-
 | Authenticated SELECT + INSERT | **True** on all 11 |
 | `service_role` SELECT | **True** on all 11 |
 | Shared tester BFF | `dpl_nxWGrSLqaLBGNNN683QjdixNBjF6` **READY** — `BUILD_ID` `816e0bb…` |
-| Reviewed candidate Preview | tip `5ea92dc…` → `dpl_fQqJLAu4WeP4J4AwbffcqAx7nfVY` **READY** — https://cetech-pos-staging-pji89co71-wbdevworlds-projects.vercel.app |
+| Reviewed candidate Preview | tip `ab5c7e1…` → `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` **READY** (CI 2026-10-08); prior `5ea92dc…`/`dpl_fQq…` superseded |
 | `#143` blob `6936b0e…` | Still **unauthorized** for hosted apply |
 
-**Wording (do not blanket “NOT DEPLOYED”):** the candidate has an **automatic unpromoted Preview** (`dpl_fQq…` READY). Woo bridge remains **uninstalled** on training (`0.6.0-stg05`). Runtime qualification is **incomplete**. Tester alias unchanged. Verdict: **NOT READY FOR PRODUCTION**.
+**Wording (do not blanket “NOT DEPLOYED”):** the candidate has an **automatic unpromoted Preview** (`dpl_CBSA…` READY for tip `ab5c7e1`). Woo bridge remains **uninstalled** on training (`0.6.0-stg05`). Runtime qualification is **incomplete**. Tester alias unchanged. Verdict: **NOT READY FOR PRODUCTION**.
 
 Lane-2 read-only fill window: `2026-10-08T14:12Z`–`2026-10-08T14:22Z` UTC (SSH training + public tester BFF probes). Root verify window: `2026-10-08T15:02Z`. Qualification-prep docs reconcile after that. No hosted DDL, no tester-alias move, no commercial effects.
 
@@ -206,7 +208,7 @@ Read-only training host facts filled below. Mint new UUIDs / keys only at author
 | finalize `Idempotency-Key` | `________________` |
 | Correlation ids (quote / prepare / pay / finalize) | `________________` |
 | Application SHA under test (shared tester BFF) | `dpl_nxWGrSLqaLBGNNN683QjdixNBjF6` **READY** — `BUILD_ID` `816e0bb6963aff760609a3c7e4817e603c4ffdf0` at tester origin `https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app` — root-verified `2026-10-08T15:02Z` (also probed `2026-10-08T14:15Z`). Combined tip is **not** aliased here. |
-| Reviewed candidate Preview (unpromoted) | tip `5ea92dc…` → `dpl_fQqJLAu4WeP4J4AwbffcqAx7nfVY` **READY** — https://cetech-pos-staging-pji89co71-wbdevworlds-projects.vercel.app — root-verified `2026-10-08T15:02Z`; HTTP 200 on `/` (agent probe). **Not** tester alias; **not** production. |
+| Reviewed candidate Preview (unpromoted) | tip `ab5c7e1…` → `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` **READY** (Vercel commit status SUCCESS on `ab5c7e1`; CI run 37798960261). Prior root pin `2026-10-08T15:02Z` was tip `5ea92dc…` → `dpl_fQq…` (superseded). URL https://cetech-pos-staging-pji89co71-wbdevworlds-projects.vercel.app. **Not** tester alias; **not** production. |
 | Bridge / plugin version (installed training) | **Active** `cetech-pos-bridge` **`0.6.0-stg05`** — **VERIFIED** WP-CLI. Main file SHA-256 `9fee0c40fd957eb0ec16bbe064fa2bb1122daec56d4d862bf0b34fc7bdc1f78b`; `class-woo-runtime.php` SHA-256 `39159cb39eec8e687257dc9c604edab637df26787a522c4ceff4280cd891167b`. Installed runtime still contains global order-count fail string; **lacks** `assert_prepared_order_operation_identity` (grep counts 1 / 0). |
 
 ### 2.5a Proposed commercial caps (plan only — not authorized / not executed)
@@ -235,11 +237,11 @@ These are concrete proposed ceilings for an operator authorization note. They do
 decision: RD-02-LIVE-TX-QUAL
 authorizer: ________________
 utc: ________________
-tracks_authorized: [ ] A-cash  [ ] B-electronic-sandbox  [ ] C-concurrent-stock  [ ] D-response-loss-reload
+tracks_authorized: [ ] A-cash  [ ] B-electronic-TEST  [ ] C-concurrent-stock  [ ] D-response-loss-reload
 host: https://training.cetechbpa.com
-product_id: 49111 (proposed)
-race_fix_status_on_host: NOT installed (0.6.0-stg05 still global order-count) / install combined daac7e0+ first / accepted fail-closed risk (circle)
-notes:
+product_id: 49111 (Tracks A/B/D proposed); Track C needs stock=1 fixture
+bridge_install: NO (default) / YES → artifact ab5c7e1… (includes 27e95b3 + final correction) / accept fail-closed on 0.6.0-stg05 (circle)
+notes: see QUALIFICATION-RD-DECISIONS.md RD-02
 ```
 
 ---
@@ -247,18 +249,18 @@ notes:
 ## Section 3 — Device, printing and rollback
 
 **Decision ID:** `RD-03-DEVICE-PRINT-ROLLBACK`  
-**Approval of this section:** installed-client / printer / disposable backup-restore rehearsal scope only.  
-**Does not authorize:** staging TRUNCATE DDL (Section 1), live cash/electronic/stock tracks (Section 2), production promotion, or tester-alias moves.
+**Approval of this section (narrowed):** required for **shared / paid / remote restore** or **tester-alias / release-switch**. Local installed-PWA/printer on a dedicated device and named isolated disposable restore remain per `QUALIFICATION-RD-DECISIONS.md` (still never production).  
+**Does not authorize:** staging TRUNCATE DDL (Section 1), live cash/electronic/stock tracks (Section 2), production promotion.
 
 **Hard rule:** Desktop Chromium / Playwright evidence is **not** installed PWA PASS (`LANE-D-RESULT.md`, `browser-desktop-evidence.json`). Do not claim desktop browser = installed PWA.
 
 ### 3.1 Installed PWA + cashier device / printer checklist (executable)
 
-Record model/OS/build before starting. Combined candidate context: PR #144 tip `7d75c39…` (app baseline `0e383d84…`; see `CANDIDATE-DEPLOYMENT-MANIFEST.md` + `COMBINED-CANDIDATE.md`). Lane D local desktop proof remains on `0e383d84…`. Procedure spine: `docs/runbooks/R10-DEVICE-AND-PWA-REHEARSAL.md` + Lane C hardware steps in `LANE-C-RESULT.md`.
+Record model/OS/build before starting. Combined candidate context: PR #144 tip `ab5c7e1…` (includes product repair `27e95b3…` + final correction; app baseline `0e383d84…`; see `CANDIDATE-DEPLOYMENT-MANIFEST.md` + `COMBINED-CANDIDATE.md`). Lane D local desktop proof remains on `0e383d84…`. Procedure spine: `docs/runbooks/R10-DEVICE-AND-PWA-REHEARSAL.md` + Lane C hardware steps in `LANE-C-RESULT.md`.
 
 | # | Step | Result |
 | --- | --- | --- |
-| 1 | Launch from **installed** PWA (not desktop browser profile); record `BUILD_ID` / release-policy | ☐ — current shared tester origin still serves `816e0bb…` (see §2.5); Exact SHA Preview of `0e383d84…` not claimed here |
+| 1 | Launch from **installed** PWA (not desktop browser profile); record `BUILD_ID` / release-policy | ☐ — shared tester still `816e0bb…` / `dpl_nxWG…`; unpromoted Preview tip `ab5c7e1…` at `dpl_CBSA…` READY (see §0) — Preview ≠ installed-PWA PASS |
 | 2 | Authenticate; confirm cashier / register / shift are server-derived | ☐ |
 | 3 | Record device: tablet/PC, OS, scanner model/interface, printer model/driver, paper 58/80 mm; Settings paper width matches stock | ☐ — training appserver has **no** CUPS/`lpstat` (expected: printer is cashier-local) |
 | 4 | Create cart/draft; refresh/close/reopen; drafts/journal survive (no clear-all storage) | ☐ |
@@ -277,11 +279,11 @@ Lane D local status to cite (not substitute): desktop 7/7 + 122 focused tests PA
 | Runbook | `docs/runbooks/R10-BACKUP-RESTORE-ROLLBACK.md` | **PREPARED — unexecuted** |
 | App rollback vs commerce | Same + `docs/runbooks/RELEASE-AND-ROLLBACK.md`; Lane D notes code rollback ≠ Woo/payment/stock reversal | Documented |
 | Candidate pin / tester alias | `CANDIDATE-DEPLOYMENT-MANIFEST.md`; tester `816e0bb…` / `dpl_nxWG…` must stay unless a **new** RD-03 release-switch | Alias unchanged; root-verified READY `2026-10-08T15:02Z` |
-| Unpromoted Preview | tip `5ea92dc…` / `dpl_fQqJLAu4WeP4J4AwbffcqAx7nfVY` READY | Automatic Preview only — not aliased; not production |
+| Unpromoted Preview | tip `ab5c7e1…` / `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` READY | Automatic Preview only — not aliased; not production |
 | Training bridge backup identity (read-only) | `/home/cetechtraining/backups/` includes `cetech-pos-bridge-0.6.0-stg05-before-d0480d33-20260924T074530Z.tgz` plus older `0.2.x-br02` tarballs — **VERIFIED** listing `2026-10-08T14:12Z` | Identity only; restore **not** rehearsed |
 | Isolated restore rehearsal | Required by Q-OPS-05 / R10 runbook section B | **UNVERIFIED / unexecuted** |
 | Shared / paid / remote restore or alias move | Needs explicit RD-03 approval (`QUALIFICATION-RD-DECISIONS.md`) | Not authorized |
-| Vercel `dpl_*` status | Root-verified READY for tester `dpl_nxWG…` and Preview `dpl_fQq…` at `2026-10-08T15:02Z` | Local agent Vercel token may still be expired; prefer root facts over expired local CLI |
+| Vercel `dpl_*` status | Tester `dpl_nxWG…` READY (root `2026-10-08T15:02Z`); candidate Preview `dpl_CBSA…` READY for tip `ab5c7e1` (Vercel commit status). Prior Preview `dpl_fQq…`/`5ea92dc…` superseded | Local agent Vercel token may still be expired; prefer commit-status / root facts over expired local CLI |
 
 **Disposable restore demo scope** (prepare only; execute only under RD-03 approval):
 
@@ -298,9 +300,13 @@ Lane D local status to cite (not substitute): desktop 7/7 + 122 focused tests PA
 decision: RD-03-DEVICE-PRINT-ROLLBACK
 authorizer: ________________
 utc: ________________
-scopes_authorized: [ ] installed-PWA  [ ] printer/reprint  [ ] disposable-restore-demo  [ ] app-rollback-rehearsal
+scopes_authorized:
+  [ ] shared-tester-alias-move
+  [ ] paid-or-remote-restore
+  [ ] shared-training-host-restore
+  [ ] production-restore (must stay unchecked unless separate production authority)
 device_id / BUILD_ID: ________________
-notes:
+notes: see QUALIFICATION-RD-DECISIONS.md RD-03
 ```
 
 ---
@@ -311,13 +317,13 @@ notes:
 | --- | --- |
 | Staff-doc impact | **NONE** |
 | Production promotion | **NONE** / not authorized / **NOT READY FOR PRODUCTION** |
-| Deploy wording | Automatic **unpromoted Preview** exists (`dpl_fQq…`); Woo bridge **uninstalled**; runtime qualification **incomplete** — do not blanket “NOT DEPLOYED” |
+| Deploy wording | Automatic **unpromoted Preview** exists (`dpl_CBSA…` for tip `ab5c7e1`); Woo bridge **uninstalled**; runtime qualification **incomplete** — do not blanket “NOT DEPLOYED” |
 | Lane E profiler | **Parked** — no new profiler lease |
 | Issues #115 / #132 | Remain **OPEN** — not closed by PR #144 |
-| Order-count race fix | **WS3-owned**, **implemented on combined candidate** (`daac7e0` → `27e95b3` in tip ancestry). **Not** concurrent elsewhere. **Not** installed on training (`0.6.0-stg05` still global order-count). Not authorized for live apply by this manifest |
-| Product vs docs tip | Product: `daac7e0` / `27e95b3`. Docs tip under review: `5ea92dc`. Prior REQUEST CHANGES tip: `7d75c39` |
+| Order-count race fix | **WS3-owned**, **implemented on combined candidate** (`daac7e0` → `27e95b3` → `ab5c7e1`). **Not** concurrent elsewhere. **Not** installed on training (`0.6.0-stg05` still global order-count). Not authorized for live apply by this manifest |
+| Product vs docs tip | Candidate tip under review: `ab5c7e1` (product + docs). Prior docs tip `5ea92dc` / Preview `dpl_fQq` superseded. Prior REQUEST CHANGES tip: `7d75c39` |
 | Shared tester BFF | `dpl_nxWGrSLqaLBGNNN683QjdixNBjF6` READY; `BUILD_ID=816e0bb…`; origin `https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app` |
-| Candidate Preview | `dpl_fQqJLAu4WeP4J4AwbffcqAx7nfVY` READY; tip `5ea92dc…`; https://cetech-pos-staging-pji89co71-wbdevworlds-projects.vercel.app |
+| Candidate Preview | `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` READY; tip `ab5c7e1…`; https://cetech-pos-staging-pji89co71-wbdevworlds-projects.vercel.app |
 | Section independence | Approval of any one RD-0N never implies the others |
 | Decision sheet | `QUALIFICATION-RD-DECISIONS.md` |
 
@@ -345,5 +351,5 @@ notes:
 | Prepared for | Integration editor aide / parallel completion / PR #144 |
 | Lane-2 fill | WS3 Lane 2 read-only facts `2026-10-08` |
 | Root verify | `2026-10-08T15:02Z` staging + Preview/tester READY pins |
-| Qualification prep | WS3 docs reconcile on tip `5ea92dc…` |
+| Qualification prep | WS3 docs reconcile on tip `ab5c7e1…` / Preview `dpl_CBSA…` |
 | Related | `QUALIFICATION-RD-DECISIONS.md`, `CHECKPOINT-60m.md`, `LANE-A-RESULT.md`, `LANE-B-RESULT.md`, `LANE-B-LIVE-RUNTIME-PLAN.md`, `LANE-C-RESULT.md`, `LANE-D-RESULT.md`, `CANDIDATE-DEPLOYMENT-MANIFEST.md`, `browser-desktop-evidence.json`, `COMBINED-CANDIDATE.md` |

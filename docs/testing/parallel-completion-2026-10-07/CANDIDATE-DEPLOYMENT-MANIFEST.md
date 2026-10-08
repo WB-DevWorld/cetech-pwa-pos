@@ -2,28 +2,34 @@
 
 Status: **CANDIDATE ONLY — DO NOT PROMOTE PRODUCTION — DO NOT CHANGE TESTER ALIAS**
 
-Lane D prepared the `#140` application pin on 2026-10-07 after local automated + desktop-browser verification. This file is reconciled for the **combined final candidate** PR [#144](https://github.com/WB-DevWorld/cetech-pwa-pos/pull/144) on 2026-10-08. It is not a GO, not staging acceptance, and not production approval.
+Lane D prepared the `#140` application pin on 2026-10-07 after local automated + desktop-browser verification. This file is reconciled for the **combined final candidate** PR [#144](https://github.com/WB-DevWorld/cetech-pwa-pos/pull/144) on 2026-10-08 (root verify `2026-10-08T15:02Z`). It is not a GO, not staging acceptance, and not production approval.
 
 ## Exact artifact
 
 | Field | Value |
 | --- | --- |
-| Combined tip (PR #144; docs tip until Lane 1 repairs push) | `7d75c3944d41a5990aa64004c9e96954779c9730` |
+| Candidate tip (CI-verified) | `ab5c7e1f3849ff65100a84058e92f8b281a14be2` |
+| R144 product repair | `27e95b3565dbdf3c5487257a08042e09a51620a4` + final correction in `ab5c7e1` |
+| Prior tip | `5ea92dc1258006186ba696e9d4f91f769d97aa11` (`dpl_fQq…` superseded) |
+| Prior REQUEST CHANGES tip | `7d75c3944d41a5990aa64004c9e96954779c9730` |
 | Application baseline SHA (`#140`) | `0e383d84f11573ca89d6533c8cb7c35d79d7b261` |
 | Race-fix **product** SHA | `daac7e035d992c2798a317a0cf371f2925a9fe35` |
-| Privilege repair (`#143`) | `c512b106bce1a0efcfd9c2caeddd54ad9e43dccd` (hosted DDL still unauthorized) |
+| Privilege repair (`#143`) | `c512b106bce1a0efcfd9c2caeddd54ad9e43dccd` (blob `6936b0e…`; hosted DDL still unauthorized) |
 | Short app baseline | `0e383d8` |
 | Branch | `ws3/combined-candidate-2026-10-08` |
 | Application package | `apps/pos-web` |
-| Intended `BUILD_ID` for app baseline Preview | `0e383d84f11573ca89d6533c8cb7c35d79d7b261` (Lane D local proof); combined Preview would use the authorized combined tip when dispatched |
-| Includes | `#140` / `#139` `3c2a5a6af4ab202988e46bb3af6d3ae365147be8` + `#143` + race product `daac7e0` |
+| Intended `BUILD_ID` for Preview | tip under test (`ab5c7e1…`); Lane D local proof remains on `0e383d84…` |
+| Includes | `#140` / `#139` `3c2a5a6af4ab202988e46bb3af6d3ae365147be8` + `#143` + race product `daac7e0` + R144 `ab5c7e1` |
 | Excludes | `#141` diagnostic `4b1febb725c843cf0bf48f86dd9836d4a87b5bbe` |
 | Rollback / previous known-good application pin | application baseline `0e383d84…`; shared tester remains `816e0bb…` |
 | Protected main (context only) | `c49045dd02c46574af5d341cc65c177116fa7306` |
 | Shared tester baseline (must remain unchanged) | `816e0bb6963aff760609a3c7e4817e603c4ffdf0` |
-| Live tester probe (2026-10-08) | Origin still serves `BUILD_ID=816e0bb…` — combined tip **not** aliased |
+| Shared tester deployment | `dpl_nxWGrSLqaLBGNNN683QjdixNBjF6` **READY** (root-verified `2026-10-08T15:02Z`) |
+| Reviewed candidate Preview | `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` **READY** — tip `ab5c7e1…` |
 
-**Product vs documentation tip:** race/product identity is `daac7e0`. Tips `58af8dc` / `a0d93de` / `7d75c39` are documentation/lease imports (and may move when Lane 1 pushes R144 bridge repairs). Do not treat a docs tip alone as a new commerce product SHA.
+**Deploy wording:** candidate has an **automatic unpromoted Preview** (`dpl_CBSA…` READY for tip `ab5c7e1`). That is **not** shared-tester alias promotion and **not** production. Woo bridge remains uninstalled on training; runtime qualification incomplete. Do not blanket-claim “NOT DEPLOYED.”
+
+**Product vs documentation tip:** candidate tip `ab5c7e1` is the product + docs head. Prior `5ea92dc`/`dpl_fQq` must not be qualified by inheritance.
 
 ## Local build proof (Lane D on app baseline)
 
@@ -41,18 +47,18 @@ Evidence: `LANE-D-RESULT.md`, `browser-desktop-evidence.json`. Combined tip has 
 
 ## Authorized deployment shape (when integration editor dispatches)
 
-Follow `docs/runbooks/CD-01-STAGING-DEPLOYMENT.md` Exact SHA Preview path:
+Follow `docs/runbooks/CD-01-STAGING-DEPLOYMENT.md` Exact SHA Preview path for **new** dispatches. Current Preview `dpl_CBSA…` already exists as automatic unpromoted Preview for tip `ab5c7e1…` (prior `dpl_fQq…`/`5ea92dc…` superseded).
 
-1. Require open PR whose head equals the authorized candidate SHA (app baseline `0e383d84…` and/or combined tip when that tip is the dispatch target).
+1. Require open PR whose head equals the authorized candidate SHA.
 2. Require CI jobs `control-plane` and `control-plane-windows` SUCCESS for that SHA.
 3. Require one independent exact-head APPROVED review (not the PR author).
-4. Dispatch Exact SHA Preview from `main` with `candidate_sha=<authorized SHA>`.
+4. Dispatch Exact SHA Preview from `main` with `candidate_sha=<authorized SHA>` only when a **new** Preview is needed.
 5. Supply matching `BUILD_ID` to the build/deploy request.
 6. Record immutable Preview URL only.
 7. Prove Preview target + Git source SHA; leave running-app `BUILD_ID` pending until observed.
-8. **Do not** pass `--prod`, **do not** assign production aliases, **do not** move `VERCEL_STAGING_ALIAS` / tester alias.
+8. **Do not** pass `--prod`, **do not** assign production aliases, **do not** move `VERCEL_STAGING_ALIAS` / tester alias (RD-03 release-switch).
 
-Example (operator; not executed by Lane D / Lane 2):
+Example (operator; not executed by Lane D / qualification prep):
 
 ```text
 gh workflow run "Exact SHA Preview" --ref main \
@@ -67,23 +73,24 @@ gh workflow run "Exact SHA Preview" --ref main \
 - Opaque SHA inequality must not dead-lock as `UNSUPPORTED_APP_VERSION` (covered by unit tests).
 - Application rollback reverts code/build only; it does **not** reverse Woo orders, payments, stock, refunds, or applied DB changes (`docs/runbooks/R10-BACKUP-RESTORE-ROLLBACK.md`).
 - `#143` TRUNCATE revoke must **not** be re-granted on app rollback.
-- Backup/restore rehearsal remains **unexecuted** — do not claim recoverability from this manifest alone.
-- Training bridge install of race-fix product remains a **separate** authorization (see `RUNTIME-DECISIONS-MANIFEST.md`).
+- Backup/restore rehearsal remains **unexecuted** — shared/paid/remote restore needs RD-03 (`QUALIFICATION-RD-DECISIONS.md`).
+- Training bridge install of race-fix / R144 product remains a **separate** authorization (see `RUNTIME-DECISIONS-MANIFEST.md` RD-02).
 
 ## Post-deploy verification checklist (Preview; not Lane D)
 
-- [ ] Immutable Preview URL recorded
-- [ ] Running application `BUILD_ID` observed = authorized candidate SHA
+- [x] Immutable Preview URL recorded — https://cetech-pos-staging-pji89co71-wbdevworlds-projects.vercel.app (`dpl_CBSA…` READY, tip `ab5c7e1…`)
+- [ ] Running application `BUILD_ID` observed = authorized candidate SHA (operator confirm on Preview)
 - [ ] Release-policy endpoint returns no-store + matching builds
 - [ ] Desktop browser reload retains drafts/journal (no storage wipe)
 - [ ] Installed-PWA path executed per `docs/runbooks/R10-DEVICE-AND-PWA-REHEARSAL.md` (separate evidence)
-- [ ] Tester alias still on prior baseline `816e0bb…` unless a **new** explicit release decision says otherwise
+- [x] Tester alias still on prior baseline `816e0bb…` / `dpl_nxWG…` (root-verified READY; no alias move)
 
 ## Forbidden by this manifest
 
 - Production promotion
-- Tester alias change
+- Tester alias change without RD-03
 - Storage wipe / clear-all IndexedDB as recovery
-- Hosted DDL
+- Hosted DDL without RD-01
 - Claiming installed-PWA or cashier-hardware PASS from desktop-only evidence
 - Treating unrepaired race as optional default acceptance (race is fixed in combined **source**; training install is separate)
+- Blanket “NOT DEPLOYED” wording that ignores the existing unpromoted Preview

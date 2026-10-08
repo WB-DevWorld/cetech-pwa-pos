@@ -1,24 +1,31 @@
-## COMBINED-CANDIDATE-2026-10-08 — ACTIVE final correction (R144)
+## COMBINED-CANDIDATE-2026-10-08 — ACTIVE qualification prep (post R144 final correction)
 
 ```text
 human / integration editor: @wbdevworld / WS3
 bridge reviewer: @Emmanuel-coder-prog / WS2
-task: R144-FINAL-CORRECTION-01 (refund hooks + prices_include_tax)
+task: R144-FINAL-CORRECTION-01 + qualification docs pin
 branch: ws3/combined-candidate-2026-10-08
+product_tip: ab5c7e1f3849ff65100a84058e92f8b281a14be2
 prior_tip: 5ea92dc1258006186ba696e9d4f91f769d97aa11
 prior_product: 27e95b3565dbdf3c5487257a08042e09a51620a4
 includes: #140 0e383d84… + #143 c512b10… + race fix + R144 repair + final correction
 excludes: #141
 pr: https://github.com/WB-DevWorld/cetech-pwa-pos/pull/144
+ci: 37798960261 PASS on ab5c7e1
 scope: docs/testing/parallel-completion-2026-10-07/scope-r144-final-correction.json
 evidence: docs/testing/parallel-completion-2026-10-07/R144-FINAL-CORRECTION-01.md
 runtime_decisions: docs/testing/parallel-completion-2026-10-07/RUNTIME-DECISIONS-MANIFEST.md
 qualification_rds: docs/testing/parallel-completion-2026-10-07/QUALIFICATION-RD-DECISIONS.md
+preview: dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2 READY (unpromoted; tip ab5c7e1; prior 5ea92dc/dpl_fQq superseded)
+tester: dpl_nxWGrSLqaLBGNNN683QjdixNBjF6 READY / 816e0bb (alias unchanged)
+staging_supabase: iegxncvpsyaitkpzywcr ACTIVE_HEALTHY; #143 20261006025100 ABSENT
 local_bridge: 1961 passed / 0 failed (excl. env-fatal generated return-effects); CI uses full run.php
 profiler: PARKED
+#115 / #132: remain OPEN
 production_effects: NONE
 forbidden_remote: unapproved hosted DDL, alias move, production promotion
-verdict: NOT READY FOR PRODUCTION
+verdict: NOT READY FOR PRODUCTION (Preview unpromoted; Woo bridge uninstalled; runtime qual incomplete)
+next: @Emmanuel-coder-prog bridge review; owner RD-01/02/03
 ```
 
 ## DB-SEC-01 — review candidate, not applied

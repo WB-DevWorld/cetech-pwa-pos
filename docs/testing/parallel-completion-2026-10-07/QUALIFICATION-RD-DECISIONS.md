@@ -7,9 +7,10 @@ Verdict: **NOT READY FOR PRODUCTION**
 
 This sheet makes RD-01 / RD-02 / RD-03 concrete for human authorization. Approving one section does **not** authorize the others. Fill authorizer + UTC before any side effects for that section.
 
-Root-verified staging / deploy facts: `2026-10-08T15:02Z` (see `RUNTIME-DECISIONS-MANIFEST.md` §0).  
-Combined tip under review: `5ea92dc1258006186ba696e9d4f91f769d97aa11` on `ws3/combined-candidate-2026-10-08`.  
-Product repair SHA: `27e95b3565dbdf3c5487257a08042e09a51620a4`.  
+Root-verified staging facts: `2026-10-08T15:02Z` (see `RUNTIME-DECISIONS-MANIFEST.md` §0).  
+Candidate tip (CI-verified Preview): `ab5c7e1f3849ff65100a84058e92f8b281a14be2` → `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` READY.  
+Prior Preview `5ea92dc…` / `dpl_fQq…` superseded — do not qualify by inheritance.  
+Product tip: `ab5c7e1` (includes `27e95b3` R144 repair + final correction).  
 Issues **#115** / **#132** remain **OPEN**. Profiler **PARKED**.
 
 ---
@@ -157,7 +158,7 @@ Local cashier device install, local printer/reprint rehearsal, and **isolated di
 
 | Action | Note |
 | --- | --- |
-| Use existing unpromoted Preview `dpl_fQqJLAu4WeP4J4AwbffcqAx7nfVY` | Already deployed automatically; not aliased |
+| Use existing unpromoted Preview `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` | Already deployed automatically; not aliased |
 | Installed-PWA / printer steps on a **dedicated** cashier device against Preview or current tester | Device evidence only; record BUILD_ID |
 | Isolated disposable restore onto a **named non-shared** clone | Authorizer still names hostname/project; never overwrite shared staging cashiers “because convenient” |
 
@@ -166,7 +167,7 @@ Local cashier device install, local printer/reprint rehearsal, and **isolated di
 | Pin | Value |
 | --- | --- |
 | Shared tester BFF | `dpl_nxWGrSLqaLBGNNN683QjdixNBjF6` READY — `BUILD_ID` `816e0bb6963aff760609a3c7e4817e603c4ffdf0` |
-| Reviewed candidate Preview | `dpl_fQqJLAu4WeP4J4AwbffcqAx7nfVY` READY — tip `5ea92dc…` — https://cetech-pos-staging-pji89co71-wbdevworlds-projects.vercel.app |
+| Reviewed candidate Preview | `dpl_CBSAUNVvXLmuXetnwC3z8DLeAdm2` READY — tip `ab5c7e1…` — https://cetech-pos-staging-pji89co71-wbdevworlds-projects.vercel.app |
 | App rollback known-good | Tester `816e0bb…` (code only; ≠ commerce reversal) |
 | DB rollback | Never re-GRANT TRUNCATE |
 
