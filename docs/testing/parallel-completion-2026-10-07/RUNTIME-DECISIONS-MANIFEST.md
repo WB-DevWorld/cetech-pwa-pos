@@ -7,12 +7,14 @@ Hosted DDL / live commerce / device rehearsals: **not authorized by this file**
 
 This document records three **independent** human decisions. Approving Section 1 does **not** authorize Section 2 or 3. Approving Section 2 does **not** authorize Section 1 or 3. Approving Section 3 does **not** authorize Section 1 or 2. Each section needs its own named human authorizer, UTC timestamp, and scope note before any side effects for that section may begin.
 
-Combined final candidate (PR [#144](https://github.com/WB-DevWorld/cetech-pwa-pos/pull/144)): tip `7d75c3944d41a5990aa64004c9e96954779c9730` on `ws3/combined-candidate-2026-10-08`  
+Combined final candidate (PR [#144](https://github.com/WB-DevWorld/cetech-pwa-pos/pull/144)): tip `1ea4234ec44c7648272633f66cc756f9b877beff` on `ws3/combined-candidate-2026-10-08`  
+R144 product repair: `27e95b3565dbdf3c5487257a08042e09a51620a4` (closes R144-1/2/3; see `R144-REPAIR-01.md`)  
+Prior reviewed tip (REQUEST CHANGES): `7d75c3944d41a5990aa64004c9e96954779c9730`  
 Application baseline (included): `#140` `0e383d84f11573ca89d6533c8cb7c35d79d7b261`  
 Security candidate (Section 1 only): `#143` `c512b106bce1a0efcfd9c2caeddd54ad9e43dccd`  
-Race-fix **product** identity: `daac7e035d992c2798a317a0cf371f2925a9fe35` (`assert_prepared_order_operation_identity`) — **WS3-owned, in this combined candidate** (not concurrent elsewhere). Lane 1 may push further bridge repairs atop `7d75c39`; preserve that reviewed tip until repairs land.  
-Documentation-only tips (no race/product change): `58af8dc…`, `a0d93de…`, `7d75c39…` (lease/manifest import). Distinguish these from product SHA `daac7e0`.  
-Race-fix live status: **not** installed on training bridge yet. This manifest does not authorize live apply or plugin install.
+Race-fix **product** identity (pre-R144): `daac7e035d992c2798a317a0cf371f2925a9fe35` — **WS3-owned, in this combined candidate** (not concurrent elsewhere); superseded for prepare/quote guards by `27e95b3`.  
+Documentation-only tips: `58af8dc…`, `a0d93de…`, `7d75c39…`, `712cab7…`, `1ea4234…`. Distinguish these from product SHAs `daac7e0` / `27e95b3`.  
+Race-fix / R144 live status: **not** installed on training bridge yet. This manifest does not authorize live apply or plugin install.
 
 Lane-2 read-only fill window: `2026-10-08T14:12Z`–`2026-10-08T14:22Z` UTC (SSH training + public tester BFF probes) plus documentation reconcile in this Lane-2 pass. No hosted DDL, no tester-alias move, no commercial effects. Verdict: **NOT READY FOR PRODUCTION**.
 
