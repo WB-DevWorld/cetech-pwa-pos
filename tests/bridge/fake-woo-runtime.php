@@ -164,10 +164,22 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 		if ( $this->throw_on_calculate ) {
 			throw new RuntimeException( 'forced calculate_totals failure' );
 		}
+		$orders_before = count( $this->orders );
 		if ( is_callable( $this->during_calculate ) ) {
 			$cb = $this->during_calculate;
 			$this->during_calculate = null;
 			$cb( $this );
+		}
+		// Same-request order create during quote (mirrors production hook observers).
+		if ( count( $this->orders ) !== $orders_before ) {
+			++$this->side_effects['orders'];
+			return Cetech_Pos_Bridge_Response::wp_error(
+				'INTEGRATION_UNAVAILABLE',
+				'Quote mutated Woo orders; quoting aborted.',
+				true,
+				'resolve',
+				503
+			);
 		}
 		$bag  = $this->bag();
 		$cart = array();
@@ -316,11 +328,6 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 				503
 			);
 		}
-		if ( is_callable( $this->during_create ) ) {
-			$cb = $this->during_create;
-			$this->during_create = null;
-			$cb( $this );
-		}
 		++$this->create_calls;
 		$order_id = (string) $this->next_order_id;
 		++$this->next_order_id;
@@ -374,12 +381,29 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $matched ) ) {
 			return $matched;
 		}
-		$described = $this->describe_order( $this->order_as_proof_object_by_id( $order_id ), $hold );
+		$order_obj = $this->order_as_proof_object_by_id( $order_id );
+		$described = $this->describe_order( $order_obj, $hold );
 		if ( $described === null || empty( $described['reservationProven'] ) ) {
 			return $this->unavailable( 'Woo did not expose a complete current stock reservation after wc_reserve_stock_for_order.' );
 		}
+		// Concurrent storefront insert after POS create (production race window).
+		if ( is_callable( $this->during_create ) ) {
+			$cb = $this->during_create;
+			$this->during_create = null;
+			$cb( $this );
+		}
 		++$this->side_effects['orders'];
 		++$this->side_effects['stock'];
+		$identity = $this->assert_prepared_order_operation_identity(
+			$order_obj,
+			$order_id,
+			$recovery_token,
+			$transaction_id,
+			$request_hash
+		);
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $identity ) ) {
+			return $identity;
+		}
 		$commitment = $this->force_commitment !== null ? $this->force_commitment : 'reserved';
 		if ( $commitment !== 'reserved' && $commitment !== 'reduced' ) {
 			$described['reservationProven'] = false;
