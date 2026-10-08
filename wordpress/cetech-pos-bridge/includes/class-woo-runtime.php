@@ -373,10 +373,30 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		if ( ! $wc || ! isset( $wc->cart ) || ! is_object( $wc->cart ) || ! method_exists( $wc->cart, 'calculate_totals' ) ) {
 			return $this->unavailable( 'WooCommerce cart totals cannot be calculated.' );
 		}
-		$before_orders = $this->count_orders();
-		$wc->cart->calculate_totals();
-		$after_orders = $this->count_orders();
-		if ( $after_orders !== null && $before_orders !== null && $after_orders !== $before_orders ) {
+		/*
+		 * Same-request order-create observers only. Global wc_orders COUNT is not
+		 * used: concurrent storefront/HPOS inserts in other requests must not fail
+		 * a clean quote. Raw SQL / unhooked inserts are an unsupported bypass.
+		 */
+		$order_create_observed = false;
+		$observer                = function () use ( &$order_create_observed ) {
+			$order_create_observed = true;
+		};
+		$hooked = false;
+		if ( $this->environment->function_exists( 'add_action' ) ) {
+			add_action( 'woocommerce_new_order', $observer, 0, 0 );
+			add_action( 'woocommerce_new_order_with_order_object', $observer, 0, 0 );
+			$hooked = true;
+		}
+		try {
+			$wc->cart->calculate_totals();
+		} finally {
+			if ( $hooked && $this->environment->function_exists( 'remove_action' ) ) {
+				remove_action( 'woocommerce_new_order', $observer, 0 );
+				remove_action( 'woocommerce_new_order_with_order_object', $observer, 0 );
+			}
+		}
+		if ( $order_create_observed ) {
 			++$this->side_effects['orders'];
 			return $this->unavailable( 'Quote mutated Woo orders; quoting aborted.' );
 		}
@@ -741,6 +761,12 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		return new Cetech_Pos_Bridge_Ephemeral_Session();
 	}
 
+	/**
+	 * Global HPOS row count. Kept for diagnostics/tests only — never use as a
+	 * prepare/quote success predicate (concurrent storefront inserts race it).
+	 *
+	 * @return int|null
+	 */
 	protected function count_orders() {
 		global $wpdb;
 		if ( isset( $wpdb ) && is_object( $wpdb ) && isset( $wpdb->prefix ) && method_exists( $wpdb, 'get_var' ) ) {
@@ -750,6 +776,54 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Prove the prepared order is uniquely bound to this operation's recovery
+	 * token and transaction/request-hash identity. Does not consult global COUNT.
+	 *
+	 * @param object $order
+	 * @param string $order_id
+	 * @param string $recovery_token
+	 * @param string $transaction_id
+	 * @param string $request_hash
+	 * @return true|WP_Error
+	 */
+	protected function assert_prepared_order_operation_identity( $order, $order_id, $recovery_token, $transaction_id, $request_hash ) {
+		if ( ! is_object( $order ) || (string) $order_id === '' || (string) $order_id === '0' ) {
+			return $this->unavailable( 'Prepared order identity could not be proved after create.' );
+		}
+		if ( ! $this->order_carries_recovery_token( $order, $recovery_token ) ) {
+			return $this->unavailable( 'Prepared order lost its recovery token before prepare completed.' );
+		}
+		$tx_meta   = method_exists( $order, 'get_meta' ) ? (string) $order->get_meta( Cetech_Pos_Bridge_Constants::ORDER_META_TX ) : '';
+		$hash_meta = method_exists( $order, 'get_meta' ) ? (string) $order->get_meta( Cetech_Pos_Bridge_Constants::ORDER_META_HASH ) : '';
+		if ( $tx_meta !== (string) $transaction_id || $hash_meta !== (string) $request_hash ) {
+			return $this->unavailable( 'Prepared order transaction/request-hash identity does not match the prepare command.' );
+		}
+		$by_token = $this->find_orders_by_recovery_token( $recovery_token );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $by_token ) ) {
+			return $by_token;
+		}
+		if ( ! is_array( $by_token ) || count( $by_token ) !== 1 ) {
+			return $this->unavailable( 'Prepared order recovery identity is missing or not unique.' );
+		}
+		$found_id = isset( $by_token[0]['orderId'] ) ? (string) $by_token[0]['orderId'] : '';
+		if ( $found_id !== (string) $order_id ) {
+			return $this->unavailable( 'Prepared order recovery identity resolved to a different Woo order.' );
+		}
+		$by_tx = $this->find_orders_by_transaction( $transaction_id );
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $by_tx ) ) {
+			return $by_tx;
+		}
+		if ( ! is_array( $by_tx ) || count( $by_tx ) !== 1 ) {
+			return $this->unavailable( 'Prepared order transaction identity is missing or not unique.' );
+		}
+		$tx_id = isset( $by_tx[0]['orderId'] ) ? (string) $by_tx[0]['orderId'] : '';
+		if ( $tx_id !== (string) $order_id ) {
+			return $this->unavailable( 'Prepared order transaction identity resolved to a different Woo order.' );
+		}
+		return true;
 	}
 
 	/**
@@ -940,7 +1014,6 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		if ( ! $this->environment->function_exists( 'wc_create_order' ) ) {
 			return $this->unavailable( 'wc_create_order is not available; HPOS-safe order create cannot run.' );
 		}
-		$before       = $this->count_orders();
 		$disable_mail = function () {
 			return false;
 		};
@@ -1002,9 +1075,15 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 			}
 			$this->side_effects['orders']++;
 			$this->side_effects['stock']++;
-			$after = $this->count_orders();
-			if ( $before !== null && $after !== null && ( $after - $before ) !== 1 ) {
-				return $this->unavailable( 'Woo order count did not increase by exactly one during prepare.' );
+			$identity = $this->assert_prepared_order_operation_identity(
+				$order,
+				$order_id,
+				$recovery_token,
+				$transaction_id,
+				$request_hash
+			);
+			if ( Cetech_Pos_Bridge_Quote_Request::is_error( $identity ) ) {
+				return $identity;
 			}
 			return $described;
 		} finally {
@@ -1036,10 +1115,17 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		if ( ! is_string( $frozen_json ) || $frozen_json === '' ) {
 			return $this->unavailable( 'Frozen prepare evidence could not be encoded before the Woo order save.' );
 		}
-		$binder = function ( $order ) use ( $recovery_token, $quote, $customer_id, $transaction_id, $request_hash, $frozen_json ) {
-			if ( ! is_object( $order ) ) {
+		$binder_applied = false;
+		$binder         = function ( $order ) use ( $recovery_token, $quote, $customer_id, $transaction_id, $request_hash, $frozen_json, &$binder_applied ) {
+			if ( $binder_applied || ! is_object( $order ) ) {
 				return;
 			}
+			// Never stamp recovery identity onto an already-persisted order (nested saves).
+			$existing_id = method_exists( $order, 'get_id' ) ? (int) $order->get_id() : 0;
+			if ( $existing_id > 0 ) {
+				return;
+			}
+			$binder_applied = true;
 			if ( method_exists( $order, 'set_order_key' ) ) {
 				$order->set_order_key( $recovery_token );
 			}
