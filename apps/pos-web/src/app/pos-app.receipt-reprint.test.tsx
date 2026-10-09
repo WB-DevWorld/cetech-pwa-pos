@@ -153,8 +153,28 @@ describe("pos-app history receipt reprint composition", () => {
     expect(source).not.toMatch(/receipts:\s*checkout\?\.receipts,\s*\r?\n\s*printer:\s*checkout\?\.printer/);
   });
 
-  test("baseline checkout-only wiring hides Reprint; corrected composition offers it", () => {
-    const authority = assignedStaffNoCheckoutScope();
+  test.each([
+    {
+      label: "no selected register / no open shift",
+      authority: assignedStaffNoCheckoutScope(),
+    },
+    {
+      label: "selected register without open shift",
+      authority: {
+        ...assignedStaffNoCheckoutScope(),
+        selectedRegisterId: "reg_a",
+        register: {
+          id: "reg_a",
+          name: "Front Counter",
+          locationId: "loc_a1",
+          currency: "GHS" as const,
+          status: "active" as const,
+        },
+        shift: null,
+        shiftOpen: false,
+      },
+    },
+  ])("baseline hides Reprint; correction offers it ($label)", ({ authority }) => {
     expect(checkoutScopeFromStaffAuthority(authority)).toBeUndefined();
 
     const baseline = { receipts: undefined as undefined, printer: undefined as undefined };
