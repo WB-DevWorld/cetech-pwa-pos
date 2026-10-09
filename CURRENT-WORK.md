@@ -9,7 +9,7 @@ branch: ws3/combined-candidate-2026-10-08
 selected_base: 7d5778fe904792360947d88122050e529587aa51
 product_commit: 542d3ef2f862394a762de43eacf00c724b17aaec (ACCEPT; production composition unchanged)
 prior_tip: e0c5bcf4dca4970803afc94f7a35cdb7ef5597f2
-freeze_tip: re-verify HEAD after closeout commit (product files still match 542d3ef)
+freeze_tip: 2e6d704228a522f1f5728c5f2d70cfb08c90e393 (product files still match 542d3ef; integration e2e + closeout docs)
 product_tip: ab5c7e1f3849ff65100a84058e92f8b281a14be2
 bridge_tree: fc8f2d05e7fe36001c3e9265cad0b4754417fedd
 preview_frozen: dpl_8pUT… retained

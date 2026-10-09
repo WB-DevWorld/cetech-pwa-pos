@@ -7,7 +7,7 @@ Branch: ws3/combined-candidate-2026-10-08 · PR #144
 Selected base: 7d5778fe904792360947d88122050e529587aa51
 Product commit (frozen composition): 542d3ef2f862394a762de43eacf00c724b17aaec
 Prior tip before this freeze: e0c5bcf4dca4970803afc94f7a35cdb7ef5597f2
-Freeze head: (see git HEAD after this commit) — re-verify at read
+Freeze head: 2e6d704228a522f1f5728c5f2d70cfb08c90e393 — re-verify at read
 Contracts/migrations/ADRs: none
 Staff-documentation impact: NONE
 Production: NOT READY · no alias move · A+D consumed · RD-01 not re-applied · no silent f0

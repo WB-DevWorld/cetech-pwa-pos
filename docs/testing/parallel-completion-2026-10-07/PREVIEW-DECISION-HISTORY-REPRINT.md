@@ -12,8 +12,8 @@ Do **not** dispatch Exact SHA Preview until an owner origin exception is granted
 | --- | --- | --- |
 | Selected base / prior #144 head | `7d5778fe904792360947d88122050e529587aa51` | Root last read |
 | Product correction | `542d3ef2f862394a762de43eacf00c724b17aaec` | Application composition + unit regression |
-| Integration-test tip (pre-freeze working tree) | `e0c5bcf4dca4970803afc94f7a35cdb7ef5597f2` + uncommitted e2e harness | Product files still match `542d3ef`; freeze after integration commit |
-| Freeze tip for dispatch | **Re-verify exact PR head after CI green** | Git source SHA = request `BUILD_ID` |
+| Prior tip before integration freeze | `e0c5bcf4dca4970803afc94f7a35cdb7ef5597f2` | Docs/harness tip before composition e2e |
+| Freeze tip for dispatch | `2e6d704228a522f1f5728c5f2d70cfb08c90e393` | Re-verify PR head + CI green at dispatch; Git SHA = `BUILD_ID` |
 
 Branch: `ws3/combined-candidate-2026-10-08` · PR: https://github.com/WB-DevWorld/cetech-pwa-pos/pull/144
 
