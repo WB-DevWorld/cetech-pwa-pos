@@ -1088,3 +1088,12 @@ Independent AI review supports qualification only; different-human review remain
 - Protected: A+D and RD-01 are not repeated; B/C require a separate GO; historical evidence remains historical; browser storage is preserved.
 - Acceptance: current entrypoints and reading copies agree; permanent guide contains no temporary POS hostname; current instructions do not authorize new commercial effects; exact deployment identity and pending checks are visible.
 - Rollback: revert this documentation slice. No runtime effects.
+
+### TESTER-DOCS-2026-10-09 completion
+
+- Current packet dated 9 October, canonical guide/workbook and staff/root entrypoints refreshed.
+- Historical packets retain their original body/evidence with prominent supersession notices.
+- Current acceptance: exact deployed build 452c446, only srx2grakx URL; existing-order reprint independent of working register/shift.
+- Tester equipment/cache/PWA acceptance remains pending and assigned to testers. Engineering owns POS DB access/restore.
+- No new checkout/payment or B/C GO implied. No source, migration, bridge, deployment, alias or data change.
+- Lease released at publication; downstream WS3 may integrate this documentation commit while keeping runtime qualification bound to the deployed SHA.

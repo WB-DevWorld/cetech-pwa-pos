@@ -1,18 +1,12 @@
 # CETECH POS — Staff Training & User Guide
 
-**Updated for this testing round:** 3 October 2026 — management candidate guidance added.
+**Documentation updated:** 9 October 2026. Read the [current Test Brief](TEST-BRIEF-2026-10-09.md) for the authorized POS address, exact deployed build and testing limits.
 
-**UI refinement candidate — 3 October 2026:** Additional guidance marked **Candidate UI** describes `ws1/ui-refinement-2026-10-03`. Use it only when the coordinator confirms that candidate in the Test Brief. This note does not mean the existing POS link has been updated.
+This document describes intended behavior. Deployment does not establish staff acceptance. Sections marked Candidate UI, Candidate Management or Candidate Scanner are conditional guidance: use them only when the coordinator confirms they apply to the selected build.
 
-**Management remediation candidate — 3 October 2026:** Guidance marked **Candidate Management** describes the current management correction candidate. Use it only after the coordinator confirms its exact build in the Test Brief. Source changes and these instructions do not establish that the shared POS link has changed or that a reported live problem is resolved.
+Open or install the POS from the exact address in the brief. Check which address an installed POS opens. Preserve saved work at previous addresses; do not clear browser or POS data to switch builds.
 
-**Scanner safety candidate — 5 October 2026:** Guidance marked **Candidate Scanner** applies only after the coordinator confirms this candidate's exact build in the Test Brief. The shared POS link has not been changed by this source patch.
-
-**Read and understand the [current Test Brief](TEST-BRIEF-2026-10-02.md) first.**
-
-**[Open the POS for this round](https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app)**
-
-Use this same address when opening or installing the POS. If your installed POS already uses it and works, keep using it and preserve your saved work.
+**For the current round:** sign-in, browsing, safe draft/price checks and existing-receipt reprint are permitted. A new checkout/payment, refund, recovery repair, shared-setting change or shift change requires separate authorization. Follow the brief when a general workflow below asks for one of those actions.
 
 **Audience:** Cashiers, managers, owners/admins, and authorized support staff  
 **Language:** Plain operational English  
@@ -357,6 +351,12 @@ It may include:
 Receipt product-name shortening is a **receipt presentation setting**. It must not change the actual product name in the catalog.
 
 Technical details should not be prominent on the customer receipt.
+
+### Reprinting a completed receipt
+
+Sign in with an account permitted to view that order, open **Orders**, open the completed order and select **Reprint**. Reprinting uses the stored receipt; a register assignment or open shift is not required. It must not create a sale or take payment. If access or printing fails, record the message and report it; do not create a replacement sale.
+
+A print dialog opening is different from successful paper output. Record both separately.
 
 ### Printing
 
@@ -895,6 +895,6 @@ Report a problem when:
 Use the Testing Workbook format so the problem can be reproduced.
 
 
-### Quote-context review candidate — 5 October 2026
+### Price context
 
-This candidate is awaiting review; the shared tester link remains on its recorded testing revision. Changing the customer or location requires a price check for the current context. Pay must remain unavailable while that check is pending, even when the visible items and quantities are unchanged. Test that a delayed earlier response cannot restore the previous customer/location price or enable Pay. Continue using “Check price again” after a failed check; saved cart and recovery instructions are unchanged.
+Use the dated Test Brief for deployment identity and acceptance status. Changing the customer or location requires a price check for the current context. Pay must remain unavailable while that check is pending, even when the visible items and quantities are unchanged. Test that a delayed earlier response cannot restore the previous customer/location price or enable Pay. Continue using “Check price again” after a failed check; saved cart and recovery instructions are unchanged.

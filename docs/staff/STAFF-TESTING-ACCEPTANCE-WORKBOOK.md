@@ -1,18 +1,12 @@
 # CETECH POS — Staff Testing & Acceptance Workbook
 
-**Updated for this testing round:** 3 October 2026 — management candidate checks added.
+**Documentation updated:** 9 October 2026. Read the [current Test Brief](TEST-BRIEF-2026-10-09.md) for the authorized POS address, exact deployed build and testing limits.
 
-**UI refinement candidate — 3 October 2026:** Additional guidance marked **Candidate UI** describes `ws1/ui-refinement-2026-10-03`. Use it only when the coordinator confirms that candidate in the Test Brief. This note does not mean the existing POS link has been updated.
+This document describes intended behavior. Deployment does not establish staff acceptance. Sections marked Candidate UI, Candidate Management or Candidate Scanner are conditional guidance: use them only when the coordinator confirms they apply to the selected build.
 
-**Management remediation candidate — 3 October 2026:** Guidance marked **Candidate Management** describes the current management correction candidate. Use it only after the coordinator confirms its exact build in the Test Brief. Source changes and these instructions do not establish that the shared POS link has changed or that a reported live problem is resolved.
+Open or install the POS from the exact address in the brief. Check which address an installed POS opens. Preserve saved work at previous addresses; do not clear browser or POS data to switch builds.
 
-**Scanner safety candidate — 5 October 2026:** Guidance marked **Candidate Scanner** applies only after the coordinator confirms this candidate's exact build in the Test Brief. The shared POS link has not been changed by this source patch.
-
-**Read and understand the [current Test Brief](TEST-BRIEF-2026-10-02.md) first.**
-
-**[Open the POS for this round](https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app)**
-
-Use this same address when opening or installing the POS. If your installed POS already uses it and works, keep using it and preserve your saved work.
+**For the current round:** sign-in, browsing, safe draft/price checks and existing-receipt reprint are permitted. A new checkout/payment, refund, recovery repair, shared-setting change or shift change requires separate authorization. Follow the brief when a general workflow below asks for one of those actions.
 
 **Purpose:** Help staff test the POS systematically, not randomly.\
 **Audience:** Cashiers, managers, owners/admins, and authorized support testers.\
@@ -22,7 +16,9 @@ Use this same address when opening or installing the POS. If your installed POS 
 
 ## Choose your testing modules
 
-Use the current dated [Test Brief](TEST-BRIEF-2026-10-02.md) for the POS link and this round's rules.
+Use the current dated [Test Brief](TEST-BRIEF-2026-10-09.md) for the POS link and this round's rules.
+
+The current brief controls which tests are authorized. Choosing a module does not authorize checkout, payment, returns, recovery, shift changes or shared-setting changes. Keep completed work completed and record checks that are unavailable or not authorized with the reason.
 
 One designated **Admin** sets up staff, registers, and devices in **M00**. Once your own setup works, choose any module whose starting needs are met. You do not have to complete the whole workbook from top to bottom. Two people can choose the same module using their own registers and test records.
 
@@ -38,7 +34,7 @@ Follow dependent steps inside a module in order. Record tests you cannot run as 
 | [ ] | [M03 Products and cart](#m03--products-and-cart) | T20–T25 | Saved/available products; T22 needs a scanner; T24 needs your completed sale; T25 needs a genuine out-of-date product list |
 | [ ] | [M04 Customers and prices](#m04--customers-and-prices) | T30–T33 | Agreed test customers/products; your own shift for sale steps |
 | [ ] | [M05 Cash sale](#m05--cash-sale) | T40–T42 | Your open shift, agreed test product, test cash; T42 needs controlled uncertainty |
-| [ ] | [M06 Receipts and printing](#m06--receipts-and-printing) | T60–T63 | Your completed sale for T62; a fresh uninterrupted sale for T60/T61; Admin for T63 changes |
+| [ ] | [M06 Receipts and printing](#m06--receipts-and-printing) | T60–T63 | Agreed existing order for T62; separate authorized fresh sale for T60/T61; separately authorized T63 changes |
 | [ ] | [M07 Orders](#m07--orders) | T70–T71 | Your completed order or an agreed view-only test order |
 | [ ] | [M08 Returns](#m08--returns) | T80–T83 | Your fresh eligible test order; agreed safe case for T82; location Manager for T83 |
 | [ ] | [M09 Attention and saved work](#m09--attention-and-saved-work) | T90–T92 | Safe existing unfinished test work; T92 needs two testers sharing one agreed browser |
@@ -58,7 +54,7 @@ At the end, complete [staff feedback](#staff-feedback) and submit your results p
 - Do not change someone's access, register assignment, or shared settings while they are testing. Permission-change tests need an agreed helper and a separate test account.
 - Admin does not automatically mean Manager. Return approvals and shift actions still need the right location role and permission.
 - Shared-browser testing is the deliberate exception in T92. Preserve unfinished work and follow that test's instructions.
-- Cash is the ordinary payment for this round. Appearance of another method is not permission to use it.
+- Do not create a new checkout or payment unless the owner separately authorizes that specific test. A visible payment method is not authorization.
 - Never use the protected historical refund case under issue #102 as a normal return test.
 - If a sale, payment, refund, or stock result is uncertain, stop repeating that action and document it. Do not clear saved POS/browser data.
 
@@ -833,7 +829,7 @@ Record the retry part as **COULD NOT TEST** if no failed check or retry button i
 
 ## T41 — Double-click / repeated cash confirmation
 
-**Do:** Only in the test environment. Attempt the same confirmation twice or repeat after a slow response.
+**Do:** Only with the coordinator's separately authorized duplicate-submit fixture and instrumentation. Do not repeat a payment because a response is slow. A timeout requires checking the same attempt, not charging again. For this round, leave this test unattempted unless that setup and authorization are supplied.
 
 **Expected:**
 - no duplicate order;
@@ -877,7 +873,8 @@ Record the retry part as **COULD NOT TEST** if no failed check or retry button i
 
 # M06 — Receipts and printing
 
-**Before you start:** For T60/T61, complete a fresh T40 cash sale and inspect/print its first receipt immediately. Do not reload, sign out, go offline, or use recovery first. Record the human location/register name, date/time, items and total. If interrupted, record that separately and do not count it as uninterrupted first-receipt proof. T62 then reprints the same stored receipt from Orders. An older receipt proves reprint only. A print-preview screenshot and a physical printer result are separate evidence. T63 changes need Owner/Admin; a Manager can check the permitted view.
+**Before you start:** T62 can use the completed order in the current brief without creating a new sale. An authorized reprint needs neither a register assignment nor an open shift. T60/T61 first-receipt checks require a separately authorized fresh sale and stay unattempted when checkout/payment is not authorized. An existing-order reprint proves reprint only. Browser preview and physical paper are separate results. T63 changes require separate authorization.
+
 
 
 ## T60 — Completed-sale receipt
@@ -924,10 +921,13 @@ Record the retry part as **COULD NOT TEST** if no failed check or retry button i
 
 ## T62 — Reprint from Orders
 
-**Do:** Open a completed order and reprint.
+**Do:** Sign in with an account permitted to view the completed order in the current brief. Without assigning a register or opening a shift for this check, find the order, verify its number and total, open it and select **Reprint**. Record authorized access, receipt rendering, browser print preview and physical printing separately. Do not close an existing shift to manufacture the test. Stop and report any demand to start a sale or take payment.
 
 **Expected:**
-- same stored receipt information is used;
+- authorized access remains permission-scoped;
+- a register assignment and open shift are not prerequisites;
+- same stored receipt information and total are used;
+- no new checkout, sale, payment, refund or stock effect;
 - reprint does not create another sale;
 - current catalog/settings changes do not rewrite the historic receipt.
 
@@ -1135,6 +1135,8 @@ An expired preview belongs under **History**, shows **Return preview expired**, 
 
 
 ## T90 — Attention list
+
+**Authorization required:** A deployed build does not authorize Check/Recover, Repair this sale or any recovery mutation. Use only a separately supplied, approved fixture. Current acceptance may view Attention; leave repair steps unattempted without that approval.
 
 **Original-sale recovery candidate — 3 October 2026:** After the coordinator confirms this build, use an agreed unfinished test sale from your own sign-in/device/register. As a cashier or an assigned manager:
 
@@ -1403,6 +1405,8 @@ The POS must not pretend those actions succeeded.
 
 # M13 — Screens and equipment
 
+Testers own acceptance on their actual device, browser/cache state, installed POS, scanner and printer. Record the launch address/build, equipment and stale-build/update behavior. Preserve saved work. Developer browser checks do not establish hardware acceptance. Record unavailable equipment as COULD NOT TEST.
+
 **Before you start:** Choose the equipment you actually have. For computer/tablet/phone, check both cashier screens and, with the authorized account, Management. Record unavailable equipment as COULD NOT TEST. Changing device does not let you open a second independent shift on the same register.
 
 
@@ -1587,6 +1591,6 @@ After structured testing, ask every tester:
 Do not replace the structured tests with free-form feedback. Use both.
 
 
-### Quote-context review candidate — 5 October 2026
+### Price context
 
-This candidate is awaiting review; the shared tester link remains on its recorded testing revision. Changing the customer or location requires a price check for the current context. Pay must remain unavailable while that check is pending, even when the visible items and quantities are unchanged. Test that a delayed earlier response cannot restore the previous customer/location price or enable Pay. Continue using “Check price again” after a failed check; saved cart and recovery instructions are unchanged.
+Use the dated Test Brief for deployment identity and acceptance status. Changing the customer or location requires a price check for the current context. Pay must remain unavailable while that check is pending, even when the visible items and quantities are unchanged. Test that a delayed earlier response cannot restore the previous customer/location price or enable Pay. Continue using “Check price again” after a failed check; saved cart and recovery instructions are unchanged.

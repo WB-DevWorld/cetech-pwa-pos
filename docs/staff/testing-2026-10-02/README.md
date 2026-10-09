@@ -1,3 +1,5 @@
+> **Historical instructions.** This document is not the current test authorization. Read the [9 October Test Brief](../TEST-BRIEF-2026-10-09.md) for the only permitted testing address and current limits. Preserve any saved work at the old address.
+
 # CETECH POS — Staff Testing
 
 **Issued: 2 October 2026**\

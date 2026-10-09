@@ -2,7 +2,7 @@
 
 Engineering control plane for a three-person, 60-hour production MVP. Canonical repository: https://github.com/WB-DevWorld/cetech-pwa-pos (public; changed by the user and verified 2026-09-12).
 
-**Implementation status:** foundation and contract specifications only. No production app, bridge, database schema or live integrations are claimed. The preserved prototype is a simulated design reference.
+**Qualification status:** controlled staff testing is active; production acceptance is incomplete. Use the dated staff brief for the exact deployed build, permitted checks and pending gates. The preserved prototype remains a design reference.
 
 Start with [AGENTS.md](AGENTS.md), [CURRENT-WORK.md](CURRENT-WORK.md), [START-NOW.md](docs/plans/START-NOW.md) and your [workstream](docs/workstreams/README.md).
 
@@ -11,6 +11,10 @@ python3 scripts/verify_control_plane.py
 ```
 
 This dependency-free foundation check validates structure, reference integrity, contract generation, schema references and task readiness. It is not a checkout/pricing/RLS test. Install app dependencies only after WS3 pins the scaffold/toolchain in CP-05.
+
+## Staff testing
+
+**[Start with the current tester documents](docs/staff/README.md).** Use only the POS link in the dated brief. This documentation update does not deploy or promote the application.
 
 ## Navigation
 - [Constitution](PROJECT-CONSTITUTION.md) / [authority](SOURCE-OF-TRUTH.md) / [ownership](OWNERSHIP.md)

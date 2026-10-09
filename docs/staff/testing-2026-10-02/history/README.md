@@ -1,4 +1,4 @@
-> **Historical record — 24 September 2026.** Do not use its old POS link for the current round. Read the [current brief](https://github.com/WB-DevWorld/cetech-pwa-pos/tree/ws3/management-remediation-2026-10-03/docs/staff/testing-2026-10-02/brief) first.
+> **Historical instructions.** This document is not the current test authorization. Read the [9 October Test Brief](../../TEST-BRIEF-2026-10-09.md) for the only permitted testing address and current limits. Preserve any saved work at the old address.
 
 ---
 
