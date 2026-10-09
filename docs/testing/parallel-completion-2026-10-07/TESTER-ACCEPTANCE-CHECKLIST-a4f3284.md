@@ -46,11 +46,11 @@ Record for every check: date/time (UTC), tester name, device model, OS, browser 
 
 | ID | Check | Result |
 | --- | --- | --- |
-| T-D1 | Staff sign-in on immutable candidate URL (private; no passwords in chat) | PENDING |
-| T-D2 | Session / register / shift hydration | PENDING |
-| T-D3 | Catalog / local draft reads; drafts & journal preserved | PENDING |
-| T-D4 | Existing order **50317** receipt retrieval / reload / reprint presentation + no-scope behavior | PENDING |
-| T-D5 | Confirm release-policy / UI show BUILD_ID `a4f3284…` | Soft-proven unauthenticated; reconfirm when signed in |
+| T-D1 | Staff sign-in on immutable candidate URL (private; no passwords in chat) | **PASSED** (operator; Staging Manager) |
+| T-D2 | Session / register / shift hydration | **PASSED** software — session 200; registers listed; no shift opened |
+| T-D3 | Catalog / local draft reads; drafts & journal preserved | **PASSED** catalog load; Pay stayed disabled; no Pay/sale |
+| T-D4 | Existing order **50317** receipt retrieval / reload / reprint presentation + no-scope behavior | **PASSED** software — detail GHS29 + receipt API + Reprint with no register/shift; native print dialog unconfirmed in automation |
+| T-D5 | Confirm release-policy / UI show BUILD_ID `a4f3284…` | **PASSED** |
 
 ## Related
 

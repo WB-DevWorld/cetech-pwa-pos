@@ -13,11 +13,11 @@ Files changed: execution receipt, tester checklist, blocker cleared, CURRENT-WOR
 Contracts changed: none
 Database migrations: five hosted (see receipt mapping); RD-01 preserved
 Architecture decisions: none
-Completed: conflict precheck; atomic five-migration apply+verify; bridge disk exchange; exact Preview+origin identity; tester docs+receipt
-Remaining: operator private sign-in + authenticated noncommercial; native FPM loaded-generation; tester device/print/PWA; independent review/merge/prod gates
+Completed: conflict precheck; atomic five-migration apply+verify; bridge disk exchange; exact Preview+origin identity; authenticated noncommercial software checks; tester docs+receipt
+Remaining: native FPM loaded-generation; tester device/physical print/PWA/scanner; independent review/merge/prod gates
 Remote effects: staging DDL/history; training plugin exchange; Vercel Preview dpl_FAaW712…; no alias move; no sale/charge
-Assumptions / limitations: native FPM opcode proof UNVERIFIED; authenticated noncommercial PENDING sign-in
-Next exact action: operator signs in privately on https://cetech-pos-staging-q2u9baevb-wbdevworlds-projects.vercel.app and runs checklist T-D1–T-D5 (no Pay)
+Assumptions / limitations: native FPM opcode proof UNVERIFIED; native print dialog unconfirmed in embedded automation
+Next exact action: tester device acceptance on candidate URL (T-A/B/C); optional native print-dialog confirm outside automation
 Freshness protocol: UNVERIFIED for this docs publish (runtime rollout evidence in receipt; no Pass 1/2 fetch cycle claimed)
 Delivery status: READY_FOR_TESTER_ACCEPTANCE on staging/training candidate; BLOCKED for production
 Pass 3: NOT PERMITTED

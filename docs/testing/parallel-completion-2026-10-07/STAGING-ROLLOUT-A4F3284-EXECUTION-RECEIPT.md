@@ -1,6 +1,6 @@
 # STAGING-ROLLOUT-A4F3284-01 — execution receipt
 
-Status: **STAGING/TRAINING APPLIED · candidate Preview READY · authenticated noncommercial PENDING operator sign-in**  
+Status: **STAGING/TRAINING APPLIED · candidate Preview READY · authenticated noncommercial PASSED (software)**  
 Acting: `@wbdevworld` / WS3 (Cursor)  
 Owner approval: `CETECH-POS-WS3-Controlled-Staging-Rollout-a4f3284` — APPROVED `2026-10-09T18:15:52Z`  
 Staff-documentation impact: **NONE**  
@@ -86,16 +86,25 @@ RD-01 preserved: hosted `20261008151307` ↔ source `20261006025100` (not re-app
 
 ## Authenticated noncommercial checks
 
+Operator signed in privately on the candidate host (no password in chat/logs). Observed as Staging Manager (`manager_a`).
+
 | Check | Result |
 | --- | --- |
-| Existing staff session on new immutable host | **NOT AVAILABLE** — cross-origin session does not transfer; browser showed Sign-in (autofill attempt failed; no password entered/logged) |
-| Session/register/shift hydration, catalog/draft reads, order **50317** receipt/reload/reprint / no-scope | **PENDING** operator private sign-in on candidate URL |
-| Pay / new commercial fixture | **not** attempted |
+| `GET /api/pos/v1/session` (cookie) | **200** — org_a; locations loc_a1/loc_a2; registers reg_a/reg_a2/reg_b |
+| Release-policy BUILD_ID | **a4f3284…** (authenticated + unauthenticated) |
+| Sell catalog | Loaded product grid; search box present; **Pay disabled** (empty cart) |
+| Header scope | **No register** / **No open shift** / Online |
+| Register hydration | Register options reg_a/reg_a2/reg_b; Open register disabled without device — **not** opened |
+| Orders list | Includes **50317** |
+| Order detail 50317 | Walk-in · Cash Verified · **GHS 29.00** · txn `33326bbc-1dd7-4582-8409-ea434942d8db` · Register A |
+| Receipt API | `GET /api/pos/v1/receipts/33326bbc…` **200** — `rcpt-33326bbc`, line SKU 49111, total GHS 29 |
+| No-scope Reprint | **Reprint** control available with no register/shift; clicked once; native browser print dialog **not confirmed** in embedded automation (honest limit) |
+| Pay / new commercial fixture / open shift | **not** attempted |
 
 ## Unresolved gates (honest)
 
 - Native training FPM loaded-generation proof for prepare-delete remains **UNVERIFIED**
-- Authenticated noncommercial + physical print/PWA/scanner remain tester/operator evidence
+- Native print dialog / physical paper / installed PWA / scanner remain tester evidence
 - Independent human GitHub APPROVED / main merge / shared alias move / production — **not** granted by this receipt
 - A+D / new sale/charge/refund/stock — **forbidden** and not performed
 

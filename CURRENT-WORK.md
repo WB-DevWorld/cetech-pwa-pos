@@ -19,7 +19,8 @@ shared_tester: UNCHANGED dpl_nxWGr… / 816e0bb…
 previous_452: retained dpl_F3uXp… (superseded for testing)
 receipt: docs/testing/parallel-completion-2026-10-07/STAGING-ROLLOUT-A4F3284-EXECUTION-RECEIPT.md
 tester_checklist: docs/testing/parallel-completion-2026-10-07/TESTER-ACCEPTANCE-CHECKLIST-a4f3284.md
-remaining: operator private sign-in + authenticated noncommercial; tester device/print/PWA; FPM loaded-generation
+remaining: tester device/physical print/PWA/scanner; FPM loaded-generation; native print-dialog confirmation outside embedded automation
+authenticated_noncommercial: PASSED software (50317 / rcpt-33326bbc / GHS29 / no-scope Reprint control)
 forbidden: production, main merge, RD-01 re-apply, A+D, shared alias move, new sale/charge
 production_effects: NONE
 verdict: NOT READY FOR PRODUCTION
