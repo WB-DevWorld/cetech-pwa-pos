@@ -31,8 +31,8 @@ No-scope Reprint not runtime-qualified on a corrected Preview; no installed cash
 | Recover full SHAs / parents / publish to #144 | **PASSED** | GitHub resolves `542d3ef…`, `67b008c…`, `67f89b1…` |
 | Scoped diff vs IMPACT allowlist | **PASSED** | product files + tests + docs/testing + CURRENT-WORK |
 | Vitest connected reprint/print/checkout/workspaces | **PASSED** | 32 then 7 after neg-control expand |
-| PWA lifecycle harness | **PASSED** (TEST-ONLY) | 22/22 `pwa-lifecycle` + `service-worker-lifecycle` |
-| tsc / focused eslint | **PASSED** | exit 0 |
+| PWA lifecycle harness | **PASSED** (TEST-ONLY) | 122/122 expanded Lane D set — LANE2-PWA-HARNESS-CONTINUATION.md |
+| tsc / focused eslint | **PASSED** | re-run exit 0 after interrupted combined shell |
 | Exact SHA Preview deploy | **NOT RUN** | PREVIEW-DECISION-HISTORY-REPRINT.md — needs review+auth |
 | No-scope Reprint on corrected Preview | **NOT RUN** | blocked on Preview decision |
 | f0 open-shift Reprint dialog | **PASSED** (prior) | LANE2-PWA-DEVICE-01 |

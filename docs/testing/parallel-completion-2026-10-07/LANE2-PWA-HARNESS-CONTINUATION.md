@@ -9,9 +9,11 @@ Staff-documentation impact: **NONE**
 
 | Command | Result |
 | --- | --- |
-| `pnpm exec vitest run src/local/pwa-lifecycle.test.ts src/local/service-worker-lifecycle.test.ts` (apps/pos-web) | **22/22 PASSED** |
+| Core: `pwa-lifecycle` + `service-worker-lifecycle` | **22/22 PASSED** (earlier) |
+| Expanded Lane D set (2026-10-09): lifecycle runtime, staff-runtime, offline presentation, pwa-upgrade, operation-journal, staff composition, r9 system-status, checkout r9/journal, release-policy client/handler | **122/122 PASSED** · 13 files |
+| `tsc --noEmit` + focused eslint on history-reprint files | **PASSED** (re-run after interrupted combined shell) |
 
-These exercise CORE-07 multi-tab lifecycle lease and service-worker safety / standalone manifest invariants. Label: **TEST-ONLY** — not performed on an installed cashier client.
+Label: **TEST-ONLY** — not an installed cashier client. Installed qualification remains `docs/runbooks/R10-DEVICE-AND-PWA-REHEARSAL.md` (Q-PWA-01…06) when a dedicated device is available.
 
 ## Carry-forward from LANE2-PWA-DEVICE-01 (f0 harness)
 
