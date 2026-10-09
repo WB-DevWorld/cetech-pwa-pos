@@ -14,7 +14,7 @@ TF-01: SOURCE REPAIRED + write-boundary (20261009150000 PROPOSED)
 TF-02: SOURCE REPAIRED + canonical receipt adopt
 AUTH-01: SOURCE/TEST ACCEPTED
 DB-SEC-02/03: SOURCE-REPAIRED + asserting probes; shift open disabled path closed
-review_tip: PENDING_PUSH
+review_tip: 1f85387e3e1ad2a04309ca5bbfc0f10831eff55d
 evidence: R-F4-FOLLOW-UP-REPAIR.md; DB-SEC-02-03-PROBE-STATUS.md; scopes
 production_effects: NONE
 verdict: NOT READY FOR PRODUCTION
