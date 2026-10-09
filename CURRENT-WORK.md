@@ -6,21 +6,23 @@ bridge reviewer: @Emmanuel-coder-prog / WS2 (distinct; review only)
 task: PRINT-PWA-RECOVERY-COMPLETION (Lane 1 history reprint + Lane 2 device/PWA + Lane 3 restore/FPM/B-C prep)
 owner_approval: CETECH-POS-WS3-Print-PWA-Recovery-Completion.md; no prod; no second cash sale; no RD-01 re-apply; no new f0 Preview exception; no shared alias move
 branch: ws3/combined-candidate-2026-10-08
-selected_base: 7d5778fe904792360947d88122050e529587aa51 (#144 head; product source unchanged)
-lane1_head: 542d3ef2f862394a762de43eacf00c724b17aaec
+selected_base: 7d5778fe904792360947d88122050e529587aa51
+product_commit: 542d3ef2f862394a762de43eacf00c724b17aaec (parent 7d5778f; PUBLISHED to #144)
+evidence_tip: 67f89b1a7e02afeade4c9ab60c7167eeef586266 (neg-control + Preview decision; product files match 542d3ef)
 freeze_tip: f0feb44e9b3b241f0f712d3e306a9b768e0a070a
 product_tip: ab5c7e1f3849ff65100a84058e92f8b281a14be2
 bridge_tree: fc8f2d05e7fe36001c3e9265cad0b4754417fedd
-preview_frozen: dpl_8pUT… retained; release-lifecycle qualification incomplete
-preview_replacement: dpl_4Vk3XQ… / gqg6tjedt / BUILD_ID f0feb44… — still f0 composition; open-shift Reprint + browser print dialog OK; no-scope fix needs corrected Preview of 542d3ef…
+preview_frozen: dpl_8pUT… retained
+preview_f0: dpl_4Vk3XQ… / gqg6tjedt / BUILD_ID f0feb44… — open-shift Reprint dialog OK; no-scope fix needs corrected Preview
+preview_decision: PREVIEW-DECISION-HISTORY-REPRINT.md — Exact SHA Preview PENDING auth (no new f0 exception)
 tester: dpl_nxWGr… / 816e0bb…; A+D CAP CONSUMED — do not repeat sale
 rd01: COMPLETE — do not re-apply
 bridge_install: COMPLETE — live 63094753… / 89e4461c…; native FPM cutover UNVERIFIED
 A+D: CLOSED — txn 33326bbc-… / sale-50317 / rcpt-33326bbc
-lane1: SOURCE COMPLETE @ 542d3ef… — history ports + regression; Preview deploy decision pending
-lane2: HARNESS PARTIAL — draft/offline/reconnect/clear + open-shift browser Reprint PASSED; installed PWA/hardware NOT RUN
-lane3: PREP — inventory + FPM honesty + B/C decision; restore/B/C NOT EXECUTED
-handoff: HANDOFF-PRINT-PWA-RECOVERY-COMPLETION.md
+lane1: PUBLISHED — history ports + regression + neg-control; Preview decision prepared
+lane2: TEST-ONLY harness 22/22 + prior f0 draft/offline; installed PWA/hardware NOT RUN
+lane3: PREP continuing — restore/B/C NOT EXECUTED
+handoff: refreshing consolidated completion handoff
 profiler: PARKED
 #115 / #132: remain OPEN
 production_effects: NONE
