@@ -1,29 +1,45 @@
-# DB-SEC-02 / DB-SEC-03 — disposable probe status
+# DB-SEC-02 / DB-SEC-03 — disposable probe + repair
 
-Status: **PROBES READY · UNEXECUTED** (no disposable migrated Supabase stack on this workstation for DML)  
-Staff-documentation impact: **NONE** · **never** run on hosted staging/production
+Status: **REPRODUCED on local supabase_db · SOURCE-REPAIRED · TEST-QUALIFIED (disposable)**  
+Hosted staging: **NOT applied** · Production effects: **NONE**  
+Staff-documentation impact: **NONE**
 
-## Sources
+## Environment
 
-Copied from review evidence ZIP (private extract under `%LOCALAPPDATA%\CETECH-POS-R10\review-evidence-2026-10-09\`):
+- Target: `supabase_db_cetech-pwa-pos` loopback (`127.0.0.1:54322`), migrated local stack with synthetic `org_a` / `loc_a1` / `reg_a` / `cashier_a` seed.
+- Never run on hosted staging/production. Probes `BEGIN`/`ROLLBACK`.
+- Schema-adapted probes (review ZIP SQL omitted org/location columns present on current `pos_shifts` / `pos_cash_movements`).
 
-- `repro-direct-cash-correction.sql` — DB-SEC-02  
-- `repro-disabled-staff.sql` — DB-SEC-03  
+## Before repair (UNEXECUTED → executed)
 
-## Why not executed here
+| Probe | Result |
+| --- | --- |
+| DB-SEC-02 direct correction | **OPEN** — `DIRECT_CORRECTION_RESULT corrections=1`, `admin_audit_rows=0`; admin RPC denied (control PASS); empty-location insert denied (control PASS) |
+| DB-SEC-03 disabled Auth JWT cash insert | **OPEN** — `DISABLED_CASH_INSERT count=1`; register SELECT still visible |
 
-- Empty plain PG17 `cetech-pos-r10-pg-20261009:55432` is not a migrated Supabase role/RLS stack.  
-- No `supabase` CLI login / `staging-db.url` for a disposable clone.  
-- Packet forbids hosted DML.
+## Repair (proposed migration, local-applied only)
 
-## Next authorized step
+`supabase/migrations/20261009140000_db_sec_02_03_cash_authz.sql`
 
-1. Stand up disposable loopback Supabase/Postgres with exact migrations through `452c446` (+ proposed TF-01 migration if testing claims).  
-2. Seed synthetic org/location/register/shift/assignment rows.  
-3. Run both SQL files (they `ROLLBACK`).  
-4. If DB-SEC-02 reproduces: additive migration closing direct authenticated `correction` INSERT while preserving service-only audited RPC.  
-5. If DB-SEC-03 reproduces: decide supported direct-client boundary, then enforce active access in RLS or remove unused direct writes.
+- Remove `correction` from authenticated-allowed cash kinds in `pos_cash_before_write` (DB-SEC-02).
+- Add `pos_actor_access_is_active` (SECURITY DEFINER boolean; no table SELECT grant) and require it for authenticated cash inserts (DB-SEC-03).
+- Preserve `pos_admin_reverse_cash_movement` (SECURITY DEFINER / service_role) audited corrections.
 
-## AUTH-02
+## After repair (local)
 
-Still a **policy decision** (customer search with zero assignments). Not invented as manager-only in this batch.
+| Check | Result |
+| --- | --- |
+| DB-SEC-02 direct correction | **CLOSED** — 42501 denied |
+| Admin reverse (service_role) | **PASS** — correction row + audit path intact |
+| DB-SEC-03 disabled pay_in | **CLOSED** — 42501 `actor is disabled` |
+| Active pay_in after reactivate | **PASS** |
+
+## Classification
+
+- Defects: **SOURCE-REPAIRED** + **TEST-QUALIFIED** on disposable local Postgres.
+- **NOT RUNTIME-QUALIFIED** on hosted until separately authorized migration apply.
+- AUTH-02 customer-read policy: still a decision item; not invented here.
+
+## Rollback
+
+Revert/replace `pos_cash_before_write` and drop `pos_actor_access_is_active` if the additive migration must be withdrawn before hosted apply.

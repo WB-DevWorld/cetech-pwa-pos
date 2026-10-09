@@ -1,15 +1,16 @@
-﻿{
-  "task": "PARALLEL-LANE-A-DB-SEC-01",
-  "base": "0e383d84f11573ca89d6533c8cb7c35d79d7b261",
-  "candidate_head": "c512b106bce1a0efcfd9c2caeddd54ad9e43dccd",
+{
+  "task": "PARALLEL-LANE-A-DB-SEC-02-03",
+  "base": "1d946359382bbf8b2dd561bf28dfabe4ada2f1ee",
   "allowed": [
-    "supabase/migrations/20261006025100_db_sec_01_revoke_authenticated_truncate.sql",
-    "supabase/tests/db_sec_01_truncate.sql",
-    "docs/workstreams/WS-03-CORE-DATA-INTEGRATION/evidence/DB-SEC-01.md",
-    "docs/testing/parallel-completion-2026-10-07/**",
+    "supabase/migrations/20261009140000_db_sec_02_03_cash_authz.sql",
+    "docs/testing/parallel-completion-2026-10-07/db-sec-02-direct-cash-correction-probe.sql",
+    "docs/testing/parallel-completion-2026-10-07/db-sec-03-disabled-staff-probe.sql",
+    "docs/testing/parallel-completion-2026-10-07/DB-SEC-02-03-PROBE-STATUS.md",
+    "docs/testing/parallel-completion-2026-10-07/scope-lane-a-db-sec.json",
+    "docs/testing/parallel-completion-2026-10-07/HANDOFF-COMMIT-VALIDATE-PUBLISH-REPAIRS.md",
     "CURRENT-WORK.md"
   ],
-  "forbidden": ["hosted DDL", "speculative indexes/policies/defaults", "apps/pos-web/**", "wordpress/**"],
+  "forbidden": ["hosted DDL", "RD-01 re-apply", "apps/pos-web/**", "wordpress/**", "production", "new tester Preview"],
   "staff_documentation_impact": "NONE",
   "production_effects": "NONE"
 }
