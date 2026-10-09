@@ -1,7 +1,7 @@
 # TF-01 + TF-02 repair (WS3)
 
-Status: **SOURCE REPAIRED (local tests)** · hosted migration **PROPOSED NOT APPLIED** · production effects **NONE**  
-Base: `452c446fd0e3821fc3bfdb5de85a01d19a331809` · branch `ws3/combined-candidate-2026-10-08`  
+Status: **SOURCE REPAIRED + disposable PG atomic/claim proof** · hosted migration **PROPOSED NOT APPLIED** · production effects **NONE**  
+Tip: `e28e02d…` (+ follow-up for `public.pos_id` RPC fix / proof script) · base `452c446` · branch `ws3/combined-candidate-2026-10-08`  
 Staff-documentation impact: **NONE** (cashier UX unchanged; server refuses dual tender / false receipt success)
 
 ## Invariants now held
@@ -34,9 +34,22 @@ Result: **6/6 passed** (Node/Vitest from apps/pos-web toolchain).
 
 Also preserved: `confirm-cash-existing-payment`, `cash-finalize-orchestration`, `payment-reservation-expiry`.
 
+## Disposable PostgreSQL proof (local `supabase_db_cetech-pwa-pos`, rolled back)
+
+Script: `tf-01-disposable-atomic-proof.sql`
+
+| Check | Result |
+| --- | --- |
+| Force failure after movement / before valid payment | **0** cash_sale rows; expected cash unchanged; no payment |
+| Happy-path atomic commit | **1** cash_sale + verified payment; expected cash +1500 |
+| Opposite tender claim | unique_violation; held family unchanged; **0** cash moves |
+| anon execute RPC | denied |
+| Two independent `psql` clients racing cash vs electronic claim | exactly one winner row (DB PK; not process locks) |
+
+Hosted staging was **not** migrated. Migrations remain proposed.
+
 ## Remaining
 
-- Disposable two-client PostgreSQL proof of claim + atomic RPC (process locks must not provide protection)
 - DB-SEC-02/03 disposable probes
 - Hosted apply of tender-claim + atomic-cash migrations + reviewed Preview redeploy (separate)
 - Tester device acceptance unchanged (Preview remains 452c446 until reviewed)

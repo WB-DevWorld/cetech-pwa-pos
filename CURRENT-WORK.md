@@ -12,11 +12,12 @@ preview_candidate: dpl_F3uXpLZA7xrkTb5av4TNzDc3ZGry / srx2grakx / BUILD_ID 452c4
 tester_shared: 816e0bb… UNCHANGED; A+D CAP CONSUMED
 rd01: COMPLETE — hosted 20261008151307 — do not re-apply
 A+D: CLOSED — 33326bbc… / sale-50317
-TF-01: SOURCE REPAIRED locally — claimSaleTender + atomic recordVerifiedCashSale (migrations 20261009130000 + 20261009130100 PROPOSED, not hosted)
+TF-01: SOURCE REPAIRED + disposable PG proof — claimSaleTender + atomic recordVerifiedCashSale (migrations 20261009130000 + 20261009130100 PROPOSED, not hosted)
 TF-02: SOURCE REPAIRED locally — full UUID receipt + 409 same-tx only
 AUTH-01: SOURCE REPAIRED locally — post-insert recheck + guard/authorize access (tests PASS)
 DB-SEC-02/03: PROBES UNEXECUTED — need disposable migrated DB (DB-SEC-02-03-PROBE-STATUS.md)
-TF-01_DB: disposable two-client PG proof PENDING (source published first)
+TF-01_DB: disposable local proof PASS (tf-01-disposable-atomic-proof.sql + two-client claim race); hosted NOT applied
+review_tip: publish head on ws3/combined-candidate-2026-10-08 (see git); tester Preview still 452c446
 handoff_prior: HANDOFF-ALL-LANES-0900.md
 evidence: TF-01-TF-02-REPAIR.md; AUTH-01-DISABLEMENT-REPAIR.md; DB-SEC-02-03-PROBE-STATUS.md; scope-tf-01/tf-02/auth-01 json
 publish: WS3-Commit-Validate-and-Publish-Repairs.md — review candidate push authorized; no new Preview until reviewed

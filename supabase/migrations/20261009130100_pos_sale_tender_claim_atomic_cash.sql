@@ -37,8 +37,8 @@ BEGIN
     RAISE EXCEPTION 'pos_record_verified_cash_sale accepts verified cash only' USING ERRCODE = '23514';
   END IF;
 
-  IF p_organization_id IS DISTINCT FROM (p_payment->>'organization_id')::pos_id
-     OR p_location_id IS DISTINCT FROM (p_payment->>'location_id')::pos_id THEN
+  IF p_organization_id IS DISTINCT FROM (p_payment->>'organization_id')::public.pos_id
+     OR p_location_id IS DISTINCT FROM (p_payment->>'location_id')::public.pos_id THEN
     RAISE EXCEPTION 'payment organization/location scope mismatch' USING ERRCODE = '42501';
   END IF;
 
