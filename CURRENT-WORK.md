@@ -1,4 +1,4 @@
-## COMBINED-CANDIDATE-2026-10-08 — ACTIVE controlled staging rollout (WS3)
+## COMBINED-CANDIDATE-2026-10-08 — controlled staging rollout APPLIED (WS3)
 
 ```text
 human / integration editor: @wbdevworld / WS3
@@ -11,13 +11,17 @@ bridge_tree: de27630af10885d166401cba4043a02e3b2a4d2b
 ci: 37964935009 SUCCESS
 staging_db: iegxncvpsyaitkpzywcr ONLY
 training_wp: training.cetechbpa.com ONLY
-scope: five named migrations + training bridge class-woo-runtime.php + ONE exact-a4f3284 Preview + noncommercial checks + tester docs
+status: STAGING/TRAINING APPLIED + candidate Preview READY
+hosted_migrations: 20261009214234…20261009214238 (source 20261009130000…20261009160000)
+bridge_live_runtime: fa478ea4… DISK VERIFIED; native FPM loaded-generation UNVERIFIED
+preview: dpl_FAaW712WnVBZ9Wr7B8MXCurJEeXW / q2u9baevb / BUILD_ID a4f3284…
+shared_tester: UNCHANGED dpl_nxWGr… / 816e0bb…
+previous_452: retained dpl_F3uXp… (superseded for testing)
+receipt: docs/testing/parallel-completion-2026-10-07/STAGING-ROLLOUT-A4F3284-EXECUTION-RECEIPT.md
+tester_checklist: docs/testing/parallel-completion-2026-10-07/TESTER-ACCEPTANCE-CHECKLIST-a4f3284.md
+remaining: operator private sign-in + authenticated noncommercial; tester device/print/PWA; FPM loaded-generation
 forbidden: production, main merge, RD-01 re-apply, A+D, shared alias move, new sale/charge
-migration_hashes: VERIFIED MATCH for all five files
-bridge_hash: VERIFIED MATCH fa478ea4… (class-woo-runtime.php)
-previous_tester: 452c446 / dpl_F3uXp… — do not silent-move
-production_effects: NONE until/unless separately released
-blocker: STAGING-ROLLOUT-A4F3284-BLOCKER.md — Supabase token + Vercel login required
+production_effects: NONE
 verdict: NOT READY FOR PRODUCTION
 staff_documentation_impact: NONE
 ```
