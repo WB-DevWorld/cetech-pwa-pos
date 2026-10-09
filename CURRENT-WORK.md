@@ -11,7 +11,7 @@ preview_candidate: dpl_F3uXp… / 452c446 — do not silent-move
 Gate1: SOURCE-REPAIRED — evidence enrollment migration 20261009160000 PROPOSED
 Gate2: SOURCE-REPAIRED — paired disabled-shift + db-sec pgTAP registered
 Gate3: SOURCE-REPAIRED — prepare same-request deletes guard + bridge tests
-review_tip: PENDING_PUSH
+review_tip: 3018999b6825c94085a87be0afb9363b89f4bc43
 staging_record: STAGING-EXECUTION-RECORD-GATES.md (no hosted apply)
 production_effects: NONE
 verdict: NOT READY FOR PRODUCTION

@@ -6,7 +6,7 @@ Production effects: **NONE** in this source batch. This record is the concrete p
 
 - Branch: `ws3/combined-candidate-2026-10-08`
 - PR: #144
-- Final tip: _(pinned at publish)_
+- Final tip: `3018999b6825c94085a87be0afb9363b89f4bc43`
 - Reviewed base for this gate batch: `22035a513e43b896cbc5e96964aa428b71d8d010`
 - Tester remains: `dpl_F3uXpLZA7xrkTb5av4TNzDc3ZGry` / BUILD_ID `452c446` until identity-proved Preview after apply
 
