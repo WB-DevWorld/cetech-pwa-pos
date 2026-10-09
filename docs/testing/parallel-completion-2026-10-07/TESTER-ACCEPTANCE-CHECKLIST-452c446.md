@@ -1,5 +1,7 @@
 # Tester acceptance checklist — Preview `452c446`
 
+> **Superseded for current testing.** Use [TESTER-ACCEPTANCE-CHECKLIST-a4f3284.md](TESTER-ACCEPTANCE-CHECKLIST-a4f3284.md) and https://cetech-pos-staging-q2u9baevb-wbdevworlds-projects.vercel.app (BUILD_ID `a4f3284…`). This `452c446` checklist remains a historical record only.
+
 Candidate URL (only this build for 09:00 testing):  
 https://cetech-pos-staging-srx2grakx-wbdevworlds-projects.vercel.app  
 

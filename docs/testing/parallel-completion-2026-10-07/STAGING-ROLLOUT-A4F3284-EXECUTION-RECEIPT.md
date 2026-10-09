@@ -1,9 +1,10 @@
 # STAGING-ROLLOUT-A4F3284-01 — execution receipt
 
-Status: **STAGING/TRAINING APPLIED · candidate Preview READY · authenticated noncommercial PASSED (software)**  
+Status: **STAGING/TRAINING APPLIED · candidate Preview READY · authenticated noncommercial PASSED (software) · native FPM guard proof PASSED**  
 Acting: `@wbdevworld` / WS3 (Cursor)  
 Owner approval: `CETECH-POS-WS3-Controlled-Staging-Rollout-a4f3284` — APPROVED `2026-10-09T18:15:52Z`  
-Staff-documentation impact: **NONE**  
+Closeout task: `FPM-AND-TESTER-HANDOFF-CLOSEOUT-A4-01`  
+Staff-documentation impact: **UPDATED** (current-round entrypoint notices)  
 Production effects: **NONE**  
 Verdict: **NOT READY FOR PRODUCTION**
 
@@ -68,7 +69,27 @@ RD-01 preserved: hosted `20261008151307` ↔ source `20261006025100` (not re-app
 | Identity string count | 2 |
 | Same-request guard count | 6 |
 | Timers after | wp-cron + mailpoet **active**; `.maintenance` **absent** |
-| Native FPM loaded-generation / opcode proof | **UNVERIFIED** (idle status only; no allowlisted prepare-delete opcode probe) |
+| Native FPM current execution proof | **PASSED** — see § Native FPM guard proof (closeout A4-01). Not retroactive cutover proof. |
+
+## Native FPM guard proof (closeout A4-01)
+
+Current-generation proof only. Task-local probe removed after run. No directory exchange, PHP kill, global OPcache reset, or FPM master reload.
+
+| Field | Value |
+| --- | --- |
+| UTC | `2026-10-09T22:27:09+00:00` |
+| Task / product | `FPM-AND-TESTER-HANDOFF-CLOSEOUT-A4-01` / `a4f3284…` |
+| Transport | accepted training FastCGI client shape → `127.0.0.1:20001`, 10s whole-request deadline |
+| PHP_SAPI | `fpm-fcgi` |
+| PID | `26369` |
+| Reflected method | `Cetech_Pos_Bridge_Woo_Runtime::assert_no_unexpected_same_request_order_creates` @ `class-woo-runtime.php:1244` |
+| Runtime disk SHA-256 | `fa478ea44425679abfc9abbfd85618eab4fb7671e5b9364bfc795825860c5ceb` |
+| OPcache file entry for runtime | **null** (restricted output; not required when SAPI + outcomes pass) |
+| Case: object, one intended create, deletes 0 | `true` |
+| Case: object, deletes 1 | `INTEGRATION_UNAVAILABLE` / status **503** |
+| Case: array, deletes 1 | `INTEGRATION_UNAVAILABLE` / status **503** |
+| Timers / maintenance after proof | unchanged (active / absent) |
+| Verdict | **PASS** (current native execution of the delete guard) |
 
 ## Preview identity (unauthenticated)
 
@@ -92,19 +113,21 @@ Operator signed in privately on the candidate host (no password in chat/logs). O
 | --- | --- |
 | `GET /api/pos/v1/session` (cookie) | **200** — org_a; locations loc_a1/loc_a2; registers reg_a/reg_a2/reg_b |
 | Release-policy BUILD_ID | **a4f3284…** (authenticated + unauthenticated) |
-| Sell catalog | Loaded product grid; search box present; **Pay disabled** (empty cart) |
+| Sell catalog presentation (T-D3a) | Loaded product grid; search box present; **Pay disabled** (empty cart) |
+| Draft persistence / journal survival (T-D3b) | **PENDING** — not claimed from no observed loss |
 | Header scope | **No register** / **No open shift** / Online |
 | Register hydration | Register options reg_a/reg_a2/reg_b; Open register disabled without device — **not** opened |
 | Orders list | Includes **50317** |
-| Order detail 50317 | Walk-in · Cash Verified · **GHS 29.00** · txn `33326bbc-1dd7-4582-8409-ea434942d8db` · Register A |
-| Receipt API | `GET /api/pos/v1/receipts/33326bbc…` **200** — `rcpt-33326bbc`, line SKU 49111, total GHS 29 |
-| No-scope Reprint | **Reprint** control available with no register/shift; clicked once; native browser print dialog **not confirmed** in embedded automation (honest limit) |
+| Order detail + receipt retrieval (T-D4a) | Walk-in · Cash Verified · **GHS 29.00** · txn `33326bbc…` · `rcpt-33326bbc` via API **200** |
+| No-scope Reprint control (T-D4b) | **Reprint** available with no register/shift; clicked once |
+| Receipt reload (T-D4c) | **PENDING** — not observed |
+| Native print dialog / paper (T-D4d / §C) | **PENDING** — dialog unconfirmed in embedded automation; paper tester-owned |
 | Pay / new commercial fixture / open shift | **not** attempted |
 
 ## Unresolved gates (honest)
 
-- Native training FPM loaded-generation proof for prepare-delete remains **UNVERIFIED**
-- Native print dialog / physical paper / installed PWA / scanner remain tester evidence
+- Draft persistence / journal survival, receipt reload, native print dialog, physical paper, installed PWA, scanner remain tester / pending evidence
+- Historical FPM cutover-at-exchange opcode proof remains **not** claimed (current native guard proof is separate)
 - Independent human GitHub APPROVED / main merge / shared alias move / production — **not** granted by this receipt
 - A+D / new sale/charge/refund/stock — **forbidden** and not performed
 

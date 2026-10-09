@@ -1,3 +1,22 @@
+## COMBINED-CANDIDATE-2026-10-08 — FPM + tester handoff closeout COMPLETE (WS3)
+
+```text
+human / integration editor: @wbdevworld / WS3
+task: FPM-AND-TESTER-HANDOFF-CLOSEOUT-A4-01
+status: COMPLETE
+continues: STAGING-ROLLOUT-A4F3284-01 (owner approval 2026-10-09T18:15:52Z)
+exact_sha / product freeze: a4f3284c35785dbb0efe3843d38084f12911ac15
+native_fpm_guard_proof: PASS 2026-10-09T22:27:09Z fpm-fcgi pid 26369 fa478ea4… (three synthetic outcomes)
+preview: dpl_FAaW712… / q2u9baevb unchanged
+staff_entrypoints: UPDATED → q2u9baevb + TESTER-ACCEPTANCE-CHECKLIST-a4f3284.md
+receipt: docs/testing/parallel-completion-2026-10-07/STAGING-ROLLOUT-A4F3284-EXECUTION-RECEIPT.md
+remaining_tester_owned: device/PWA/scanner/paper; draft persistence; receipt reload; native print dialog
+forbidden: product source edits; new Preview; alias move; production; A+D
+production_effects: NONE
+verdict: NOT READY FOR PRODUCTION
+staff_documentation_impact: UPDATED
+```
+
 ## COMBINED-CANDIDATE-2026-10-08 — controlled staging rollout APPLIED (WS3)
 
 ```text
@@ -13,18 +32,18 @@ staging_db: iegxncvpsyaitkpzywcr ONLY
 training_wp: training.cetechbpa.com ONLY
 status: STAGING/TRAINING APPLIED + candidate Preview READY
 hosted_migrations: 20261009214234…20261009214238 (source 20261009130000…20261009160000)
-bridge_live_runtime: fa478ea4… DISK VERIFIED; native FPM loaded-generation UNVERIFIED
+bridge_live_runtime: fa478ea4… DISK VERIFIED; native FPM guard proof PASS (closeout A4-01)
 preview: dpl_FAaW712WnVBZ9Wr7B8MXCurJEeXW / q2u9baevb / BUILD_ID a4f3284…
 shared_tester: UNCHANGED dpl_nxWGr… / 816e0bb…
 previous_452: retained dpl_F3uXp… (superseded for testing)
 receipt: docs/testing/parallel-completion-2026-10-07/STAGING-ROLLOUT-A4F3284-EXECUTION-RECEIPT.md
 tester_checklist: docs/testing/parallel-completion-2026-10-07/TESTER-ACCEPTANCE-CHECKLIST-a4f3284.md
-remaining: tester device/physical print/PWA/scanner; FPM loaded-generation; native print-dialog confirmation outside embedded automation
-authenticated_noncommercial: PASSED software (50317 / rcpt-33326bbc / GHS29 / no-scope Reprint control)
+remaining: tester device/physical print/PWA/scanner; draft persistence; receipt reload
+authenticated_noncommercial: PASSED software (precise T-D labels in receipt/checklist)
 forbidden: production, main merge, RD-01 re-apply, A+D, shared alias move, new sale/charge
 production_effects: NONE
 verdict: NOT READY FOR PRODUCTION
-staff_documentation_impact: NONE
+staff_documentation_impact: UPDATED (closeout A4-01)
 ```
 ## DB-SEC-01 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â staging APPLIED AND VERIFIED (RD-01 complete)
 

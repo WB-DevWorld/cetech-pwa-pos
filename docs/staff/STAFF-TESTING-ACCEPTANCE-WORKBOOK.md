@@ -1,6 +1,14 @@
 # CETECH POS — Staff Testing & Acceptance Workbook
 
-**Updated for this testing round:** 3 October 2026 — management candidate checks added.
+> **Current testing round (9 October 2026) — use this only**  
+> POS: https://cetech-pos-staging-q2u9baevb-wbdevworlds-projects.vercel.app  
+> BUILD_ID: `a4f3284c35785dbb0efe3843d38084f12911ac15`  
+> Checklist: [TESTER-ACCEPTANCE-CHECKLIST-a4f3284.md](../testing/parallel-completion-2026-10-07/TESTER-ACCEPTANCE-CHECKLIST-a4f3284.md)  
+> Scope: device / PWA / cache / scanner and existing order **50317** receipt / paper.  
+> **Do not** click Pay, create a new sale, charge, refund, or run a stock experiment.  
+> Modules below that instruct a fresh cash sale are **historical** for this round — follow the a4f3284 checklist instead.
+
+**Updated for this testing round:** 9 October 2026 — a4f3284 staging candidate handoff.
 
 **UI refinement candidate — 3 October 2026:** Additional guidance marked **Candidate UI** describes `ws1/ui-refinement-2026-10-03`. Use it only when the coordinator confirms that candidate in the Test Brief. This note does not mean the existing POS link has been updated.
 
@@ -10,9 +18,9 @@
 
 **Read and understand the [current Test Brief](TEST-BRIEF-2026-10-02.md) first.**
 
-**[Open the POS for this round](https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app)**
+**[Open the POS for this round](https://cetech-pos-staging-q2u9baevb-wbdevworlds-projects.vercel.app)** — BUILD_ID `a4f3284…`
 
-Use this same address when opening or installing the POS. If your installed POS already uses it and works, keep using it and preserve your saved work.
+Use this same address when opening or installing the POS. Preserve saved work. Do not treat older shared-tester bookmarks as this build.
 
 **Purpose:** Help staff test the POS systematically, not randomly.\
 **Audience:** Cashiers, managers, owners/admins, and authorized support testers.\

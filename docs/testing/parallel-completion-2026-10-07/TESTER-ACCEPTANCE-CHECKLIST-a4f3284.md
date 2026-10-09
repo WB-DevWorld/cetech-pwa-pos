@@ -1,6 +1,6 @@
 # Tester acceptance checklist — Preview `a4f3284`
 
-Candidate URL (only this build for post-rollout testing):  
+Candidate URL (only this build for current testing):  
 https://cetech-pos-staging-q2u9baevb-wbdevworlds-projects.vercel.app  
 
 Deployment: `dpl_FAaW712WnVBZ9Wr7B8MXCurJEeXW` · BUILD_ID / Git SHA `a4f3284c35785dbb0efe3843d38084f12911ac15`  
@@ -9,9 +9,9 @@ Deployment: `dpl_FAaW712WnVBZ9Wr7B8MXCurJEeXW` · BUILD_ID / Git SHA `a4f3284c35
 Retain f0 (`dpl_4Vk3XQ…`) and shared tester (`816e0bb…` / `git-integration-9578df…`) — do **not** treat them as this candidate. Do **not** silently move shared aliases.
 
 Staging schema: tender-claim + write-boundary + evidence enrollment applied (`20261009214234`…`20261009214238`).  
-Training bridge runtime: `fa478ea4…` on disk (native FPM loaded-generation still **UNVERIFIED**).  
-Staff-documentation impact: **NONE** for checklist issuance.  
-Classification: items below are **TESTER ACCEPTANCE PENDING** until recorded.  
+Training bridge runtime: `fa478ea4…` · native FPM proof of prepare same-request delete guard **PASSED** (current execution; not historical cutover).  
+Staff-documentation impact: entrypoints updated for this round (see staff README / brief / guide / workbook).  
+Classification: device/PWA/scanner/paper items remain **TESTER ACCEPTANCE PENDING**.  
 Verdict: **NOT READY FOR PRODUCTION**.
 
 Record for every check: date/time (UTC), tester name, device model, OS, browser (or installed PWA), observed BUILD_ID, pass/fail/blocked, notes. Do **not** clear IndexedDB, journals, or unresolved operation evidence as a routine cache fix (see `docs/runbooks/R10-DEVICE-AND-PWA-REHEARSAL.md`). Do **not** click Pay or create a new commercial fixture.
@@ -48,11 +48,15 @@ Record for every check: date/time (UTC), tester name, device model, OS, browser 
 | --- | --- | --- |
 | T-D1 | Staff sign-in on immutable candidate URL (private; no passwords in chat) | **PASSED** (operator; Staging Manager) |
 | T-D2 | Session / register / shift hydration | **PASSED** software — session 200; registers listed; no shift opened |
-| T-D3 | Catalog / local draft reads; drafts & journal preserved | **PASSED** catalog load; Pay stayed disabled; no Pay/sale |
-| T-D4 | Existing order **50317** receipt retrieval / reload / reprint presentation + no-scope behavior | **PASSED** software — detail GHS29 + receipt API + Reprint with no register/shift; native print dialog unconfirmed in automation |
+| T-D3a | Catalog presentation on Sell | **PASSED** — product grid loaded; Pay stayed disabled; no Pay/sale |
+| T-D3b | Exact-build draft persistence / journal survival | **PENDING** — not qualified from “no observed loss” alone |
+| T-D4a | Order **50317** detail + receipt retrieval (GHS 29 / `rcpt-33326bbc`) | **PASSED** software — UI detail + `GET /api/pos/v1/receipts/33326bbc…` |
+| T-D4b | No-scope Reprint control (no register / no open shift) | **PASSED** software — Reprint available and clicked once |
+| T-D4c | Receipt reload observation | **PENDING** — not recorded in the execution receipt |
+| T-D4d | Native browser print dialog / paper | **PENDING** — dialog unconfirmed in embedded automation; paper is §C |
 | T-D5 | Confirm release-policy / UI show BUILD_ID `a4f3284…` | **PASSED** |
 
 ## Related
 
 - Execution receipt: `STAGING-ROLLOUT-A4F3284-EXECUTION-RECEIPT.md`
-- Prior checklist (superseded for testing): `TESTER-ACCEPTANCE-CHECKLIST-452c446.md`
+- Prior checklist (superseded for current testing): `TESTER-ACCEPTANCE-CHECKLIST-452c446.md`
