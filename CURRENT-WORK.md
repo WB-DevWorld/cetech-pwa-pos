@@ -8,7 +8,7 @@ owner_approval: CETECH-POS-WS3-Print-PWA-Recovery-Completion.md; no prod; no sec
 branch: ws3/combined-candidate-2026-10-08
 selected_base: 7d5778fe904792360947d88122050e529587aa51
 product_commit: 542d3ef2f862394a762de43eacf00c724b17aaec (parent 7d5778f; PUBLISHED to #144)
-evidence_tip: 67f89b1a7e02afeade4c9ab60c7167eeef586266 (neg-control + Preview decision; product files match 542d3ef)
+evidence_tip: 40436acc5c7bb2e54386a86a1ed7b0418ba9f594 (continuation handoff; product files match 542d3ef)
 freeze_tip: f0feb44e9b3b241f0f712d3e306a9b768e0a070a
 product_tip: ab5c7e1f3849ff65100a84058e92f8b281a14be2
 bridge_tree: fc8f2d05e7fe36001c3e9265cad0b4754417fedd
@@ -21,8 +21,8 @@ bridge_install: COMPLETE — live 63094753… / 89e4461c…; native FPM cutover 
 A+D: CLOSED — txn 33326bbc-… / sale-50317 / rcpt-33326bbc
 lane1: PUBLISHED — history ports + regression + neg-control; Preview decision prepared
 lane2: TEST-ONLY harness 22/22 + prior f0 draft/offline; installed PWA/hardware NOT RUN
-lane3: PREP continuing — restore/B/C NOT EXECUTED
-handoff: refreshing consolidated completion handoff
+lane3: PREP COMPLETE — LANE3-RECOVERY-BC-PREP-01 + CONTINUATION-01; restore/B/C NOT EXECUTED; C candidate 49663
+handoff: HANDOFF-PRINT-PWA-RECOVERY-CONTINUATION.md
 profiler: PARKED
 #115 / #132: remain OPEN
 production_effects: NONE

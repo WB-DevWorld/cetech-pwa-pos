@@ -6,7 +6,7 @@ Workstream: WS3 @wbdevworld · bridge review WS2 @Emmanuel-coder-prog
 Branch: ws3/combined-candidate-2026-10-08 · PR #144
 Selected base: 7d5778fe904792360947d88122050e529587aa51
 Product commit: 542d3ef2f862394a762de43eacf00c724b17aaec (parent 7d5778f)
-Evidence tips: 67b008c… → 67f89b1a7e02afeade4c9ab60c7167eeef586266 (re-verify HEAD at read)
+Evidence tips: 67b008c… → 67f89b1… → 40436acc5c7bb2e54386a86a1ed7b0418ba9f594 (re-verify HEAD at read)
 Contracts/migrations/ADRs: none
 Staff-documentation impact: NONE
 Production: NOT READY · no alias move · A+D consumed · RD-01 not re-applied
@@ -44,7 +44,7 @@ No-scope Reprint not runtime-qualified on a corrected Preview; no installed cash
 | FPM signed-off idle | **PASSED** (limited) | `{"accepted":true,"reason":"idle"}` |
 | FPM historical cutover opcode | **UNVERIFIED** | cannot manufacture |
 | B electronic TEST | **NOT RUN** | prep ready — needs GO + 49111 revalidate |
-| C last-unit | **NOT RUN** | needs stock=1 fixture + GO |
+| C last-unit | **NOT RUN** | candidate Woo **49663** @ stock=1 (POS-map UNVERIFIED; GHS 12500 caution) + GO |
 | #115 / #132 | OPEN | unchanged |
 
 ## Corrected Preview decision (summary)
