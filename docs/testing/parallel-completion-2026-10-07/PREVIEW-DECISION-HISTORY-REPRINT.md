@@ -28,7 +28,7 @@ Branch: `ws3/combined-candidate-2026-10-08` · PR: https://github.com/WB-DevWorl
 
 | Field | Value |
 | --- | --- |
-| `candidate_sha` | Exact current PR head after CI green (at this writing `67f89b1a7e02afeade4c9ab60c7167eeef586266` — re-verify at dispatch) |
+| `candidate_sha` | Exact current PR head after CI green (re-verify at dispatch; product composition still matches `542d3ef…`) |
 | `BUILD_ID` request | **Same as Git source SHA** (do not label the deployment as `542d3ef` if Git source differs) |
 | Application equivalence | Product composition files match `542d3ef`; record any test-only `apps/` delta in the deploy receipt |
 | Vercel account / team / project | `wbdevworld` / `team_d9vbGZ8t7FDiO94FTROnmE6r` / `prj_tgfdys6XJN9HLDRbAvelsLlOt5lq` |

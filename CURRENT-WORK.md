@@ -8,7 +8,7 @@ owner_approval: CETECH-POS-WS3-Print-PWA-Recovery-Completion.md; no prod; no sec
 branch: ws3/combined-candidate-2026-10-08
 selected_base: 7d5778fe904792360947d88122050e529587aa51
 product_commit: 542d3ef2f862394a762de43eacf00c724b17aaec (parent 7d5778f; PUBLISHED to #144)
-evidence_tip: 40436acc5c7bb2e54386a86a1ed7b0418ba9f594 (continuation handoff; product files match 542d3ef)
+evidence_tip: 7f64eec6ebaa2df667605c40fbc6ac5d88a407bb (Lane3 fixture fold-in; product files match 542d3ef)
 freeze_tip: f0feb44e9b3b241f0f712d3e306a9b768e0a070a
 product_tip: ab5c7e1f3849ff65100a84058e92f8b281a14be2
 bridge_tree: fc8f2d05e7fe36001c3e9265cad0b4754417fedd

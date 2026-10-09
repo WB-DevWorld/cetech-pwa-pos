@@ -6,7 +6,7 @@ Workstream: WS3 @wbdevworld · bridge review WS2 @Emmanuel-coder-prog
 Branch: ws3/combined-candidate-2026-10-08 · PR #144
 Selected base: 7d5778fe904792360947d88122050e529587aa51
 Product commit: 542d3ef2f862394a762de43eacf00c724b17aaec (parent 7d5778f)
-Evidence tips: 67b008c… → 67f89b1… → 40436acc5c7bb2e54386a86a1ed7b0418ba9f594 (re-verify HEAD at read)
+Evidence tips: 67b008c… → 67f89b1… → 40436ac… → 7f64eec6ebaa2df667605c40fbc6ac5d88a407bb (re-verify HEAD at read)
 Contracts/migrations/ADRs: none
 Staff-documentation impact: NONE
 Production: NOT READY · no alias move · A+D consumed · RD-01 not re-applied
