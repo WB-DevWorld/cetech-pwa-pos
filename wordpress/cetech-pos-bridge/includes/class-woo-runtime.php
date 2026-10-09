@@ -1245,11 +1245,16 @@ class Cetech_Pos_Bridge_Woo_Runtime {
 		if ( is_object( $state ) ) {
 			$created = isset( $state->created_ids ) && is_array( $state->created_ids ) ? $state->created_ids : array();
 			$pending = isset( $state->pending ) && is_array( $state->pending ) ? count( $state->pending ) : 0;
+			$deletes = isset( $state->deletes ) ? (int) $state->deletes : 0;
 		} elseif ( is_array( $state ) ) {
 			$created = isset( $state['created_ids'] ) && is_array( $state['created_ids'] ) ? $state['created_ids'] : array();
 			$pending = isset( $state['pending'] ) && is_array( $state['pending'] ) ? count( $state['pending'] ) : 0;
+			$deletes = isset( $state['deletes'] ) ? (int) $state['deletes'] : 0;
 		} else {
 			return $this->unavailable( 'Prepare could not prove request-local order-create observation.' );
+		}
+		if ( $deletes > 0 ) {
+			return $this->unavailable( 'Prepare observed a same-request Woo order or refund delete.' );
 		}
 		if ( $pending > 0 ) {
 			return $this->unavailable( 'Prepare observed an incomplete same-request Woo order create.' );

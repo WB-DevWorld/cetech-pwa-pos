@@ -1,21 +1,18 @@
-## COMBINED-CANDIDATE-2026-10-08 — ACTIVE security/transaction repair batch (WS3)
+## COMBINED-CANDIDATE-2026-10-08 — ACTIVE finish release gates (WS3)
 
 ```text
 human / integration editor: @wbdevworld / WS3
-bridge reviewer: @Emmanuel-coder-prog / WS2 (distinct; review only)
-task: R-F4 FOLLOW-UP (write-boundary, receipt adopt, DB-SEC assert, RPC harden)
-owner_approval: CETECH-POS-WS3-Review-Findings-Follow-Up.md + f4b03fd evidence ZIP
+bridge reviewer: @Emmanuel-coder-prog / WS2 (review; prepare deletes closed under WS3 lease)
+task: FINISH-RELEASE-GATES-22035a5 (enrollment, disabled-shift pgTAP, prepare deletes)
+owner_approval: CETECH-POS-WS3-Finish-Release-Gates-22035a5.md + evidence ZIP
 branch: ws3/combined-candidate-2026-10-08
-base_reviewed: f4b03fd56b505b00830ed3c48aa25b3707b62f76
-preview_candidate: dpl_F3uXpLZA7xrkTb5av4TNzDc3ZGry / srx2grakx / BUILD_ID 452c446 — do not silent-move
-tester_shared: UNCHANGED; A+D CAP CONSUMED
-rd01: COMPLETE — do not re-apply
-TF-01: SOURCE REPAIRED + write-boundary (20261009150000 PROPOSED)
-TF-02: SOURCE REPAIRED + canonical receipt adopt
-AUTH-01: SOURCE/TEST ACCEPTED
-DB-SEC-02/03: SOURCE-REPAIRED + asserting probes; shift open disabled path closed
-review_tip: d89c2e29ba564bdc4cf52eb5c736f390d4272e73
-evidence: R-F4-FOLLOW-UP-REPAIR.md; DB-SEC-02-03-PROBE-STATUS.md; scopes
+base_reviewed: 22035a513e43b896cbc5e96964aa428b71d8d010
+preview_candidate: dpl_F3uXp… / 452c446 — do not silent-move
+Gate1: SOURCE-REPAIRED — evidence enrollment migration 20261009160000 PROPOSED
+Gate2: SOURCE-REPAIRED — paired disabled-shift + db-sec pgTAP registered
+Gate3: SOURCE-REPAIRED — prepare same-request deletes guard + bridge tests
+review_tip: PENDING_PUSH
+staging_record: STAGING-EXECUTION-RECORD-GATES.md (no hosted apply)
 production_effects: NONE
 verdict: NOT READY FOR PRODUCTION
 staff_documentation_impact: NONE
@@ -1062,3 +1059,4 @@ Expiry: tested new-batch review handoff. This task has a fresh start and exactly
 Imported QUOTE-CONTEXT-01 `56572b99` as `a3a24b26` and QUOTE-TIMING-01 `3f8f7667` as `87d62b11`; exactly2+4 approved source/test files. Both contributor implementation leases are released; root alone completes documentation, publication and handoff. QUOTE-DISPATCH-01 remains HELD with no implementation files. Native exact-hook comparison passes14/14 scenarios and28/28 candidate checks; baseline fails4 context scenarios. Full production-build browser suite77/77, unit1763/1763 across210 files, build/typecheck/foundation/tooling76 PASS. Lint has zero errors and five existing warnings in untouched files. Known39 unit-generated outputs and12 browser-generated PNGs are preserved externally and restored, not committed. No retries/skips, migration, grants/indexes, Woo/Delivery, dependencies, business writes or production effects.
 
 Independent AI review supports qualification only; different-human review remains required. Exact remote tree/head, Linux/Windows CI, preview identity and exactly two final freshness observations are recorded externally and in the draft PR. The shared tester alias and installed bridge source are not qualified by this local checkpoint. No live transaction speed improvement is claimed. New task leases expire on its tested review-candidate handoff; any further source change requires a new bounded task/scope.
+

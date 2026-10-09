@@ -1,0 +1,14 @@
+{
+  "task": "GATE3-PREPARE-SAME-REQUEST-DELETES",
+  "base": "22035a513e43b896cbc5e96964aa428b71d8d010",
+  "bridge_reviewer": "@Emmanuel-coder-prog",
+  "allowed": [
+    "wordpress/cetech-pos-bridge/includes/class-woo-runtime.php",
+    "tests/bridge/test-woo-runtime-hooks.php",
+    "docs/testing/parallel-completion-2026-10-07/**",
+    "CURRENT-WORK.md"
+  ],
+  "forbidden": ["WP core", "storefront plugin", "Delivery Engine", "hosted DDL", "production"],
+  "staff_documentation_impact": "NONE",
+  "production_effects": "NONE"
+}

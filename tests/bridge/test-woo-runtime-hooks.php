@@ -405,6 +405,51 @@ $r144_2b_runtime->expose_disarm_guard( $r144_2b_guard );
 br01_assert( $r144_2b_ok === true, 'R144-2 clean other-request activity does not reject intended create' );
 
 /* ---------------------------------------------------------------------------
+ * R144-2d — prepare rejects same-request order/refund deletes (bridge review)
+ * ------------------------------------------------------------------------ */
+
+$r144_2d_runtime = r144_hook_runtime();
+$r144_2d_guard   = $r144_2d_runtime->expose_arm_guard();
+$r144_2d_order   = $r144_2d_runtime->expose_persist( r144_quote_snapshot(), r144_token(), 'tx-r144-2d', 'hash-r144-2d' );
+br01_assert( is_object( $r144_2d_order ), 'R144-2d intended order persists under guard' );
+$r144_2d_runtime->orders_by_id[ (string) $r144_2d_order->get_id() ] = $r144_2d_order;
+do_action( 'woocommerce_delete_order', 777001 );
+$r144_2d_check = $r144_2d_runtime->expose_assert_extra( $r144_2d_guard, (string) $r144_2d_order->get_id() );
+$r144_2d_runtime->expose_disarm_guard( $r144_2d_guard );
+br01_assert( Cetech_Pos_Bridge_Quote_Request::is_error( $r144_2d_check ), 'R144-2d same-request order delete rejects prepare' );
+br01_assert_eq(
+	'INTEGRATION_UNAVAILABLE',
+	is_object( $r144_2d_check ) ? $r144_2d_check->get_error_code() : '',
+	'R144-2d delete rejection uses INTEGRATION_UNAVAILABLE'
+);
+
+$r144_2t_runtime = r144_hook_runtime();
+$r144_2t_guard   = $r144_2t_runtime->expose_arm_guard();
+$r144_2t_order   = $r144_2t_runtime->expose_persist( r144_quote_snapshot(), r144_token(), 'tx-r144-2t', 'hash-r144-2t' );
+$r144_2t_runtime->orders_by_id[ (string) $r144_2t_order->get_id() ] = $r144_2t_order;
+do_action( 'woocommerce_trash_order', 777002 );
+$r144_2t_check = $r144_2t_runtime->expose_assert_extra( $r144_2t_guard, (string) $r144_2t_order->get_id() );
+$r144_2t_runtime->expose_disarm_guard( $r144_2t_guard );
+br01_assert( Cetech_Pos_Bridge_Quote_Request::is_error( $r144_2t_check ), 'R144-2t same-request trash rejects prepare' );
+
+$r144_2rd_runtime = r144_hook_runtime();
+$r144_2rd_guard   = $r144_2rd_runtime->expose_arm_guard();
+$r144_2rd_order   = $r144_2rd_runtime->expose_persist( r144_quote_snapshot(), r144_token(), 'tx-r144-2rd', 'hash-r144-2rd' );
+$r144_2rd_runtime->orders_by_id[ (string) $r144_2rd_order->get_id() ] = $r144_2rd_order;
+do_action( 'woocommerce_delete_order_refund', 777003 );
+$r144_2rd_check = $r144_2rd_runtime->expose_assert_extra( $r144_2rd_guard, (string) $r144_2rd_order->get_id() );
+$r144_2rd_runtime->expose_disarm_guard( $r144_2rd_guard );
+br01_assert( Cetech_Pos_Bridge_Quote_Request::is_error( $r144_2rd_check ), 'R144-2rd same-request refund delete rejects prepare' );
+
+$r144_2ok_runtime = r144_hook_runtime();
+$r144_2ok_guard   = $r144_2ok_runtime->expose_arm_guard();
+$r144_2ok_order   = $r144_2ok_runtime->expose_persist( r144_quote_snapshot(), r144_token(), 'tx-r144-2ok', 'hash-r144-2ok' );
+$r144_2ok_runtime->orders_by_id[ (string) $r144_2ok_order->get_id() ] = $r144_2ok_order;
+$r144_2ok = $r144_2ok_runtime->expose_assert_extra( $r144_2ok_guard, (string) $r144_2ok_order->get_id() );
+$r144_2ok_runtime->expose_disarm_guard( $r144_2ok_guard );
+br01_assert( $r144_2ok === true, 'R144-2ok ordinary prepare with single create succeeds' );
+
+/* ---------------------------------------------------------------------------
  * R144-3 — quote observes draft/refund creates and delete; cleanup on success
  * ------------------------------------------------------------------------ */
 
