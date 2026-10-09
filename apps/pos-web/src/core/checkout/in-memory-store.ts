@@ -246,11 +246,14 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
       let appendedId: Uuid | undefined;
       if (input.movement) {
         const appended = await store.appendCashMovement(input.movement);
-        if (appended !== "ok" && appended !== "duplicate_sale") {
-          return appended;
-        }
         if (appended === "ok") {
           appendedId = input.movement.id;
+        } else if (appended === "duplicate_sale") {
+          /* Unique ledger already durable; continue payment persist. */
+        } else if (appended === "shift_required" || appended === "negative_expected") {
+          return appended;
+        } else {
+          return "negative_expected";
         }
       }
       try {
@@ -260,16 +263,18 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
         if (appendedId) {
           const idx = movements.findIndex((row) => row.id === appendedId);
           if (idx >= 0) {
-            const removed = movements.splice(idx, 1)[0];
-            const shift = shifts.get(removed.shiftId);
-            if (shift && removed.kind !== "opening_float") {
-              shifts.set(removed.shiftId, {
-                ...shift,
-                expectedCash: {
-                  minor: (shift.expectedCash?.minor ?? 0) - removed.signedAmount.minor,
-                  currency: shift.openingFloat.currency,
-                },
-              });
+            const [removed] = movements.splice(idx, 1);
+            if (removed) {
+              const shift = shifts.get(removed.shiftId);
+              if (shift && removed.kind !== "opening_float") {
+                shifts.set(removed.shiftId, {
+                  ...shift,
+                  expectedCash: {
+                    minor: (shift.expectedCash?.minor ?? 0) - removed.signedAmount.minor,
+                    currency: shift.openingFloat.currency,
+                  },
+                });
+              }
             }
           }
         }
