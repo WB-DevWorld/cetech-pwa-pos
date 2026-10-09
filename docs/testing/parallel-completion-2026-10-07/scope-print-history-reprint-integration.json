@@ -1,0 +1,33 @@
+{
+  "task": "PRINT-HISTORY-REPRINT-INTEGRATION-01",
+  "human": "@wbdevworld",
+  "workstream": "WS3",
+  "mode": "IMPLEMENT",
+  "branch": "ws3/combined-candidate-2026-10-08",
+  "base": "e0c5bcf4dca4970803afc94f7a35cdb7ef5597f2",
+  "product_commit_frozen": "542d3ef2f862394a762de43eacf00c724b17aaec",
+  "root_review": "bounded product-source ACCEPT 2026-10-09; production code unchanged unless integration exposes defect",
+  "amendment": "test-only integration proof for Orders Reprint through actual workspace composition",
+  "allowed": [
+    "apps/pos-web/e2e/orders-reprint-composition-harness.tsx",
+    "apps/pos-web/e2e/orders-history-reprint-composition.spec.ts",
+    "apps/pos-web/e2e/orders-reprint.playwright.config.ts",
+    "apps/pos-web/e2e/orders-reprint.vite.config.ts",
+    "docs/testing/parallel-completion-2026-10-07/**",
+    "CURRENT-WORK.md"
+  ],
+  "forbidden": [
+    "apps/pos-web/src/app/pos-app.tsx (unless integration proves product defect)",
+    "apps/pos-web/src/app/history-receipt-ports.ts (unless integration proves product defect)",
+    "wordpress/**",
+    "supabase/**",
+    "docs/contracts/**",
+    "second cash sale",
+    "new silent f0 Preview",
+    "shared alias move",
+    "production promotion",
+    "protected-main deploy tooling edits"
+  ],
+  "regression": "apps/pos-web/e2e/orders-history-reprint-composition.spec.ts",
+  "staff_documentation_impact": "NONE"
+}

@@ -3,26 +3,26 @@
 ```text
 human / integration editor: @wbdevworld / WS3
 bridge reviewer: @Emmanuel-coder-prog / WS2 (distinct; review only)
-task: PRINT-PWA-RECOVERY-COMPLETION (Lane 1 history reprint + Lane 2 device/PWA + Lane 3 restore/FPM/B-C prep)
-owner_approval: CETECH-POS-WS3-Print-PWA-Recovery-Completion.md; no prod; no second cash sale; no RD-01 re-apply; no new f0 Preview exception; no shared alias move
+task: PRINT-PWA-RECOVERY-COMPLETION (closeout: integration proof + Preview origin decision + local restore + B/C maps)
+owner_approval: CETECH-POS-Reprint-Review-and-Qualification-Closeout.md; no prod; no second cash sale; no RD-01 re-apply; no silent f0; no shared alias move; no protected-main tooling edits
 branch: ws3/combined-candidate-2026-10-08
 selected_base: 7d5778fe904792360947d88122050e529587aa51
-product_commit: 542d3ef2f862394a762de43eacf00c724b17aaec (parent 7d5778f; PUBLISHED to #144)
-evidence_tip: 5b774fea4bec08ca39e369a5c34391ae2e26bac4 (tip pin; product files match 542d3ef; expanded PWA harness 122/122 local)
-freeze_tip: f0feb44e9b3b241f0f712d3e306a9b768e0a070a
+product_commit: 542d3ef2f862394a762de43eacf00c724b17aaec (ACCEPT; production composition unchanged)
+prior_tip: e0c5bcf4dca4970803afc94f7a35cdb7ef5597f2
+freeze_tip: re-verify HEAD after closeout commit (product files still match 542d3ef)
 product_tip: ab5c7e1f3849ff65100a84058e92f8b281a14be2
 bridge_tree: fc8f2d05e7fe36001c3e9265cad0b4754417fedd
 preview_frozen: dpl_8pUT… retained
-preview_f0: dpl_4Vk3XQ… / gqg6tjedt / BUILD_ID f0feb44… — open-shift Reprint dialog OK; no-scope fix needs corrected Preview
-preview_decision: PREVIEW-DECISION-HISTORY-REPRINT.md — Exact SHA Preview PENDING auth (no new f0 exception)
+preview_f0: dpl_4Vk3XQ… / gqg6tjedt / BUILD_ID f0feb44… — retained; open-shift evidence only
+preview_decision: PREVIEW-DECISION-HISTORY-REPRINT.md — ordinary Exact SHA Preview BLOCKED (Preview Secret APP_ORIGIN; payload BUILD_ID-only); owner origin exception required; reviews empty
 tester: dpl_nxWGr… / 816e0bb…; A+D CAP CONSUMED — do not repeat sale
 rd01: COMPLETE — do not re-apply
 bridge_install: COMPLETE — live 63094753… / 89e4461c…; native FPM cutover UNVERIFIED
 A+D: CLOSED — txn 33326bbc-… / sale-50317 / rcpt-33326bbc
-lane1: PUBLISHED — history ports + regression + neg-control; Preview decision prepared
-lane2: TEST-ONLY harness 122/122 + prior f0 draft/offline; installed PWA/hardware NOT RUN (R10 rehearsal pending)
-lane3: PREP COMPLETE — LANE3-RECOVERY-BC-PREP-01 + CONTINUATION-01; restore/B/C NOT EXECUTED; C candidate 49663
-handoff: HANDOFF-PRINT-PWA-RECOVERY-CONTINUATION.md
+lane1: INTEGRATION PASSED — e2e Orders composition Playwright + vitest reprint; product code unchanged
+lane2: TEST-ONLY harness + prior f0 draft/offline; installed PWA/hardware NOT RUN
+lane3: Woo capture+local MariaDB restore PASSED (cetech-pos-r10-woo-20261009); POS dump BLOCKED (no dump credentials); PG target named empty; B/C maps filled (49111→d7c385f0…, 49663→cc0924d4…); B/C NOT EXECUTED
+handoff: HANDOFF-PRINT-PWA-RECOVERY-CLOSEOUT.md
 profiler: PARKED
 #115 / #132: remain OPEN
 production_effects: NONE
