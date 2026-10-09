@@ -1,33 +1,25 @@
-## COMBINED-CANDIDATE-2026-10-08 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ACTIVE security/transaction repair batch (WS3)
+## COMBINED-CANDIDATE-2026-10-08 — ACTIVE security/transaction repair batch (WS3)
 
 ```text
 human / integration editor: @wbdevworld / WS3
 bridge reviewer: @Emmanuel-coder-prog / WS2 (distinct; review only)
-task: REVIEW-FINDINGS-NEXT-BATCH (TF-01, AUTH-01, TF-02, DB-SEC-02/03)
-owner_approval: CETECH-POS-WS3-Review-Findings-Next-Batch.md + Security-and-Transaction-Review-2026-10-09
+task: R-F4 FOLLOW-UP (write-boundary, receipt adopt, DB-SEC assert, RPC harden)
+owner_approval: CETECH-POS-WS3-Review-Findings-Follow-Up.md + f4b03fd evidence ZIP
 branch: ws3/combined-candidate-2026-10-08
-base_reviewed: 452c446fd0e3821fc3bfdb5de85a01d19a331809
-product_commit: 542d3ef2f862394a762de43eacf00c724b17aaec (ACCEPT; composition unchanged)
-preview_candidate: dpl_F3uXpLZA7xrkTb5av4TNzDc3ZGry / srx2grakx / BUILD_ID 452c446ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â do not silent-move
-tester_shared: 816e0bbÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ UNCHANGED; A+D CAP CONSUMED
-rd01: COMPLETE ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â hosted 20261008151307 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â do not re-apply
-A+D: CLOSED ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â 33326bbcÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ / sale-50317
-TF-01: SOURCE REPAIRED + disposable PG proof ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â claimSaleTender + atomic recordVerifiedCashSale (migrations 20261009130000 + 20261009130100 PROPOSED, not hosted)
-TF-02: SOURCE REPAIRED locally ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â full UUID receipt + 409 same-tx only
-AUTH-01: SOURCE REPAIRED locally ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â post-insert recheck + guard/authorize access (tests PASS)
-DB-SEC-02/03: REPRODUCED + SOURCE-REPAIRED on disposable local (migration 20261009140000 proposed, NOT hosted-applied)
-TF-01_DB: disposable local proof PASS (tf-01-disposable-atomic-proof.sql + two-client claim race); hosted NOT applied
-review_tip: af1c04b6ec8fcb3cb5a61310619e8b4a9aa299aa ; tester Preview still 452c446 / dpl_F3uXp…
-handoff_prior: HANDOFF-ALL-LANES-0900.md
-evidence: TF-01-TF-02-REPAIR.md; AUTH-01-DISABLEMENT-REPAIR.md; DB-SEC-02-03-PROBE-STATUS.md; scope-tf-01/tf-02/auth-01 json
-publish: WS3-Commit-Validate-and-Publish-Repairs.md ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â review candidate push authorized; no new Preview until reviewed
-profiler: PARKED
-#115 / #132: remain OPEN
+base_reviewed: f4b03fd56b505b00830ed3c48aa25b3707b62f76
+preview_candidate: dpl_F3uXpLZA7xrkTb5av4TNzDc3ZGry / srx2grakx / BUILD_ID 452c446 — do not silent-move
+tester_shared: UNCHANGED; A+D CAP CONSUMED
+rd01: COMPLETE — do not re-apply
+TF-01: SOURCE REPAIRED + write-boundary (20261009150000 PROPOSED)
+TF-02: SOURCE REPAIRED + canonical receipt adopt
+AUTH-01: SOURCE/TEST ACCEPTED
+DB-SEC-02/03: SOURCE-REPAIRED + asserting probes; shift open disabled path closed
+review_tip: PENDING_PUSH
+evidence: R-F4-FOLLOW-UP-REPAIR.md; DB-SEC-02-03-PROBE-STATUS.md; scopes
 production_effects: NONE
 verdict: NOT READY FOR PRODUCTION
 staff_documentation_impact: NONE
 ```
-
 ## DB-SEC-01 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â staging APPLIED AND VERIFIED (RD-01 complete)
 
 Owner authorized staging apply 2026-10-08T15:07:56Z. Hosted version 20261008151307. Do not re-apply. Production apply not authorized. Docs lease only for receipt/mapping updates.

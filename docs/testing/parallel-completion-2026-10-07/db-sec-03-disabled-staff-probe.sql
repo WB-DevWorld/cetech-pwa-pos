@@ -1,6 +1,4 @@
--- DB-SEC-03: disposable local only. Schema-adapted from review evidence. Never hosted.
--- Before repair: disabled actor Auth JWT can INSERT pay_in via RLS.
--- After 20261009140000: denied 42501; active actor pay_in still works.
+-- DB-SEC-03 asserting probe + disabled shift open. Disposable local only. Never hosted.
 \set ON_ERROR_STOP on
 BEGIN;
 DO $$ BEGIN
@@ -32,7 +30,6 @@ SELECT set_config('request.jwt.claims', jsonb_build_object(
   )
 )::text, true);
 SET LOCAL ROLE authenticated;
-SELECT 'DISABLED_REGISTER_READ' AS probe, count(*) FROM public.pos_registers WHERE id='reg_a';
 DO $$ BEGIN
   BEGIN
     INSERT INTO public.pos_cash_movements (
@@ -42,15 +39,29 @@ DO $$ BEGIN
       '99100000-0000-4000-8000-000000000001','pay_in',100,'GHS','cashier_a',
       'synthetic post-disable direct insert'
     );
-    RAISE NOTICE 'DB-SEC-03 OPEN: disabled cash insert succeeded';
+    RAISE EXCEPTION 'DB-SEC-03 OPEN: disabled cash insert still allowed';
   EXCEPTION WHEN insufficient_privilege THEN
-    RAISE NOTICE 'DB-SEC-03 CLOSED: disabled cash insert denied';
+    RAISE NOTICE 'DB-SEC-03 CASH CLOSED';
   WHEN OTHERS THEN
+    IF SQLERRM = 'DB-SEC-03 OPEN: disabled cash insert still allowed' THEN RAISE; END IF;
     IF SQLSTATE = '42501' OR SQLERRM ILIKE '%disabled%' THEN
-      RAISE NOTICE 'DB-SEC-03 CLOSED: disabled cash insert denied (% / %)', SQLSTATE, SQLERRM;
+      RAISE NOTICE 'DB-SEC-03 CASH CLOSED (% )', SQLERRM;
+    ELSE RAISE; END IF;
+  END;
+END $$;
+DO $$ BEGIN
+  BEGIN
+    INSERT INTO public.pos_shifts (register_id, device_id, opening_float_minor, opening_float_currency, cashier_id)
+    VALUES ('reg_a2','00000000-0000-4000-8000-0000000000a1',1000,'GHS','cashier_a');
+    RAISE EXCEPTION 'DB-SEC-03 OPEN: disabled shift open still allowed';
+  EXCEPTION WHEN insufficient_privilege THEN
+    RAISE NOTICE 'DB-SEC-03 SHIFT CLOSED';
+  WHEN OTHERS THEN
+    IF SQLERRM = 'DB-SEC-03 OPEN: disabled shift open still allowed' THEN RAISE; END IF;
+    IF SQLSTATE = '42501' OR SQLERRM ILIKE '%disabled%' OR SQLERRM ILIKE '%not authorized%' THEN
+      RAISE NOTICE 'DB-SEC-03 SHIFT CLOSED (% )', SQLERRM;
     ELSE RAISE; END IF;
   END;
 END $$;
 RESET ROLE;
-SELECT 'DISABLED_CASH_INSERT' AS probe, count(*) FROM public.pos_cash_movements WHERE id='99100000-0000-4000-8000-000000000002';
 ROLLBACK;

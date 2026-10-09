@@ -241,7 +241,7 @@ export interface CheckoutStore {
   }): Promise<"ok" | "missing" | "not_open" | "already_closed">;
   saveShiftReport(report: ShiftReport): Promise<"ok" | "duplicate">;
   getShiftReport(shiftId: Uuid, kind: "X" | "Z"): Promise<ShiftReport | undefined>;
-  appendCashMovement(movement: StoredCashMovement): Promise<"ok" | "duplicate_sale" | "duplicate_refund" | "shift_required" | "negative_expected">;
+  appendCashMovement(movement: StoredCashMovement): Promise<"ok" | "duplicate_sale" | "duplicate_refund" | "shift_required" | "negative_expected" | "tender_conflict">;
   listCashSales(transactionId: Uuid): Promise<readonly StoredCashMovement[]>;
   listCashRefunds(refundId: Uuid): Promise<readonly StoredCashMovement[]>;
   expectedCash(shiftId: Uuid): Promise<Money | undefined>;
@@ -263,7 +263,7 @@ export interface CheckoutStore {
   recordVerifiedCashSale(input: {
     readonly movement: StoredCashMovement | undefined;
     readonly payment: StoredPayment;
-  }): Promise<"ok" | "duplicate_sale" | "shift_required" | "negative_expected">;
+  }): Promise<"ok" | "duplicate_sale" | "shift_required" | "negative_expected" | "tender_conflict">;
   saveQuote(quote: Quote): Promise<void>;
   getQuote(quoteId: Id): Promise<Quote | undefined>;
   seedPreparedSale(input: SeedPreparedSaleInput): Promise<PosSaleRecord>;

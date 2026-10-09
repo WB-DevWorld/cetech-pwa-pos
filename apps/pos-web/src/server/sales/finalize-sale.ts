@@ -280,6 +280,7 @@ async function persistReceiptOrAttention(input: {
     await store.saveSale(sale);
     return attentionResolution(sale, request.paymentId, context.correlationId, "receipt snapshot failed schema validation");
   }
+  let durable: ReceiptSnapshot | undefined;
   try {
     const saved = await store.saveReceipt(receipt);
     if (saved === "duplicate") {
@@ -291,7 +292,7 @@ async function persistReceiptOrAttention(input: {
       }
       throw new Error("receipt conflict without same-transaction durable row");
     }
-    const durable = await store.getReceipt(request.transactionId);
+    durable = await store.getReceipt(request.transactionId);
     if (!durable || durable.id !== receipt.id) {
       throw new Error("receipt persistence did not yield the canonical same-transaction row");
     }
@@ -315,9 +316,12 @@ async function persistReceiptOrAttention(input: {
     );
   }
 
-  sale = { ...sale, receipt, status: "completed" };
+  if (!durable) {
+    throw new Error("canonical receipt missing after successful persistence");
+  }
+  sale = { ...sale, receipt: durable, status: "completed" };
   await store.saveSale(sale);
-  return successResolution(sale, request.paymentId, context.correlationId, receipt.id);
+  return successResolution(sale, request.paymentId, context.correlationId, durable.id);
 }
 
 function buildReceipt(

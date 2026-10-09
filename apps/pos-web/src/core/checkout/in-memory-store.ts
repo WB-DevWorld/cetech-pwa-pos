@@ -174,6 +174,14 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
         return "shift_required";
       }
       if (movement.kind === "cash_sale" && movement.transactionId) {
+        const tender = await store.claimSaleTender(movement.transactionId, "cash", {
+          organizationId: movement.organizationId ?? shift.organizationId,
+          locationId: shift.locationId,
+          actorId: movement.actorId,
+        });
+        if (tender.kind === "conflict") {
+          return "tender_conflict";
+        }
         const duplicate = movements.some(
           (row) => row.kind === "cash_sale" && row.transactionId === movement.transactionId,
         );
@@ -250,7 +258,7 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
           appendedId = input.movement.id;
         } else if (appended === "duplicate_sale") {
           /* Unique ledger already durable; continue payment persist. */
-        } else if (appended === "shift_required" || appended === "negative_expected") {
+        } else if (appended === "shift_required" || appended === "negative_expected" || appended === "tender_conflict") {
           return appended;
         } else {
           return "negative_expected";
@@ -437,6 +445,16 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
       if (store.failNextPaymentWrite) {
         store.failNextPaymentWrite = false;
         throw new Error("injected POS payment persistence failure");
+      }
+      const sale = sales.get(payment.transactionId);
+      const family = payment.tender === "cash" ? "cash" : "electronic";
+      const tender = await store.claimSaleTender(payment.transactionId, family, {
+        organizationId: sale?.organizationId ?? "org_a",
+        locationId: sale?.locationId ?? "loc_a",
+        actorId: payment.actorId,
+      });
+      if (tender.kind === "conflict") {
+        throw new Error("sale tender family conflict");
       }
       const existingTx = paymentsByTx.get(payment.transactionId);
       if (existingTx && existingTx !== payment.paymentId) {

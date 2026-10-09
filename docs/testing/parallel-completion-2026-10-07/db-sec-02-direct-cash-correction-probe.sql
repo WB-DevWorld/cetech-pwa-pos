@@ -1,6 +1,5 @@
--- DB-SEC-02: disposable local only. Schema-adapted from review evidence. Never hosted.
--- Before repair: authenticated INSERT correction with fabricated approval_id succeeds.
--- After 20261009140000: denied 42501; service_role pos_admin_reverse_cash_movement still works.
+-- DB-SEC-02 asserting probe. Disposable local only. Never hosted.
+-- Exit non-zero if direct authenticated correction is still allowed.
 \set ON_ERROR_STOP on
 BEGIN;
 DO $$ BEGIN
@@ -33,19 +32,6 @@ SELECT set_config('request.jwt.claims', jsonb_build_object(
 SET LOCAL ROLE authenticated;
 DO $$ BEGIN
   BEGIN
-    PERFORM public.pos_admin_reverse_cash_movement(
-      'org_a','99000000-0000-4000-8000-000000000002','negative control','cashier_a',
-      '99000000-0000-4000-8000-000000000003','99000000-0000-4000-8000-000000000004');
-    RAISE EXCEPTION 'negative control unexpectedly allowed admin RPC';
-  EXCEPTION WHEN insufficient_privilege THEN
-    RAISE NOTICE 'CONTROL PASS: authenticated admin correction RPC denied';
-  WHEN OTHERS THEN
-    IF SQLERRM = 'negative control unexpectedly allowed admin RPC' THEN RAISE; END IF;
-    RAISE NOTICE 'CONTROL PASS: authenticated admin correction RPC denied (% / %)', SQLSTATE, SQLERRM;
-  END;
-END $$;
-DO $$ BEGIN
-  BEGIN
     INSERT INTO public.pos_cash_movements (
       id, shift_id, kind, signed_amount_minor, currency, actor_id, reason,
       corrects_movement_id, approval_id
@@ -55,18 +41,15 @@ DO $$ BEGIN
       'synthetic direct reversal',
       '99000000-0000-4000-8000-000000000002','99000000-0000-4000-8000-000000000004'
     );
-    RAISE NOTICE 'DB-SEC-02 OPEN: direct correction inserted';
+    RAISE EXCEPTION 'DB-SEC-02 OPEN: direct correction still allowed';
   EXCEPTION WHEN insufficient_privilege THEN
-    RAISE NOTICE 'DB-SEC-02 CLOSED: direct correction denied';
+    RAISE NOTICE 'DB-SEC-02 CLOSED';
   WHEN OTHERS THEN
+    IF SQLERRM = 'DB-SEC-02 OPEN: direct correction still allowed' THEN RAISE; END IF;
     IF SQLSTATE = '42501' THEN
-      RAISE NOTICE 'DB-SEC-02 CLOSED: direct correction denied (% / %)', SQLSTATE, SQLERRM;
+      RAISE NOTICE 'DB-SEC-02 CLOSED (% )', SQLERRM;
     ELSE RAISE; END IF;
   END;
 END $$;
 RESET ROLE;
-SELECT 'DIRECT_CORRECTION_RESULT' AS probe,
-  count(*) AS corrections
-FROM public.pos_cash_movements
-WHERE id='99000000-0000-4000-8000-000000000005';
 ROLLBACK;

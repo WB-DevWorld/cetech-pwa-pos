@@ -337,6 +337,9 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
       if (message.includes("negative")) {
         return "negative_expected";
       }
+      if (message.includes("sale tender family conflict") || message.includes("tender family")) {
+        return "tender_conflict";
+      }
       throw new Error("durable checkout store rejected cash movement");
     },
 
@@ -438,7 +441,7 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
         if (outcome === "ok" || outcome === "duplicate_sale") {
           return outcome;
         }
-        if (outcome === "shift_required" || outcome === "negative_expected") {
+        if (outcome === "shift_required" || outcome === "negative_expected" || outcome === "tender_conflict") {
           return outcome;
         }
       }
@@ -448,6 +451,9 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
       }
       if (message.includes("negative") || message.includes("expected cash")) {
         return "negative_expected";
+      }
+      if (message.includes("sale tender family conflict") || message.includes("tender family")) {
+        return "tender_conflict";
       }
       throw new Error("durable checkout store rejected verified cash sale");
     },
