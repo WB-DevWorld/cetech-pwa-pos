@@ -17,7 +17,7 @@ TF-02: SOURCE REPAIRED locally — full UUID receipt + 409 same-tx only
 AUTH-01: SOURCE REPAIRED locally — post-insert recheck + guard/authorize access (tests PASS)
 DB-SEC-02/03: PROBES UNEXECUTED — need disposable migrated DB (DB-SEC-02-03-PROBE-STATUS.md)
 TF-01_DB: disposable local proof PASS (tf-01-disposable-atomic-proof.sql + two-client claim race); hosted NOT applied
-review_tip: publish head on ws3/combined-candidate-2026-10-08 (see git); tester Preview still 452c446
+review_tip: e5c12bcbb06b5f41b6a0db3041788f64dd090681; tester Preview still 452c446
 handoff_prior: HANDOFF-ALL-LANES-0900.md
 evidence: TF-01-TF-02-REPAIR.md; AUTH-01-DISABLEMENT-REPAIR.md; DB-SEC-02-03-PROBE-STATUS.md; scope-tf-01/tf-02/auth-01 json
 publish: WS3-Commit-Validate-and-Publish-Repairs.md — review candidate push authorized; no new Preview until reviewed

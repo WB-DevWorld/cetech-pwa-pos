@@ -6,10 +6,11 @@ Task / batch / workstream: WS3-Commit-Validate-and-Publish-Repairs / REVIEW-FIND
 Owner / integration editor / requested human reviewer: @wbdevworld / WS3 ; domain review @Emmanuel-coder-prog (WS2 review-only)
 Branch: ws3/combined-candidate-2026-10-08
 Starting/base SHA: 452c446fd0e3821fc3bfdb5de85a01d19a331809
-Current/final task head SHA: ccf54f81355bbd5b7c83e75653bf20851c758b38
+Current/final task head SHA: e5c12bcbb06b5f41b6a0db3041788f64dd090681
 Commit(s):
   e28e02db57744ab10f9cf46c826a136abb874f58 — TF-01/TF-02/AUTH-01 review repairs
   ccf54f81355bbd5b7c83e75653bf20851c758b38 — disposable PG qualify + public.pos_id RPC fix
+  e5c12bcbb06b5f41b6a0db3041788f64dd090681 — typecheck fix for atomic cash helper
 Allowed / forbidden paths and central leases: scope-tf-01 / scope-tf-02 / scope-auth-01 + CURRENT-WORK repair batch; no hosted DDL; no RD-01 re-apply; no new tester Preview; no A+D; no prod
 Files changed: checkout claim+atomic path, confirm-cash, initialize-electronic, finalize-sale receipt id, AUTH-01 session/access/guard, migrations, evidence/scopes, CURRENT-WORK
 Contracts changed: none
@@ -45,7 +46,7 @@ Freshness protocol:
 START_FRESHNESS_SNAPSHOT UTC: NOT_RUN_THIS_SLICE
 Final freshness status: UNVERIFIED
 Delivery status: READY_FOR_INDEPENDENT_REVIEW (not production)
-Final task head SHA: ccf54f81355bbd5b7c83e75653bf20851c758b38
+Final task head SHA: e5c12bcbb06b5f41b6a0db3041788f64dd090681
 Pass 3: NOT PERMITTED
 Review/merge/release: CI green ≠ production approval; NOT READY FOR PRODUCTION
 staff_documentation_impact: NONE
