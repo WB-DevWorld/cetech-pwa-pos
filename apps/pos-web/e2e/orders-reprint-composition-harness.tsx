@@ -1,7 +1,7 @@
 import { createElement, useMemo } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import type { ReceiptSnapshot } from "../../../../docs/contracts/domain.generated";
-import type { CustomerPort } from "../../../../docs/contracts/ports";
+import type { ReceiptSnapshot } from "../../../docs/contracts/domain.generated";
+import type { CustomerPort } from "../../../docs/contracts/ports";
 import type { StaffRuntimeAuthority } from "../src/core/identity";
 import { checkoutScopeFromStaffAuthority } from "../src/core/identity";
 import { ApprovedWorkspaceScreens } from "../src/app/workspace-runtime";

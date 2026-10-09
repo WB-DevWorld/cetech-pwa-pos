@@ -1,28 +1,29 @@
-## COMBINED-CANDIDATE-2026-10-08 — ACTIVE Print/PWA/Recovery completion (WS3)
+## COMBINED-CANDIDATE-2026-10-08 — ACTIVE CI repair + recovery execution (WS3)
 
 ```text
 human / integration editor: @wbdevworld / WS3
 bridge reviewer: @Emmanuel-coder-prog / WS2 (distinct; review only)
-task: PRINT-PWA-RECOVERY-COMPLETION (closeout: integration proof + Preview origin decision + local restore + B/C maps)
-owner_approval: CETECH-POS-Reprint-Review-and-Qualification-Closeout.md; no prod; no second cash sale; no RD-01 re-apply; no silent f0; no shared alias move; no protected-main tooling edits
+task: CI-REPAIR-AND-RECOVERY-EXECUTION
+owner_approval: CETECH-POS-WS3-CI-Repair-and-Recovery-Execution.md; no prod; no second cash sale; no RD-01 re-apply; no silent f0; no shared alias move
 branch: ws3/combined-candidate-2026-10-08
-selected_base: 7d5778fe904792360947d88122050e529587aa51
-product_commit: 542d3ef2f862394a762de43eacf00c724b17aaec (ACCEPT; production composition unchanged)
-prior_tip: e0c5bcf4dca4970803afc94f7a35cdb7ef5597f2
-freeze_tip: 2e6d704228a522f1f5728c5f2d70cfb08c90e393 (product files still match 542d3ef; integration e2e + closeout docs)
+broken_head: 14cc175ecfc19135d9a956481348dd81f0809142 (App typecheck FAIL — harness import depth)
+obsolete_freeze: 2e6d704228a522f1f5728c5f2d70cfb08c90e393
+product_commit: 542d3ef2f862394a762de43eacf00c724b17aaec (ACCEPT; composition unchanged)
+corrected_head: publish this CI-repair tip (single push; wait CI)
 product_tip: ab5c7e1f3849ff65100a84058e92f8b281a14be2
 bridge_tree: fc8f2d05e7fe36001c3e9265cad0b4754417fedd
-preview_frozen: dpl_8pUT… retained
-preview_f0: dpl_4Vk3XQ… / gqg6tjedt / BUILD_ID f0feb44… — retained; open-shift evidence only
-preview_decision: PREVIEW-DECISION-HISTORY-REPRINT.md — ordinary Exact SHA Preview BLOCKED (Preview Secret APP_ORIGIN; payload BUILD_ID-only); owner origin exception required; reviews empty
-tester: dpl_nxWGr… / 816e0bb…; A+D CAP CONSUMED — do not repeat sale
+preview_f0: dpl_4Vk3XQ… / gqg6tjedt / f0feb44… retained
+preview_request: PREVIEW-DEPLOY-REQUEST-CI-REPAIR.md — literal empty APP_ORIGIN overrides; NOT DISPATCHED
+tester: dpl_nxWGr… / 816e0bb…; A+D CAP CONSUMED
 rd01: COMPLETE — do not re-apply
-bridge_install: COMPLETE — live 63094753… / 89e4461c…; native FPM cutover UNVERIFIED
-A+D: CLOSED — txn 33326bbc-… / sale-50317 / rcpt-33326bbc
-lane1: INTEGRATION PASSED — e2e Orders composition Playwright + vitest reprint; product code unchanged
-lane2: TEST-ONLY harness + prior f0 draft/offline; installed PWA/hardware NOT RUN
-lane3: Woo capture+local MariaDB restore PASSED (cetech-pos-r10-woo-20261009); POS dump BLOCKED (no dump credentials); PG target named empty; B/C maps filled (49111→d7c385f0…, 49663→cc0924d4…); B/C NOT EXECUTED
-handoff: HANDOFF-PRINT-PWA-RECOVERY-CLOSEOUT.md
+bridge_install: COMPLETE — 63094753… / 89e4461c…; FPM cutover UNVERIFIED
+A+D: CLOSED — 33326bbc… / sale-50317
+lane_a: CI harness imports fixed; typecheck+Playwright local PASS
+lane_b: concrete Preview request prepared; needs APPROVED + origin exception
+lane_c: Woo SQL accepted; files tarball local SHA match; full WP boot NOT RUN; POS dump BLOCKED (POS-CREDENTIAL-OPERATOR-ACTION.md)
+device: installed PWA/hardware NOT RUN
+B/C: prep only — NOT EXECUTED
+handoff: HANDOFF-CI-REPAIR-AND-RECOVERY-EXECUTION.md
 profiler: PARKED
 #115 / #132: remain OPEN
 production_effects: NONE

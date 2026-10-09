@@ -16,6 +16,3 @@ __pycache__/
 .supabase/
 supabase/.temp/
 .auth/
-
-.vercel
-.env*

@@ -13,9 +13,15 @@
     "apps/pos-web/e2e/orders-history-reprint-composition.spec.ts",
     "apps/pos-web/e2e/orders-reprint.playwright.config.ts",
     "apps/pos-web/e2e/orders-reprint.vite.config.ts",
+    ".gitignore",
     "docs/testing/parallel-completion-2026-10-07/**",
     "CURRENT-WORK.md"
   ],
+  "ci_repair_2026_10_09": {
+    "defect": "orders-reprint-composition-harness.tsx type imports one directory too high",
+    "fix": "../../../docs/contracts/{domain.generated,ports}",
+    "gitignore": "retain reviewed apps/pos-web/e2e/.tmp-orders-reprint/ ignore only; no new product ignore expansion"
+  },
   "forbidden": [
     "apps/pos-web/src/app/pos-app.tsx (unless integration proves product defect)",
     "apps/pos-web/src/app/history-receipt-ports.ts (unless integration proves product defect)",
