@@ -218,6 +218,20 @@ async function completeCash(input: {
     }
   }
 
+  const tenderClaim = await store.claimSaleTender(request.transactionId, "cash", {
+    organizationId: sale.organizationId,
+    locationId: sale.locationId,
+    actorId: actor.actorId,
+  });
+  if (tenderClaim.kind === "conflict") {
+    await store.releaseIdempotency(actor.organizationId, "payment.cash", context.idempotencyKey);
+    return apiFailure(
+      "VALIDATION_ERROR",
+      "an electronic tender already claims this sale; cash cannot be recorded",
+      context.correlationId,
+    );
+  }
+
   const verifiedAt = toIsoTimestamp(now);
   const payment: StoredPayment = {
     paymentId: crypto.randomUUID(),
@@ -232,31 +246,37 @@ async function completeCash(input: {
     verificationSource: "cash_ledger",
     actorId: actor.actorId,
   };
-  if (movements.length === 0) {
-    const movement: CashMovement = {
-      id: crypto.randomUUID(),
-      shiftId: sale.shiftId,
-      kind: "cash_sale",
-      signedAmount: { minor: sale.prepared.total.minor, currency: sale.prepared.total.currency },
-      actorId: actor.actorId,
-      createdAt: verifiedAt,
-      transactionId: request.transactionId,
-      reason: "cash sale",
-    };
-    const appended = await store.appendCashMovement({ ...movement, organizationId: sale.organizationId });
-    if (appended === "duplicate_sale") {
-      /* Unique ledger already exists; continue POS persist repair. */
-    } else if (appended === "shift_required") {
+  const movement: CashMovement | undefined =
+    movements.length === 0
+      ? {
+          id: crypto.randomUUID(),
+          shiftId: sale.shiftId,
+          kind: "cash_sale",
+          signedAmount: { minor: sale.prepared.total.minor, currency: sale.prepared.total.currency },
+          actorId: actor.actorId,
+          createdAt: verifiedAt,
+          transactionId: request.transactionId,
+          reason: "cash sale",
+        }
+      : undefined;
+
+  try {
+    const recorded = await store.recordVerifiedCashSale({
+      movement: movement ? { ...movement, organizationId: sale.organizationId } : undefined,
+      payment,
+    });
+    if (recorded === "shift_required") {
       await store.releaseIdempotency(actor.organizationId, "payment.cash", context.idempotencyKey);
       return apiFailure("SHIFT_REQUIRED", "cash confirmation requires an open shift", context.correlationId);
-    } else if (appended !== "ok") {
+    }
+    if (recorded === "negative_expected") {
       await store.releaseIdempotency(actor.organizationId, "payment.cash", context.idempotencyKey);
       return apiFailure("REQUIRES_ATTENTION", "cash ledger could not record the sale movement", context.correlationId);
     }
-  }
-
-  try {
-    await store.savePayment(payment);
+    if (recorded !== "ok" && recorded !== "duplicate_sale") {
+      await store.releaseIdempotency(actor.organizationId, "payment.cash", context.idempotencyKey);
+      return apiFailure("REQUIRES_ATTENTION", "cash ledger could not record the sale movement", context.correlationId);
+    }
     await store.saveSale({
       ...sale,
       status: "finalizing",

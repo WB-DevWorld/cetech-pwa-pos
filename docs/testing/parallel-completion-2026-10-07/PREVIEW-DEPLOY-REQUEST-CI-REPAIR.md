@@ -1,16 +1,18 @@
-# Concrete corrected-Preview deployment request (pending review + owner origin exception)
+# Concrete corrected-Preview deployment request
 
-Status: **PREPARED — DO NOT DISPATCH** until (1) CI green on corrected head, (2) non-author APPROVED, (3) owner grants one-off empty origin overrides  
+Status: **DISPATCHED · READY** — owner approval GRANTED `2026-10-09T07:53:29Z` (empty origins + missing independent-review exception for this Preview only). Independent APPROVED still not claimed.  
+Live: `dpl_F3uXpLZA7xrkTb5av4TNzDc3ZGry` · https://cetech-pos-staging-srx2grakx-wbdevworlds-projects.vercel.app · BUILD_ID `452c446fd0e3821fc3bfdb5de85a01d19a331809`  
 Account `wbdevworld` · team `team_d9vbGZ8t7FDiO94FTROnmE6r` · project `prj_tgfdys6XJN9HLDRbAvelsLlOt5lq`  
 f0 retained: `dpl_4Vk3XQ…` / BUILD_ID `f0feb44…` — do not attribute Reprint fix to f0  
-Staff-documentation impact: **NONE**
+Staff-documentation impact: **NONE**  
+Receipt: `PREVIEW-452c446-DEPLOY-RECEIPT.md`
 
 ## Source
 
 | Field | Value |
 | --- | --- |
 | Branch / PR | `ws3/combined-candidate-2026-10-08` / #144 |
-| `candidate_sha` / Git source / `BUILD_ID` | **Final corrected CI-green PR head** (after Lane A publish — fill exact 40-char SHA at dispatch; **not** `14cc175…` / `2e6d704…`) |
+| `candidate_sha` / Git source / `BUILD_ID` | `452c446fd0e3821fc3bfdb5de85a01d19a331809` |
 | Product composition | Still matches `542d3ef2f862394a762de43eacf00c724b17aaec` for `pos-app.tsx` + `history-receipt-ports.ts` |
 
 ## Why ordinary Exact SHA Preview is insufficient

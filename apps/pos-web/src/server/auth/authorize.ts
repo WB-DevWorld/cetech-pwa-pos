@@ -11,6 +11,7 @@ import {
   type StaffAssignmentRole,
   type StaffPermission,
 } from "./roles";
+import { evaluateStaffAccess, type StaffAccessControl } from "./staff-access-control";
 
 export type AuthorizedStaffContext = {
   readonly session: Session;
@@ -34,6 +35,8 @@ type AuthorizeStaffShared = {
   readonly verifyResult: IdentityVerifyResult;
   readonly assignments: StaffAssignmentDirectory;
   readonly correlationId: Uuid;
+  /** Optional durable disablement gate; when provided, disabled actors are denied. */
+  readonly accessControl?: StaffAccessControl;
   readonly required: {
     readonly organizationId: string;
     readonly locationId?: string;
@@ -103,6 +106,23 @@ export async function authorizeStaffAction(
 
   if (identity.organizationId !== input.required.organizationId) {
     return authFailure("FORBIDDEN", "organization is out of staff scope", correlationId);
+  }
+
+  if (input.accessControl) {
+    const access = await evaluateStaffAccess(input.accessControl, {
+      organizationId: identity.organizationId,
+      actorId: identity.actorId,
+    });
+    if (!access.ok) {
+      if (access.reason === "unavailable") {
+        return authFailure(
+          "INTEGRATION_UNAVAILABLE",
+          "staff access control is unavailable",
+          correlationId,
+        );
+      }
+      return authFailure("FORBIDDEN", "staff access is disabled", correlationId, { field: "pos_access" });
+    }
   }
 
   const assignments = await input.assignments.lookup({

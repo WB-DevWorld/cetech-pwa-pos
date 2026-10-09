@@ -289,6 +289,11 @@ async function persistReceiptOrAttention(input: {
         await store.saveSale(sale);
         return successResolution(sale, request.paymentId, context.correlationId, raced.id);
       }
+      throw new Error("receipt conflict without same-transaction durable row");
+    }
+    const durable = await store.getReceipt(request.transactionId);
+    if (!durable || durable.id !== receipt.id) {
+      throw new Error("receipt persistence did not yield the canonical same-transaction row");
     }
   } catch {
     sale = { ...sale, status: "requires_attention" };
@@ -322,7 +327,7 @@ function buildReceipt(
   settings: ReceiptSettings,
 ): ReceiptSnapshot {
   const snapshot: ReceiptSnapshot = {
-    id: `rcpt-${sale.prepared.transactionId.slice(0, 8)}`,
+    id: `rcpt-${sale.prepared.transactionId}`,
     transactionId: sale.prepared.transactionId,
     receiptNumber: `POS-${sale.prepared.orderReference}`,
     orderReference: sale.prepared.orderReference,

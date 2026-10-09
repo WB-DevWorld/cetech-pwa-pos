@@ -156,6 +156,14 @@ export type IdempotencyClaim =
   | { readonly kind: "replay"; readonly outcome: unknown }
   | { readonly kind: "repair"; readonly outcome: unknown };
 
+/** Durable mutual-exclusion family for one sale's tender effects (cash ledger vs electronic provider). */
+export type SaleTenderFamily = "cash" | "electronic";
+
+export type SaleTenderClaimResult =
+  | { readonly kind: "acquired" }
+  | { readonly kind: "held" }
+  | { readonly kind: "conflict"; readonly held: SaleTenderFamily };
+
 export type CommandScopeBinding = {
   readonly organizationId: Id;
   readonly locationId: Id;
@@ -237,6 +245,25 @@ export interface CheckoutStore {
   listCashSales(transactionId: Uuid): Promise<readonly StoredCashMovement[]>;
   listCashRefunds(refundId: Uuid): Promise<readonly StoredCashMovement[]>;
   expectedCash(shiftId: Uuid): Promise<Money | undefined>;
+  /**
+   * Durable tender boundary for one transaction. Must be acquired before a new
+   * cash ledger effect or a new electronic provider dispatch. Same-family re-entry
+   * returns `held`. Opposite family (or opposing durable evidence) returns `conflict`.
+   */
+  claimSaleTender(
+    transactionId: Uuid,
+    family: SaleTenderFamily,
+    input: { readonly organizationId: Id; readonly locationId: Id; readonly actorId: Id },
+  ): Promise<SaleTenderClaimResult>;
+  /**
+   * Commit a new cash_sale movement and verified cash payment together.
+   * If payment persistence fails, the movement must not remain (and expected cash
+   * must not increase). Repair of an already-durable movement uses savePayment alone.
+   */
+  recordVerifiedCashSale(input: {
+    readonly movement: StoredCashMovement | undefined;
+    readonly payment: StoredPayment;
+  }): Promise<"ok" | "duplicate_sale" | "shift_required" | "negative_expected">;
   saveQuote(quote: Quote): Promise<void>;
   getQuote(quoteId: Id): Promise<Quote | undefined>;
   seedPreparedSale(input: SeedPreparedSaleInput): Promise<PosSaleRecord>;

@@ -888,7 +888,7 @@ describe("CORE-05 cash + FinalizeSale orchestration", () => {
     expect(await checkoutStore.listCashSales(TX_A)).toHaveLength(0);
   });
 
-  test("cash ledger then POS payment persist failure repairs without a second movement", async () => {
+  test("atomic cash+payment persist failure rolls back movement then repairs once", async () => {
     const checkoutStore = createInMemoryCheckoutStore();
     await seedRegister(checkoutStore);
     const opened = await openRegister(checkoutStore);
@@ -919,7 +919,8 @@ describe("CORE-05 cash + FinalizeSale orchestration", () => {
     if (first.body.ok) {
       expect(first.body.data.status).toBe("requires_attention");
     }
-    expect(await checkoutStore.listCashSales(TX_A)).toHaveLength(1);
+    expect(await checkoutStore.listCashSales(TX_A)).toHaveLength(0);
+    expect(await checkoutStore.expectedCash(opened.shift.id)).toEqual(ghs(10000));
     expect(await checkoutStore.peekIdempotency("org_a", "payment.cash", CASH_KEY)).toBe("requires_attention");
 
     const repaired = await handleConfirmCash({

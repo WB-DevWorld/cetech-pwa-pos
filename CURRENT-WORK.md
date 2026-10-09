@@ -1,29 +1,25 @@
-## COMBINED-CANDIDATE-2026-10-08 — ACTIVE CI repair + recovery execution (WS3)
+## COMBINED-CANDIDATE-2026-10-08 — ACTIVE security/transaction repair batch (WS3)
 
 ```text
 human / integration editor: @wbdevworld / WS3
 bridge reviewer: @Emmanuel-coder-prog / WS2 (distinct; review only)
-task: CI-REPAIR-AND-RECOVERY-EXECUTION
-owner_approval: CETECH-POS-WS3-CI-Repair-and-Recovery-Execution.md; no prod; no second cash sale; no RD-01 re-apply; no silent f0; no shared alias move
+task: REVIEW-FINDINGS-NEXT-BATCH (TF-01, AUTH-01, TF-02, DB-SEC-02/03)
+owner_approval: CETECH-POS-WS3-Review-Findings-Next-Batch.md + Security-and-Transaction-Review-2026-10-09
 branch: ws3/combined-candidate-2026-10-08
-broken_head: 14cc175ecfc19135d9a956481348dd81f0809142 (App typecheck FAIL — harness import depth)
-obsolete_freeze: 2e6d704228a522f1f5728c5f2d70cfb08c90e393
+base_reviewed: 452c446fd0e3821fc3bfdb5de85a01d19a331809
 product_commit: 542d3ef2f862394a762de43eacf00c724b17aaec (ACCEPT; composition unchanged)
-corrected_head: publish this CI-repair tip (single push; wait CI)
-product_tip: ab5c7e1f3849ff65100a84058e92f8b281a14be2
-bridge_tree: fc8f2d05e7fe36001c3e9265cad0b4754417fedd
-preview_f0: dpl_4Vk3XQ… / gqg6tjedt / f0feb44… retained
-preview_request: PREVIEW-DEPLOY-REQUEST-CI-REPAIR.md — literal empty APP_ORIGIN overrides; NOT DISPATCHED
-tester: dpl_nxWGr… / 816e0bb…; A+D CAP CONSUMED
-rd01: COMPLETE — do not re-apply
-bridge_install: COMPLETE — 63094753… / 89e4461c…; FPM cutover UNVERIFIED
+preview_candidate: dpl_F3uXpLZA7xrkTb5av4TNzDc3ZGry / srx2grakx / BUILD_ID 452c446… — do not silent-move
+tester_shared: 816e0bb… UNCHANGED; A+D CAP CONSUMED
+rd01: COMPLETE — hosted 20261008151307 — do not re-apply
 A+D: CLOSED — 33326bbc… / sale-50317
-lane_a: CI harness imports fixed; typecheck+Playwright local PASS
-lane_b: concrete Preview request prepared; needs APPROVED + origin exception
-lane_c: Woo SQL accepted; files tarball local SHA match; full WP boot NOT RUN; POS dump BLOCKED (POS-CREDENTIAL-OPERATOR-ACTION.md)
-device: installed PWA/hardware NOT RUN
-B/C: prep only — NOT EXECUTED
-handoff: HANDOFF-CI-REPAIR-AND-RECOVERY-EXECUTION.md
+TF-01: SOURCE REPAIRED locally — claimSaleTender + atomic recordVerifiedCashSale (migrations 20261009130000 + 20261009130100 PROPOSED, not hosted)
+TF-02: SOURCE REPAIRED locally — full UUID receipt + 409 same-tx only
+AUTH-01: SOURCE REPAIRED locally — post-insert recheck + guard/authorize access (tests PASS)
+DB-SEC-02/03: PROBES UNEXECUTED — need disposable migrated DB (DB-SEC-02-03-PROBE-STATUS.md)
+TF-01_DB: disposable two-client PG proof PENDING (source published first)
+handoff_prior: HANDOFF-ALL-LANES-0900.md
+evidence: TF-01-TF-02-REPAIR.md; AUTH-01-DISABLEMENT-REPAIR.md; DB-SEC-02-03-PROBE-STATUS.md; scope-tf-01/tf-02/auth-01 json
+publish: WS3-Commit-Validate-and-Publish-Repairs.md — review candidate push authorized; no new Preview until reviewed
 profiler: PARKED
 #115 / #132: remain OPEN
 production_effects: NONE

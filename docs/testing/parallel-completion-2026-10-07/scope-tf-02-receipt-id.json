@@ -1,0 +1,29 @@
+{
+  "task": "TF-02",
+  "base_sha": "452c446fd0e3821fc3bfdb5de85a01d19a331809",
+  "branch": "ws3/combined-candidate-2026-10-08",
+  "symptom": "rcpt-${uuid.slice(0,8)} collisions + saveReceipt 409 returns ok without same-transaction receipt → finalize completed, getReceipt NOT_FOUND",
+  "allowed": [
+    "apps/pos-web/src/server/sales/finalize-sale.ts",
+    "apps/pos-web/src/server/sales/supabase-checkout-store.ts",
+    "apps/pos-web/src/core/checkout/in-memory-store.ts",
+    "apps/pos-web/src/server/sales/**/*receipt*.test.ts",
+    "apps/pos-web/src/server/sales/**/*finalize*.test.ts",
+    "docs/testing/parallel-completion-2026-10-07/**",
+    "CURRENT-WORK.md"
+  ],
+  "forbidden": [
+    "schema change for receipt id length",
+    "rewrite historical receipt ids",
+    "repeat Woo finalize/payment/stock",
+    "hosted mutation"
+  ],
+  "schema_proposal": "none — full UUID fits existing string id",
+  "permitted_effects": "NONE",
+  "protected_invariants": [
+    "historical short receipt ids",
+    "no-shift Orders Reprint",
+    "A+D receipt rcpt-33326bbc"
+  ],
+  "rollback": "revert finalize/store commits"
+}

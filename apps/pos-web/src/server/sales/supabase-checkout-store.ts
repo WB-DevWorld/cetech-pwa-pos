@@ -14,6 +14,8 @@ import type {
   OutboxEvent,
   PosSaleRecord,
   PrepareOperationDiagnostic,
+  SaleTenderClaimResult,
+  SaleTenderFamily,
   SeedPreparedSaleInput,
   StoredCashMovement,
   StoredDevice,
@@ -338,6 +340,118 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
       throw new Error("durable checkout store rejected cash movement");
     },
 
+    async claimSaleTender(transactionId, family, scope): Promise<SaleTenderClaimResult> {
+      const cashRows = await this.listCashSales(transactionId);
+      const payment = await this.getPaymentForTransaction(transactionId);
+      const electronicEvidence = Boolean(
+        payment && payment.tender !== "cash" && payment.status !== "cancelled" && payment.status !== "failed",
+      );
+      const cashEvidence = cashRows.length > 0 || payment?.tender === "cash";
+      const evidenceFamily: SaleTenderFamily | undefined = cashEvidence
+        ? "cash"
+        : electronicEvidence
+          ? "electronic"
+          : undefined;
+      if (evidenceFamily && evidenceFamily !== family) {
+        return { kind: "conflict", held: evidenceFamily };
+      }
+
+      const insert = await request({
+        path: "pos_sale_tender_claims",
+        method: "POST",
+        prefer: "return=minimal",
+        body: {
+          transaction_id: transactionId,
+          organization_id: scope.organizationId,
+          location_id: scope.locationId,
+          tender_family: family,
+          actor_id: scope.actorId,
+        },
+      });
+      if (insert.status === 201 || insert.status === 200) {
+        return evidenceFamily === family ? { kind: "held" } : { kind: "acquired" };
+      }
+      if (insert.status === 409) {
+        const existing = await getOne(
+          `pos_sale_tender_claims?transaction_id=eq.${encodeURIComponent(transactionId)}&select=tender_family`,
+        );
+        const held = typeof existing?.tender_family === "string" ? (existing.tender_family as SaleTenderFamily) : undefined;
+        if (held === family) {
+          return { kind: "held" };
+        }
+        if (held === "cash" || held === "electronic") {
+          return { kind: "conflict", held };
+        }
+        throw new Error("durable checkout store tender claim conflict without row");
+      }
+      throw new Error("durable checkout store rejected tender claim");
+    },
+
+    async recordVerifiedCashSale(input) {
+      const sale = await this.getSale(input.payment.transactionId);
+      const organizationId = sale?.organizationId ?? "";
+      const locationId = sale?.locationId ?? "";
+      if (!organizationId || !locationId) {
+        throw new Error("durable checkout store rejected cash sale without sale scope");
+      }
+      const result = await request({
+        path: "rpc/pos_record_verified_cash_sale",
+        method: "POST",
+        prefer: "return=representation",
+        body: {
+          p_organization_id: organizationId,
+          p_location_id: locationId,
+          p_movement: input.movement
+            ? {
+                id: input.movement.id,
+                shift_id: input.movement.shiftId,
+                kind: input.movement.kind,
+                signed_amount_minor: input.movement.signedAmount.minor,
+                currency: input.movement.signedAmount.currency,
+                actor_id: input.movement.actorId,
+                transaction_id: input.movement.transactionId,
+                reason: input.movement.reason ?? null,
+                created_at: input.movement.createdAt,
+              }
+            : null,
+          p_payment: {
+            payment_id: input.payment.paymentId,
+            organization_id: organizationId,
+            location_id: locationId,
+            transaction_id: input.payment.transactionId,
+            sale_id: input.payment.saleId,
+            evidence_id: input.payment.evidenceId,
+            tender: input.payment.tender,
+            status: input.payment.status,
+            amount_minor: input.payment.amount.minor,
+            amount_currency: input.payment.amount.currency,
+            cash_received_minor: input.payment.cashReceived?.minor ?? null,
+            cash_received_currency: input.payment.cashReceived?.currency ?? null,
+            verified_at: input.payment.verifiedAt ?? null,
+            verification_source: input.payment.verificationSource ?? null,
+            actor_id: input.payment.actorId,
+          },
+        },
+      });
+      if (result.status === 200 || result.status === 201) {
+        const outcome = typeof result.body === "string" ? result.body : Array.isArray(result.body) ? result.body[0] : result.body;
+        if (outcome === "ok" || outcome === "duplicate_sale") {
+          return outcome;
+        }
+        if (outcome === "shift_required" || outcome === "negative_expected") {
+          return outcome;
+        }
+      }
+      const message = errorMessage(result.body);
+      if (message.includes("open shift") || message.includes("cash movements require")) {
+        return "shift_required";
+      }
+      if (message.includes("negative") || message.includes("expected cash")) {
+        return "negative_expected";
+      }
+      throw new Error("durable checkout store rejected verified cash sale");
+    },
+
     async listCashSales(transactionId) {
       const rows = await getRows(
         `pos_cash_movements?kind=eq.cash_sale&transaction_id=eq.${encodeURIComponent(transactionId)}&select=id,organization_id,shift_id,kind,signed_amount_minor,currency,actor_id,created_at,transaction_id,reason,refund_id`,
@@ -616,7 +730,10 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
       }
       if (result.status === 409) {
         const existing = await this.getReceipt(receipt.transactionId);
-        if (existing && existing.id !== receipt.id) {
+        if (!existing) {
+          throw new Error("durable checkout store receipt conflict without same-transaction row");
+        }
+        if (existing.id !== receipt.id) {
           return "duplicate";
         }
         return "ok";
