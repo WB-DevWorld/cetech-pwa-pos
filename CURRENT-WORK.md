@@ -1,19 +1,23 @@
-## COMBINED-CANDIDATE-2026-10-08 — ACTIVE finish release gates (WS3)
+## COMBINED-CANDIDATE-2026-10-08 — ACTIVE controlled staging rollout (WS3)
 
 ```text
 human / integration editor: @wbdevworld / WS3
-bridge reviewer: @Emmanuel-coder-prog / WS2 (review; prepare deletes closed under WS3 lease)
-task: FINISH-RELEASE-GATES-22035a5 (enrollment, disabled-shift pgTAP, prepare deletes)
-owner_approval: CETECH-POS-WS3-Finish-Release-Gates-22035a5.md + evidence ZIP
-branch: ws3/combined-candidate-2026-10-08
-base_reviewed: 22035a513e43b896cbc5e96964aa428b71d8d010
-preview_candidate: dpl_F3uXp… / 452c446 — do not silent-move
-Gate1: SOURCE-REPAIRED — evidence enrollment migration 20261009160000 PROPOSED
-Gate2: SOURCE-REPAIRED — paired disabled-shift + db-sec pgTAP registered
-Gate3: SOURCE-REPAIRED — prepare same-request deletes guard + bridge tests
-review_tip: 3018999b6825c94085a87be0afb9363b89f4bc43
-staging_record: STAGING-EXECUTION-RECORD-GATES.md (no hosted apply)
-production_effects: NONE
+task: STAGING-ROLLOUT-A4F3284-01
+owner_approval: CETECH-POS-WS3-Controlled-Staging-Rollout-a4f3284 — APPROVED 2026-10-09T18:15:52Z ("i appprove")
+owner_reassignment: WS3/Cursor owns execution of this bounded staging rollout
+exact_sha: a4f3284c35785dbb0efe3843d38084f12911ac15
+source_tree: 58d0297dd6fc419bc583c1197fc3c7c95d635242
+bridge_tree: de27630af10885d166401cba4043a02e3b2a4d2b
+ci: 37964935009 SUCCESS
+staging_db: iegxncvpsyaitkpzywcr ONLY
+training_wp: training.cetechbpa.com ONLY
+scope: five named migrations + training bridge class-woo-runtime.php + ONE exact-a4f3284 Preview + noncommercial checks + tester docs
+forbidden: production, main merge, RD-01 re-apply, A+D, shared alias move, new sale/charge
+migration_hashes: VERIFIED MATCH for all five files
+bridge_hash: VERIFIED MATCH fa478ea4… (class-woo-runtime.php)
+previous_tester: 452c446 / dpl_F3uXp… — do not silent-move
+production_effects: NONE until/unless separately released
+blocker: STAGING-ROLLOUT-A4F3284-BLOCKER.md — Supabase token + Vercel login required
 verdict: NOT READY FOR PRODUCTION
 staff_documentation_impact: NONE
 ```
@@ -1059,4 +1063,5 @@ Expiry: tested new-batch review handoff. This task has a fresh start and exactly
 Imported QUOTE-CONTEXT-01 `56572b99` as `a3a24b26` and QUOTE-TIMING-01 `3f8f7667` as `87d62b11`; exactly2+4 approved source/test files. Both contributor implementation leases are released; root alone completes documentation, publication and handoff. QUOTE-DISPATCH-01 remains HELD with no implementation files. Native exact-hook comparison passes14/14 scenarios and28/28 candidate checks; baseline fails4 context scenarios. Full production-build browser suite77/77, unit1763/1763 across210 files, build/typecheck/foundation/tooling76 PASS. Lint has zero errors and five existing warnings in untouched files. Known39 unit-generated outputs and12 browser-generated PNGs are preserved externally and restored, not committed. No retries/skips, migration, grants/indexes, Woo/Delivery, dependencies, business writes or production effects.
 
 Independent AI review supports qualification only; different-human review remains required. Exact remote tree/head, Linux/Windows CI, preview identity and exactly two final freshness observations are recorded externally and in the draft PR. The shared tester alias and installed bridge source are not qualified by this local checkpoint. No live transaction speed improvement is claimed. New task leases expire on its tested review-candidate handoff; any further source change requires a new bounded task/scope.
+
 
