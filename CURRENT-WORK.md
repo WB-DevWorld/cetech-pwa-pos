@@ -1073,3 +1073,18 @@ Expiry: tested new-batch review handoff. This task has a fresh start and exactly
 Imported QUOTE-CONTEXT-01 `56572b99` as `a3a24b26` and QUOTE-TIMING-01 `3f8f7667` as `87d62b11`; exactly2+4 approved source/test files. Both contributor implementation leases are released; root alone completes documentation, publication and handoff. QUOTE-DISPATCH-01 remains HELD with no implementation files. Native exact-hook comparison passes14/14 scenarios and28/28 candidate checks; baseline fails4 context scenarios. Full production-build browser suite77/77, unit1763/1763 across210 files, build/typecheck/foundation/tooling76 PASS. Lint has zero errors and five existing warnings in untouched files. Known39 unit-generated outputs and12 browser-generated PNGs are preserved externally and restored, not committed. No retries/skips, migration, grants/indexes, Woo/Delivery, dependencies, business writes or production effects.
 
 Independent AI review supports qualification only; different-human review remains required. Exact remote tree/head, Linux/Windows CI, preview identity and exactly two final freshness observations are recorded externally and in the draft PR. The shared tester alias and installed bridge source are not qualified by this local checkpoint. No live transaction speed improvement is claimed. New task leases expire on its tested review-candidate handoff; any further source change requires a new bounded task/scope.
+
+
+## TESTER-DOCS-2026-10-09 — owner-authorized documentation update
+
+- Owner instruction: "update all tester docs etc" after the 9 October tester deployment handoff.
+- Acting editor: root documentation coordinator under WS3; WS3 retains all product implementation and runtime ownership.
+- Base: `452c446fd0e3821fc3bfdb5de85a01d19a331809`; isolated branch `ws3/tester-docs-2026-10-09-452c446`.
+- Lease: documentation only, starts before edits and expires at publication handoff.
+- Allowed: `docs/staff/**`, `docs/testing/parallel-completion-2026-10-07/TESTER-ACCEPTANCE-CHECKLIST-452c446.md`, `docs/testing/parallel-completion-2026-10-07/TESTER-DOCS-452c446-RECEIPT.md`, `README.md`, `CURRENT-WORK.md`.
+- Forbidden: application/bridge code, schemas/migrations, contracts, workflows, deployments, aliases, database/runtime writes, transactions.
+- Staff impact: YES. One current tester link and build, scoped acceptance checklist, existing-receipt Reprint, equipment checks, truthful pending gates.
+- Dependencies: Vercel record confirms deployment `dpl_F3uXpLZA7xrkTb5av4TNzDc3ZGry` READY at the exact base SHA. Runtime acceptance remains separate.
+- Protected: A+D and RD-01 are not repeated; B/C require a separate GO; historical evidence remains historical; browser storage is preserved.
+- Acceptance: current entrypoints and reading copies agree; permanent guide contains no temporary POS hostname; current instructions do not authorize new commercial effects; exact deployment identity and pending checks are visible.
+- Rollback: revert this documentation slice. No runtime effects.
