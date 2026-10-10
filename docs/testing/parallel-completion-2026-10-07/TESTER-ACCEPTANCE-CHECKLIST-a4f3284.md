@@ -14,6 +14,8 @@ Staff-documentation impact: entrypoints updated for this round (see staff README
 Classification: device/PWA/scanner/paper items remain **TESTER ACCEPTANCE PENDING**.  
 Verdict: **NOT READY FOR PRODUCTION**.
 
+Evidence publish (docs only): PR #144 includes checklist + `A4-REMAINING-QUALIFICATION-01-RESULTS.md` at `8d8fe1010f18252af48b14af4a6eed3b4802b237` (product freeze unchanged). Software T-D3b / T-D4c / T-D4d rows below are capture-backed; journal remains NOT EXERCISED; §A–C remain tester-owned.
+
 Record for every check: date/time (UTC), tester name, device model, OS, browser (or installed PWA), observed BUILD_ID, pass/fail/blocked, notes. Do **not** clear IndexedDB, journals, or unresolved operation evidence as a routine cache fix (see `docs/runbooks/R10-DEVICE-AND-PWA-REHEARSAL.md`). Do **not** click Pay or create a new commercial fixture.
 
 ## A. Cache / installed PWA / device (tester-owned)

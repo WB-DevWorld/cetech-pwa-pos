@@ -1,3 +1,22 @@
+## COMBINED-CANDIDATE-2026-10-08 — recovery + quote attribution COMPLETE (WS3 docs)
+
+```text
+human / integration editor: @wbdevworld / WS3
+task: A4-RECOVERY-AND-QUOTE-ATTRIBUTION-02
+status: COMPLETE (publish + pooler/decision + isolated REST inventory + commercial decision; dump NOT RUN)
+product_freeze: a4f3284c35785dbb0efe3843d38084f12911ac15
+published_evidence_sha: 8d8fe1010f18252af48b14af4a6eed3b4802b237 (PR #144; continues with this task's docs commit)
+preview: dpl_FAaW712WnVBZ9Wr7B8MXCurJEeXW / q2u9baevb
+results: docs/testing/parallel-completion-2026-10-07/A4-RECOVERY-AND-QUOTE-ATTRIBUTION-02-RESULTS.md
+lane1: pooler transaction:6543 discovered; cli/login-role NOT ISSUED — decision doc prepared
+lane2: isolated Woo REST inventory 88 callbacks; timed profile BLOCKED (REST already init on WP-CLI load)
+lane3: LANE3-COMMERCIAL-DECISION-A4F3284-CLOSED.md (A/B/C/D choice)
+forbidden: product/schema/bridge edits; force push; write-capable login without GO; Pay/sale; training profile
+production_effects: NONE
+verdict: NOT READY FOR PRODUCTION
+staff_documentation_impact: NONE
+```
+
 ## COMBINED-CANDIDATE-2026-10-08 — remaining qualification COMPLETE (WS3 docs)
 
 ```text
@@ -7,6 +26,7 @@ status: COMPLETE (safe lanes + decision sheet; restore BLOCKED)
 product_freeze: a4f3284c35785dbb0efe3843d38084f12911ac15
 accepted_closeout: 033463ec5ef5f2aa580a7c3c412251bcfacab396
 preview: dpl_FAaW712WnVBZ9Wr7B8MXCurJEeXW / q2u9baevb
+published_on_pr144: 8d8fe1010f18252af48b14af4a6eed3b4802b237
 results: docs/testing/parallel-completion-2026-10-07/A4-REMAINING-QUALIFICATION-01-RESULTS.md
 lane1: T-D3b/T-D4c PASS software; journal NOT EXERCISED; T-D4d print dialog PASS software
 lane2: BLOCKED — Management API present but backups=[] and no downloadable restorable export / Direct URI
