@@ -16,6 +16,14 @@ export type BridgeServiceIdentity = {
   readonly authorizationHeader: string;
 };
 
+/**
+ * Health-only deadline. Training bridge startup has been measured around 9s,
+ * so the previous 5s default reported a timeout while a longer quote could
+ * still succeed. This does not change quote, payment, or other operational
+ * deadlines. 12s covers that measured startup with a small bound.
+ */
+export const BRIDGE_HEALTH_PROBE_DEADLINE_MS = 12_000;
+
 export type BridgeHealthClientOptions = {
   readonly baseUrl: string;
   readonly username: string;
@@ -56,7 +64,7 @@ export function createBridgeHealthClient(options: BridgeHealthClientOptions) {
     applicationPassword: options.applicationPassword,
   });
   const healthUrl = bridgeHealthUrl(options.baseUrl);
-  const timeoutMs = options.timeoutMs ?? 5_000;
+  const timeoutMs = options.timeoutMs ?? BRIDGE_HEALTH_PROBE_DEADLINE_MS;
   const fetchImpl = options.fetchImpl;
 
   return {
@@ -169,12 +177,11 @@ async function inspectBridgeHealth(input: {
       };
     }
     const health = mapBridgeHealth(body);
-    const storeStatus = health.status === "unavailable" ? "unavailable" : "unverified";
     return {
       health,
       check: {
         id: "bridge",
-        status: storeStatus,
+        status: reachabilityStatus(health.status),
         message: detectionMessage(health),
         checkedAt: toIsoTimestamp(input.now),
       },
@@ -190,6 +197,12 @@ async function inspectBridgeHealth(input: {
       ),
     };
   }
+}
+
+/** Reachability only. Pricing parity stays false on the mapped BridgeHealth. */
+function reachabilityStatus(status: BridgeHealth["status"]): HealthCheck["status"] {
+  if (status === "healthy" || status === "degraded") return status;
+  return "unavailable";
 }
 
 function unavailableHealth(): BridgeHealth {

@@ -38,28 +38,55 @@ function paymentHealthRow(
   if (!methods) {
     return electronicPaymentsAvailable
       ? { id: "payments", name: "Payments", detail: "Available", tone: "ok", badge: "OK" }
-      : { id: "payments", name: "Payments", detail: "Cash can be taken. Electronic methods are not confirmed.", tone: "unverified", badge: "Unverified" };
+      : {
+          id: "payments",
+          name: "Payments",
+          detail: "Cash can be taken. Payment setup has not been confirmed yet.",
+          tone: "unverified",
+          badge: "Unverified",
+        };
   }
-  const configured = [
-    methods.mobileMoney === "configured" ? "Mobile Money" : null,
-    methods.card === "configured" ? "Card" : null,
-    methods.externalTerminal === "configured" ? "External terminal" : null,
-  ].filter((item): item is string => item !== null);
-  if (configured.length > 0) {
-    return {
-      id: "payments",
-      name: "Payments",
-      detail: `Cash is available. ${configured.join(" and ")} ${configured.length === 1 ? "is" : "are"} set up.`,
-      tone: "ok",
-      badge: "OK",
-    };
+  const manual =
+    methods.manualMobileMoney === "enabled"
+      ? "Manually confirmed Mobile Money is enabled."
+      : "Manually confirmed Mobile Money is not set up.";
+  const integrated = integratedCheckoutSentence(methods);
+  const tone = paymentTone(methods);
+  return {
+    id: "payments",
+    name: "Payments",
+    detail: `Cash is available. ${manual} ${integrated}`,
+    tone,
+    badge: badgeFromTone(tone),
+  };
+}
+
+function integratedCheckoutSentence(methods: PaymentMethodCapabilities): string {
+  if (methods.integratedCheckout === "paystack_test") {
+    const channels = [
+      methods.card === "configured" ? "card" : null,
+      methods.mobileMoney === "configured" ? "Paystack mobile money" : null,
+    ].filter((item): item is string => item !== null);
+    const channelText = channels.length > 0 ? ` for ${channels.join(" and ")}` : ", but no card or Paystack mobile-money channel is turned on";
+    return `Paystack test checkout is configured${channelText}. It is not ready for live payments.`;
   }
-  const unavailable = [methods.mobileMoney, methods.card, methods.externalTerminal].every(
-    (item) => item === "unavailable",
-  );
-  return unavailable
-    ? { id: "payments", name: "Payments", detail: "Cash can be taken. Electronic methods are unavailable.", tone: "unavailable", badge: "Unavailable" }
-    : { id: "payments", name: "Payments", detail: "Cash can be taken. Electronic methods are not set up.", tone: "unverified", badge: "Unverified" };
+  if (methods.integratedCheckout === "live_blocked") {
+    return "Live electronic checkout is blocked in this version.";
+  }
+  if (methods.integratedCheckout === "unavailable") {
+    return "Integrated electronic checkout is unavailable.";
+  }
+  if (methods.integratedCheckout === "not_verified") {
+    return "Integrated electronic checkout has not been verified.";
+  }
+  return "Integrated electronic checkout is not set up.";
+}
+
+function paymentTone(methods: PaymentMethodCapabilities): HealthRowTone {
+  if (methods.integratedCheckout === "live_blocked" || methods.integratedCheckout === "unavailable") return "unavailable";
+  if (methods.integratedCheckout === "paystack_test" || methods.integratedCheckout === "not_verified") return "unverified";
+  if (methods.manualMobileMoney === "enabled") return "ok";
+  return "unverified";
 }
 
 function catalogRow(availability: CatalogProjectionAvailability | null | undefined): HealthRowView {
@@ -90,6 +117,7 @@ export function presentHealthRows(input: {
 }): readonly HealthRowView[] {
   const checks = input.health?.checks ?? [];
   const commerce = checkById(checks, "commerce") ?? checkById(checks, "bridge");
+  const dependencies = checkById(checks, "bridge-dependencies");
   const pricing = checkById(checks, "pricing") ?? checkById(checks, "bridge-contract");
   const local = checkById(checks, "supabase");
   const internet: HealthRowView = input.online
@@ -105,9 +133,16 @@ export function presentHealthRows(input: {
       detail: commerce?.status === "healthy" ? "Connected" : fromCheck(commerce, "commerce", "Store connection").detail,
     },
     {
+      ...fromCheck(dependencies, "bridge-dependencies", "Store services"),
+      name: "Store services",
+    },
+    {
       ...fromCheck(pricing, "pricing", "Prices"),
       name: "Prices",
-      detail: pricing?.status === "healthy" ? "Available" : fromCheck(pricing, "pricing", "Prices").detail,
+      detail:
+        pricing?.status === "healthy"
+          ? "Pricing qualification passed. It is separate from the quoted price on the current sale."
+          : fromCheck(pricing, "pricing", "Prices").detail,
     },
     catalogRow(input.catalogAvailability),
     payments,

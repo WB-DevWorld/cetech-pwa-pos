@@ -541,6 +541,15 @@ Use it when something appears unavailable.
 
 Cashier-facing System status should explain what is working or unavailable in ordinary language.
 
+**Refresh status** is always available. The “last checked” time is when the check finished, not when it started. Use it again if one service timed out; you do not need the whole screen to fail first.
+
+Read the rows separately:
+
+- **Store connection** can say Connected when the store answered, even if prices are not fully qualified yet.
+- **Store services** warns when a required store service was not detected. That warning does not prove prices are right or wrong.
+- **Prices** means pricing qualification. Pending qualification is not the same as the price already quoted on the current sale.
+- **Payments** always states cash separately from manually confirmed Mobile Money and from Paystack. Paystack test checkout is not live-ready. Live electronic checkout stays blocked in this version.
+
 Detailed engineering/support information belongs in Management/support views.
 
 ---

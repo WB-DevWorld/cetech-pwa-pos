@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   capabilityForElectronicTender,
+  diagnosePaymentConfiguration,
   resolvePaymentMethodCapabilities,
 } from "./method-capabilities";
 
@@ -11,6 +12,9 @@ describe("payment method capabilities", () => {
       mobileMoney: "unconfigured",
       card: "unconfigured",
       externalTerminal: "unconfigured",
+      manualMobileMoney: "not_set_up",
+      integratedCheckout: "not_set_up",
+      configurationReason: "provider_disabled",
     });
   });
 
@@ -26,6 +30,9 @@ describe("payment method capabilities", () => {
       mobileMoney: "unconfigured",
       card: "unconfigured",
       externalTerminal: "unconfigured",
+      manualMobileMoney: "not_set_up",
+      integratedCheckout: "paystack_test",
+      configurationReason: "channel_disabled",
     });
   });
 
@@ -83,5 +90,25 @@ describe("payment method capabilities", () => {
         PAYSTACK_MOBILE_MONEY_ENABLED: "true",
       }).mobileMoney,
     ).toBe("unavailable");
+    expect(
+      resolvePaymentMethodCapabilities({
+        PAYMENT_PROVIDER: "paystack",
+        PAYSTACK_MODE: "live",
+        PAYSTACK_SECRET_KEY: "sk_live_example",
+      }).integratedCheckout,
+    ).toBe("live_blocked");
+    expect(
+      diagnosePaymentConfiguration({
+        PAYMENT_PROVIDER: "paystack",
+        PAYSTACK_MODE: "test",
+        PAYSTACK_SECRET_KEY: "sk_test_example_key",
+        PAYSTACK_CARD_ENABLED: "true",
+        PAYSTACK_TEST_PAYER_EMAIL: "payer@example.test",
+      }).reason,
+    ).toBe("customer_presentation_missing");
+    expect(JSON.stringify(diagnosePaymentConfiguration({
+      PAYMENT_PROVIDER: "paystack",
+      PAYSTACK_SECRET_KEY: "sk_test_example_key",
+    }))).not.toContain("sk_test");
   });
 });

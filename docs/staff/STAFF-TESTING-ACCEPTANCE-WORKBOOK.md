@@ -1397,6 +1397,8 @@ The POS must not pretend those actions succeeded.
 **Expected:**
 - service availability uses plain language;
 - staff can understand whether to retry/wait/contact manager;
+- Refresh status is available even when the screen already loaded, and last checked is a completed time;
+- store connection, store services, pricing qualification, and payments are separate;
 - build/API/schema/provider internals are not primary cashier content.
 
 ### Your result

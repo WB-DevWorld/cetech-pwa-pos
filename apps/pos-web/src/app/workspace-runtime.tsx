@@ -38,6 +38,15 @@ import { resolveBrowserCatalogSourcePolicy } from "../core/catalog/source-policy
 import type { StaffRuntimeAuthority } from "../core/identity";
 import type { PosRoute } from "../ui/shell";
 import { catalogRebuildStatusText, type CatalogRebuildView } from "./catalog-rebuild-status";
+import {
+  beginOnlineStatusRefresh,
+  completeStatusRefresh,
+  createStatusRefreshState,
+  latestCompletedCheckTime,
+  requestStatusRefresh,
+  unmountStatusRefresh,
+  type StatusRefreshState,
+} from "../ui/operational/healthRefresh";
 import { usePwaLifecycle } from "./pwa-lifecycle-runtime";
 import { AttentionRecoveryPanel } from "../features/admin/AttentionRecoveryPanel";
 import { fetchManagementContext, fetchManagementSaleRecovery, repairManagementSale } from "./management-client";
@@ -432,38 +441,77 @@ function HealthWorkspace({
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
   const [recovery, setRecovery] = useState<LocalRecoveryDiagnostics | undefined>();
   const [updateCheckBusy, setUpdateCheckBusy] = useState(false);
+  const [refreshBusy, setRefreshBusy] = useState(false);
+  const refreshState = useRef<StatusRefreshState>(createStatusRefreshState());
+  const abortRef = useRef<AbortController | null>(null);
+  const onlineRef = useRef(online);
+  const hasHealth = useRef(false);
+  onlineRef.current = online;
+  hasHealth.current = health !== undefined;
 
-  const load = useCallback(async () => {
-    const [result, diagnostics, capabilities] = await Promise.all([
-      fetchStoreHealth(fetchImpl),
-      inspectLocalRecoveryState().catch(() => undefined),
-      fetchPaymentMethodCapabilities(fetchImpl),
-    ]);
-    setPaymentMethods(capabilities.ok ? capabilities.data : undefined);
-    setRecovery(diagnostics);
-    if (!result.ok) {
-      setHealth(undefined);
-      setState("error");
-      setErrorMessage(
-        toCashierError({
-          code: result.error.code,
-          message: result.error.message,
-          domain: "health",
-        }).message,
-      );
-      return;
+  const runLoad = useCallback(async (kind: "refresh" | "online") => {
+    const nowMs = Date.now();
+    const decision = kind === "online"
+      ? beginOnlineStatusRefresh(refreshState.current, nowMs)
+      : requestStatusRefresh(refreshState.current, nowMs);
+    if (!decision.start) return;
+    refreshState.current = decision.state;
+    const generation = decision.state.generation;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setRefreshBusy(true);
+    if (!hasHealth.current) setState("loading");
+    try {
+      const [result, diagnostics, capabilities] = await Promise.all([
+        fetchStoreHealth(fetchImpl, controller.signal),
+        inspectLocalRecoveryState().catch(() => undefined),
+        fetchPaymentMethodCapabilities(fetchImpl, controller.signal),
+      ]);
+      if (generation !== refreshState.current.generation || !refreshState.current.mounted) return;
+      setRecovery(diagnostics);
+      setPaymentMethods(capabilities.ok ? capabilities.data : undefined);
+      if (!result.ok) {
+        refreshState.current = completeStatusRefresh(refreshState.current, generation, undefined);
+        setState("error");
+        setErrorMessage(
+          toCashierError({
+            code: result.error.code,
+            message: result.error.message,
+            domain: "health",
+          }).message,
+        );
+        return;
+      }
+      const completedAt = latestCompletedCheckTime(result.data.checks.map((check) => check.checkedAt));
+      refreshState.current = completeStatusRefresh(refreshState.current, generation, completedAt);
+      setHealth(result.data);
+      setState(onlineRef.current ? "ready" : "offline");
+      setErrorMessage(undefined);
+    } catch {
+      if (generation !== refreshState.current.generation || !refreshState.current.mounted) return;
+      refreshState.current = completeStatusRefresh(refreshState.current, generation, undefined);
+    } finally {
+      if (generation === refreshState.current.generation && refreshState.current.mounted) {
+        setRefreshBusy(false);
+      }
     }
-    setHealth(result.data);
-    setState(online ? "ready" : "offline");
-    setErrorMessage(undefined);
-  }, [fetchImpl, online]);
+  }, [fetchImpl]);
+
+  useEffect(() => {
+    refreshState.current = { ...refreshState.current, mounted: true };
+    return () => {
+      refreshState.current = unmountStatusRefresh(refreshState.current);
+      abortRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      void load();
+      void runLoad("online");
     }, 0);
     return () => clearTimeout(timer);
-  }, [load]);
+  }, [runLoad, online]);
 
   return (
     <>
@@ -475,8 +523,10 @@ function HealthWorkspace({
         catalogAvailability={catalogAvailability}
         paymentMethods={paymentMethods}
         attentionCountOverride={attentionCount}
+        lastCheckedAt={state === "loading" ? undefined : refreshState.current.lastCompletedAt}
+        refreshBusy={refreshBusy}
         onRetry={() => {
-          void load();
+          void runLoad("refresh");
         }}
         onOpenAttention={() => onNavigate("attention")}
       />
