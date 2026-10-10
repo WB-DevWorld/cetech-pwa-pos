@@ -5,6 +5,7 @@ import {
   createStatusRefreshState,
   latestCompletedCheckTime,
   requestStatusRefresh,
+  settleWithin,
   unmountStatusRefresh,
 } from "./healthRefresh";
 
@@ -42,5 +43,15 @@ describe("status refresh gate", () => {
     expect(latestCompletedCheckTime(["2026-10-10T06:00:00.000Z", "2026-10-10T06:00:09.000Z"])).toBe(
       "2026-10-10T06:00:09.000Z",
     );
+  });
+
+  test("a hung read and a hung diagnostic settle on their own deadlines", async () => {
+    const hung = new Promise<string>(() => undefined);
+    const health = settleWithin(hung, 30, "health-timeout");
+    const diagnostic = settleWithin(hung, 10, "diagnostic-timeout");
+    await expect(diagnostic).resolves.toBe("diagnostic-timeout");
+    await expect(health).resolves.toBe("health-timeout");
+    await expect(settleWithin(Promise.reject(new Error("boom")), 20, "failed")).resolves.toBe("failed");
+    await expect(settleWithin(Promise.resolve("ok"), 20, "failed")).resolves.toBe("ok");
   });
 });

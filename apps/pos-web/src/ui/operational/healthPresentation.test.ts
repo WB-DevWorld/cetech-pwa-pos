@@ -65,8 +65,20 @@ describe("Store Health presentation", () => {
     const payments = testCheckout.find((row) => row.id === "payments");
     expect(payments?.detail).toContain("Cash is available");
     expect(payments?.detail).toContain("Manually confirmed Mobile Money is not set up");
-    expect(payments?.detail).toContain("Paystack test checkout is configured");
-    expect(payments?.detail).toContain("not ready for live payments");
+    expect(payments?.detail).toContain("not a usable email");
+    expect(payments?.detail).not.toContain("Paystack test checkout can be opened");
+    const ready = presentHealthRows({
+      online: true,
+      paymentMethods: resolvePaymentMethodCapabilities({
+        PAYMENT_PROVIDER: "paystack",
+        PAYSTACK_MODE: "test",
+        PAYSTACK_SECRET_KEY: "sk_test_example_key",
+        PAYSTACK_CARD_ENABLED: "true",
+        PAYSTACK_TEST_PAYER_EMAIL: "payer@example.test",
+      }),
+    });
+    expect(ready.find((row) => row.id === "payments")?.detail).toContain("Paystack test checkout can be opened");
+    expect(ready.find((row) => row.id === "payments")?.detail).toContain("not ready for live payments");
     expect(payments?.detail).not.toContain("PAYSTACK");
 
     const live = presentHealthRows({

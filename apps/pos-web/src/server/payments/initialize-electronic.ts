@@ -247,6 +247,7 @@ export async function initializeElectronicPayment(input: {
       status: "awaiting_customer",
       initializeStatus: "initialized",
       accessCode: remote.accessCode,
+      ...(remote.authorizationUrl ? { authorizationUrl: remote.authorizationUrl } : {}),
       displayReference: remote.displayReference,
     };
     await store.savePayment(awaiting);

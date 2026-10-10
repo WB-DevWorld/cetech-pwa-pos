@@ -61,13 +61,13 @@ describe("operational recovery surfaces", () => {
       />,
     );
     expect(html).toContain("Refresh status");
-    expect(html).toContain("Last checked");
+    expect(html).toContain("Response received");
     expect(html).not.toContain("couldn&#x27;t be refreshed");
     const loading = renderToStaticMarkup(
       <StoreHealthScreen health={health} state="loading" lastCheckedAt="2026-10-10T06:00:00.000Z" refreshBusy onRetry={() => undefined} />,
     );
     expect(loading).toContain("Refreshing status…");
-    expect(loading).not.toContain("Last checked");
+    expect(loading).not.toContain("Response received");
   });
 
   test("Needs attention exposes only supplied safe actions", () => {

@@ -45,6 +45,7 @@ export interface StoreHealthScreenProps {
   readonly onRetry?: () => void;
   readonly onOpenAttention?: () => void;
   readonly lastCheckedAt?: string;
+  readonly lastKnown?: boolean;
   readonly refreshBusy?: boolean;
 }
 
@@ -103,6 +104,7 @@ export function StoreHealthScreen({
   onRetry,
   onOpenAttention,
   lastCheckedAt,
+  lastKnown = false,
   refreshBusy = false,
 }: StoreHealthScreenProps) {
   const pendingOperationCount = health?.pendingOperationCount ?? 0;
@@ -121,9 +123,14 @@ export function StoreHealthScreen({
         <div>
           <h1 id="store-health-title">System status</h1>
           <p>Check whether this device can reach the services needed to sell.</p>
+          {lastKnown ? (
+            <p className="muted" data-last-known="true">
+              Showing the last response. It has not been verified again.
+            </p>
+          ) : null}
           {lastCheckedAt && state !== "loading" ? (
             <p className="muted" data-last-checked="true">
-              Last checked {formatOperationalDateTime(lastCheckedAt)}
+              Response received {formatOperationalDateTime(lastCheckedAt)}
             </p>
           ) : null}
         </div>

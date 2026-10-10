@@ -49,12 +49,14 @@ export function PaymentWaiting({
   onResolve,
   onReturnToChoices,
   onContactManager,
+  presentationUrl,
 }: {
   session: ElectronicPaymentSessionView;
   inFlight: boolean;
   onResolve: () => void;
   onReturnToChoices?: () => void;
   onContactManager?: () => void;
+  presentationUrl?: string;
 }) {
   const copy = waitingCopy(session);
   const canReturn =
@@ -93,6 +95,14 @@ export function PaymentWaiting({
         <p className="muted" data-payment-display-reference="">
           Reference: {session.displayReference}
         </p>
+      ) : null}
+      {presentationUrl && session.status === "awaiting_customer" ? (
+        <div className="stack" data-paystack-test-handoff="true">
+          <p>Open the Paystack test checkout for this same payment. Closing that window does not mean the payment failed.</p>
+          <a className="btn" href={presentationUrl} target="_blank" rel="noreferrer">
+            Open Paystack test checkout
+          </a>
+        </div>
       ) : null}
       <div className="dialog-actions">
         {session.resolveAllowed ? (

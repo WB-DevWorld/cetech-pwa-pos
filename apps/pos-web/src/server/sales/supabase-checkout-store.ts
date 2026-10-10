@@ -611,6 +611,10 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
           initialize_status: payment.initializeStatus ?? null,
           last_verified_at: payment.lastVerifiedAt ?? null,
           attention_reason: payment.attentionReason ?? null,
+          ...(payment.authorizationUrl ? { authorization_url: payment.authorizationUrl } : {}),
+          ...(payment.manualNetwork ? { manual_network: payment.manualNetwork } : {}),
+          ...(payment.merchantAccountLabel ? { merchant_account_label: payment.merchantAccountLabel } : {}),
+          ...(payment.attestationActorId ? { attestation_actor_id: payment.attestationActorId } : {}),
         },
       });
       if (result.status === 201 || result.status === 200) {
@@ -1305,6 +1309,10 @@ function mapPayment(row: RestRow): StoredPayment | undefined {
     providerTransactionId: typeof row.provider_transaction_id === "string" ? row.provider_transaction_id : undefined,
     displayReference: typeof row.display_reference === "string" ? row.display_reference : undefined,
     accessCode: typeof row.access_code === "string" ? row.access_code : undefined,
+    authorizationUrl: typeof row.authorization_url === "string" ? row.authorization_url : undefined,
+    manualNetwork: typeof row.manual_network === "string" ? row.manual_network : undefined,
+    merchantAccountLabel: typeof row.merchant_account_label === "string" ? row.merchant_account_label : undefined,
+    attestationActorId: typeof row.attestation_actor_id === "string" ? row.attestation_actor_id : undefined,
     initializeStatus: asInitializeStatus(row.initialize_status),
     lastVerifiedAt: lastVerifiedAt ?? undefined,
     attentionReason: typeof row.attention_reason === "string" ? row.attention_reason : undefined,

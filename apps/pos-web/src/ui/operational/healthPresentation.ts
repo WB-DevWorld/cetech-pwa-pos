@@ -62,24 +62,26 @@ function paymentHealthRow(
 }
 
 function integratedCheckoutSentence(methods: PaymentMethodCapabilities): string {
-  if (methods.integratedCheckout === "paystack_test") {
-    const channels = [
-      methods.card === "configured" ? "card" : null,
-      methods.mobileMoney === "configured" ? "Paystack mobile money" : null,
-    ].filter((item): item is string => item !== null);
-    const channelText = channels.length > 0 ? ` for ${channels.join(" and ")}` : ", but no card or Paystack mobile-money channel is turned on";
-    return `Paystack test checkout is configured${channelText}. It is not ready for live payments.`;
+  switch (methods.configurationReason) {
+    case "test_channels_configured":
+      return "Paystack test checkout can be opened for a prepared sale. It is not ready for live payments.";
+    case "channel_disabled":
+      return "Paystack test credentials are present, but no payment channel is turned on. That is not a usable checkout.";
+    case "customer_presentation_missing":
+      return "Paystack test credentials are present, but the customer handoff is not available. That is not a usable checkout.";
+    case "payer_missing":
+      return "Paystack test credentials are present, but the test payer is missing or not a usable email.";
+    case "live_blocked":
+      return "Live electronic checkout is blocked in this version.";
+    case "credential_unsafe":
+    case "configuration_not_verified":
+      return "Integrated electronic checkout has not been verified.";
+    case "provider_disabled":
+    case "credential_missing":
+      return "Integrated electronic checkout is not set up.";
+    default:
+      return "Integrated electronic checkout has not been verified.";
   }
-  if (methods.integratedCheckout === "live_blocked") {
-    return "Live electronic checkout is blocked in this version.";
-  }
-  if (methods.integratedCheckout === "unavailable") {
-    return "Integrated electronic checkout is unavailable.";
-  }
-  if (methods.integratedCheckout === "not_verified") {
-    return "Integrated electronic checkout has not been verified.";
-  }
-  return "Integrated electronic checkout is not set up.";
 }
 
 function paymentTone(methods: PaymentMethodCapabilities): HealthRowTone {

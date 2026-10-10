@@ -1,5 +1,7 @@
 import type { ElectronicTender } from "../../../../../docs/contracts/domain.generated";
-import { readPaymentProviderConfig } from "./config";
+import { isUsableSandboxPayerEmail, paystackModeSelection, readPaymentProviderConfig } from "./config";
+import { manualMobileMoneyPolicy } from "./manual-mobile-money";
+import { PAYSTACK_CUSTOMER_PRESENTATION_IMPLEMENTED } from "./paystack-presentation";
 
 export type PaymentMethodCapability = "available" | "configured" | "unconfigured" | "unavailable";
 
@@ -25,6 +27,7 @@ export type PaymentConfigurationReason =
   | "channel_disabled"
   | "payer_missing"
   | "customer_presentation_missing"
+  | "configuration_not_verified"
   | "test_channels_configured";
 
 /**
@@ -52,7 +55,8 @@ export function resolvePaymentMethodCapabilities(
 ): PaymentMethodCapabilities {
   const diagnosis = diagnosePaymentConfiguration(env);
   const config = readPaymentProviderConfig(env);
-  const manualMobileMoney: ManualMobileMoneyPresentation = "not_set_up";
+  const manualMobileMoney: ManualMobileMoneyPresentation = manualMobileMoneyPolicy(env).enabled ? "enabled" : "not_set_up";
+  const checkoutReady = diagnosis.reason === "test_channels_configured";
   if (config.kind === "paystack_test") {
     return {
       cash: "available",
@@ -60,7 +64,7 @@ export function resolvePaymentMethodCapabilities(
       card: explicitlyEnabled(env.PAYSTACK_CARD_ENABLED) ? "configured" : "unconfigured",
       externalTerminal: "unconfigured",
       manualMobileMoney,
-      integratedCheckout: "paystack_test",
+      integratedCheckout: checkoutReady ? "paystack_test" : "not_verified",
       configurationReason: diagnosis.reason,
     };
   }
@@ -105,40 +109,44 @@ export type PaymentConfigurationDiagnosis = {
   readonly cardEnabled: boolean;
   readonly mobileMoneyEnabled: boolean;
   readonly payerPresent: boolean;
-  readonly customerPresentationImplemented: false;
+  readonly modeDefaulted: boolean;
+  readonly customerPresentationImplemented: boolean;
   readonly reason: PaymentConfigurationReason;
 };
 
 export function diagnosePaymentConfiguration(
   env: Readonly<Record<string, string | undefined>> = process.env,
+  options: { readonly customerPresentationImplemented?: boolean } = {},
 ): PaymentConfigurationDiagnosis {
   const provider = (env.PAYMENT_PROVIDER ?? "disabled").trim().toLowerCase();
-  const modeRaw = (env.PAYSTACK_MODE ?? env.PAYMENT_MODE ?? "").trim().toLowerCase();
-  const mode = modeRaw === "test" || modeRaw === "live" ? modeRaw : modeRaw ? "other" : "unset";
+  const selected = paystackModeSelection(env);
+  const mode = selected.mode === "other" ? "other" : selected.mode;
   const secret = (env.PAYSTACK_SECRET_KEY ?? env.PAYMENT_SECRET_KEY ?? "").trim();
   const secretClass = classifySecret(secret);
   const cardEnabled = explicitlyEnabled(env.PAYSTACK_CARD_ENABLED);
   const mobileMoneyEnabled = explicitlyEnabled(env.PAYSTACK_MOBILE_MONEY_ENABLED);
-  const payer = (env.PAYSTACK_TEST_PAYER_EMAIL ?? "").trim();
-  const payerPresent = payer.length > 0 && !isPlaceholder(payer);
+  const payerPresent = isUsableSandboxPayerEmail(env.PAYSTACK_TEST_PAYER_EMAIL);
   const providerEnabled = provider === "paystack";
+  const presentation = options.customerPresentationImplemented ?? PAYSTACK_CUSTOMER_PRESENTATION_IMPLEMENTED;
+  const config = providerEnabled ? readPaymentProviderConfig(env) : { kind: "disabled" as const };
   let reason: PaymentConfigurationReason = "provider_disabled";
-  if (!providerEnabled) reason = "provider_disabled";
-  else if (mode === "live" || secretClass === "live") reason = "live_blocked";
-  else if (secretClass === "absent" || secretClass === "placeholder") reason = "credential_missing";
-  else if (secretClass === "unsafe" || mode !== "test") reason = "credential_unsafe";
+  if (!providerEnabled || config.kind === "disabled") reason = providerEnabled ? "credential_missing" : "provider_disabled";
+  else if (config.kind === "blocked_live") reason = "live_blocked";
+  else if (config.kind === "blocked_unsafe") reason = "credential_unsafe";
   else if (!cardEnabled && !mobileMoneyEnabled) reason = "channel_disabled";
   else if (!payerPresent) reason = "payer_missing";
-  else reason = "customer_presentation_missing";
+  else if (!presentation) reason = "customer_presentation_missing";
+  else reason = "test_channels_configured";
   return {
     providerEnabled,
-    mode,
+    mode: mode === "other" ? "other" : mode,
     secretPresent: secretClass !== "absent",
     secretClass,
     cardEnabled,
     mobileMoneyEnabled,
     payerPresent,
-    customerPresentationImplemented: false,
+    modeDefaulted: selected.defaulted,
+    customerPresentationImplemented: presentation,
     reason,
   };
 }
@@ -150,6 +158,33 @@ export function capabilityForElectronicTender(
   if (tender === "mobile_money") return capabilities.mobileMoney;
   if (tender === "card") return capabilities.card;
   return capabilities.externalTerminal;
+}
+
+/**
+ * A four-field payload from an older status response must not turn on manual
+ * confirmation or a Paystack handoff. Only a complete current payload can.
+ */
+export function coercePaymentMethodCapabilities(value: unknown): PaymentMethodCapabilities | undefined {
+  if (isPaymentMethodCapabilities(value)) return value;
+  if (!value || typeof value !== "object") return undefined;
+  const row = value as Record<string, unknown>;
+  if (
+    row.cash !== "available" ||
+    !isCapability(row.mobileMoney) ||
+    !isCapability(row.card) ||
+    !isCapability(row.externalTerminal)
+  ) {
+    return undefined;
+  }
+  return {
+    cash: "available",
+    mobileMoney: row.mobileMoney,
+    card: row.card,
+    externalTerminal: row.externalTerminal,
+    manualMobileMoney: "not_set_up",
+    integratedCheckout: "not_verified",
+    configurationReason: "configuration_not_verified",
+  };
 }
 
 export function isPaymentMethodCapabilities(value: unknown): value is PaymentMethodCapabilities {
@@ -198,6 +233,7 @@ function isConfigurationReason(value: unknown): value is PaymentConfigurationRea
     value === "channel_disabled" ||
     value === "payer_missing" ||
     value === "customer_presentation_missing" ||
+    value === "configuration_not_verified" ||
     value === "test_channels_configured"
   );
 }

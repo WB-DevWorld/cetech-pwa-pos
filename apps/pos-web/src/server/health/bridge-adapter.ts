@@ -112,23 +112,26 @@ export function bridgeHealthUrl(baseUrl: string): string {
 }
 
 export function mapBridgeHealth(body: unknown): BridgeHealth {
-  const data = unwrap(body);
-  if (data.ok === false) {
+  if (body === null || typeof body !== "object") return unavailableHealth();
+  const root = body as Record<string, unknown>;
+  if (root.ok !== true || root.data === null || typeof root.data !== "object") return unavailableHealth();
+  const data = root.data as Record<string, unknown>;
+  const status = data.status;
+  if (data.contractVersion !== "1.0.0") return unavailableHealth();
+  if (status !== "healthy" && status !== "degraded" && status !== "unavailable") return unavailableHealth();
+  if (
+    typeof data.wooDetected !== "boolean" ||
+    typeof data.woodmartDetected !== "boolean" ||
+    typeof data.b2bkingDetected !== "boolean"
+  ) {
     return unavailableHealth();
   }
-  if (data.contractVersion !== undefined && data.contractVersion !== "1.0.0") {
-    return unavailableHealth();
-  }
-  const status =
-    data.status === "healthy" || data.status === "degraded" || data.status === "unavailable"
-      ? data.status
-      : "unavailable";
   return withoutClaimedPricingParity({
     status,
     contractVersion: "1.0.0",
-    wooDetected: data.wooDetected === true,
-    woodmartDetected: data.woodmartDetected === true,
-    b2bkingDetected: data.b2bkingDetected === true,
+    wooDetected: data.wooDetected,
+    woodmartDetected: data.woodmartDetected,
+    b2bkingDetected: data.b2bkingDetected,
     pricingParityVerified: false,
   });
 }
@@ -247,17 +250,6 @@ function envelopeCorrelationId(body: unknown): string | undefined {
   }
   const id = (body as Record<string, unknown>).correlationId;
   return typeof id === "string" ? id : undefined;
-}
-
-function unwrap(body: unknown): Record<string, unknown> {
-  if (body === null || typeof body !== "object") {
-    return {};
-  }
-  const root = body as Record<string, unknown>;
-  if (root.data !== null && typeof root.data === "object") {
-    return { ...root, ...(root.data as Record<string, unknown>) };
-  }
-  return root;
 }
 
 function looksLikeServiceRole(value: string): boolean {

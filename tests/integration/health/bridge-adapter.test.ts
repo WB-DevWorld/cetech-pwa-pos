@@ -96,6 +96,36 @@ describe("CORE-03 BFF bridge health/permission adapter", () => {
     expect(health.pricingParityVerified).toBe(false);
   });
 
+  test("a healthy-looking body without the frozen envelope is not connected", () => {
+    const missing = mapBridgeHealth({
+      status: "healthy",
+      contractVersion: "1.0.0",
+      wooDetected: true,
+      woodmartDetected: true,
+      b2bkingDetected: true,
+    });
+    expect(missing.status).toBe("unavailable");
+    const degraded = mapBridgeHealth({
+      ok: true,
+      data: {
+        status: "degraded",
+        contractVersion: "1.0.0",
+        wooDetected: true,
+        woodmartDetected: false,
+        b2bkingDetected: false,
+        pricingParityVerified: true,
+      },
+    });
+    expect(degraded.status).toBe("degraded");
+    expect(degraded.woodmartDetected).toBe(false);
+    expect(degraded.pricingParityVerified).toBe(false);
+    const untyped = mapBridgeHealth({
+      ok: true,
+      data: { status: "healthy", contractVersion: "1.0.0", wooDetected: "yes", woodmartDetected: true, b2bkingDetected: true },
+    });
+    expect(untyped.status).toBe("unavailable");
+  });
+
   test("ok:false envelopes are unavailable", () => {
     const health = mapBridgeHealth({
       ok: false,

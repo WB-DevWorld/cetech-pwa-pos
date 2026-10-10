@@ -60,8 +60,25 @@ export function readPaymentProviderConfig(
   return {
     kind: "paystack_test",
     secretKey,
-    sandboxPayerEmail: sandboxPayerEmail && !isUnusableCredential(sandboxPayerEmail) ? sandboxPayerEmail : undefined,
+    sandboxPayerEmail: isUsableSandboxPayerEmail(sandboxPayerEmail) ? sandboxPayerEmail : undefined,
   };
+}
+
+/** Empty mode matches the resolver default of test. A non-empty invalid mode does not. */
+export function paystackModeSelection(
+  env: Readonly<Record<string, string | undefined>>,
+): { readonly mode: "test" | "live" | "other"; readonly defaulted: boolean } {
+  const raw = (env.PAYSTACK_MODE ?? env.PAYMENT_MODE ?? "").trim().toLowerCase();
+  if (!raw) return { mode: "test", defaulted: true };
+  if (raw === "test" || raw === "live") return { mode: raw, defaulted: false };
+  return { mode: "other", defaulted: false };
+}
+
+/** A placeholder or a non-email is not a payer the test checkout can use. */
+export function isUsableSandboxPayerEmail(value: string | undefined): boolean {
+  const payer = value?.trim() ?? "";
+  if (!payer || isUnusableCredential(payer)) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payer);
 }
 
 export function rejectPublicPaymentSecrets(env: Readonly<Record<string, string | undefined>>): void {

@@ -188,9 +188,13 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
     const methods = ports.paymentMethods;
     return {
       cash: true,
-      mobileMoney: canStartElectronic && methods?.mobileMoney === "configured",
-      card: canStartElectronic && methods?.card === "configured",
+      mobileMoney:
+        canStartElectronic &&
+        methods?.mobileMoney === "configured" &&
+        methods.integratedCheckout === "paystack_test",
+      card: canStartElectronic && methods?.card === "configured" && methods.integratedCheckout === "paystack_test",
       externalElectronic: canStartElectronic && methods?.externalTerminal === "configured",
+      manualMobileMoney: methods?.manualMobileMoney === "enabled",
     };
   }, [ports.paymentMethods, ports.payments?.initialize]);
 
@@ -503,6 +507,9 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
         }}
         onContactManager={() => {
           void electronic.resolve();
+        }}
+        onManualRecorded={() => {
+          void cashCheckout.resolvePayment();
         }}
       />
       {printReceipt ? (

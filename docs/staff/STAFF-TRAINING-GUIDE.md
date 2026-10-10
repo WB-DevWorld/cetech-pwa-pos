@@ -548,7 +548,7 @@ Read the rows separately:
 - **Store connection** can say Connected when the store answered, even if prices are not fully qualified yet.
 - **Store services** warns when a required store service was not detected. That warning does not prove prices are right or wrong.
 - **Prices** means pricing qualification. Pending qualification is not the same as the price already quoted on the current sale.
-- **Payments** always states cash separately from manually confirmed Mobile Money and from Paystack. Paystack test checkout is not live-ready. Live electronic checkout stays blocked in this version.
+- **Payments** always states cash separately from manually confirmed Mobile Money and from Paystack. Manual Mobile Money means the customer transfers outside the POS and you confirm the merchant receipt; a customer screenshot is not enough, and it does not move the cash drawer. Paystack test checkout can be opened only when that handoff is actually available, and it is not ready for live payments. Credentials without a channel or a usable test payer are not a usable checkout. Live electronic checkout stays blocked in this version. The time on System status is when the response was received. A failed refresh keeps the previous response labelled as last-known.
 
 Detailed engineering/support information belongs in Management/support views.
 

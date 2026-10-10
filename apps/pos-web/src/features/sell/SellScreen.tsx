@@ -105,6 +105,7 @@ export type SellScreenProps = {
   electronicInFlight?: boolean;
   onResolveElectronic?: () => void;
   onContactManager?: () => void;
+  onManualRecorded?: (reference: string) => void;
   searchCatalog?: (query: string) => Promise<readonly SellProductView[]>;
   resolveBarcodeCatalog?: (barcode: string) => Promise<readonly SellProductView[]>;
   loadVariations?: (parentId: string) => Promise<readonly SellProductView[]>;
@@ -159,6 +160,7 @@ export function SellScreen({
   electronicInFlight = false,
   onResolveElectronic,
   onContactManager,
+  onManualRecorded,
   searchCatalog,
   resolveBarcodeCatalog,
   loadVariations,
@@ -692,6 +694,7 @@ export function SellScreen({
           electronicSession={electronicSession}
           electronicInFlight={electronicInFlight}
           onResolveElectronic={onResolveElectronic}
+          onManualRecorded={onManualRecorded}
           onContactManager={onContactManager}
           initialCashReceived={initialCashReceived}
         />

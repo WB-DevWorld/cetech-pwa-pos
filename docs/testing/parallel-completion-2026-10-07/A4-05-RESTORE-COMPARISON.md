@@ -40,9 +40,9 @@ Transaction `ac637dda-e081-47e3-bd60-cf80f9569c04`:
 | Link | Count |
 | --- | --- |
 | `pos_checkout_sales` | 1, status `completed`, `commercial_confirmed` true |
-| `pos_checkout_payments` | 1, tender `cash`, status `verified`, source `cash_ledger`, amount **2900 GHS** |
+| `pos_checkout_payments` | 1, tender `cash`, status `verified`, source `cash_ledger`, amount_minor **2900**, which is **GHS 29.00** |
 | `pos_checkout_receipts` | 1 |
-| `pos_cash_movements` | 1, kind `cash_sale`, signed amount **2900** |
+| `pos_cash_movements` | 1, kind `cash_sale`, signed amount_minor **2900**, which is **GHS 29.00** |
 | `pos_sale_tender_claims` | 1 |
 
 Classification: **MATCH** to the accepted A4-04 tender proof. No row was changed.

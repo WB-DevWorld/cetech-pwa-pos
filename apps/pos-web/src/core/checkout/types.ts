@@ -81,6 +81,10 @@ export type StoredPayment = {
   readonly providerTransactionId?: string;
   readonly displayReference?: string;
   readonly accessCode?: string;
+  readonly authorizationUrl?: string;
+  readonly manualNetwork?: string;
+  readonly merchantAccountLabel?: string;
+  readonly attestationActorId?: string;
   readonly initializeStatus?: "pending_remote" | "initialized" | "lost_response";
   readonly lastVerifiedAt?: Timestamp;
   readonly attentionReason?: string;

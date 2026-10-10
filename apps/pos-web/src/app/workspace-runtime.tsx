@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import type { CustomerPort, PrintPort, ReceiptPort } from "../../../../docs/contracts/ports";
 import type { CustomerSummary, StoreHealth } from "../../../../docs/contracts/domain.generated";
-import type { PaymentMethodCapabilities } from "../server/payments/method-capabilities";
+import { coercePaymentMethodCapabilities, type PaymentMethodCapabilities } from "../server/payments/method-capabilities";
 import { OrdersScreen, OrderDetailDialog, type OrderDetailView, type OrderListItemView } from "../features/orders";
 import { ReceiptPaper } from "../features/sell/components/ReceiptPaper";
 import type { ReceiptViewModel } from "../features/sell/state/checkoutSession";
@@ -42,8 +42,10 @@ import {
   beginOnlineStatusRefresh,
   completeStatusRefresh,
   createStatusRefreshState,
-  latestCompletedCheckTime,
   requestStatusRefresh,
+  settleWithin,
+  STATUS_DIAGNOSTIC_DEADLINE_MS,
+  STATUS_REFRESH_DEADLINE_MS,
   unmountStatusRefresh,
   type StatusRefreshState,
 } from "../ui/operational/healthRefresh";
@@ -442,12 +444,20 @@ function HealthWorkspace({
   const [recovery, setRecovery] = useState<LocalRecoveryDiagnostics | undefined>();
   const [updateCheckBusy, setUpdateCheckBusy] = useState(false);
   const [refreshBusy, setRefreshBusy] = useState(false);
+  const [responseReceivedAt, setResponseReceivedAt] = useState<string | undefined>();
+  const [showingLastKnown, setShowingLastKnown] = useState(false);
   const refreshState = useRef<StatusRefreshState>(createStatusRefreshState());
   const abortRef = useRef<AbortController | null>(null);
   const onlineRef = useRef(online);
-  const hasHealth = useRef(false);
-  onlineRef.current = online;
-  hasHealth.current = health !== undefined;
+  const hasHealthRef = useRef(false);
+
+  useEffect(() => {
+    onlineRef.current = online;
+  }, [online]);
+
+  useEffect(() => {
+    hasHealthRef.current = health !== undefined;
+  }, [health]);
 
   const runLoad = useCallback(async (kind: "refresh" | "online") => {
     const nowMs = Date.now();
@@ -460,19 +470,32 @@ function HealthWorkspace({
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
+    const deadline = setTimeout(() => controller.abort(), STATUS_REFRESH_DEADLINE_MS);
+    const timedOut = {
+      ok: false as const,
+      error: {
+        code: "INTEGRATION_UNAVAILABLE" as const,
+        message: "Status check timed out. Refresh to try again.",
+        retryable: true,
+        nextAction: "resolve" as const,
+      },
+      correlationId: crypto.randomUUID(),
+    };
     setRefreshBusy(true);
-    if (!hasHealth.current) setState("loading");
+    if (hasHealthRef.current) setShowingLastKnown(true);
+    if (!hasHealthRef.current) setState("loading");
     try {
       const [result, diagnostics, capabilities] = await Promise.all([
-        fetchStoreHealth(fetchImpl, controller.signal),
-        inspectLocalRecoveryState().catch(() => undefined),
-        fetchPaymentMethodCapabilities(fetchImpl, controller.signal),
+        settleWithin(fetchStoreHealth(fetchImpl, controller.signal), STATUS_REFRESH_DEADLINE_MS, timedOut),
+        settleWithin(inspectLocalRecoveryState().catch(() => undefined), STATUS_DIAGNOSTIC_DEADLINE_MS, undefined),
+        settleWithin(fetchPaymentMethodCapabilities(fetchImpl, controller.signal), STATUS_REFRESH_DEADLINE_MS, timedOut),
       ]);
       if (generation !== refreshState.current.generation || !refreshState.current.mounted) return;
       setRecovery(diagnostics);
-      setPaymentMethods(capabilities.ok ? capabilities.data : undefined);
+      setPaymentMethods(capabilities.ok ? coercePaymentMethodCapabilities(capabilities.data) : undefined);
       if (!result.ok) {
         refreshState.current = completeStatusRefresh(refreshState.current, generation, undefined);
+        setShowingLastKnown(hasHealthRef.current);
         setState("error");
         setErrorMessage(
           toCashierError({
@@ -483,15 +506,20 @@ function HealthWorkspace({
         );
         return;
       }
-      const completedAt = latestCompletedCheckTime(result.data.checks.map((check) => check.checkedAt));
-      refreshState.current = completeStatusRefresh(refreshState.current, generation, completedAt);
+      refreshState.current = completeStatusRefresh(refreshState.current, generation, undefined);
       setHealth(result.data);
+      setResponseReceivedAt(new Date().toISOString());
+      setShowingLastKnown(false);
       setState(onlineRef.current ? "ready" : "offline");
       setErrorMessage(undefined);
     } catch {
       if (generation !== refreshState.current.generation || !refreshState.current.mounted) return;
       refreshState.current = completeStatusRefresh(refreshState.current, generation, undefined);
+      setShowingLastKnown(hasHealthRef.current);
+      setState("error");
+      setErrorMessage("Status check timed out. Refresh to try again.");
     } finally {
+      clearTimeout(deadline);
       if (generation === refreshState.current.generation && refreshState.current.mounted) {
         setRefreshBusy(false);
       }
@@ -523,7 +551,8 @@ function HealthWorkspace({
         catalogAvailability={catalogAvailability}
         paymentMethods={paymentMethods}
         attentionCountOverride={attentionCount}
-        lastCheckedAt={state === "loading" ? undefined : refreshState.current.lastCompletedAt}
+        lastCheckedAt={state === "loading" ? undefined : responseReceivedAt}
+        lastKnown={showingLastKnown}
         refreshBusy={refreshBusy}
         onRetry={() => {
           void runLoad("refresh");
