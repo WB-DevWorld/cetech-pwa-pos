@@ -1,51 +1,72 @@
 # A4-RECOVERY-CASH-AND-PROFILING-03 — consolidated results
 
 Acting: `@wbdevworld` / WS3  
-UTC: `2026-10-10T03:20Z`  
-Reviewed evidence head at start: `1bb485668abf8c7cbf9c33733168828a9bf161a8`  
+UTC: `2026-10-10T03:28Z`  
+Prior tip at GO: `6d51b234fe720acced6e2700307f9f1a92cdc349`  
 Product freeze: `a4f3284c35785dbb0efe3843d38084f12911ac15` (unchanged)  
 Preview: `dpl_FAaW712…` / `q2u9baevb`  
-Staff-documentation impact: **NONE**  
-Production effects: **NONE**  
+Owner authorization: explicit chat **GO** / **GO** `2026-10-10`  
+Staff-documentation impact: **NONE** (testing checklist note only; no `docs/staff/*.md` procedure change)  
+Production effects: **NONE** beyond authorized staging cash sale + private dump attempt  
 Verdict: **NOT READY FOR PRODUCTION**
+
+Detail: `A4-RECOVERY-CASH-AND-PROFILING-03-EXECUTION.md`
 
 ## Owner authorization actually used
 
-| Scope | Authorization |
-| --- | --- |
-| Isolated local profiling | Allowed by packet — **executed** |
-| Temporary read-only CLI login + export + isolated restore | **NOT GRANTED** — parked after prep |
-| Fresh cash ≤GHS29 on 49111 | **NOT GRANTED** — parked (recommendation A ≠ GO) |
-| Electronic B / last-unit C | **DEFERRED** per packet |
+| Scope | Authorization | Outcome |
+| --- | --- | --- |
+| Isolated local profiling | Packet (pre-GO) | Nested-init miss; `--all` `WP_CLI\Path` fatal — timings still open |
+| Temporary read-only CLI login + export + isolated restore | **GO** | Login issued (TTL 300s); pooler session IPv4 connect OK; **pg_dump FAIL** on schemas `auth` + `supabase_migrations` → restore **NOT RUN** |
+| Fresh cash ≤GHS29 qty1 Woo **49111** | **GO** | **PASS** — Woo **50343** / txn `ac637dda…` / sale-50343 |
+| Electronic B / last-unit C | Deferred | Unrun |
 
 ## Lane outcomes
 
 | Lane | Result | Remaining dependency |
 | --- | --- | --- |
-| 3 Corrected REST profile | Focused `[]` + init count **1** → **nested-init capture missing**; `--all` fatal `WP_CLI\Path` not found | usable timings still open; #132 open |
-| 1 Backup/restore | Prep only — direct host `db.iegxncvpsyaitkpzywcr.supabase.co`; target `cetech-pos-a4-restore-20261010` initialized | **owner GO** then one read_only login |
-| 2 Cash sale | **NOT STARTED** | **owner GO** for Option A caps |
+| 3 Corrected REST profile | Nested-init capture missing; `--all` fatal | usable exclusive timings; #132 |
+| 1 Backup/restore | **BLOCKED** — exact denials: `permission denied for schema auth`; `permission denied for schema supabase_migrations`. Direct host AAAA-only; pooler session `:5432` usable for connect only. No public-only dump claimed as PASS. | grant path / alternate export / Management backup artifact |
+| 2 Cash sale | **PASS** (one sample) | — |
+
+## Cash sale identities (single sample)
+
+| Field | Value |
+| --- | --- |
+| transactionId | `ac637dda-e081-47e3-bd60-cf80f9569c04` |
+| saleId | `sale-50343` |
+| Woo / orderReference | **50343** · HPOS `wc-processing` · total **29.00** GHS · `2026-10-10 03:23:04Z` |
+| receipt | `rcpt-ac637dda-e081-47e3-bd60-cf80f9569c04` / `POS-50343` |
+| product | Woo **49111** · stock **3→2** |
+| tender | cash claim · payment verified · `cash_sale` movement +2900 |
+| claims after | cash **25** / electronic **0** · dual-family/orphan **0** |
+| Confirm→next-sale ready | ~**21.6 s** (one sample; not p95) |
+| Journal | IndexedDB count **3** post-sale; unresolved recovery still **NOT EXERCISED** |
+
+**Do not replay** this cash sale or A+D (`50317`). Cap for this packet is consumed.
 
 ## Unchanged identities
 
-Migrations / RD-01 / bridge `fa478ea4…` / native FPM proof / Preview — frozen accepted. No rebuild for docs tip.
+Migrations / RD-01 / bridge `fa478ea4…` / native FPM proof / Preview — frozen accepted. No product rebuild for docs tip.
 
-## Journal / electronic / last-unit / hardware
+## Still open
 
 | Gate | Status |
 | --- | --- |
-| Unresolved journal recovery | **NOT EXERCISED** |
-| Electronic TEST | unconfigured — unrun |
-| Last-unit C | deferred — unrun |
-| Device/PWA/scanner/paper | tester-owned pending |
+| Full POS backup/restore | **BLOCKED** (cli login lacks `auth` + `supabase_migrations`) |
+| Electronic TEST / last-unit C | unrun |
+| #115 / #132 | OPEN |
+| Device/PWA/scanner/paper | tester-owned |
+| Unresolved-journal recovery | NOT EXERCISED |
 
 ## Artifacts
 
+- `A4-RECOVERY-CASH-AND-PROFILING-03-EXECUTION.md`
 - `LANE3-CORRECTED-REST-PROFILE-A4F3284.md`
-- `LANE1-BACKUP-PREP-A4F3284.md`
-- Private profile captures under `%LOCALAPPDATA%\CETECH-POS-R10\a4-wpcli-profile-20261010\`
-- Private restore workdir `%LOCALAPPDATA%\CETECH-POS-R10\cetech-pos-a4-restore-20261010\`
+- `LANE1-BACKUP-PREP-A4F3284.md` (prep retained; restore unused)
+- Private denial note `%LOCALAPPDATA%\CETECH-POS-R10\private\iegxn-a4-dump-DENIED.json`
+- Private restore workdir unused for restore
 
 ## Next exact owner action
 
-Reply with an explicit GO covering **(1)** read_only login+export+restore and/or **(2)** Option A cash ≤GHS29 on Preview `a4f3284` — then execution continues without per-substep asks. Or defer both.
+Choose path for Lane1 (schema grants / platform backup download / accept BLOCKED) and/or authorize electronic B / last-unit C separately. No further cash on 49111 without new GO. Testers continue §A–C on checklist; optional software reprint of **50343** in addition to retained **50317**.

@@ -1,21 +1,30 @@
-## COMBINED-CANDIDATE-2026-10-08 — recovery/cash/profiling PARKED pending GO (WS3)
+## COMBINED-CANDIDATE-2026-10-08 — recovery/cash/profiling COMPLETE (WS3 docs)
 
 ```text
 human / integration editor: @wbdevworld / WS3
 task: A4-RECOVERY-CASH-AND-PROFILING-03
-status: Lane3 DONE; Lane1 prep DONE; Lane2+login EFFECTS PARKED
+status: COMPLETE (Lane2 cash PASS; Lane1 dump BLOCKED; Lane3 profiling limits unchanged)
 product_freeze: a4f3284c35785dbb0efe3843d38084f12911ac15
-reviewed_evidence_head: 1bb485668abf8c7cbf9c33733168828a9bf161a8
 preview: dpl_FAaW712WnVBZ9Wr7B8MXCurJEeXW / q2u9baevb
+owner_authorization: EXPLICIT "GO" "GO" 2026-10-10 (chat)
 results: docs/testing/parallel-completion-2026-10-07/A4-RECOVERY-CASH-AND-PROFILING-03-RESULTS.md
-lane3: focused [] + init=1 nested-init missing; --all fatal WP_CLI\Path
-lane1: direct host db.iegxn…supabase.co; target cetech-pos-a4-restore-20261010 init; login NOT issued
-lane2: cash NOT started — need explicit owner GO (A ≤GHS29)
-owner_authorization_used: NONE for login/cash
-forbidden: product edits; write login; B/C sale; prod
-production_effects: NONE
+execution: docs/testing/parallel-completion-2026-10-07/A4-RECOVERY-CASH-AND-PROFILING-03-EXECUTION.md
+lane1: cli/login-role read_only issued (ttl 300s); pooler session :5432 OK; pg_dump DENIED on schemas auth + supabase_migrations; restore NOT RUN
+lane2: cash PASS — txn ac637dda… / sale-50343 / Woo 50343 wc-processing GHS29 / stock 49111 3→2 / claims cash 25
+lane3: nested-init miss; --all WP_CLI\Path fatal (prior tip)
+forbidden: write-capable login; electronic/B/C; further cash without new GO; A+D replay; alias/prod; product source edits
+production_effects: NONE beyond authorized staging cash + private dump attempt
 verdict: NOT READY FOR PRODUCTION
 staff_documentation_impact: NONE
+```
+
+## COMBINED-CANDIDATE-2026-10-08 — recovery/cash/profiling PARKED (superseded)
+
+```text
+human / integration editor: @wbdevworld / WS3
+task: A4-RECOVERY-CASH-AND-PROFILING-03
+status: SUPERSEDED — see COMPLETE block above
+product_freeze: a4f3284c35785dbb0efe3843d38084f12911ac15
 ```
 
 ## COMBINED-CANDIDATE-2026-10-08 — recovery + quote attribution COMPLETE (WS3 docs)

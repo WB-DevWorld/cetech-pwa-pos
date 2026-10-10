@@ -14,9 +14,9 @@ Staff-documentation impact: entrypoints updated for this round (see staff README
 Classification: device/PWA/scanner/paper items remain **TESTER ACCEPTANCE PENDING**.  
 Verdict: **NOT READY FOR PRODUCTION**.
 
-Evidence publish (docs only): PR #144 includes checklist + `A4-REMAINING-QUALIFICATION-01-RESULTS.md` at `8d8fe1010f18252af48b14af4a6eed3b4802b237` (product freeze unchanged). Software T-D3b / T-D4c / T-D4d rows below are capture-backed; journal remains NOT EXERCISED; §A–C remain tester-owned.
+Evidence publish (docs only): PR #144; product freeze unchanged. Software T-D3b / T-D4c / T-D4d rows below are capture-backed; journal remains NOT EXERCISED; §A–C remain tester-owned. Authorized cash qualification sale **50343** recorded under owner GO (`A4-RECOVERY-CASH-AND-PROFILING-03-RESULTS.md`) — **do not create another paid order**.
 
-Record for every check: date/time (UTC), tester name, device model, OS, browser (or installed PWA), observed BUILD_ID, pass/fail/blocked, notes. Do **not** clear IndexedDB, journals, or unresolved operation evidence as a routine cache fix (see `docs/runbooks/R10-DEVICE-AND-PWA-REHEARSAL.md`). Do **not** click Pay or create a new commercial fixture.
+Record for every check: date/time (UTC), tester name, device model, OS, browser (or installed PWA), observed BUILD_ID, pass/fail/blocked, notes. Do **not** clear IndexedDB, journals, or unresolved operation evidence as a routine cache fix (see `docs/runbooks/R10-DEVICE-AND-PWA-REHEARSAL.md`). Do **not** click Pay or create a new commercial fixture without a fresh owner GO.
 
 ## A. Cache / installed PWA / device (tester-owned)
 
@@ -40,7 +40,7 @@ Record for every check: date/time (UTC), tester name, device model, OS, browser 
 
 | ID | Check | Result |
 | --- | --- | --- |
-| T-C1 | Physical reprint of existing order **50317** / receipt `rcpt-33326bbc` / **GHS 29** | PENDING |
+| T-C1 | Physical reprint of existing order **50317** / receipt `rcpt-33326bbc` / **GHS 29** (optional also **50343** / `rcpt-ac637dda…` / GHS 29) | PENDING |
 | T-C2 | Width / readability on live paper | PENDING |
 | T-C3 | Browser print dialog alone is software evidence only — paper is this section | PENDING |
 
