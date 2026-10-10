@@ -49,11 +49,11 @@ Record for every check: date/time (UTC), tester name, device model, OS, browser 
 | T-D1 | Staff sign-in on immutable candidate URL (private; no passwords in chat) | **PASSED** (operator; Staging Manager) |
 | T-D2 | Session / register / shift hydration | **PASSED** software — session 200; registers listed; no shift opened |
 | T-D3a | Catalog presentation on Sell | **PASSED** — product grid loaded; Pay stayed disabled; no Pay/sale |
-| T-D3b | Exact-build draft persistence / journal survival | **PENDING** — not qualified from “no observed loss” alone |
+| T-D3b | Exact-build draft persistence / journal survival | **PASSED** software — disposable cartId `92c31c92…` rev1 survived reload + offline/online; cleared after; journal count 0 = **NOT EXERCISED** for unresolved recovery (`2026-10-10T02:09Z`) |
 | T-D4a | Order **50317** detail + receipt retrieval (GHS 29 / `rcpt-33326bbc`) | **PASSED** software — UI detail + `GET /api/pos/v1/receipts/33326bbc…` |
 | T-D4b | No-scope Reprint control (no register / no open shift) | **PASSED** software — Reprint available and clicked once |
-| T-D4c | Receipt reload observation | **PENDING** — not recorded in the execution receipt |
-| T-D4d | Native browser print dialog / paper | **PENDING** — dialog unconfirmed in embedded automation; paper is §C |
+| T-D4c | Receipt reload observation | **PASSED** software — reopen 50317 + receipt reload `rcpt-33326bbc` / GHS 29 / SKU 49111 unchanged (`2026-10-10T02:10Z`) |
+| T-D4d | Native browser print dialog / paper | **PASSED** software — Reprint mounted receipt paper and invoked `window.print`; **paper remains §C tester** |
 | T-D5 | Confirm release-policy / UI show BUILD_ID `a4f3284…` | **PASSED** |
 
 ## Related

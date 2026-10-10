@@ -1,3 +1,49 @@
+## COMBINED-CANDIDATE-2026-10-08 — remaining qualification COMPLETE (WS3 docs)
+
+```text
+human / integration editor: @wbdevworld / WS3
+task: A4-REMAINING-QUALIFICATION-01
+status: COMPLETE (safe lanes + decision sheet; restore BLOCKED)
+product_freeze: a4f3284c35785dbb0efe3843d38084f12911ac15
+accepted_closeout: 033463ec5ef5f2aa580a7c3c412251bcfacab396
+preview: dpl_FAaW712WnVBZ9Wr7B8MXCurJEeXW / q2u9baevb
+results: docs/testing/parallel-completion-2026-10-07/A4-REMAINING-QUALIFICATION-01-RESULTS.md
+lane1: T-D3b/T-D4c PASS software; journal NOT EXERCISED; T-D4d print dialog PASS software
+lane2: BLOCKED — Management API present but backups=[] and no downloadable restorable export / Direct URI
+lane3: waterfall recorded; 3 quotes median 10107ms bridge~8.8s; #115/#132 OPEN
+lane4: LANE4-BC-COMMERCIAL-DECISION-A4F3284.md (452 sheet marked historical)
+tester_url: https://cetech-pos-staging-q2u9baevb-wbdevworlds-projects.vercel.app
+remaining_tester_owned: device/PWA/scanner/paper
+forbidden: production; A+D replay; new paid orders; shared restore; product edits
+production_effects: NONE
+verdict: NOT READY FOR PRODUCTION
+staff_documentation_impact: NONE
+```
+
+## COMBINED-CANDIDATE-2026-10-08 — remaining qualification lease (closed)
+
+```text
+human / integration editor: @wbdevworld / WS3
+task: A4-REMAINING-QUALIFICATION-01
+product_freeze: a4f3284c35785dbb0efe3843d38084f12911ac15
+accepted_closeout: 033463ec5ef5f2aa580a7c3c412251bcfacab396
+preview: dpl_FAaW712WnVBZ9Wr7B8MXCurJEeXW / q2u9baevb
+staging_db: iegxncvpsyaitkpzywcr
+training_wp: training.cetechbpa.com
+scope: Lane1 exact-build software checks; Lane2 isolated backup/restore; Lane3 timings+#115/#132; Lane4 read-only commercial decision sheet; consolidated results
+allowed:
+  CURRENT-WORK.md
+  docs/testing/parallel-completion-2026-10-07/**
+  docs/staff/** only if staff-visible test instructions must change (declare impact)
+  browser session on q2u9baevb (noncommercial)
+  ≤3 sequential diagnostic quotes (fixture class Woo14985/qty1/customer4/B2B/loc_a1); no Pay/prepare/tender/finalize/order/charge/refund/stock
+  Management API read/export assessment; isolated local restore only
+forbidden: product/schema/bridge source edits; reapply migrations; reinstall bridge; rerun FPM proof; redeploy; alias move; A+D replay; new paid orders; shared/paid/production restore; stock edits; open shift; kill PHP
+production_effects: NONE
+verdict: NOT READY FOR PRODUCTION
+staff_documentation_impact: NONE
+```
+
 ## COMBINED-CANDIDATE-2026-10-08 — FPM + tester handoff closeout COMPLETE (WS3)
 
 ```text

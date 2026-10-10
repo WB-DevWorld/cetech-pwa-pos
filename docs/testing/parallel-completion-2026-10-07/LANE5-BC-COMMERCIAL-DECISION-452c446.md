@@ -1,6 +1,9 @@
 # Lane 5 — combined B/C commercial decision (452c446 window)
 
-Status: **DECISION SHEET ONLY — NOT EXECUTED**  
+> **HISTORICAL** environment/fixture pin for Preview `452c446` / `dpl_F3uXp…`.  
+> Current a4 decision sheet: `LANE4-BC-COMMERCIAL-DECISION-A4F3284.md`.
+
+Status: **DECISION SHEET ONLY — NOT EXECUTED · HISTORICAL**  
 Preview approval for `452c446` does **not** extend commercial caps.  
 A+D cash sale **CLOSED** (`33326bbc…` / `sale-50317`). No second cash sale.  
 Staff-documentation impact: **NONE**
