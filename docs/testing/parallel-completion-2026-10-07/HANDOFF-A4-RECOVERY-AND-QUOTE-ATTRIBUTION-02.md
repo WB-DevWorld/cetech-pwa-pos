@@ -1,12 +1,12 @@
-# Handoff — A4-RECOVERY-AND-QUOTE-ATTRIBUTION-02
+# Handoff â€” A4-RECOVERY-AND-QUOTE-ATTRIBUTION-02
 
 ```text
 Kind / UTC: TASK_COMPLETION / 2026-10-10T03:05Z
 Task / batch / workstream: A4-RECOVERY-AND-QUOTE-ATTRIBUTION-02 / COMBINED-CANDIDATE-2026-10-08 / WS3
 Owner / integration editor / requested human reviewer: @wbdevworld / WS3 / senior for login GO + commercial A/B/C/D
 Branch: ws3/combined-candidate-2026-10-08
-Starting/base SHA: product freeze a4f3284…; prior closeout 033463e…; remaining-qual publish 8d8fe10…
-Current/final task head SHA: (post-commit tip)
+Starting/base SHA: product freeze a4f3284â€¦; prior closeout 033463eâ€¦; remaining-qual publish 8d8fe10â€¦
+Current/final task head SHA: 07781b51264ceb6d49c9918330e64dff4dd96927
 Allowed / forbidden: docs/testing/parallel-completion-2026-10-07/** + CURRENT-WORK; no product/bridge/migration edits; no force push; no write-capable login without GO
 Files changed: results, login decision, REST attribution, commercial decision, checklist note, CURRENT-WORK, this handoff
 Contracts / migrations / ADRs: none
