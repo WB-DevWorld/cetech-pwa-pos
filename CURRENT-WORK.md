@@ -5,6 +5,7 @@ human / integration editor: @wbdevworld / WS3
 task: A4-BACKUP-ROLE-AND-PROFILER-04
 status: COMPLETE (Lane1 dump+restore PASS; Lane2 v2.1.5 --all profile PASS)
 starting_review_head: a1d0527382c673a39f7bbe1a9697110884468046
+published_evidence_sha: 28f5788e52fefc85c8f1f5b6797cd5837dd49037 (PR #144)
 product_freeze: a4f3284c35785dbb0efe3843d38084f12911ac15
 preview: dpl_FAaW712WnVBZ9Wr7B8MXCurJEeXW / q2u9baevb
 results: docs/testing/parallel-completion-2026-10-07/A4-BACKUP-ROLE-AND-PROFILER-04-RESULTS.md

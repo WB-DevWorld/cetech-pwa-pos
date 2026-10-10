@@ -3,6 +3,7 @@
 Acting: `@wbdevworld` / WS3  
 UTC: `2026-10-10T06:10Z`  
 Starting review head: `a1d0527382c673a39f7bbe1a9697110884468046`  
+Published evidence tip: `28f5788e52fefc85c8f1f5b6797cd5837dd49037` (PR #144)  
 Product freeze: `a4f3284c35785dbb0efe3843d38084f12911ac15` (unchanged)  
 Preview: `dpl_FAaW712…` / `q2u9baevb`  
 Staff-documentation impact: **NONE**  
