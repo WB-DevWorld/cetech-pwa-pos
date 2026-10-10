@@ -31,6 +31,18 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 	public $storefront_orders = 0;
 	/** @var callable|null */
 	public $during_create = null;
+	/**
+	 * Same-request extra order create during prepare (distinct from competing_checkout).
+	 *
+	 * @var callable|null
+	 */
+	public $during_create_same_request = null;
+	/** @var int POS + same-request extras observed for this prepare */
+	public $same_request_order_creates = 0;
+	/** @var int same-request supported creates beyond the intended POS order */
+	public $same_request_extra_creates = 0;
+	/** @var array<int,array<string,mixed>> draft/refund rows observed only for quote guards */
+	public $ephemeral_order_rows = array();
 	/** @var callable|null */
 	public $during_reserve = null;
 	/** @var callable|null fired after each managed product reservation row is written */
@@ -164,10 +176,23 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 		if ( $this->throw_on_calculate ) {
 			throw new RuntimeException( 'forced calculate_totals failure' );
 		}
+		$orders_before    = count( $this->orders );
+		$ephemeral_before = count( $this->ephemeral_order_rows );
 		if ( is_callable( $this->during_calculate ) ) {
 			$cb = $this->during_calculate;
 			$this->during_calculate = null;
 			$cb( $this );
+		}
+		// Same-request supported order/refund CRUD during quote (mirrors production observers).
+		if ( count( $this->orders ) !== $orders_before || count( $this->ephemeral_order_rows ) !== $ephemeral_before ) {
+			++$this->side_effects['orders'];
+			return Cetech_Pos_Bridge_Response::wp_error(
+				'INTEGRATION_UNAVAILABLE',
+				'Quote mutated Woo orders; quoting aborted.',
+				true,
+				'resolve',
+				503
+			);
 		}
 		$bag  = $this->bag();
 		$cart = array();
@@ -277,6 +302,37 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 	 * @param int    $qty
 	 * @return bool
 	 */
+	/**
+	 * Simulate a supported draft/refund create that omits woocommerce_new_order.
+	 *
+	 * @param string $status
+	 * @param string $kind order|refund
+	 */
+	public function create_supported_silent_order_row( $status = 'auto-draft', $kind = 'order' ) {
+		$this->ephemeral_order_rows[] = array(
+			'id'     => 'ephemeral-' . (string) $this->next_order_id,
+			'status' => (string) $status,
+			'kind'   => (string) $kind,
+		);
+		++$this->next_order_id;
+		return true;
+	}
+
+	/**
+	 * Same-request extra create belonging to this prepare (not another request).
+	 */
+	public function same_request_extra_order_create() {
+		++$this->same_request_extra_creates;
+		$this->orders[] = array(
+			'id'             => 'same-req-' . $this->next_order_id,
+			'pos'            => false,
+			'transaction_id' => null,
+			'status'         => 'pending',
+		);
+		++$this->next_order_id;
+		return true;
+	}
+
 	public function competing_checkout( $product_id, $qty = 1 ) {
 		$qty = (int) $qty;
 		if ( ! isset( $this->stock[ $product_id ] ) || $this->stock[ $product_id ] < $qty ) {
@@ -316,17 +372,14 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 				503
 			);
 		}
-		if ( is_callable( $this->during_create ) ) {
-			$cb = $this->during_create;
-			$this->during_create = null;
-			$cb( $this );
-		}
 		++$this->create_calls;
+		$this->same_request_order_creates = 0;
 		$order_id = (string) $this->next_order_id;
 		++$this->next_order_id;
 		$sale_id  = 'sale-' . $order_id;
 		$customer = isset( $quote['customer'] ) && is_array( $quote['customer'] ) ? $quote['customer'] : array( 'kind' => 'walkin' );
 		$frozen   = $this->build_frozen_prepare_document( $quote, $transaction_id, $request_hash );
+		++$this->same_request_order_creates;
 		$this->orders[] = array(
 			'id'              => $order_id,
 			'pos'             => true,
@@ -374,12 +427,43 @@ class Cetech_Pos_Bridge_Fake_Woo_Runtime extends Cetech_Pos_Bridge_Woo_Runtime {
 		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $matched ) ) {
 			return $matched;
 		}
-		$described = $this->describe_order( $this->order_as_proof_object_by_id( $order_id ), $hold );
+		$order_obj = $this->order_as_proof_object_by_id( $order_id );
+		$described = $this->describe_order( $order_obj, $hold );
 		if ( $described === null || empty( $described['reservationProven'] ) ) {
 			return $this->unavailable( 'Woo did not expose a complete current stock reservation after wc_reserve_stock_for_order.' );
 		}
+		// Concurrent storefront insert after POS create (other request — must not fail).
+		if ( is_callable( $this->during_create ) ) {
+			$cb = $this->during_create;
+			$this->during_create = null;
+			$cb( $this );
+		}
+		// Same-request nested create (R144-2) — must fail prepare.
+		if ( is_callable( $this->during_create_same_request ) ) {
+			$cb = $this->during_create_same_request;
+			$this->during_create_same_request = null;
+			$cb( $this );
+			++$this->same_request_order_creates;
+		}
 		++$this->side_effects['orders'];
 		++$this->side_effects['stock'];
+		$identity = $this->assert_prepared_order_operation_identity(
+			$order_obj,
+			$order_id,
+			$recovery_token,
+			$transaction_id,
+			$request_hash
+		);
+		if ( Cetech_Pos_Bridge_Quote_Request::is_error( $identity ) ) {
+			return $identity;
+		}
+		if ( (int) $this->same_request_order_creates !== 1 ) {
+			return $this->unavailable( 'Prepare observed an unexpected same-request Woo order create.' );
+		}
+		// Request-local extra creates must fail; other-request competing_checkout must not.
+		if ( (int) $this->same_request_extra_creates > 0 ) {
+			return $this->unavailable( 'Prepare observed an unexpected same-request Woo order create.' );
+		}
 		$commitment = $this->force_commitment !== null ? $this->force_commitment : 'reserved';
 		if ( $commitment !== 'reserved' && $commitment !== 'reduced' ) {
 			$described['reservationProven'] = false;

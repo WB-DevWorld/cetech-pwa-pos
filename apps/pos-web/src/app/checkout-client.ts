@@ -498,6 +498,24 @@ export function createBrowserReturnPort(options: BrowserCheckoutOptions = {}): R
   };
 }
 
+export function postStaffPaymentCommand<T>(url: string, body: unknown, idempotencyKey: Uuid): Promise<ApiResult<T>> {
+  return command<T>(url, "POST", { correlationId: crypto.randomUUID(), idempotencyKey }, {}, body);
+}
+
+export async function loadPaystackTestPresentation(paymentId: string, fetchImpl: typeof fetch = fetch): Promise<string | undefined> {
+  try {
+    const response = await fetchImpl(`/api/pos/v1/payments/presentation?paymentId=${encodeURIComponent(paymentId)}`, {
+      method: "GET",
+      credentials: "include",
+      headers: { accept: "application/json", "x-correlation-id": crypto.randomUUID() },
+    });
+    const result = (await response.json()) as ApiResult<{ url?: string }>;
+    return result.ok ? result.data.url : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function createBrowserRegisterPort(options: BrowserCheckoutOptions = {}): RegisterPort {
   return {
     get(id): Promise<ApiResult<Register>> {

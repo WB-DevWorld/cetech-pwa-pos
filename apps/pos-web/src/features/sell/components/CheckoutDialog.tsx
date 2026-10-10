@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { loadPaystackTestPresentation } from "../../../app/checkout-client";
 import type { ElectronicPaymentSessionView, ElectronicTenderView } from "../../payments/electronicPaymentView";
 import {
   checkoutCloseRequestsCancel,
@@ -9,6 +10,7 @@ import {
   type CheckoutSessionView,
 } from "../state/checkoutSession";
 import { CashPaymentForm } from "./CashPaymentForm";
+import { ManualMobileMoneyPanel } from "./ManualMobileMoneyPanel";
 import { PaymentWaiting, electronicSessionLocksCheckout, electronicSessionShowsWaiting } from "./PaymentWaiting";
 import { ReceiptPaper } from "./ReceiptPaper";
 import { SellModal } from "./SellModal";
@@ -39,6 +41,7 @@ export function CheckoutDialog({
   electronicInFlight = false,
   onResolveElectronic,
   onContactManager,
+  onManualRecorded,
   initialCashReceived,
 }: {
   session: CheckoutSessionView;
@@ -60,10 +63,14 @@ export function CheckoutDialog({
   electronicInFlight?: boolean;
   onResolveElectronic?: () => void;
   onContactManager?: () => void;
+  onManualRecorded?: (reference: string) => void;
   initialCashReceived?: string;
 }) {
   const [cashReceived, setCashReceived] = useState(initialCashReceived ?? "");
   const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualReference, setManualReference] = useState<string | undefined>();
+  const [presentationUrl, setPresentationUrl] = useState<string | undefined>();
   const copy = describeCheckoutStage(session.stage);
   const dismissable = checkoutDismissAllowed(session) && !inFlight;
   const electronicLocked = electronicSessionLocksCheckout(electronicSession);
@@ -72,7 +79,20 @@ export function CheckoutDialog({
   const showCashForm =
     (session.stage === "cash" || session.stage === "cash_failed") && !electronicLocked && !showElectronicWaiting;
   const showChoose =
-    session.stage === "choose_payment" && session.prepared && !showElectronicWaiting && !confirmingCancel;
+    session.stage === "choose_payment" && session.prepared && !showElectronicWaiting && !confirmingCancel && !manualOpen;
+
+  useEffect(() => {
+    const paymentId = electronicSession?.paymentId;
+    if (electronicSession?.status !== "awaiting_customer" || !paymentId) return;
+    if (electronicSession.tender !== "card" && electronicSession.tender !== "mobile_money") return;
+    let cancelled = false;
+    void loadPaystackTestPresentation(paymentId).then((url) => {
+      if (!cancelled) setPresentationUrl(url);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [electronicSession?.paymentId, electronicSession?.status, electronicSession?.tender]);
   const closeRequestsCancel = checkoutCloseRequestsCancel(session.stage) && Boolean(onCancelPreparedSale);
   const closeDisabled =
     inFlight ||
@@ -115,6 +135,10 @@ export function CheckoutDialog({
     if (id === "cash") {
       onSelectCash?.();
       setCashReceived("");
+      return;
+    }
+    if (id === "manual_mobile_money") {
+      setManualOpen(true);
       return;
     }
     onSelectElectronic?.(id);
@@ -200,10 +224,28 @@ export function CheckoutDialog({
             onConfirm={onConfirmCash}
           />
         ) : null}
+        {manualOpen && session.prepared ? (
+          <ManualMobileMoneyPanel
+            prepared={session.prepared}
+            busy={busy}
+            onBack={() => setManualOpen(false)}
+            onRecorded={(reference) => {
+              setManualReference(reference);
+              setManualOpen(false);
+              onManualRecorded?.(reference);
+            }}
+          />
+        ) : null}
+        {manualReference ? (
+          <p data-manual-mobile-money-reference="">
+            Mobile Money, manual confirmation. Reference {manualReference}. Do not ask for another transfer.
+          </p>
+        ) : null}
         {showElectronicWaiting && electronicSession ? (
           <PaymentWaiting
             session={electronicSession}
             inFlight={busy}
+            presentationUrl={presentationUrl}
             onResolve={() => onResolveElectronic?.()}
             onReturnToChoices={onBackToPaymentChoice}
             onContactManager={onContactManager}

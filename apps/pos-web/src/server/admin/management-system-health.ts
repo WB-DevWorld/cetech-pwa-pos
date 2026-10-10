@@ -29,7 +29,8 @@ const STATUS_RANK: Record<ManagementHealthStatus, number> = {
 const CHECK_LABELS: Record<string, string> = {
   supabase: "Store data",
   bridge: "Commerce connection",
-  "bridge-contract": "Commerce contract",
+  "bridge-dependencies": "Store services",
+  "bridge-contract": "Pricing qualification",
 };
 
 export function presentManagementSystemHealth(health: StoreHealth): ManagementSystemHealthView {
@@ -41,13 +42,19 @@ export function presentManagementSystemHealth(health: StoreHealth): ManagementSy
       return left.label.localeCompare(right.label);
     });
   return {
-    overall: checks.reduce<ManagementHealthStatus>(
-      (worst, check) => (STATUS_RANK[check.status] < STATUS_RANK[worst] ? check.status : worst),
-      checks.length === 0 ? "unverified" : "healthy",
-    ),
+    overall: overallStatus(checks),
     buildId: health.buildId,
     checks,
   };
+}
+
+function overallStatus(checks: readonly ManagementSystemHealthCheck[]): ManagementHealthStatus {
+  const scored = checks.filter((check) => check.id !== "bridge-contract");
+  const source = scored.length > 0 ? scored : checks;
+  return source.reduce<ManagementHealthStatus>(
+    (worst, check) => (STATUS_RANK[check.status] < STATUS_RANK[worst] ? check.status : worst),
+    source.length === 0 ? "unverified" : "healthy",
+  );
 }
 
 function presentCheck(check: HealthCheck): ManagementSystemHealthCheck {

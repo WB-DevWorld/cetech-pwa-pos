@@ -5,6 +5,7 @@ dist/
 coverage/
 playwright-report/
 test-results/
+apps/pos-web/e2e/.tmp-orders-reprint/
 .env
 .env.*
 !.env.example

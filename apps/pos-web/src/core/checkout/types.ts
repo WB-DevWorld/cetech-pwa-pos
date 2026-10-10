@@ -81,6 +81,10 @@ export type StoredPayment = {
   readonly providerTransactionId?: string;
   readonly displayReference?: string;
   readonly accessCode?: string;
+  readonly authorizationUrl?: string;
+  readonly manualNetwork?: string;
+  readonly merchantAccountLabel?: string;
+  readonly attestationActorId?: string;
   readonly initializeStatus?: "pending_remote" | "initialized" | "lost_response";
   readonly lastVerifiedAt?: Timestamp;
   readonly attentionReason?: string;
@@ -155,6 +159,14 @@ export type IdempotencyClaim =
   | { readonly kind: "conflict" }
   | { readonly kind: "replay"; readonly outcome: unknown }
   | { readonly kind: "repair"; readonly outcome: unknown };
+
+/** Durable mutual-exclusion family for one sale's tender effects (cash ledger vs electronic provider). */
+export type SaleTenderFamily = "cash" | "electronic";
+
+export type SaleTenderClaimResult =
+  | { readonly kind: "acquired" }
+  | { readonly kind: "held" }
+  | { readonly kind: "conflict"; readonly held: SaleTenderFamily };
 
 export type CommandScopeBinding = {
   readonly organizationId: Id;
@@ -233,10 +245,29 @@ export interface CheckoutStore {
   }): Promise<"ok" | "missing" | "not_open" | "already_closed">;
   saveShiftReport(report: ShiftReport): Promise<"ok" | "duplicate">;
   getShiftReport(shiftId: Uuid, kind: "X" | "Z"): Promise<ShiftReport | undefined>;
-  appendCashMovement(movement: StoredCashMovement): Promise<"ok" | "duplicate_sale" | "duplicate_refund" | "shift_required" | "negative_expected">;
+  appendCashMovement(movement: StoredCashMovement): Promise<"ok" | "duplicate_sale" | "duplicate_refund" | "shift_required" | "negative_expected" | "tender_conflict">;
   listCashSales(transactionId: Uuid): Promise<readonly StoredCashMovement[]>;
   listCashRefunds(refundId: Uuid): Promise<readonly StoredCashMovement[]>;
   expectedCash(shiftId: Uuid): Promise<Money | undefined>;
+  /**
+   * Durable tender boundary for one transaction. Must be acquired before a new
+   * cash ledger effect or a new electronic provider dispatch. Same-family re-entry
+   * returns `held`. Opposite family (or opposing durable evidence) returns `conflict`.
+   */
+  claimSaleTender(
+    transactionId: Uuid,
+    family: SaleTenderFamily,
+    input: { readonly organizationId: Id; readonly locationId: Id; readonly actorId: Id },
+  ): Promise<SaleTenderClaimResult>;
+  /**
+   * Commit a new cash_sale movement and verified cash payment together.
+   * If payment persistence fails, the movement must not remain (and expected cash
+   * must not increase). Repair of an already-durable movement uses savePayment alone.
+   */
+  recordVerifiedCashSale(input: {
+    readonly movement: StoredCashMovement | undefined;
+    readonly payment: StoredPayment;
+  }): Promise<"ok" | "duplicate_sale" | "shift_required" | "negative_expected" | "tender_conflict">;
   saveQuote(quote: Quote): Promise<void>;
   getQuote(quoteId: Id): Promise<Quote | undefined>;
   seedPreparedSale(input: SeedPreparedSaleInput): Promise<PosSaleRecord>;

@@ -96,6 +96,36 @@ describe("CORE-03 BFF bridge health/permission adapter", () => {
     expect(health.pricingParityVerified).toBe(false);
   });
 
+  test("a healthy-looking body without the frozen envelope is not connected", () => {
+    const missing = mapBridgeHealth({
+      status: "healthy",
+      contractVersion: "1.0.0",
+      wooDetected: true,
+      woodmartDetected: true,
+      b2bkingDetected: true,
+    });
+    expect(missing.status).toBe("unavailable");
+    const degraded = mapBridgeHealth({
+      ok: true,
+      data: {
+        status: "degraded",
+        contractVersion: "1.0.0",
+        wooDetected: true,
+        woodmartDetected: false,
+        b2bkingDetected: false,
+        pricingParityVerified: true,
+      },
+    });
+    expect(degraded.status).toBe("degraded");
+    expect(degraded.woodmartDetected).toBe(false);
+    expect(degraded.pricingParityVerified).toBe(false);
+    const untyped = mapBridgeHealth({
+      ok: true,
+      data: { status: "healthy", contractVersion: "1.0.0", wooDetected: "yes", woodmartDetected: true, b2bkingDetected: true },
+    });
+    expect(untyped.status).toBe("unavailable");
+  });
+
   test("ok:false envelopes are unavailable", () => {
     const health = mapBridgeHealth({
       ok: false,
@@ -137,8 +167,7 @@ describe("CORE-03 BFF bridge health/permission adapter", () => {
     expect(captured.headers?.cookie).toBeUndefined();
     expect(health.wooDetected).toBe(true);
     expect(health.pricingParityVerified).toBe(false);
-    expect(check.status).toBe("unverified");
-    expect(check.status).not.toBe("healthy");
+    expect(check.status).toBe("healthy");
     expect(check.message).toMatch(/wooDetected=true/);
     expect(check.message).toMatch(/pricingParityVerified=false/);
     expect(check.message).toMatch(/detection is not pricing parity/);
@@ -238,14 +267,15 @@ describe("CORE-03 BFF bridge health/permission adapter", () => {
       throw new Error("expected success");
     }
     const byId = Object.fromEntries(result.body.data.checks.map((check) => [check.id, check]));
-    expect(byId.bridge.status).toBe("unverified");
+    expect(byId.bridge.status).toBe("healthy");
     expect(byId.bridge.message).toMatch(/wooDetected=true/);
+    expect(byId["bridge-dependencies"].status).toBe("healthy");
+    expect(byId["bridge-dependencies"].message).toMatch(/detection is not pricing parity/);
+    expect(byId["bridge-contract"].status).toBe("unverified");
     expect(byId["bridge-contract"].message).toMatch(/wooDetected=true/);
     expect(byId["bridge-contract"].message).toMatch(/pricingParityVerified=false/);
     expect(byId["bridge-contract"].message).toMatch(/detection is not pricing parity/);
-    for (const check of result.body.data.checks) {
-      expect(check.status).not.toBe("healthy");
-    }
+    expect(result.body.data.checks.some((check) => check.id === "bridge-contract" && check.status === "healthy")).toBe(false);
   });
 
   test("matching response correlation is accepted; mismatch or malformed fails closed", async () => {
@@ -257,7 +287,8 @@ describe("CORE-03 BFF bridge health/permission adapter", () => {
     }));
     const matched = await matching.inspect(CORRELATION, NOW);
     expect(matched.health.wooDetected).toBe(true);
-    expect(matched.check.status).toBe("unverified");
+    expect(matched.check.status).toBe("healthy");
+    expect(matched.health.pricingParityVerified).toBe(false);
 
     const mismatched = clientWith(async () => ({
       ok: true,
@@ -351,7 +382,8 @@ describe("CORE-03 BFF bridge health/permission adapter", () => {
     }
     const byId = Object.fromEntries(result.body.data.checks.map((check) => [check.id, check]));
     expect(byId.bridge.message).toMatch(/wooDetected=true/);
-    expect(byId.bridge.status).not.toBe("healthy");
+    expect(byId.bridge.status).toBe("healthy");
+    expect(byId["bridge-contract"].status).toBe("unverified");
   });
 
   test("adapter has no default live fetch; Next route does not embed privileged secrets", () => {

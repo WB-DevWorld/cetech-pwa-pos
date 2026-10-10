@@ -153,6 +153,14 @@ br01_assert_eq( 1000, $outer['total']['minor'], 'outer guest quote isolated from
 br01_assert_eq( 750, $GLOBALS['cetech_pos_nested_quote_total'], 'nested retail context exact' );
 br01_assert_eq( '__idle__', $nested_runtime->bag()['customer'], 'nested quotes restore shared globals' );
 
+$draft_runtime = br02_fake_runtime();
+$draft_runtime->during_calculate = function ( $runtime ) {
+	$runtime->create_supported_silent_order_row( 'auto-draft', 'order' );
+};
+$draft_quote = br02_engine( $draft_runtime )->quote( br02_guest_request( $cart_id, $line_id_a, $location_id ) );
+br01_assert( Cetech_Pos_Bridge_Quote_Request::is_error( $draft_quote ), 'R144-3 silent auto-draft create during quote fails closed' );
+br01_assert_eq( 'INTEGRATION_UNAVAILABLE', $draft_quote->get_error_code(), 'R144-3 silent draft uses INTEGRATION_UNAVAILABLE' );
+
 $boom                     = br02_fake_runtime();
 $boom->throw_on_calculate = true;
 $boom->write_bag( '__idle__', array( 'sentinel' ) );

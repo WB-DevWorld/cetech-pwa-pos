@@ -1,0 +1,14 @@
+{
+  "task": "GATE2-DISABLED-SHIFT-ASSERTIONS",
+  "base": "22035a513e43b896cbc5e96964aa428b71d8d010",
+  "allowed": [
+    "supabase/tests/staff_access_disabled_shift.sql",
+    "supabase/tests/tender_write_boundary.sql",
+    "supabase/tests/db_sec_cash_authz.sql",
+    "docs/testing/parallel-completion-2026-10-07/**",
+    "CURRENT-WORK.md"
+  ],
+  "forbidden": ["hosted DDL", "apps/pos-web/**", "wordpress/**", "production"],
+  "staff_documentation_impact": "NONE",
+  "production_effects": "NONE"
+}

@@ -1,0 +1,50 @@
+{
+  "task": "R144-REPAIR-01",
+  "acting_human": "@wbdevworld",
+  "workstream": "WS3",
+  "bridge_reviewer": "@Emmanuel-coder-prog",
+  "reviewed_head": "7d75c3944d41a5990aa64004c9e96954779c9730",
+  "base": "0e383d84f11573ca89d6533c8cb7c35d79d7b261",
+  "branch": "ws3/combined-candidate-2026-10-08",
+  "pr": "https://github.com/WB-DevWorld/cetech-pwa-pos/pull/144",
+  "staff_documentation_impact": "NONE",
+  "production_effects": "NONE",
+  "findings": ["R144-1", "R144-2", "R144-3"],
+  "allowed": [
+    "wordpress/cetech-pos-bridge/includes/class-woo-runtime.php",
+    "tests/bridge/bootstrap.php",
+    "tests/bridge/fake-woo-runtime.php",
+    "tests/bridge/test-prepare.php",
+    "tests/bridge/test-quote.php",
+    "tests/bridge/test-woo-runtime.php",
+    "tests/bridge/test-r144-hook-guards.php",
+    "tests/bridge/run.php",
+    "tests/integration/sales/woo-global-order-count-concurrency.fixture.test.ts",
+    "docs/testing/parallel-completion-2026-10-07/**",
+    "docs/workstreams/WS-02-COMMERCE-BRIDGE/evidence/**",
+    "CURRENT-WORK.md"
+  ],
+  "forbidden": [
+    "global Woo lock",
+    "global wc_orders COUNT success predicate",
+    "blind create retries",
+    "hosted DDL",
+    "bridge install",
+    "training orders",
+    "production promotion",
+    "diagnostic #141 import",
+    "profiler lane E reactivation",
+    "Woo core or third-party plugin edits"
+  ],
+  "invariants": [
+    "durable pre-effect prepare intent",
+    "stable transaction/idempotency/request-hash identity",
+    "recovery token bound only to the intended WC_Order on initial save",
+    "unexpected same-request supported order creates fail prepare",
+    "GET resolve zero-write",
+    "fail-closed same-request quote order CRUD including draft/refund paths",
+    "no second order on retry/resolve",
+    "#143 migration blob unchanged",
+    "#140 application behavior retained except R144 repairs"
+  ]
+}

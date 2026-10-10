@@ -3,6 +3,7 @@ import type { CommandContext, PaymentLookup, PaymentState } from "../../../../..
 import { apiFailure } from "../http/api-failure";
 import type { CheckoutStore, StaffActor, StoredPayment } from "../../core/checkout/types";
 import { applyProviderVerification } from "./apply-verification";
+import { isManualMobileMoneyPayment } from "./manual-mobile-money";
 import { toPaymentState } from "./payment-state";
 import type { ElectronicPaymentProvider } from "./provider";
 
@@ -43,6 +44,10 @@ export async function resolveElectronicPayment(input: {
     return { ok: true, data: toPaymentState(payment), correlationId: context.correlationId };
   }
 
+  if (isManualMobileMoneyPayment(payment)) {
+    return { ok: true, data: toPaymentState(payment), correlationId: context.correlationId };
+  }
+
   if (!payment.providerReference) {
     return apiFailure("REQUIRES_ATTENTION", "electronic payment is missing a provider reference", context.correlationId);
   }
@@ -58,6 +63,9 @@ export async function resolveStoredElectronic(input: {
   readonly payment: StoredPayment;
   readonly now: Date;
 }): Promise<StoredPayment> {
+  if (isManualMobileMoneyPayment(input.payment)) {
+    return input.payment;
+  }
   const sale = await input.store.getSale(input.payment.transactionId);
   if (!sale || !input.payment.providerReference) {
     return input.payment;

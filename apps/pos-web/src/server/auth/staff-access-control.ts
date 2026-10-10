@@ -9,6 +9,31 @@ export interface StaffAccessControl {
   }): Promise<StaffAccessStatus | "unavailable">;
 }
 
+export type StaffAccessDecision =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly reason: "disabled" | "unavailable" };
+
+/**
+ * Canonical disablement decision. Store/transport failure is never treated as
+ * active — callers must fail closed on `unavailable`.
+ */
+export async function evaluateStaffAccess(
+  accessControl: StaffAccessControl,
+  input: {
+    readonly organizationId: string;
+    readonly actorId: string;
+  },
+): Promise<StaffAccessDecision> {
+  const status = await accessControl.status(input);
+  if (status === "active") {
+    return { ok: true };
+  }
+  if (status === "disabled") {
+    return { ok: false, reason: "disabled" };
+  }
+  return { ok: false, reason: "unavailable" };
+}
+
 export function createMemoryStaffAccessControl(
   rows: Readonly<Record<string, StaffAccessStatus>> = {},
 ): StaffAccessControl {

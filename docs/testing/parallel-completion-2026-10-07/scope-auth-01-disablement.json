@@ -1,0 +1,46 @@
+{
+  "task": "AUTH-01",
+  "base_sha": "452c446fd0e3821fc3bfdb5de85a01d19a331809",
+  "branch": "ws3/combined-candidate-2026-10-08",
+  "owner": "@wbdevworld / WS3",
+  "symptom": "access ACTIVE read → disable commits/revokes existing sessions → pending session INSERT → command guard accepts → payment.cash authorization accepts (revoked_at remains null)",
+  "allowed": [
+    "apps/pos-web/src/server/auth/staff-session.ts",
+    "apps/pos-web/src/server/auth/supabase-session-store.ts",
+    "apps/pos-web/src/server/auth/staff-access-control.ts",
+    "apps/pos-web/src/server/auth/compose-staff-access-control.ts",
+    "apps/pos-web/src/server/sales/guard-staff-command.ts",
+    "apps/pos-web/src/server/auth/authorize.ts",
+    "apps/pos-web/src/server/auth/**/*.test.ts",
+    "docs/testing/parallel-completion-2026-10-07/scope-auth-01-disablement.json",
+    "docs/testing/parallel-completion-2026-10-07/AUTH-01-DISABLEMENT-REPAIR.md"
+  ],
+  "forbidden": [
+    "apps/pos-web/src/server/sales/confirm-cash.ts",
+    "apps/pos-web/src/server/sales/finalize-sale.ts",
+    "apps/pos-web/src/server/sales/supabase-checkout-store.ts",
+    "apps/pos-web/src/server/payments/**",
+    "Woo/bridge/pricing",
+    "hosted DDL apply",
+    "production / live sales",
+    "IndexedDB clear",
+    "Delivery Engine",
+    "AUTH-02 customer policy invention",
+    "RD-01 reapply",
+    "cash/payment/receipt tables"
+  ],
+  "schema_proposal": "none — BFF post-insert recheck + guard/authorize access recheck; no migration required",
+  "migration": false,
+  "permitted_effects": "NONE on hosted/runtime; local tests only",
+  "protected_invariants": [
+    "fail-closed on access-control unavailable (never means active)",
+    "fail-closed on session-store failure",
+    "session expiry / revoke semantics",
+    "organization / location / register assignment scope",
+    "reactivation remains possible when durable status returns active",
+    "forced password change still blocks commands",
+    "owner safeguards unchanged",
+    "no-shift Orders Reprint path unchanged"
+  ],
+  "rollback": "revert AUTH-01 auth/guard commits; leave TF-01/TF-02 and tester Preview 452c446 unchanged"
+}

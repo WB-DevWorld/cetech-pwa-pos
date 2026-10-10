@@ -7,6 +7,7 @@ import type { CheckoutStore, StaffActor, StoredCashMovement } from "../../core/c
 import { moneyEqual } from "../../core/checkout/types";
 import { monotonicRefund } from "../../core/returns/aggregate";
 import type { ReturnStore, StoredTenderRefund } from "../../core/returns/types";
+import { isManualMobileMoneyPayment } from "./manual-mobile-money";
 import type { ElectronicRefundProvider, ProviderRefundResolveResult } from "./refund-provider";
 
 export async function refundTender(input: {
@@ -38,6 +39,16 @@ export async function refundTender(input: {
   const expectedChannel = tender.tender === "cash" ? "cash_ledger" : "provider_electronic";
   if (input.request.channel !== expectedChannel) {
     return apiFailure("VALIDATION_ERROR", "refund channel does not match historic tender", input.context.correlationId);
+  }
+  if (input.request.channel !== "cash_ledger") {
+    const payment = await input.checkoutStore.getPayment(input.request.paymentId);
+    if (isManualMobileMoneyPayment(payment)) {
+      return apiFailure(
+        "REQUIRES_ATTENTION",
+        "Manual Mobile Money was confirmed on a merchant receipt. Refund it through external reconciliation. This register will not call Paystack or move the cash drawer.",
+        input.context.correlationId,
+      );
+    }
   }
 
   const hash = await sha256Hex(canonicalJson(input.request));

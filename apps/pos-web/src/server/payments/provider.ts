@@ -15,7 +15,12 @@ export type ProviderInitializeInput = {
 };
 
 export type ProviderInitializeResult =
-  | { readonly kind: "initialized"; readonly accessCode?: string; readonly displayReference: string }
+  | {
+      readonly kind: "initialized";
+      readonly accessCode?: string;
+      readonly authorizationUrl?: string;
+      readonly displayReference: string;
+    }
   | { readonly kind: "lost_response" }
   | { readonly kind: "failed"; readonly retryable: boolean; readonly message: string }
   | { readonly kind: "live_mode_blocked" };

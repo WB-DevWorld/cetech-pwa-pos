@@ -1,0 +1,39 @@
+{
+  "task": "R144-FINAL-CORRECTION-01",
+  "acting_human": "@wbdevworld",
+  "workstream": "WS3",
+  "bridge_reviewer": "@Emmanuel-coder-prog",
+  "reviewed_head": "5ea92dc1258006186ba696e9d4f91f769d97aa11",
+  "product_tip": "27e95b3565dbdf3c5487257a08042e09a51620a4",
+  "branch": "ws3/combined-candidate-2026-10-08",
+  "pr": "https://github.com/WB-DevWorld/cetech-pwa-pos/pull/144",
+  "staff_documentation_impact": "NONE",
+  "production_effects": "NONE",
+  "allowed": [
+    "wordpress/cetech-pos-bridge/includes/class-woo-runtime.php",
+    "tests/bridge/bootstrap.php",
+    "tests/bridge/fake-woo-runtime.php",
+    "tests/bridge/test-prepare.php",
+    "tests/bridge/test-quote.php",
+    "tests/bridge/test-woo-runtime-hooks.php",
+    "tests/bridge/run.php",
+    "docs/testing/parallel-completion-2026-10-07/**",
+    "CURRENT-WORK.md"
+  ],
+  "forbidden": [
+    "global Woo lock",
+    "global COUNT success predicate",
+    "payment/refund business-flow redesign",
+    "live refund create",
+    "hosted DDL",
+    "bridge install",
+    "production promotion",
+    "diagnostic #141 import",
+    "Woo core edits"
+  ],
+  "corrections": [
+    "R144-3 refund hook family (order_refund object_type)",
+    "prices_include_tax from woocommerce_prices_include_tax on owned WC_Order create",
+    "bootstrap apply_filters return chaining"
+  ]
+}

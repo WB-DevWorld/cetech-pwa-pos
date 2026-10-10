@@ -51,6 +51,25 @@ describe("operational recovery surfaces", () => {
     expect(renderToStaticMarkup(<StoreHealthScreen state="error" />)).toContain("couldn&#x27;t be refreshed");
   });
 
+  test("Refresh status stays available when a component failed inside a loaded status", () => {
+    const html = renderToStaticMarkup(
+      <StoreHealthScreen
+        health={health}
+        state="ready"
+        lastCheckedAt="2026-10-10T06:00:00.000Z"
+        onRetry={() => undefined}
+      />,
+    );
+    expect(html).toContain("Refresh status");
+    expect(html).toContain("Response received");
+    expect(html).not.toContain("couldn&#x27;t be refreshed");
+    const loading = renderToStaticMarkup(
+      <StoreHealthScreen health={health} state="loading" lastCheckedAt="2026-10-10T06:00:00.000Z" refreshBusy onRetry={() => undefined} />,
+    );
+    expect(loading).toContain("Refreshing status…");
+    expect(loading).not.toContain("Response received");
+  });
+
   test("Needs attention exposes only supplied safe actions", () => {
     const html = renderToStaticMarkup(
       <NeedsAttentionScreen
