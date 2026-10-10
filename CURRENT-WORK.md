@@ -1,3 +1,22 @@
+## COMBINED-CANDIDATE-2026-10-08 — backup-role + profiler repair COMPLETE (WS3 docs)
+
+```text
+human / integration editor: @wbdevworld / WS3
+task: A4-BACKUP-ROLE-AND-PROFILER-04
+status: COMPLETE (Lane1 dump+restore PASS; Lane2 v2.1.5 --all profile PASS)
+starting_review_head: a1d0527382c673a39f7bbe1a9697110884468046
+product_freeze: a4f3284c35785dbb0efe3843d38084f12911ac15
+preview: dpl_FAaW712WnVBZ9Wr7B8MXCurJEeXW / q2u9baevb
+results: docs/testing/parallel-completion-2026-10-07/A4-BACKUP-ROLE-AND-PROFILER-04-RESULTS.md
+lane1: SET ROLE supabase_read_only_user PASS; pg_dump --role custom 1019335B sha728E86…; restore a4_restore_empty exit0; 50343 links×1
+lane2: profile-command v2.1.5 pin; smoke PASS; --all exit0 rows618; top rocket_init 8.867s (isolated CLI only)
+cash_50343: retained; cap consumed
+forbidden: product edits; further cash; write-capable login; alias/prod
+production_effects: NONE beyond one temporary read_only cli/login-role + private dump/restore
+verdict: NOT READY FOR PRODUCTION
+staff_documentation_impact: NONE
+```
+
 ## COMBINED-CANDIDATE-2026-10-08 — recovery/cash/profiling COMPLETE (WS3 docs)
 
 ```text
