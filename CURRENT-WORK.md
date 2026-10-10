@@ -5,6 +5,7 @@ human / integration editor: @wbdevworld / WS3
 task: A4-RECOVERY-CASH-AND-PROFILING-03
 status: COMPLETE (Lane2 cash PASS; Lane1 dump BLOCKED; Lane3 profiling limits unchanged)
 product_freeze: a4f3284c35785dbb0efe3843d38084f12911ac15
+published_evidence_sha: e5df10e57339cc1e7eebd26c036ba77093d9d259 (PR #144)
 preview: dpl_FAaW712WnVBZ9Wr7B8MXCurJEeXW / q2u9baevb
 owner_authorization: EXPLICIT "GO" "GO" 2026-10-10 (chat)
 results: docs/testing/parallel-completion-2026-10-07/A4-RECOVERY-CASH-AND-PROFILING-03-RESULTS.md
