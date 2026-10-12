@@ -19,6 +19,8 @@ The earlier hash `96930E5BF71A0BD2C3874F2746739163EE8D5A92D679734A23E62D073A6B1B
 
 The migration is still a proposal. It has not been applied to the hosted project or to the retained restore database. The isolated proof now runs on disposable database `a4_manual_attestation_cas`, which the CI script creates and drops. It is not the retained restore.
 
+Cart and harness commit: `9940f264823e1c0025bd9a1bb9f27f2b0e8fdc83`.
+
 ## Safe configuration
 
 Leave these off until a reviewed non-production trial:
