@@ -21,6 +21,7 @@ import type { ReceiptViewModel } from "../state/checkoutSession";
 import type { CashCheckoutScope } from "./cashCheckoutController";
 import type { CartDraft } from "../../../../../../docs/contracts/domain.generated";
 import type { PaymentMethodCapabilities } from "../../../server/payments/method-capabilities";
+import type { ManualMobileMoneyClient } from "../../../app/checkout-client";
 
 export type SellSessionPorts = {
   readonly catalog: CatalogPort;
@@ -46,6 +47,7 @@ export type SellSessionPorts = {
   readonly catalogAvailability?: CatalogAvailability;
   readonly catalogProjectionGeneration?: number;
   readonly paymentMethods?: PaymentMethodCapabilities;
+  readonly manualPayments?: ManualMobileMoneyClient;
   readonly nextSaleCustomer?: CustomerSearchResultView | null;
   readonly onNextSaleCustomerApplied?: (customer: CustomerSearchResultView) => void;
   readonly customerSearch?: (query: string) => Promise<readonly CustomerSearchResultView[]>;
@@ -508,9 +510,15 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
         onContactManager={() => {
           void electronic.resolve();
         }}
-        onManualRecorded={() => {
+        onManualRecorded={(reference) => {
+          cashCheckout.noteManualReference(reference);
           void cashCheckout.resolvePayment();
         }}
+        manualClient={ports.manualPayments}
+        onPrepareManual={() => cashCheckout.prepareManualTender()}
+        onManualActivity={(active) => cashCheckout.setManualActivity(active)}
+        onManualRetained={(paymentId) => cashCheckout.retainManualPayment(paymentId)}
+        onReplaceManualConfirmKey={() => cashCheckout.replaceManualConfirmKey()}
       />
       {printReceipt ? (
         <div className="receipt-print-host" aria-hidden="true">

@@ -8,6 +8,7 @@ import {
   createBrowserCashCheckoutPorts,
   createBrowserCheckoutUseCases,
   createBrowserPaymentPort,
+  createManualMobileMoneyClient,
   createBrowserRegisterPort,
   createBrowserReturnPort,
   createBrowserSalesResolvePort,
@@ -237,6 +238,10 @@ export function PosRuntime({
         tenderActivity: recoveryTenderActivity,
       }),
     [recoveryFetch, recoveryJournal, recoveryTenderActivity],
+  );
+  const manualPayments = useMemo(
+    () => createManualMobileMoneyClient({ fetchImpl: recoveryFetch, journal: recoveryJournal }),
+    [recoveryFetch, recoveryJournal],
   );
   const attentionRecoveryLock = useRef(createAttentionRecoveryLock());
   const attentionAuthRefreshGate = useRef(createAttentionAuthRefreshGate());
@@ -471,9 +476,10 @@ export function PosRuntime({
         catalogAvailability: availability,
         catalogProjectionGeneration,
         ...(capabilities.ok ? { paymentMethods: capabilities.data } : {}),
+        manualPayments,
       });
     },
-    [fetchImpl, pricing],
+    [fetchImpl, manualPayments, pricing],
   );
 
   useEffect(() => {

@@ -269,6 +269,9 @@ async function applyProviderRefund(input: {
   readonly correlationId: string;
 }): Promise<ApiResult<RefundState>> {
   const payment = await input.checkoutStore.getPayment(input.refund.paymentId);
+  if (isManualMobileMoneyPayment(payment)) {
+    return manualRefundAttention(input.returnStore, input.refund, input.correlationId);
+  }
   const created = await input.provider.createRefund({
     refundId: input.refund.refundId,
     paymentId: input.refund.paymentId,
@@ -339,11 +342,26 @@ async function reconcileTenderRefund(input: {
     return { ok: true, data: toRefundState(input.refund), correlationId: input.correlationId };
   }
   const payment = await input.checkoutStore.getPayment(input.refund.paymentId);
+  if (isManualMobileMoneyPayment(payment)) {
+    return manualRefundAttention(input.returnStore, input.refund, input.correlationId);
+  }
   const resolved = await input.provider.resolveRefund({
     refundId: input.refund.refundId,
     providerRefundReference: input.refund.providerRefundReference,
   });
   return persistRefund(input.returnStore, applyProviderResolve(input.refund, resolved, payment?.providerTransactionId), input.correlationId);
+}
+
+function manualRefundAttention(
+  returnStore: ReturnStore,
+  refund: StoredTenderRefund,
+  correlationId: string,
+): Promise<ApiResult<RefundState>> {
+  return persistRefund(returnStore, {
+    ...refund,
+    status: "requires_attention",
+    attentionReason: "Manual Mobile Money stays outside Paystack until an approved refund reconciliation exists. Do not send this refund to Paystack.",
+  }, correlationId);
 }
 
 function applyProviderResolve(

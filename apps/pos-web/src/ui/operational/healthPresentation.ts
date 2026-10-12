@@ -13,6 +13,12 @@ export type HealthRowView = {
   readonly badge: string;
 };
 
+export function isStoreHealth(value: unknown): value is StoreHealth {
+  if (!value || typeof value !== "object") return false;
+  const row = value as { checks?: unknown; contractVersion?: unknown };
+  return Array.isArray(row.checks) && row.contractVersion === "1.0.0";
+}
+
 function checkById(checks: readonly HealthCheck[], id: string): HealthCheck | undefined {
   return checks.find((check) => check.id === id);
 }

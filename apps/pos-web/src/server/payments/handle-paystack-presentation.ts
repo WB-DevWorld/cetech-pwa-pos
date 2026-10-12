@@ -1,12 +1,12 @@
 import type { ApiResult } from "../../../../../docs/contracts/ports";
 import type { Uuid } from "../../../../../docs/contracts/domain.generated";
-import { STAFF_SESSION_COOKIE } from "../../config/auth";
-import { parseCookieHeader } from "../auth/cookies";
-import { authFailure } from "../auth/errors";
-import type { StaffSessionStore } from "../auth/session-store";
+import type { StaffAccessControl } from "../auth/staff-access-control";
+import { guardStaffCommand } from "../sales/guard-staff-command";
+import { authorizeCheckoutRead } from "../sales/authorize-checkout";
 import { apiFailure } from "../http/api-failure";
 import type { CheckoutStore } from "../../core/checkout/types";
-import { paystackModeSelection } from "./config";
+import type { StaffAssignmentDirectory } from "../auth/assignments";
+import { readPaymentProviderConfig } from "./config";
 import { paystackTestCheckoutUrl } from "./paystack-presentation";
 
 export type PaystackPresentation = {
@@ -16,44 +16,90 @@ export type PaystackPresentation = {
   readonly mode: "test";
 };
 
+const RESUMABLE = new Set(["awaiting_customer", "pending"]);
+
 export async function handlePaystackPresentation(input: {
   readonly correlationId: Uuid;
   readonly cookieHeader?: string;
   readonly paymentId?: string;
   readonly now: Date;
-  readonly sessions: StaffSessionStore;
+  readonly sessions: Parameters<typeof guardStaffCommand>[0]["sessionStore"];
   readonly checkoutStore: CheckoutStore;
+  readonly assignments: StaffAssignmentDirectory;
+  readonly accessControl?: StaffAccessControl;
+  readonly allowedOrigins?: readonly string[];
   readonly env?: Readonly<Record<string, string | undefined>>;
 }): Promise<ApiResult<PaystackPresentation>> {
-  const sessionId = parseCookieHeader(input.cookieHeader)[STAFF_SESSION_COOKIE];
-  if (!sessionId) return authFailure("AUTH_REQUIRED", "staff session is required", input.correlationId);
-  let stored: Awaited<ReturnType<StaffSessionStore["get"]>>;
-  try {
-    stored = await input.sessions.get(sessionId, input.now);
-  } catch {
-    return authFailure("INTEGRATION_UNAVAILABLE", "staff session store is unavailable", input.correlationId);
+  const guarded = await guardStaffCommand({
+    correlationIdHeader: input.correlationId,
+    origin: null,
+    referer: null,
+    cookieHeader: input.cookieHeader,
+    csrfHeader: null,
+    now: input.now,
+    sessionStore: input.sessions,
+    accessControl: input.accessControl,
+    allowedOrigins: input.allowedOrigins ?? [],
+    requireMutationProtection: false,
+    requireIdempotencyKey: false,
+  });
+  if (!guarded.ok) {
+    return guarded.body;
   }
-  if (!stored) return authFailure("AUTH_REQUIRED", "staff session is expired or revoked", input.correlationId);
-  const mode = paystackModeSelection(input.env ?? {});
-  if (mode.mode === "live") {
-    return apiFailure("INTEGRATION_UNAVAILABLE", "Live Paystack checkout stays blocked.", input.correlationId);
+  const config = readPaymentProviderConfig(input.env ?? {});
+  if (config.kind !== "paystack_test") {
+    return apiFailure(
+      "INTEGRATION_UNAVAILABLE",
+      "Paystack test checkout is not available for this register.",
+      guarded.correlationId,
+    );
   }
-  if (!input.paymentId) return apiFailure("VALIDATION_ERROR", "paymentId is required", input.correlationId);
+  if (!input.paymentId) {
+    return apiFailure("VALIDATION_ERROR", "paymentId is required", guarded.correlationId);
+  }
   const payment = await input.checkoutStore.getPayment(input.paymentId);
-  if (!payment || payment.provider !== "paystack") {
-    return apiFailure("NOT_FOUND", "No Paystack test payment is waiting for this sale.", input.correlationId);
+  if (!payment || payment.provider !== "paystack" || !payment.providerReference) {
+    return apiFailure("NOT_FOUND", "No Paystack test payment is waiting for this sale.", guarded.correlationId);
   }
   const sale = await input.checkoutStore.getSale(payment.transactionId);
+  if (!sale || sale.prepared.transactionId !== payment.transactionId) {
+    return apiFailure("NOT_FOUND", "No Paystack test payment is waiting for this sale.", guarded.correlationId);
+  }
+  const authorized = await authorizeCheckoutRead({
+    session: guarded.session,
+    assignments: input.assignments,
+    correlationId: guarded.correlationId,
+    organizationId: sale.organizationId,
+    locationId: sale.locationId,
+    registerId: sale.registerId,
+  });
+  if (!authorized.ok) {
+    return authorized;
+  }
+  if (sale.assignedPaymentId && sale.assignedPaymentId !== payment.paymentId) {
+    return apiFailure("VALIDATION_ERROR", "This checkout link does not belong to the current payment.", guarded.correlationId);
+  }
+  if (payment.amount.minor !== sale.prepared.total.minor || payment.amount.currency !== sale.prepared.total.currency) {
+    return apiFailure("VALIDATION_ERROR", "This checkout link does not match the prepared sale.", guarded.correlationId);
+  }
   if (
-    !sale ||
-    sale.organizationId !== stored.session.organizationId ||
-    !stored.session.locationIds.includes(sale.locationId)
+    sale.status === "completed" ||
+    sale.status === "cancelled" ||
+    sale.status === "requires_attention" ||
+    Date.parse(sale.prepared.expiresAt) <= input.now.getTime()
   ) {
-    return apiFailure("FORBIDDEN", "This payment is outside the current staff session.", input.correlationId);
+    return apiFailure("VALIDATION_ERROR", "This sale can no longer open a Paystack checkout.", guarded.correlationId);
+  }
+  if (!RESUMABLE.has(payment.status)) {
+    return apiFailure(
+      "VALIDATION_ERROR",
+      "This payment cannot open a checkout link. Check its status instead of starting another payment.",
+      guarded.correlationId,
+    );
   }
   const url = paystackTestCheckoutUrl({ accessCode: payment.accessCode, authorizationUrl: payment.authorizationUrl });
   if (!url) {
-    return apiFailure("INTEGRATION_UNAVAILABLE", "This payment has no allowlisted Paystack test checkout.", input.correlationId);
+    return apiFailure("INTEGRATION_UNAVAILABLE", "This payment has no allowlisted Paystack test checkout.", guarded.correlationId);
   }
   return {
     ok: true,
@@ -63,6 +109,6 @@ export async function handlePaystackPresentation(input: {
       ...(payment.accessCode ? { accessCode: payment.accessCode } : {}),
       ...(payment.displayReference ? { displayReference: payment.displayReference } : {}),
     },
-    correlationId: input.correlationId,
+    correlationId: guarded.correlationId,
   };
 }

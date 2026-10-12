@@ -184,7 +184,8 @@ describe("UX-01 cashier surfaces hide engineering vocabulary", () => {
     const healthPrimary = visiblePrimaryText(health);
     expect(health).toContain("System status");
     expect(healthPrimary).toContain("Prices");
-    expect(healthPrimary).toContain("Pending verification");
+    expect(healthPrimary).toContain("Pricing qualification is still pending");
+    expect(healthPrimary).toContain("quoted price");
     expect(healthPrimary).toContain("Pending work");
     expect(healthPrimary).not.toContain("wooDetected=true");
     expect(health).not.toContain("API contract");

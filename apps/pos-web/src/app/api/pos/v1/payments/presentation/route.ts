@@ -4,6 +4,7 @@ import { authFailure } from "../../../../../../server/auth/errors";
 import { createServerRestFetch } from "../../../../../../server/http/server-fetch";
 import { resolveCorrelationId } from "../../../../../../server/http/correlation";
 import { httpStatusFor } from "../../../../../../server/http/status";
+import { tryComposeStaffAccessControl } from "../../../../../../server/auth/compose-staff-access-control";
 import { composePosCommandHandlers } from "../../../../../../server/sales/compose-pos-command-runtime";
 import { handlePaystackPresentation } from "../../../../../../server/payments/handle-paystack-presentation";
 
@@ -19,6 +20,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       now: new Date(),
       sessions: composeStaffSessionStore(process.env, createServerRestFetch()),
       checkoutStore: composed.runtime.store,
+      assignments: composed.assignments,
+      accessControl: tryComposeStaffAccessControl() ?? undefined,
       env: process.env,
     });
     return NextResponse.json(result, {

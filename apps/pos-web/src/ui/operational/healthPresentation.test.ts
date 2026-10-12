@@ -1,8 +1,22 @@
 import { describe, expect, test } from "vitest";
 import { resolvePaymentMethodCapabilities } from "../../server/payments/method-capabilities";
-import { presentHealthRows } from "./healthPresentation";
+import { isStoreHealth, presentHealthRows } from "./healthPresentation";
 
 describe("Store Health presentation", () => {
+  test("a successful payload whose checks field is not an array is refused before render", () => {
+    expect(isStoreHealth({ checks: { id: "bridge" }, contractVersion: "1.0.0" })).toBe(false);
+    expect(isStoreHealth({ checks: "bridge", contractVersion: "1.0.0" })).toBe(false);
+    expect(
+      isStoreHealth({
+        checks: [],
+        contractVersion: "1.0.0",
+        pendingOperationCount: 0,
+        attentionCount: 0,
+        buildId: "local",
+      }),
+    ).toBe(true);
+  });
+
   test("uses cashier-safe operational labels and does not expose app version diagnostics", () => {
     const rows = presentHealthRows({
       online: true,

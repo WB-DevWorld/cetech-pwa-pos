@@ -45,6 +45,7 @@ export type ReceiptViewModel = {
   readonly tax: CheckoutMoneyView;
   readonly total: CheckoutMoneyView;
   readonly tender: string;
+  readonly merchantReference?: string;
   readonly cashReceived?: CheckoutMoneyView;
   readonly changeDue?: CheckoutMoneyView;
   readonly documentKind: "operational_pos_receipt";
@@ -82,6 +83,9 @@ export type CheckoutSessionView = {
   readonly printMessage?: string;
   readonly saleCompleted: boolean;
   readonly transactionId?: string;
+  readonly manualResume?: boolean;
+  readonly manualBusy?: boolean;
+  readonly merchantReference?: string;
 };
 
 export function idleCheckoutSession(): CheckoutSessionView {

@@ -49,6 +49,7 @@ import {
   unmountStatusRefresh,
   type StatusRefreshState,
 } from "../ui/operational/healthRefresh";
+import { isStoreHealth } from "../ui/operational/healthPresentation";
 import { usePwaLifecycle } from "./pwa-lifecycle-runtime";
 import { AttentionRecoveryPanel } from "../features/admin/AttentionRecoveryPanel";
 import { fetchManagementContext, fetchManagementSaleRecovery, repairManagementSale } from "./management-client";
@@ -504,6 +505,13 @@ function HealthWorkspace({
             domain: "health",
           }).message,
         );
+        return;
+      }
+      if (!isStoreHealth(result.data)) {
+        refreshState.current = completeStatusRefresh(refreshState.current, generation, undefined);
+        setShowingLastKnown(hasHealthRef.current);
+        setState("error");
+        setErrorMessage("Status check returned an unusable response. Refresh to try again.");
         return;
       }
       refreshState.current = completeStatusRefresh(refreshState.current, generation, undefined);

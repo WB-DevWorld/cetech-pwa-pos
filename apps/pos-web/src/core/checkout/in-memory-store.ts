@@ -473,6 +473,53 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
       paymentsByTx.set(merged.transactionId, merged.paymentId);
     },
 
+    async commitManualAttestation(payment) {
+      const existing = payments.get(payment.paymentId);
+      if (!existing || existing.transactionId !== payment.transactionId || existing.provider !== "manual_mobile_money") {
+        return { kind: "rejected" };
+      }
+      if (existing.status === "verified") {
+        return existing.providerReference === payment.providerReference
+          ? { kind: "stored", payment: existing }
+          : { kind: "conflict" };
+      }
+      if (existing.status !== "awaiting_customer") {
+        return { kind: "rejected" };
+      }
+      const refKey = `manual_mobile_money\0${payment.providerReference ?? ""}`;
+      const holder = payment.providerReference ? paymentsByProviderRef.get(refKey) : undefined;
+      if (holder && holder !== payment.paymentId) {
+        return { kind: "conflict" };
+      }
+      if (existing.providerReference) {
+        const oldKey = `manual_mobile_money\0${existing.providerReference}`;
+        if (paymentsByProviderRef.get(oldKey) === existing.paymentId) {
+          paymentsByProviderRef.delete(oldKey);
+        }
+      }
+      const stored = {
+        ...existing,
+        status: "verified" as const,
+        amount: payment.amount,
+        verifiedAt: payment.verifiedAt,
+        verificationSource: payment.verificationSource,
+        providerReference: payment.providerReference,
+        displayReference: payment.displayReference,
+        evidenceId: existing.evidenceId ?? payment.evidenceId,
+        actorId: existing.actorId,
+        manualNetwork: existing.manualNetwork ?? payment.manualNetwork,
+        merchantAccountLabel: existing.merchantAccountLabel ?? payment.merchantAccountLabel,
+        attestationActorId: payment.attestationActorId,
+        attentionReason: payment.attentionReason,
+      };
+      if (payment.providerReference) {
+        paymentsByProviderRef.set(refKey, payment.paymentId);
+      }
+      payments.set(stored.paymentId, stored);
+      paymentsByTx.set(stored.transactionId, stored.paymentId);
+      return { kind: "stored", payment: stored };
+    },
+
     async saveProviderEvent(event) {
       const key = `${event.provider}\0${event.eventFingerprint}`;
       if (providerEvents.has(key)) {

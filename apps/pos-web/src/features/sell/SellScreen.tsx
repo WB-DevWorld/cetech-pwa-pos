@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { CommandContext } from "../../../../../docs/contracts/domain.generated";
+import type { ManualMobileMoneyClient } from "../../app/checkout-client";
 import { BarcodeCollisionDialog } from "./components/BarcodeCollisionDialog";
 import { CartPanel } from "./components/CartPanel";
 import { CatalogStatusBanners } from "./components/CatalogStatus";
@@ -106,6 +108,11 @@ export type SellScreenProps = {
   onResolveElectronic?: () => void;
   onContactManager?: () => void;
   onManualRecorded?: (reference: string) => void;
+  manualClient?: ManualMobileMoneyClient;
+  onPrepareManual?: () => Promise<{ begin: CommandContext; confirm: CommandContext } | null>;
+  onManualActivity?: (active: boolean) => void;
+  onManualRetained?: (paymentId: string) => void;
+  onReplaceManualConfirmKey?: () => CommandContext | undefined;
   searchCatalog?: (query: string) => Promise<readonly SellProductView[]>;
   resolveBarcodeCatalog?: (barcode: string) => Promise<readonly SellProductView[]>;
   loadVariations?: (parentId: string) => Promise<readonly SellProductView[]>;
@@ -161,6 +168,11 @@ export function SellScreen({
   onResolveElectronic,
   onContactManager,
   onManualRecorded,
+  manualClient,
+  onPrepareManual,
+  onManualActivity,
+  onManualRetained,
+  onReplaceManualConfirmKey,
   searchCatalog,
   resolveBarcodeCatalog,
   loadVariations,
@@ -695,6 +707,11 @@ export function SellScreen({
           electronicInFlight={electronicInFlight}
           onResolveElectronic={onResolveElectronic}
           onManualRecorded={onManualRecorded}
+          manualClient={manualClient}
+          onPrepareManual={onPrepareManual}
+          onManualActivity={onManualActivity}
+          onManualRetained={onManualRetained}
+          onReplaceManualConfirmKey={onReplaceManualConfirmKey}
           onContactManager={onContactManager}
           initialCashReceived={initialCashReceived}
         />

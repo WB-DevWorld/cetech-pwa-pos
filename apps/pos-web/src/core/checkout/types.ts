@@ -64,6 +64,11 @@ export type PaymentVerificationSource =
   | "provider_server_verification"
   | "approved_external_attestation";
 
+export type ManualAttestationCommit =
+  | { readonly kind: "stored"; readonly payment: StoredPayment }
+  | { readonly kind: "conflict" }
+  | { readonly kind: "rejected" };
+
 export type StoredPayment = {
   readonly paymentId: Uuid;
   readonly transactionId: Uuid;
@@ -283,6 +288,11 @@ export interface CheckoutStore {
   getPaymentForTransaction(transactionId: Uuid): Promise<StoredPayment | undefined>;
   getPaymentByProviderReference(provider: string, reference: string): Promise<StoredPayment | undefined>;
   savePayment(payment: StoredPayment): Promise<void>;
+  /**
+   * First manual attestation wins. A matching replay returns the stored row.
+   * A different reference, actor, or account does not replace it.
+   */
+  commitManualAttestation(payment: StoredPayment): Promise<ManualAttestationCommit>;
   listUncertainPayments(input: {
     readonly organizationId: Id;
     readonly locationIds?: readonly Id[];

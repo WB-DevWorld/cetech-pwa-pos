@@ -3,7 +3,7 @@ import { createInMemoryCheckoutStore } from "../../core/checkout/in-memory-store
 import { createInMemoryReturnStore } from "../../core/returns/in-memory-store";
 import type { StoredPayment } from "../../core/checkout/types";
 import type { StoredReturnRecord } from "../../core/returns/types";
-import { refundTender } from "./refund";
+import { refundTender, resolveTenderRefund } from "./refund";
 import { resolveElectronicPayment, resolveStoredElectronic } from "./resolve-electronic";
 import { beginManualMobileMoney, confirmManualMobileMoney } from "./manual-mobile-money";
 
@@ -306,5 +306,124 @@ describe("manual Mobile Money", () => {
     if (!refund.ok) expect(refund.error.code).toBe("REQUIRES_ATTENTION");
     expect(refunded).toBe(false);
     expect(await store.listCashSales(TX)).toEqual([]);
+
+    await returns.insertTenderRefund({
+      refundId: "42424242-4242-4424-8424-424242424242",
+      returnId: record.returnId,
+      channel: "provider_electronic",
+      status: "pending",
+      amount: ghs(2900),
+      organizationId: "org_a",
+      locationId: "loc_a",
+      paymentId: payment.paymentId,
+      transactionId: TX,
+    });
+    let providerCalled = false;
+    const retained = await resolveTenderRefund({
+      checkoutStore: store,
+      returnStore: returns,
+      provider: {
+        id: "paystack",
+        createRefund: async () => { providerCalled = true; throw new Error("paystack refund"); },
+        resolveRefund: async () => { providerCalled = true; throw new Error("paystack refund"); },
+      },
+      actor: ACTOR,
+      refundId: "42424242-4242-4424-8424-424242424242",
+      correlationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaae",
+      now: NOW,
+    });
+    expect(retained.ok).toBe(true);
+    if (retained.ok) expect(retained.data.status).toBe("requires_attention");
+    expect(providerCalled).toBe(false);
+  });
+
+  test("keeps the merchant account from the intent when configuration changes", async () => {
+    const store = createInMemoryCheckoutStore();
+    await sale(store, TX);
+    const begun = await beginManualMobileMoney({
+      store, actor: ACTOR, transactionId: TX, now: NOW, env: ENV, staffActive: true,
+      ...ids("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01"),
+    });
+    expect(begun.ok).toBe(true);
+    if (!begun.ok) return;
+    const changed = {
+      MANUAL_MOBILE_MONEY_ENABLED: "true",
+      MANUAL_MOBILE_MONEY_NETWORK: "Telecel",
+      MANUAL_MOBILE_MONEY_ACCOUNT_LABEL: "Other till",
+    };
+    const confirmed = await confirmManualMobileMoney({
+      store, actor: ACTOR, transactionId: TX, paymentId: begun.data.payment.paymentId,
+      merchantReference: "MM-2002", merchantConfirmed: true, now: NOW, env: changed, staffActive: true,
+      correlationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa11",
+      idempotencyKey: "cccccccc-cccc-4ccc-8ccc-cccccccccc01",
+    });
+    expect(confirmed.ok).toBe(true);
+    if (!confirmed.ok) return;
+    expect(confirmed.data.network).toBe("MTN");
+    expect(confirmed.data.accountLabel).toBe("Shop till");
+    const stored = await store.getPayment(begun.data.payment.paymentId);
+    expect(stored?.manualNetwork).toBe("MTN");
+    expect(stored?.providerReference).toBe("MM-2002");
+  });
+
+  test("a second reference does not replace the first attestation", async () => {
+    const store = createInMemoryCheckoutStore();
+    await sale(store, TX);
+    const begun = await beginManualMobileMoney({
+      store, actor: ACTOR, transactionId: TX, now: NOW, env: ENV, staffActive: true,
+      ...ids("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb02"),
+    });
+    if (!begun.ok) throw new Error("begin");
+    await confirmManualMobileMoney({
+      store, actor: ACTOR, transactionId: TX, paymentId: begun.data.payment.paymentId,
+      merchantReference: "MM-FIRST", merchantConfirmed: true, now: NOW, env: ENV, staffActive: true,
+      correlationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12",
+      idempotencyKey: "cccccccc-cccc-4ccc-8ccc-cccccccccc02",
+    });
+    const second = await confirmManualMobileMoney({
+      store, actor: { ...ACTOR, actorId: "cashier_b" }, transactionId: TX, paymentId: begun.data.payment.paymentId,
+      merchantReference: "MM-SECOND", merchantConfirmed: true, now: NOW, env: ENV, staffActive: true,
+      correlationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13",
+      idempotencyKey: "cccccccc-cccc-4ccc-8ccc-cccccccccc03",
+    });
+    expect(second.ok).toBe(true);
+    if (!second.ok) return;
+    expect(second.data.payment.displayReference).toBe("MM-FIRST");
+    const stored = await store.getPayment(begun.data.payment.paymentId);
+    expect(stored?.providerReference).toBe("MM-FIRST");
+    expect(stored?.attestationActorId).toBe("cashier_a");
+  });
+
+  test("recovers a verified payment after the reservation expires and the method is turned off", async () => {
+    const store = createInMemoryCheckoutStore();
+    await sale(store, TX);
+    const begun = await beginManualMobileMoney({
+      store, actor: ACTOR, transactionId: TX, now: NOW, env: ENV, staffActive: true,
+      ...ids("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb04"),
+    });
+    if (!begun.ok) throw new Error("begin");
+    await confirmManualMobileMoney({
+      store, actor: ACTOR, transactionId: TX, paymentId: begun.data.payment.paymentId,
+      merchantReference: "MM-KEEP", merchantConfirmed: true, now: NOW, env: ENV, staffActive: true,
+      correlationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa14",
+      idempotencyKey: "cccccccc-cccc-4ccc-8ccc-cccccccccc04",
+    });
+    const current = await store.getSale(TX);
+    if (!current) throw new Error("sale");
+    await store.saveSale({
+      ...current,
+      prepared: { ...current.prepared, expiresAt: "2026-10-10T11:00:00.000Z" },
+    });
+    const recovered = await confirmManualMobileMoney({
+      store, actor: ACTOR, transactionId: TX, paymentId: begun.data.payment.paymentId,
+      merchantReference: "MM-KEEP", merchantConfirmed: true, now: NOW, env: { MANUAL_MOBILE_MONEY_ENABLED: "false" },
+      staffActive: true,
+      correlationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa15",
+      idempotencyKey: "cccccccc-cccc-4ccc-8ccc-cccccccccc05",
+    });
+    expect(recovered.ok).toBe(true);
+    if (!recovered.ok) return;
+    expect(recovered.data.payment.status).toBe("verified");
+    expect(recovered.data.network).toBe("MTN");
   });
 });

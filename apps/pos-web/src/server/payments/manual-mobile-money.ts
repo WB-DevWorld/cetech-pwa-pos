@@ -49,7 +49,7 @@ export function beginManualMobileMoney(input: {
     const existing = await input.store.getPaymentForTransaction(sale.prepared.transactionId);
     if (existing) {
       if (isManualMobileMoneyPayment(existing)) {
-        return instructions(existing, policy);
+        return instructions(existing);
       }
       return apiFailure(
         "VALIDATION_ERROR",
@@ -69,15 +69,18 @@ export function beginManualMobileMoney(input: {
       provider: MANUAL_MOBILE_MONEY_PROVIDER,
       providerReference: `intent:${paymentId}`,
       initializeStatus: "initialized",
+      manualNetwork: policy.network,
+      merchantAccountLabel: policy.accountLabel,
       attentionReason: `Waiting for a merchant receipt on ${policy.network} / ${policy.accountLabel}.`,
     };
     try {
       await input.store.savePayment(payment);
+      await input.store.saveSale({ ...sale, status: "payment_pending", assignedPaymentId: paymentId });
     } catch (error) {
       return persistenceFailure(error, input.correlationId);
     }
-    await input.store.saveSale({ ...sale, status: "payment_pending", assignedPaymentId: paymentId });
-    return instructions(payment, policy);
+    const stored = await input.store.getPayment(paymentId);
+    return instructions(stored ?? payment);
   });
 }
 
@@ -95,7 +98,7 @@ export function confirmManualMobileMoney(input: {
   readonly merchantConfirmed: boolean;
 }): Promise<ApiResult<ManualMobileMoneyInstructions>> {
   const fingerprint = `${input.transactionId}:${input.paymentId}:${input.merchantReference.trim()}:${input.merchantConfirmed ? "yes" : "no"}`;
-  return runManual("payment.resolve", input, fingerprint, async (sale, policy) => {
+  return runManual("payment.resolve", input, fingerprint, async (sale) => {
     if (input.merchantConfirmed !== true) {
       return apiFailure(
         "VALIDATION_ERROR",
@@ -112,12 +115,17 @@ export function confirmManualMobileMoney(input: {
       return apiFailure("VALIDATION_ERROR", "This sale does not have a manual Mobile Money intent to confirm.", input.correlationId);
     }
     if (payment.status === "verified") {
-      if (payment.providerReference === reference) return instructions(payment, policy);
+      if (payment.providerReference === reference) return instructions(payment);
       return apiFailure("VALIDATION_ERROR", "This sale was already confirmed with a different merchant reference.", input.correlationId);
     }
-    const reused = await input.store.getPaymentByProviderReference(MANUAL_MOBILE_MONEY_PROVIDER, reference);
-    if (reused && reused.paymentId !== payment.paymentId) {
-      return apiFailure("VALIDATION_ERROR", "That merchant reference is already used on another sale.", input.correlationId);
+    const network = payment.manualNetwork?.trim() ?? "";
+    const accountLabel = payment.merchantAccountLabel?.trim() ?? "";
+    if (!network || !accountLabel) {
+      return apiFailure(
+        "REQUIRES_ATTENTION",
+        "This Mobile Money intent has no saved merchant account. Do not ask for another transfer.",
+        input.correlationId,
+      );
     }
     const confirmed: StoredPayment = {
       ...payment,
@@ -128,18 +136,32 @@ export function confirmManualMobileMoney(input: {
       providerReference: reference,
       displayReference: reference,
       evidenceId: payment.evidenceId ?? crypto.randomUUID(),
-      actorId: input.actor.actorId,
-      manualNetwork: policy.network,
-      merchantAccountLabel: policy.accountLabel,
+      manualNetwork: network,
+      merchantAccountLabel: accountLabel,
       attestationActorId: input.actor.actorId,
-      attentionReason: `Manual Mobile Money ${policy.network} / ${policy.accountLabel}. Reference ${reference}.`,
+      attentionReason: `Manual Mobile Money ${network} / ${accountLabel}. Reference ${reference}.`,
     };
+    let committed: Awaited<ReturnType<CheckoutStore["commitManualAttestation"]>>;
     try {
-      await input.store.savePayment(confirmed);
+      committed = await input.store.commitManualAttestation(confirmed);
     } catch (error) {
       return persistenceFailure(error, input.correlationId);
     }
-    return instructions(confirmed, policy);
+    if (committed.kind === "stored") {
+      return instructions(committed.payment);
+    }
+    if (committed.kind === "conflict") {
+      const current = await input.store.getPayment(payment.paymentId);
+      if (current?.status === "verified") {
+        return apiFailure("VALIDATION_ERROR", "This sale was already confirmed with a different merchant reference.", input.correlationId);
+      }
+      return apiFailure("VALIDATION_ERROR", "That merchant reference is already used on another sale.", input.correlationId);
+    }
+    return apiFailure(
+      "REQUIRES_ATTENTION",
+      "The confirmation was not saved. Do not ask for another transfer. A manager must recover this sale.",
+      input.correlationId,
+    );
   });
 }
 
@@ -164,14 +186,42 @@ async function runManual(
   if (!input.staffActive) {
     return apiFailure("FORBIDDEN", "Disabled staff cannot confirm or start manual Mobile Money.", input.correlationId);
   }
-  const policy = manualMobileMoneyPolicy(input.env);
-  if (!policy.enabled) {
-    return apiFailure("VALIDATION_ERROR", "Manually confirmed Mobile Money is not set up for this register.", input.correlationId);
-  }
   const sale = await input.store.getSale(input.transactionId);
   if (!sale) return apiFailure("NOT_FOUND", "prepared sale was not found", input.correlationId);
   if (sale.organizationId !== input.actor.organizationId || !input.actor.locationIds.includes(sale.locationId)) {
     return apiFailure("FORBIDDEN", "This sale is outside the current staff session.", input.correlationId);
+  }
+  const hash = await sha256Hex(canonicalJson({ operation, fingerprint }));
+  const claim = await input.store.claimIdempotency(
+    input.actor.organizationId,
+    operation,
+    input.idempotencyKey,
+    hash,
+    sale.locationId,
+    { transactionId: input.transactionId, registerId: sale.registerId, shiftId: sale.shiftId },
+  );
+  const recoveredNow = await recoverVerifiedManual(input.store, sale.prepared.transactionId);
+  if ((claim.kind === "replay" || claim.kind === "repair") && recoveredNow) {
+    return { ...recoveredNow, correlationId: input.correlationId };
+  }
+  if ((claim.kind === "replay" || claim.kind === "repair") && isInstructions(claim.outcome)) {
+    return { ok: true, data: claim.outcome, correlationId: input.correlationId };
+  }
+  const recovered = recoveredNow;
+  if (recovered?.ok && (claim.kind === "acquired" || claim.kind === "in_progress" || claim.kind === "replay" || claim.kind === "repair")) {
+    await input.store.markIdempotencySent(input.actor.organizationId, operation, input.idempotencyKey);
+    await input.store.acknowledgeIdempotency(input.actor.organizationId, operation, input.idempotencyKey, recovered.data);
+    return { ...recovered, correlationId: input.correlationId };
+  }
+  if (claim.kind === "conflict") {
+    return apiFailure("IDEMPOTENCY_CONFLICT", "This confirmation key was already used for a different request.", input.correlationId);
+  }
+  if (claim.kind === "in_progress") {
+    return apiFailure("OPERATION_IN_PROGRESS", "This confirmation is already in progress. Do not ask for another transfer.", input.correlationId);
+  }
+  const policy = manualMobileMoneyPolicy(input.env);
+  if (!policy.enabled) {
+    return apiFailure("VALIDATION_ERROR", "Manually confirmed Mobile Money is not set up for this register.", input.correlationId);
   }
   if (sale.status === "completed" || sale.status === "cancelled") {
     return apiFailure("VALIDATION_ERROR", "This sale is already finished.", input.correlationId);
@@ -183,45 +233,42 @@ async function runManual(
       input.correlationId,
     );
   }
-  const hash = await sha256Hex(canonicalJson({ operation, fingerprint }));
-  const claim = await input.store.claimIdempotency(
-    input.actor.organizationId,
-    operation,
-    input.idempotencyKey,
-    hash,
-    sale.locationId,
-    { transactionId: input.transactionId, registerId: sale.registerId, shiftId: sale.shiftId },
-  );
-  if ((claim.kind === "replay" || claim.kind === "repair") && isInstructions(claim.outcome)) {
-    return { ok: true, data: claim.outcome, correlationId: input.correlationId };
-  }
-  if (claim.kind === "conflict") {
-    return apiFailure("IDEMPOTENCY_CONFLICT", "This confirmation key was already used for a different request.", input.correlationId);
-  }
-  if (claim.kind === "in_progress") {
-    return apiFailure("OPERATION_IN_PROGRESS", "This confirmation is already in progress. Do not ask for another transfer.", input.correlationId);
-  }
   await input.store.markIdempotencySent(input.actor.organizationId, operation, input.idempotencyKey);
   const result = await work(sale, policy);
   const correlated = { ...result, correlationId: input.correlationId };
   if (correlated.ok) {
     await input.store.acknowledgeIdempotency(input.actor.organizationId, operation, input.idempotencyKey, correlated.data);
+  } else if (!correlated.ok && correlated.error.code === "REQUIRES_ATTENTION") {
+    await input.store.markIdempotencyRequiresAttention(
+      input.actor.organizationId,
+      operation,
+      input.idempotencyKey,
+      correlated,
+    );
   } else {
     await input.store.releaseIdempotency(input.actor.organizationId, operation, input.idempotencyKey);
   }
   return correlated;
 }
 
-function instructions(
-  payment: StoredPayment,
-  policy: { readonly network: string; readonly accountLabel: string },
-): ApiResult<ManualMobileMoneyInstructions> {
+async function recoverVerifiedManual(
+  store: CheckoutStore,
+  transactionId: Uuid,
+): Promise<ApiResult<ManualMobileMoneyInstructions> | undefined> {
+  const payment = await store.getPaymentForTransaction(transactionId);
+  if (!payment || payment.status !== "verified" || !isManualMobileMoneyPayment(payment)) {
+    return undefined;
+  }
+  return instructions(payment);
+}
+
+function instructions(payment: StoredPayment): ApiResult<ManualMobileMoneyInstructions> {
   return {
     ok: true,
     data: {
       payment: toPaymentState(payment),
-      network: payment.manualNetwork ?? policy.network,
-      accountLabel: payment.merchantAccountLabel ?? policy.accountLabel,
+      network: payment.manualNetwork?.trim() || "Saved network unavailable",
+      accountLabel: payment.merchantAccountLabel?.trim() || "Saved account unavailable",
       amountMinor: payment.amount.minor,
       currency: payment.amount.currency,
     },

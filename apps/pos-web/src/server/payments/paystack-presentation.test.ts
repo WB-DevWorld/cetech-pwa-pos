@@ -1,11 +1,28 @@
 import { describe, expect, test } from "vitest";
 import type { Session } from "../../../../../docs/contracts/domain.generated";
 import { createInMemoryCheckoutStore } from "../../core/checkout/in-memory-store";
+import { createMemoryAssignmentDirectory } from "../auth/assignments";
+import { createMemoryStaffAccessControl } from "../auth/staff-access-control";
 import { createEphemeralInMemoryStaffSessionStore } from "../auth/session-store";
 import { handlePaystackPresentation } from "./handle-paystack-presentation";
 import { allowlistedPaystackUrl, paystackTestCheckoutUrl } from "./paystack-presentation";
 
 const NOW = new Date("2026-10-10T12:00:00.000Z");
+const TEST_ENV = {
+  PAYMENT_PROVIDER: "paystack",
+  PAYSTACK_MODE: "test",
+  PAYSTACK_SECRET_KEY: "sk_test_presentation_example",
+  PAYSTACK_CARD_ENABLED: "false",
+};
+const assignments = createMemoryAssignmentDirectory([
+  {
+    actorId: "cashier_a",
+    organizationId: "org_a",
+    locationRoles: [{ locationId: "loc_a", role: "cashier" }],
+    registerIds: ["reg_a"],
+  },
+]);
+const accessControl = createMemoryStaffAccessControl();
 const TX = "11111111-1111-4111-8111-111111111111";
 const PAYMENT = "15151515-1515-4515-8515-151515151515";
 
@@ -73,6 +90,10 @@ describe("Paystack test presentation", () => {
       authorizationUrl: "https://checkout.paystack.com/ACCESSCODE",
       displayReference: "ref-1",
     });
+    const prepared = await store.getSale(TX);
+    if (prepared) {
+      await store.saveSale({ ...prepared, status: "payment_pending", assignedPaymentId: PAYMENT });
+    }
     const auth = await cookie();
     const first = await handlePaystackPresentation({
       correlationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -81,7 +102,9 @@ describe("Paystack test presentation", () => {
       now: NOW,
       sessions: auth.sessions,
       checkoutStore: store,
-      env: { PAYSTACK_MODE: "test", PAYSTACK_CARD_ENABLED: "false" },
+      assignments,
+      accessControl,
+      env: TEST_ENV,
     });
     const second = await handlePaystackPresentation({
       correlationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaab",
@@ -90,7 +113,9 @@ describe("Paystack test presentation", () => {
       now: NOW,
       sessions: auth.sessions,
       checkoutStore: store,
-      env: { PAYSTACK_MODE: "test", PAYSTACK_CARD_ENABLED: "false" },
+      assignments,
+      accessControl,
+      env: TEST_ENV,
     });
     expect(first.ok).toBe(true);
     expect(second.ok).toBe(true);
@@ -108,7 +133,9 @@ describe("Paystack test presentation", () => {
       now: NOW,
       sessions: other.sessions,
       checkoutStore: store,
-      env: { PAYSTACK_MODE: "test" },
+      assignments,
+      accessControl,
+      env: TEST_ENV,
     });
     expect(denied.ok).toBe(false);
 
@@ -119,8 +146,49 @@ describe("Paystack test presentation", () => {
       now: NOW,
       sessions: auth.sessions,
       checkoutStore: store,
-      env: { PAYSTACK_MODE: "live" },
+      assignments,
+      accessControl,
+      env: { ...TEST_ENV, PAYSTACK_MODE: "live" },
     });
     expect(live.ok).toBe(false);
+
+    const unknownMode = await handlePaystackPresentation({
+      correlationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaae",
+      cookieHeader: auth.cookieHeader,
+      paymentId: PAYMENT,
+      now: NOW,
+      sessions: auth.sessions,
+      checkoutStore: store,
+      assignments,
+      accessControl,
+      env: { ...TEST_ENV, PAYSTACK_MODE: "sandbox" },
+    });
+    expect(unknownMode.ok).toBe(false);
+
+    const liveKey = await handlePaystackPresentation({
+      correlationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaf",
+      cookieHeader: auth.cookieHeader,
+      paymentId: PAYMENT,
+      now: NOW,
+      sessions: auth.sessions,
+      checkoutStore: store,
+      assignments,
+      accessControl,
+      env: { ...TEST_ENV, PAYSTACK_SECRET_KEY: "sk_live_not_for_pos" },
+    });
+    expect(liveKey.ok).toBe(false);
+
+    const disabled = await handlePaystackPresentation({
+      correlationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+      cookieHeader: auth.cookieHeader,
+      paymentId: PAYMENT,
+      now: NOW,
+      sessions: auth.sessions,
+      checkoutStore: store,
+      assignments,
+      accessControl: createMemoryStaffAccessControl({ "org_a:cashier_a": "disabled" }),
+      env: TEST_ENV,
+    });
+    expect(disabled.ok).toBe(false);
   });
 });

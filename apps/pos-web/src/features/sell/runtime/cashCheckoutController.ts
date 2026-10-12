@@ -82,7 +82,7 @@ function mapPrepared(sale: PreparedSale): PreparedSaleView {
   };
 }
 
-export function mapReceiptSnapshot(snapshot: ReceiptSnapshot): ReceiptViewModel {
+export function mapReceiptSnapshot(snapshot: ReceiptSnapshot, merchantReference?: string): ReceiptViewModel {
   return {
     id: snapshot.id,
     transactionId: snapshot.transactionId,
@@ -108,6 +108,7 @@ export function mapReceiptSnapshot(snapshot: ReceiptSnapshot): ReceiptViewModel 
     tax: snapshot.tax,
     total: snapshot.total,
     tender: snapshot.tender,
+    ...(merchantReference ? { merchantReference } : {}),
     cashReceived: snapshot.cashReceived,
     changeDue: snapshot.changeDue,
     documentKind: snapshot.documentKind,
@@ -179,6 +180,11 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
   let session: CheckoutSessionView = idleCheckoutSession();
   let identities: AttemptIdentities | null = null;
   let paymentId: string | undefined;
+  let manualTender = false;
+  let manualBusy = false;
+  let merchantReference: string | undefined;
+  let manualBegin: CommandContext | undefined;
+  let manualConfirm: CommandContext | undefined;
   let commandLock = false;
   let printAttempted = false;
   const listeners = new Set<() => void>();
@@ -213,6 +219,14 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       cancelKey: identities.cancel?.idempotencyKey,
       cancelCorrelationId: identities.cancel?.correlationId,
       paymentId,
+      ...(manualTender ? { tenderKind: "manual_mobile_money" as const } : {}),
+      ...(merchantReference ? { merchantReference } : {}),
+      ...(manualBegin
+        ? { manualBeginKey: manualBegin.idempotencyKey, manualBeginCorrelationId: manualBegin.correlationId }
+        : {}),
+      ...(manualConfirm
+        ? { manualConfirmKey: manualConfirm.idempotencyKey, manualConfirmCorrelationId: manualConfirm.correlationId }
+        : {}),
       prepared: session.prepared,
       stage: session.stage,
       saleCompleted: session.saleCompleted,
@@ -251,6 +265,14 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
         : {}),
     };
     paymentId = record.paymentId;
+    manualTender = record.tenderKind === "manual_mobile_money";
+    merchantReference = record.merchantReference;
+    manualBegin = record.manualBeginKey && record.manualBeginCorrelationId
+      ? { idempotencyKey: record.manualBeginKey, correlationId: record.manualBeginCorrelationId }
+      : undefined;
+    manualConfirm = record.manualConfirmKey && record.manualConfirmCorrelationId
+      ? { idempotencyKey: record.manualConfirmKey, correlationId: record.manualConfirmCorrelationId }
+      : undefined;
     const inFlight =
       record.stage === "preparing" ||
       record.stage === "confirming_cash" ||
@@ -280,6 +302,8 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       prepared: record.prepared,
       transactionId: record.transactionId,
       saleCompleted: record.saleCompleted,
+      manualResume: record.tenderKind === "manual_mobile_money" && !record.saleCompleted,
+      merchantReference: record.merchantReference,
     };
   }
 
@@ -311,6 +335,11 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
   function retireAttempt(): void {
     identities = null;
     paymentId = undefined;
+    manualTender = false;
+    manualBusy = false;
+    merchantReference = undefined;
+    manualBegin = undefined;
+    manualConfirm = undefined;
     currentPorts.attemptStore?.clear();
   }
 
@@ -622,7 +651,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
     patch({
       stage: "receipt_ready",
       saleCompleted: true,
-      receipt: mapReceiptSnapshot(outcome.value.data),
+      receipt: mapReceiptSnapshot(outcome.value.data, merchantReference),
       message: "The sale is complete.",
       printStatus: "idle",
     });
@@ -917,7 +946,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       }
     },
     selectCash(): void {
-      if (commandLock || session.saleCompleted || !session.prepared) {
+      if (commandLock || manualBusy || session.manualResume || session.saleCompleted || !session.prepared) {
         return;
       }
       if (session.stage !== "choose_payment" && session.stage !== "cash" && session.stage !== "cash_failed") {
@@ -930,7 +959,7 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
       });
     },
     backToPaymentChoice(): void {
-      if (commandLock || session.saleCompleted || !session.prepared) {
+      if (commandLock || manualBusy || session.manualResume || session.saleCompleted || !session.prepared) {
         return;
       }
       if (!canReturnToPaymentChoice(session.stage)) {
@@ -942,8 +971,43 @@ export function createCashCheckoutController(ports: CashCheckoutPorts) {
         inputError: undefined,
       });
     },
+    async prepareManualTender(): Promise<{ begin: CommandContext; confirm: CommandContext } | null> {
+      if (!identities || !currentPorts.attemptStore || manualBusy) {
+        return null;
+      }
+      manualTender = true;
+      if (!manualBegin) manualBegin = commandContext();
+      if (!manualConfirm) manualConfirm = commandContext();
+      patch({ manualResume: true });
+      try {
+        await persistAttemptDurable();
+      } catch {
+        return null;
+      }
+      return { begin: manualBegin, confirm: manualConfirm };
+    },
+    setManualActivity(active: boolean): void {
+      manualBusy = active;
+      patch({ manualBusy: active });
+    },
+    retainManualPayment(nextPaymentId: string): void {
+      paymentId = nextPaymentId;
+      manualTender = true;
+      patch({ manualResume: true });
+    },
+    noteManualReference(reference: string): void {
+      merchantReference = reference;
+      manualBusy = false;
+      patch({ merchantReference: reference, manualResume: false, manualBusy: false });
+    },
+    replaceManualConfirmKey(): CommandContext | undefined {
+      if (!identities) return undefined;
+      manualConfirm = commandContext();
+      persistAttempt();
+      return manualConfirm;
+    },
     async cancelPreparedSale(reason = "cashier_cancelled_prepared_sale"): Promise<void> {
-      if (commandLock || session.saleCompleted || !identities || !session.prepared) {
+      if (commandLock || manualBusy || session.manualResume || session.saleCompleted || !identities || !session.prepared) {
         return;
       }
       if (

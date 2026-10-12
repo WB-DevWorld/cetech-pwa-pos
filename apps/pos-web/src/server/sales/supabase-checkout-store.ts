@@ -37,7 +37,29 @@ export type SupabaseCheckoutStoreOptions = {
 const DEFAULT_TIMEOUT_MS = 8_000;
 const CONTRACT_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?Z$/;
 const PAYMENT_SELECT =
-  "payment_id,transaction_id,sale_id,evidence_id,tender,status,amount_minor,amount_currency,cash_received_minor,cash_received_currency,verified_at,verification_source,actor_id,provider,provider_reference,provider_transaction_id,display_reference,access_code,initialize_status,last_verified_at,attention_reason";
+  "payment_id,transaction_id,sale_id,evidence_id,tender,status,amount_minor,amount_currency,cash_received_minor,cash_received_currency,verified_at,verification_source,actor_id,provider,provider_reference,provider_transaction_id,display_reference,access_code,initialize_status,last_verified_at,attention_reason,authorization_url,manual_network,merchant_account_label,attestation_actor_id";
+
+function durablePaymentMatches(existing: StoredPayment, incoming: StoredPayment): boolean {
+  const sameOptional = (left: string | undefined, right: string | undefined) => (left ?? undefined) === (right ?? undefined);
+  return (
+    existing.paymentId === incoming.paymentId &&
+    existing.transactionId === incoming.transactionId &&
+    existing.status === incoming.status &&
+    existing.tender === incoming.tender &&
+    existing.amount.minor === incoming.amount.minor &&
+    existing.amount.currency === incoming.amount.currency &&
+    existing.actorId === incoming.actorId &&
+    sameOptional(existing.provider, incoming.provider) &&
+    sameOptional(existing.providerReference, incoming.providerReference) &&
+    sameOptional(existing.verificationSource, incoming.verificationSource) &&
+    sameOptional(existing.evidenceId, incoming.evidenceId) &&
+    sameOptional(existing.manualNetwork, incoming.manualNetwork) &&
+    sameOptional(existing.merchantAccountLabel, incoming.merchantAccountLabel) &&
+    sameOptional(existing.attestationActorId, incoming.attestationActorId) &&
+    (existing.cashReceived?.minor ?? undefined) === (incoming.cashReceived?.minor ?? undefined) &&
+    (existing.cashReceived?.currency ?? undefined) === (incoming.cashReceived?.currency ?? undefined)
+  );
+}
 
 type RestRow = Record<string, unknown>;
 
@@ -622,11 +644,54 @@ export function createSupabaseCheckoutStore(options: SupabaseCheckoutStoreOption
       }
       if (result.status === 409) {
         const existing = await this.getPayment(payment.paymentId);
-        if (existing && existing.paymentId === payment.paymentId) {
+        if (existing && durablePaymentMatches(existing, payment)) {
           return;
         }
+        throw new Error(
+          existing?.status === "verified"
+            ? "provider reference already exists"
+            : "durable checkout store rejected payment",
+        );
       }
       throw new Error("durable checkout store rejected payment");
+    },
+
+    async commitManualAttestation(payment) {
+      const result = await request({
+        path: `pos_checkout_payments?payment_id=eq.${encodeURIComponent(payment.paymentId)}&status=eq.awaiting_customer&provider=eq.manual_mobile_money`,
+        method: "PATCH",
+        prefer: "return=representation",
+        body: {
+          status: "verified",
+          amount_minor: payment.amount.minor,
+          amount_currency: payment.amount.currency,
+          verified_at: payment.verifiedAt ?? null,
+          verification_source: payment.verificationSource ?? null,
+          provider_reference: payment.providerReference ?? null,
+          display_reference: payment.displayReference ?? null,
+          evidence_id: payment.evidenceId ?? null,
+          manual_network: payment.manualNetwork ?? null,
+          merchant_account_label: payment.merchantAccountLabel ?? null,
+          attestation_actor_id: payment.attestationActorId ?? null,
+          attention_reason: payment.attentionReason ?? null,
+        },
+      });
+      const rows = Array.isArray(result.body) ? result.body : [];
+      const written = rows[0] ? mapPayment(rows[0] as RestRow) : undefined;
+      if ((result.status === 200 || result.status === 201) && written?.status === "verified") {
+        return { kind: "stored" as const, payment: written };
+      }
+      const existing = await this.getPayment(payment.paymentId);
+      if (!existing) {
+        return { kind: "rejected" as const };
+      }
+      if (existing.status === "verified" && existing.providerReference === payment.providerReference) {
+        return { kind: "stored" as const, payment: existing };
+      }
+      if (result.status === 409 || existing.status === "verified") {
+        return { kind: "conflict" as const };
+      }
+      return { kind: "rejected" as const };
     },
 
     async listUncertainPayments(input) {
