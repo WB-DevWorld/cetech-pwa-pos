@@ -37,5 +37,38 @@ describe("manual Mobile Money browser client", () => {
     expect(begun.ok).toBe(true);
     expect(journal.appendBeforeSend).toHaveBeenCalled();
     expect(fetchImpl).toHaveBeenCalled();
+    const journalOrder = journal.appendBeforeSend.mock.invocationCallOrder[0] ?? 0;
+    const fetchOrder = fetchImpl.mock.invocationCallOrder[0] ?? 0;
+    expect(journalOrder).toBeLessThan(fetchOrder);
+  });
+
+  test("does not confirm when the journal cannot record the attempt", async () => {
+    const fetchImpl = vi.fn();
+    const journal = {
+      appendBeforeSend: vi.fn(async () => {
+        throw new Error("disk");
+      }),
+      pending: vi.fn(async () => []),
+      markSent: vi.fn(async () => undefined),
+      markResponseUnknown: vi.fn(async () => undefined),
+      markAcknowledged: vi.fn(async () => undefined),
+      markRequiresAttention: vi.fn(async () => undefined),
+    };
+    const client = createManualMobileMoneyClient({ fetchImpl: fetchImpl as typeof fetch, journal });
+    const result = await client.confirm(
+      {
+        transactionId: "11111111-1111-4111-8111-111111111111",
+        paymentId: "15151515-1515-4515-8515-151515151515",
+        merchantReference: "MM-WIN",
+        merchantConfirmed: true,
+      },
+      {
+        idempotencyKey: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        correlationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      },
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("INTEGRATION_UNAVAILABLE");
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 });

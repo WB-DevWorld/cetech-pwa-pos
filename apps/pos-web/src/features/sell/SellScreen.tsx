@@ -117,7 +117,7 @@ export type SellScreenProps = {
   resolveBarcodeCatalog?: (barcode: string) => Promise<readonly SellProductView[]>;
   loadVariations?: (parentId: string) => Promise<readonly SellProductView[]>;
   onCustomerQueryChange?: (query: string) => void;
-  onWorkspaceChange?: (state: SellWorkspaceState) => void;
+  onWorkspaceChange?: (state: SellWorkspaceState) => void | Promise<void>;
   initialCashReceived?: string;
   catalogProjectionGeneration?: number;
   nextSaleCustomer?: CustomerSearchResultView | null;
@@ -204,6 +204,12 @@ export function SellScreen({
   const [scanQueue] = useState(() => createScanIntentQueue<readonly SellProductView[]>());
   const observedProjectionGenerationRef = useRef<number | undefined>(undefined);
   const completedSaleRotationRef = useRef<string | null>(null);
+  const retainGeneration = useRef(0);
+  const [retainedCart, setRetainedCart] = useState(() => ({
+    lines: state.lines,
+    cartRevision: state.cartRevision,
+    selectedCustomer: state.selectedCustomer,
+  }));
 
   useLayoutEffect(() => {
     scanQueue.start();
@@ -211,7 +217,25 @@ export function SellScreen({
   }, [scanQueue]);
 
   useEffect(() => {
-    onWorkspaceChange?.(state);
+    const generation = ++retainGeneration.current;
+    const snapshot = state;
+    let active = true;
+    void (async () => {
+      try {
+        await onWorkspaceChange?.(snapshot);
+      } catch {
+        return;
+      }
+      if (!active || generation !== retainGeneration.current) return;
+      setRetainedCart({
+        lines: snapshot.lines,
+        cartRevision: snapshot.cartRevision,
+        selectedCustomer: snapshot.selectedCustomer,
+      });
+    })();
+    return () => {
+      active = false;
+    };
   }, [onWorkspaceChange, state]);
 
   useEffect(() => {
@@ -608,9 +632,9 @@ export function SellScreen({
             )}
           </section>
           <CartPanel
-            revision={displayed.cartRevision}
-            lines={displayed.lines}
-            customer={displayed.selectedCustomer}
+            revision={retainedCart.cartRevision}
+            lines={retainedCart.lines}
+            customer={retainedCart.selectedCustomer}
             mobileOpen={displayed.mobileCartOpen}
             onOpenCustomers={() => { scanQueue.pause(); setCustomerPickerOpen(true); }}
             onClear={handleClearRequest}

@@ -33,6 +33,12 @@ Public RLS policies: **12**, on 9 tables (`pos_organizations`, `pos_locations`, 
 
 Public functions: **50**. Public non-internal triggers: **21**.
 
+## 12 Oct 2026 re-read
+
+Read-only, same container and database, no new dump and no writes. Catalog counts were still 36 public tables, 12 policies, 50 public functions, 21 non-internal triggers, and 30 migration rows. Sale `ac637dda-e081-47e3-bd60-cf80f9569c04` was still one completed sale, one verified cash payment of 2900 minor, one receipt, one cash movement, and one tender claim.
+
+`anon` and `authenticated` have no table privileges on `pos_checkout_payments` in that catalog. That is the retained grant state. It is not a role-password comparison: role passwords, Vault keys, Auth provider settings, and Edge Functions are still outside the dump, and no second copy of the policy or function source was retained to diff against.
+
 ## Sale 50343
 
 Transaction `ac637dda-e081-47e3-bd60-cf80f9569c04`:

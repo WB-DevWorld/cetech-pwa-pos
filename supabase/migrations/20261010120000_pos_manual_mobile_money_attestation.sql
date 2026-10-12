@@ -102,7 +102,8 @@ SET search_path = pg_catalog, public
 AS $$
 BEGIN
   IF OLD.provider = 'manual_mobile_money' AND OLD.status = 'verified' THEN
-    IF NEW.provider IS DISTINCT FROM OLD.provider
+    IF NEW.status IS DISTINCT FROM OLD.status
+      OR NEW.provider IS DISTINCT FROM OLD.provider
       OR NEW.provider_reference IS DISTINCT FROM OLD.provider_reference
       OR NEW.manual_network IS DISTINCT FROM OLD.manual_network
       OR NEW.merchant_account_label IS DISTINCT FROM OLD.merchant_account_label
@@ -114,6 +115,11 @@ BEGIN
       OR NEW.amount_currency IS DISTINCT FROM OLD.amount_currency
       OR NEW.actor_id IS DISTINCT FROM OLD.actor_id
       OR NEW.tender IS DISTINCT FROM OLD.tender
+      OR NEW.organization_id IS DISTINCT FROM OLD.organization_id
+      OR NEW.location_id IS DISTINCT FROM OLD.location_id
+      OR NEW.transaction_id IS DISTINCT FROM OLD.transaction_id
+      OR NEW.sale_id IS DISTINCT FROM OLD.sale_id
+      OR NEW.payment_id IS DISTINCT FROM OLD.payment_id
     THEN
       RAISE EXCEPTION 'manual mobile money attestation is immutable'
         USING ERRCODE = 'check_violation';
@@ -132,3 +138,27 @@ CREATE TRIGGER pos_manual_attestation_immutable
   BEFORE UPDATE ON public.pos_checkout_payments
   FOR EACH ROW
   EXECUTE FUNCTION public.pos_manual_attestation_immutable();
+
+CREATE OR REPLACE FUNCTION public.pos_manual_attestation_no_delete()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog, public
+AS $$
+BEGIN
+  IF OLD.provider = 'manual_mobile_money' AND OLD.status = 'verified' THEN
+    RAISE EXCEPTION 'manual mobile money attestation cannot be deleted'
+      USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN OLD;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.pos_manual_attestation_no_delete() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.pos_manual_attestation_no_delete() FROM anon;
+REVOKE ALL ON FUNCTION public.pos_manual_attestation_no_delete() FROM authenticated;
+
+DROP TRIGGER IF EXISTS pos_manual_attestation_no_delete ON public.pos_checkout_payments;
+CREATE TRIGGER pos_manual_attestation_no_delete
+  BEFORE DELETE ON public.pos_checkout_payments
+  FOR EACH ROW
+  EXECUTE FUNCTION public.pos_manual_attestation_no_delete();

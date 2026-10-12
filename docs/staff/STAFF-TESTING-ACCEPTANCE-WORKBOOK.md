@@ -1356,7 +1356,7 @@ The POS must not pretend those actions succeeded.
 **Do:** Add items but do not pay; reload/reopen the POS as described in this test.
 
 **Expected:**
-- safe draft/cart is preserved;
+- safe draft/cart is preserved, including the quantities that were visible in the cart;
 - no sale/payment is created by reload.
 
 ### Your result

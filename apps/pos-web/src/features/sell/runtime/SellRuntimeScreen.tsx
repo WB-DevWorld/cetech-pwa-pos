@@ -294,10 +294,10 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
     (state: SellWorkspaceState) => {
       setWorkspace(state);
       const draft = workspaceToCartDraft(state, locationId, now().toISOString());
-      void enqueuePersistence(async () => {
+      return enqueuePersistence(async () => {
         await drafts.save(draft);
         await rememberCartId(state.cartId);
-      }).catch(() => undefined);
+      });
     },
     [drafts, enqueuePersistence, locationId, now, rememberCartId],
   );
