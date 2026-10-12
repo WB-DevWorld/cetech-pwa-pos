@@ -8,6 +8,10 @@ export type QuotePresentationInput = {
   readonly quote?: QuoteDisplayState;
   readonly eligibility?: CheckoutEligibilityView;
   readonly cartRevision: number;
+  readonly cartId?: string;
+  readonly quoteCartId?: string;
+  readonly customerId?: string | null;
+  readonly quoteCustomerId?: string | null;
 };
 
 export type ResolvedQuotePresentation = {
@@ -27,7 +31,21 @@ export function quoteBoundRevision(quote: QuoteDisplayState): number | undefined
   }
 }
 
-/** Drop a quote bound to another cart revision. Does not call a pricing port. */
+export function quoteSnapshotDiffers(input: Pick<QuotePresentationInput, "cartId" | "quoteCartId" | "customerId" | "quoteCustomerId">): boolean {
+  if (input.cartId !== undefined && input.quoteCartId !== undefined && input.cartId !== input.quoteCartId) {
+    return true;
+  }
+  if (
+    input.customerId !== undefined &&
+    input.quoteCustomerId !== undefined &&
+    input.customerId !== input.quoteCustomerId
+  ) {
+    return true;
+  }
+  return false;
+}
+
+/** Drop a quote bound to another cart, customer, or revision. Does not call a pricing port. */
 export function alignQuoteToCartRevision(quote: QuoteDisplayState, cartRevision: number): QuoteDisplayState {
   const bound = quoteBoundRevision(quote);
   if (bound === undefined) return quote;
@@ -88,7 +106,11 @@ export function resolveQuotePresentation(input: QuotePresentationInput): Resolve
     return {};
   }
 
-  const quote = input.quote ? alignQuoteToCartRevision(input.quote, input.cartRevision) : undefined;
+  const quote = input.quote
+    ? quoteSnapshotDiffers(input)
+      ? { status: "stale" as const }
+      : alignQuoteToCartRevision(input.quote, input.cartRevision)
+    : undefined;
   if (!quote) {
     return { eligibility: input.eligibility };
   }

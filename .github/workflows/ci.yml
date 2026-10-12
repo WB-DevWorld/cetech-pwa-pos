@@ -44,6 +44,8 @@ jobs:
         run: npx --yes supabase@2.117.0 db reset --yes --local
       - name: Run pgTAP
         run: npx --yes supabase@2.117.0 test db
+      - name: Run manual attestation concurrency
+        run: bash scripts/payments/run-manual-attestation-concurrency.sh
       - name: Stop local Supabase
         if: ${{ always() && steps.supabase-start.outcome == 'success' }}
         run: npx --yes supabase@2.117.0 stop --no-backup

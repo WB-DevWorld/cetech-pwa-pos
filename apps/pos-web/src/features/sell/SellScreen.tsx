@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import type { CommandContext } from "../../../../../docs/contracts/domain.generated";
 import type { ManualMobileMoneyClient } from "../../app/checkout-client";
 import { BarcodeCollisionDialog } from "./components/BarcodeCollisionDialog";
@@ -84,6 +85,8 @@ export type SellScreenProps = {
     reason: "completed" | "discarded",
   ) => Promise<void>;
   quote?: QuoteDisplayState;
+  quoteCartId?: string;
+  quoteCustomerId?: string | null;
   eligibility?: CheckoutEligibilityView;
   checkoutReady?: boolean;
   checkoutInFlight?: boolean;
@@ -118,6 +121,7 @@ export type SellScreenProps = {
   loadVariations?: (parentId: string) => Promise<readonly SellProductView[]>;
   onCustomerQueryChange?: (query: string) => void;
   onWorkspaceChange?: (state: SellWorkspaceState) => void | Promise<void>;
+  onCartDurable?: (state: SellWorkspaceState) => void;
   initialCashReceived?: string;
   catalogProjectionGeneration?: number;
   nextSaleCustomer?: CustomerSearchResultView | null;
@@ -144,6 +148,8 @@ export function SellScreen({
   onNewSale,
   onTransitionCart,
   quote,
+  quoteCartId,
+  quoteCustomerId,
   eligibility,
   checkoutReady = false,
   checkoutInFlight = false,
@@ -178,6 +184,7 @@ export function SellScreen({
   loadVariations,
   onCustomerQueryChange,
   onWorkspaceChange,
+  onCartDurable,
   initialCashReceived,
   catalogProjectionGeneration,
   nextSaleCustomer,
@@ -205,7 +212,11 @@ export function SellScreen({
   const observedProjectionGenerationRef = useRef<number | undefined>(undefined);
   const completedSaleRotationRef = useRef<string | null>(null);
   const retainGeneration = useRef(0);
+  const [saveAttempt, setSaveAttempt] = useState(0);
+  const [savePhase, setSavePhase] = useState<"saved" | "saving" | "error">("saved");
+  const cartSaveReadyRef = useRef(false);
   const [retainedCart, setRetainedCart] = useState(() => ({
+    cartId: state.cartId,
     lines: state.lines,
     cartRevision: state.cartRevision,
     selectedCustomer: state.selectedCustomer,
@@ -221,22 +232,30 @@ export function SellScreen({
     const snapshot = state;
     let active = true;
     void (async () => {
+      setSavePhase("saving");
       try {
         await onWorkspaceChange?.(snapshot);
       } catch {
+        if (!active || generation !== retainGeneration.current) return;
+        setSavePhase("error");
         return;
       }
       if (!active || generation !== retainGeneration.current) return;
-      setRetainedCart({
-        lines: snapshot.lines,
-        cartRevision: snapshot.cartRevision,
-        selectedCustomer: snapshot.selectedCustomer,
+      flushSync(() => {
+        onCartDurable?.(snapshot);
+        setRetainedCart({
+          cartId: snapshot.cartId,
+          lines: snapshot.lines,
+          cartRevision: snapshot.cartRevision,
+          selectedCustomer: snapshot.selectedCustomer,
+        });
+        setSavePhase("saved");
       });
     })();
     return () => {
       active = false;
     };
-  }, [onWorkspaceChange, state]);
+  }, [onCartDurable, onWorkspaceChange, saveAttempt, state]);
 
   useEffect(() => {
     if (!checkoutSession?.saleCompleted) {
@@ -551,7 +570,7 @@ export function SellScreen({
 
   function handlePay() {
     // The ref-owned queue updates during the scanner event, before a disabled button can render.
-    if (scanQueue.hasPending() || scanQueue.isPaused() || scanPaused || !onPay) return;
+    if (!cartSaveReadyRef.current || scanQueue.hasPending() || scanQueue.isPaused() || scanPaused || !onPay) return;
     scanQueue.pause();
     try {
       onPay();
@@ -561,19 +580,49 @@ export function SellScreen({
     }
   }
 
-  const itemCount = displayed.lines.length;
+  const itemCount = retainedCart.lines.length;
   const loading = displayed.search.status === "loading";
   const searchError = displayed.search.status === "error";
   const catalogBlocked = displayed.catalogAvailability === "unavailable";
-  const presentedQuote = useMemo(
-    () =>
-      resolveQuotePresentation({
-        quote,
-        eligibility,
-        cartRevision: displayed.cartRevision,
-      }),
-    [quote, eligibility, displayed.cartRevision],
-  );
+  const cartSaved =
+    savePhase !== "error" &&
+    state.cartId === retainedCart.cartId &&
+    state.cartRevision === retainedCart.cartRevision &&
+    (state.selectedCustomer?.id ?? null) === (retainedCart.selectedCustomer?.id ?? null);
+  const presentedQuote = useMemo(() => {
+    const resolved = resolveQuotePresentation({
+      quote,
+      eligibility,
+      cartRevision: retainedCart.cartRevision,
+      cartId: retainedCart.cartId,
+      quoteCartId,
+      customerId: retainedCart.selectedCustomer?.id ?? null,
+      quoteCustomerId,
+    });
+    if (cartSaved) return resolved;
+    return {
+      quote: resolved.quote,
+      eligibility: {
+        allowed: false as const,
+        reason: "QUOTE_REQUIRED" as const,
+        message: savePhase === "error" ? "Couldn't save this cart. Try again." : "Saving cart...",
+      },
+    };
+  }, [
+    cartSaved,
+    eligibility,
+    quote,
+    quoteCartId,
+    quoteCustomerId,
+    retainedCart.cartId,
+    retainedCart.cartRevision,
+    retainedCart.selectedCustomer?.id,
+    savePhase,
+  ]);
+
+  useLayoutEffect(() => {
+    cartSaveReadyRef.current = cartSaved && presentedQuote.eligibility?.allowed === true && !scanPaused;
+  }, [cartSaved, presentedQuote.eligibility, scanPaused]);
 
   const newSaleBlocked = cartTransitioning || Boolean(checkoutSession && !canBeginNewSale(checkoutSession));
 
@@ -631,6 +680,23 @@ export function SellScreen({
               <ProductResults items={displayed.search.results} onSelect={handleSelectProduct} />
             )}
           </section>
+          {!cartSaved ? (
+            <div className={savePhase === "error" ? "banner danger" : "banner"} role={savePhase === "error" ? "alert" : "status"}>
+              <p>{savePhase === "error" ? "Couldn't save this cart. Try again." : "Saving cart..."}</p>
+              {savePhase === "error" ? (
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => {
+                    setSavePhase("saving");
+                    setSaveAttempt((attempt) => attempt + 1);
+                  }}
+                >
+                  Try again
+                </button>
+              ) : null}
+            </div>
+          ) : null}
           <CartPanel
             revision={retainedCart.cartRevision}
             lines={retainedCart.lines}

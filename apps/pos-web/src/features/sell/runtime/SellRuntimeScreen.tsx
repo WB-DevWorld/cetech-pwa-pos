@@ -292,7 +292,6 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
 
   const persist = useCallback(
     (state: SellWorkspaceState) => {
-      setWorkspace(state);
       const draft = workspaceToCartDraft(state, locationId, now().toISOString());
       return enqueuePersistence(async () => {
         await drafts.save(draft);
@@ -310,7 +309,6 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
     ): Promise<void> => {
       const nextDraft = workspaceToCartDraft(next, locationId, now().toISOString());
       await enqueuePersistence(() => ports.replaceActiveCart(previous.cartId, nextDraft));
-      setWorkspace(next);
     },
     [enqueuePersistence, locationId, now, ports],
   );
@@ -408,8 +406,11 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
         onNextSaleCustomerApplied={ports.onNextSaleCustomerApplied}
         onCustomerQueryChange={searchCustomers}
         onWorkspaceChange={persist}
+        onCartDurable={setWorkspace}
         onTransitionCart={transitionActiveCart}
         quote={presentedQuote.quote}
+        quoteCartId={workspace?.cartId}
+        quoteCustomerId={workspace?.selectedCustomer?.id ?? null}
         onRetryQuote={presentedQuote.retry}
         eligibility={presentedQuote.eligibility}
         checkoutReady={cashCheckout.ready}

@@ -231,7 +231,7 @@ In the cart you can normally:
 - see Subtotal, Discount, Tax, and Total;
 - clear/discard a sale when safe.
 
-The cart should show the current working sale only. The quantity and customer shown there are the last ones this till has saved on this device. Wait until the new quantity is visible before you rely on it.
+The cart should show the current working sale only. The quantity and customer shown there are the last ones this till has saved on this device. While it says **Saving cart...**, wait. If it says **Couldn't save this cart. Try again.**, select **Try again**. Pay stays unavailable until that saved cart is the one on screen.
 
 A completed cart should no longer remain as an ordinary active cart. Do not clear browser/site storage to fix a cart-count problem; report it.
 

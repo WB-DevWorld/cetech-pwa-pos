@@ -112,7 +112,7 @@ INSERT INTO pos_checkout_payments (
    'manual_mobile_money', 'intent:bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb3', 'MTN', 'Shop till')
 ON CONFLICT (payment_id) DO NOTHING;
 
-SELECT dblink_connect('loser', 'dbname=' || current_database() || ' user=supabase_admin');
+SELECT dblink_connect('loser', format('dbname=%s user=%s', current_database(), current_user));
 
 -- 1. Same payment, two merchant references. The open transaction holds the row.
 BEGIN;
@@ -137,7 +137,7 @@ SELECT cas_note('case1_loser_rows', detail)
 FROM dblink_get_result('loser') AS t(detail text);
 
 -- 2. Two sales, one merchant reference.
-SELECT dblink_connect('shared', 'dbname=' || current_database() || ' user=supabase_admin');
+SELECT dblink_connect('shared', format('dbname=%s user=%s', current_database(), current_user));
 BEGIN;
 SELECT cas_try_verify(
   'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2',
@@ -195,7 +195,7 @@ BEGIN
 END $$;
 
 -- 4. Cash claim blocks a manual insert on the same sale.
-SELECT dblink_connect('manual', 'dbname=' || current_database() || ' user=supabase_admin');
+SELECT dblink_connect('manual', format('dbname=%s user=%s', current_database(), current_user));
 BEGIN;
 INSERT INTO pos_checkout_payments (
   payment_id, organization_id, location_id, transaction_id, sale_id,
@@ -236,7 +236,7 @@ BEGIN
 END $$;
 
 -- Paystack and manual are one electronic family, and only one payment row survives.
-SELECT dblink_connect('paystack', 'dbname=' || current_database() || ' user=supabase_admin');
+SELECT dblink_connect('paystack', format('dbname=%s user=%s', current_database(), current_user));
 BEGIN;
 INSERT INTO pos_checkout_payments (
   payment_id, organization_id, location_id, transaction_id, sale_id,
@@ -351,7 +351,7 @@ BEGIN
   END LOOP;
 END $$;
 
-SELECT dblink_connect('browser', 'dbname=' || current_database() || ' user=supabase_admin');
+SELECT dblink_connect('browser', format('dbname=%s user=%s', current_database(), current_user));
 
 DO $$
 DECLARE msg text;
@@ -408,20 +408,34 @@ DECLARE
   win_reference text;
   win_actor text;
   win_evidence uuid;
+  win_amount bigint;
+  win_network text;
+  win_account text;
+  win_sale text;
+  win_org text;
+  win_verified timestamptz;
   shared_status text;
   other_status text;
   cash_family text;
   paystack_count int;
   manual_count int;
 BEGIN
-  SELECT provider_reference, attestation_actor_id, evidence_id
-  INTO win_reference, win_actor, win_evidence
+  SELECT provider_reference, attestation_actor_id, evidence_id, amount_minor,
+         manual_network, merchant_account_label, sale_id, organization_id, verified_at
+  INTO win_reference, win_actor, win_evidence, win_amount,
+       win_network, win_account, win_sale, win_org, win_verified
   FROM pos_checkout_payments
   WHERE payment_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1';
   IF win_reference IS DISTINCT FROM 'MM-WIN'
      OR win_actor IS DISTINCT FROM 'cashier_a'
-     OR win_evidence IS DISTINCT FROM 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1'::uuid THEN
-    RAISE EXCEPTION 'winning attestation changed: % % %', win_reference, win_actor, win_evidence;
+     OR win_evidence IS DISTINCT FROM 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1'::uuid
+     OR win_amount IS DISTINCT FROM 2900
+     OR win_network IS DISTINCT FROM 'MTN'
+     OR win_account IS DISTINCT FROM 'Shop till'
+     OR win_sale IS DISTINCT FROM 'sale-cas-1'
+     OR win_org IS DISTINCT FROM 'org_a'
+     OR win_verified IS DISTINCT FROM '2026-10-12 12:00:00+00'::timestamptz THEN
+    RAISE EXCEPTION 'winning attestation changed: % % % % %', win_reference, win_actor, win_amount, win_sale, win_verified;
   END IF;
 
   SELECT status INTO shared_status
@@ -460,6 +474,9 @@ BEGIN
     RAISE EXCEPTION 'dual settlement paystack % manual %', paystack_count, manual_count;
   END IF;
 
+  IF EXISTS (SELECT 1 FROM cas_log WHERE detail ILIKE '%unexpected success%') THEN
+    RAISE EXCEPTION 'concurrency proof recorded an unexpected success';
+  END IF;
   IF (SELECT detail FROM cas_log WHERE name = 'case1_loser_rows') IS DISTINCT FROM '0' THEN
     RAISE EXCEPTION 'loser wrote % rows', (SELECT detail FROM cas_log WHERE name = 'case1_loser_rows');
   END IF;

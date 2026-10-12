@@ -1357,6 +1357,7 @@ The POS must not pretend those actions succeeded.
 
 **Expected:**
 - safe draft/cart is preserved, including the quantities that were visible in the cart;
+- if the till says it could not save the cart, Try again leaves Pay unavailable until the save finishes;
 - no sale/payment is created by reload.
 
 ### Your result
