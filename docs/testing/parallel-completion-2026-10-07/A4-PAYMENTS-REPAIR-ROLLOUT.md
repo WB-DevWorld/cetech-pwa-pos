@@ -19,6 +19,8 @@ The earlier hash `96930E5BF71A0BD2C3874F2746739163EE8D5A92D679734A23E62D073A6B1B
 
 The migration is still a proposal. It has not been applied to the hosted project or to the retained restore database. It was applied only to disposable local database `a4_pay_cas_20261012` on the local Supabase cluster, together with the repo migration chain and `supabase/seed.sql`. That database is not the retained restore.
 
+Qualification changes: `f77a61eb13ffb0cd19eb1dc815eee3725f3a36be`. The published head is the commit that contains this sentence.
+
 ## Safe configuration
 
 Leave these off until a reviewed non-production trial:
