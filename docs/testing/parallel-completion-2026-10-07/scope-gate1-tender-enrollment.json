@@ -1,0 +1,16 @@
+{
+  "task": "GATE1-TENDER-EVIDENCE-ENROLLMENT",
+  "base": "22035a513e43b896cbc5e96964aa428b71d8d010",
+  "route": "A — DB boundary adopts retained cash/payment evidence before first claim",
+  "allowed": [
+    "supabase/migrations/20261009160000_pos_sale_tender_evidence_enrollment.sql",
+    "supabase/tests/tender_write_boundary.sql",
+    "apps/pos-web/src/core/checkout/in-memory-store.ts",
+    "apps/pos-web/src/server/sales/tender-mixed-generation.test.ts",
+    "docs/testing/parallel-completion-2026-10-07/**",
+    "CURRENT-WORK.md"
+  ],
+  "forbidden": ["hosted DDL", "RD-01 re-apply", "wordpress/**", "production", "new tester Preview"],
+  "staff_documentation_impact": "NONE",
+  "production_effects": "NONE"
+}

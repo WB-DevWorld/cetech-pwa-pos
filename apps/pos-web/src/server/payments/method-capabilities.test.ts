@@ -1,6 +1,8 @@
 import { describe, expect, test } from "vitest";
 import {
   capabilityForElectronicTender,
+  coercePaymentMethodCapabilities,
+  diagnosePaymentConfiguration,
   resolvePaymentMethodCapabilities,
 } from "./method-capabilities";
 
@@ -11,6 +13,9 @@ describe("payment method capabilities", () => {
       mobileMoney: "unconfigured",
       card: "unconfigured",
       externalTerminal: "unconfigured",
+      manualMobileMoney: "not_set_up",
+      integratedCheckout: "not_set_up",
+      configurationReason: "provider_disabled",
     });
   });
 
@@ -26,6 +31,9 @@ describe("payment method capabilities", () => {
       mobileMoney: "unconfigured",
       card: "unconfigured",
       externalTerminal: "unconfigured",
+      manualMobileMoney: "not_set_up",
+      integratedCheckout: "not_verified",
+      configurationReason: "channel_disabled",
     });
   });
 
@@ -83,5 +91,67 @@ describe("payment method capabilities", () => {
         PAYSTACK_MOBILE_MONEY_ENABLED: "true",
       }).mobileMoney,
     ).toBe("unavailable");
+    expect(
+      resolvePaymentMethodCapabilities({
+        PAYMENT_PROVIDER: "paystack",
+        PAYSTACK_MODE: "live",
+        PAYSTACK_SECRET_KEY: "sk_live_example",
+      }).integratedCheckout,
+    ).toBe("live_blocked");
+    expect(
+      diagnosePaymentConfiguration({
+        PAYMENT_PROVIDER: "paystack",
+        PAYSTACK_MODE: "test",
+        PAYSTACK_SECRET_KEY: "sk_test_example_key",
+        PAYSTACK_CARD_ENABLED: "true",
+        PAYSTACK_TEST_PAYER_EMAIL: "payer@example.test",
+      }).reason,
+    ).toBe("test_channels_configured");
+    expect(
+      diagnosePaymentConfiguration({
+        PAYMENT_PROVIDER: "paystack",
+        PAYSTACK_MODE: "test",
+        PAYSTACK_SECRET_KEY: "sk_test_example_key",
+        PAYSTACK_CARD_ENABLED: "true",
+        PAYSTACK_TEST_PAYER_EMAIL: "payer@example.test",
+      }, { customerPresentationImplemented: false }).reason,
+    ).toBe("customer_presentation_missing");
+    expect(
+      diagnosePaymentConfiguration({
+        PAYMENT_PROVIDER: "paystack",
+        PAYSTACK_SECRET_KEY: "sk_test_example_key",
+        PAYSTACK_CARD_ENABLED: "true",
+        PAYSTACK_TEST_PAYER_EMAIL: "payer@example.test",
+      }).modeDefaulted,
+    ).toBe(true);
+    expect(
+      diagnosePaymentConfiguration({
+        PAYMENT_PROVIDER: "paystack",
+        PAYSTACK_MODE: "test",
+        PAYSTACK_SECRET_KEY: "sk_test_example_key",
+        PAYSTACK_CARD_ENABLED: "true",
+        PAYSTACK_TEST_PAYER_EMAIL: "not-an-email",
+      }).reason,
+    ).toBe("payer_missing");
+    const legacy = coercePaymentMethodCapabilities({
+      cash: "available",
+      mobileMoney: "configured",
+      card: "configured",
+      externalTerminal: "unconfigured",
+    });
+    expect(legacy?.manualMobileMoney).toBe("not_set_up");
+    expect(legacy?.integratedCheckout).toBe("not_verified");
+    expect(
+      resolvePaymentMethodCapabilities({
+        PAYMENT_PROVIDER: "disabled",
+        MANUAL_MOBILE_MONEY_ENABLED: "true",
+        MANUAL_MOBILE_MONEY_NETWORK: "MTN",
+        MANUAL_MOBILE_MONEY_ACCOUNT_LABEL: "Shop till",
+      }).manualMobileMoney,
+    ).toBe("enabled");
+    expect(JSON.stringify(diagnosePaymentConfiguration({
+      PAYMENT_PROVIDER: "paystack",
+      PAYSTACK_SECRET_KEY: "sk_test_example_key",
+    }))).not.toContain("sk_test");
   });
 });

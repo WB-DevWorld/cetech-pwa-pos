@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import type { StoreHealth } from "../../../../../docs/contracts/domain.generated";
 import type { CatalogProjectionAvailability } from "../../local/catalog-sync";
 import type { PaymentMethodCapabilities } from "../../server/payments/method-capabilities";
-import { toCashierError } from "../cashier-language";
+import { formatOperationalDateTime, toCashierError } from "../cashier-language";
 import { presentHealthRows } from "./healthPresentation";
 
 export type OperationalLoadState = "ready" | "loading" | "error" | "offline" | "degraded";
@@ -44,6 +44,9 @@ export interface StoreHealthScreenProps {
   readonly attentionCountOverride?: number;
   readonly onRetry?: () => void;
   readonly onOpenAttention?: () => void;
+  readonly lastCheckedAt?: string;
+  readonly lastKnown?: boolean;
+  readonly refreshBusy?: boolean;
 }
 
 function healthRowTone(tone: "ok" | "degraded" | "unavailable" | "unverified"): string {
@@ -100,6 +103,9 @@ export function StoreHealthScreen({
   attentionCountOverride,
   onRetry,
   onOpenAttention,
+  lastCheckedAt,
+  lastKnown = false,
+  refreshBusy = false,
 }: StoreHealthScreenProps) {
   const pendingOperationCount = health?.pendingOperationCount ?? 0;
   const attentionCount = attentionCountOverride ?? health?.attentionCount ?? 0;
@@ -117,7 +123,28 @@ export function StoreHealthScreen({
         <div>
           <h1 id="store-health-title">System status</h1>
           <p>Check whether this device can reach the services needed to sell.</p>
+          {lastKnown ? (
+            <p className="muted" data-last-known="true">
+              Showing the last response. It has not been verified again.
+            </p>
+          ) : null}
+          {lastCheckedAt && state !== "loading" ? (
+            <p className="muted" data-last-checked="true">
+              Response received {formatOperationalDateTime(lastCheckedAt)}
+            </p>
+          ) : null}
         </div>
+        {onRetry ? (
+          <button
+            className="btn"
+            type="button"
+            onClick={onRetry}
+            disabled={refreshBusy || state === "loading"}
+            aria-busy={refreshBusy || state === "loading"}
+          >
+            {refreshBusy || state === "loading" ? "Refreshing status…" : "Refresh status"}
+          </button>
+        ) : null}
       </div>
 
       {state === "offline" ? <ConnectivityNotice state="offline" /> : null}

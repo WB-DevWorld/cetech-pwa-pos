@@ -2,13 +2,14 @@ import type { ElectronicTenderView } from "../../payments/electronicPaymentView"
 import { formatMoneyDisplay } from "../state/quotePresentation";
 import type { PreparedSaleView } from "../state/checkoutSession";
 
-export type TenderChoiceId = "cash" | ElectronicTenderView;
+export type TenderChoiceId = "cash" | "manual_mobile_money" | ElectronicTenderView;
 
 export type TenderAvailabilityView = {
   readonly cash: true;
   readonly mobileMoney: boolean;
   readonly card: boolean;
   readonly externalElectronic: boolean;
+  readonly manualMobileMoney?: boolean;
 };
 
 export const DEFAULT_TENDER_AVAILABILITY: TenderAvailabilityView = {
@@ -31,6 +32,9 @@ export function electronicTenderAvailable(
   if (tender === "card") {
     return availability.card;
   }
+  if (tender === "manual_mobile_money") {
+    return availability.manualMobileMoney === true;
+  }
   return availability.externalElectronic;
 }
 
@@ -50,10 +54,17 @@ const METHODS: ReadonlyArray<{
   },
   {
     id: "mobile_money",
-    title: "Mobile Money",
-    readyCopy: "Use secure Mobile Money payment",
+    title: "Paystack Mobile Money",
+    readyCopy: "Open the Paystack test checkout. This is not a live payment.",
     unavailableCopy: "Not enabled on this POS",
     available: (availability) => availability.mobileMoney,
+  },
+  {
+    id: "manual_mobile_money",
+    title: "Mobile Money — manual confirmation",
+    readyCopy: "Customer transfers outside the POS. You confirm the merchant receipt.",
+    unavailableCopy: "Not set up on this register",
+    available: (availability) => availability.manualMobileMoney === true,
   },
   {
     id: "card",

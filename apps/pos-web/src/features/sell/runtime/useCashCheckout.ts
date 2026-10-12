@@ -119,6 +119,11 @@ export function useCashCheckout(ports: CashCheckoutPorts | undefined): {
   readonly resolveSale: () => Promise<void>;
   readonly resolvePayment: () => Promise<void>;
   readonly selectCash: () => void;
+  readonly prepareManualTender: () => Promise<{ begin: { idempotencyKey: string; correlationId: string }; confirm: { idempotencyKey: string; correlationId: string } } | null>;
+  readonly setManualActivity: (active: boolean) => void;
+  readonly retainManualPayment: (paymentId: string) => void;
+  readonly noteManualReference: (reference: string) => void;
+  readonly replaceManualConfirmKey: () => { idempotencyKey: string; correlationId: string } | undefined;
   readonly backToPaymentChoice: () => void;
   readonly cancelPreparedSale: (reason?: string) => Promise<void>;
   readonly retryFinalize: () => Promise<void>;
@@ -160,6 +165,11 @@ export function useCashCheckout(ports: CashCheckoutPorts | undefined): {
     resolveSale: () => controller?.resolveSale() ?? Promise.resolve(),
     resolvePayment: () => controller?.resolvePayment() ?? Promise.resolve(),
     selectCash: () => controller?.selectCash(),
+    prepareManualTender: () => controller?.prepareManualTender() ?? Promise.resolve(null),
+    setManualActivity: (active) => controller?.setManualActivity(active),
+    retainManualPayment: (paymentId) => controller?.retainManualPayment(paymentId),
+    noteManualReference: (reference) => controller?.noteManualReference(reference),
+    replaceManualConfirmKey: () => controller?.replaceManualConfirmKey(),
     backToPaymentChoice: () => controller?.backToPaymentChoice(),
     cancelPreparedSale: (reason?: string) => controller?.cancelPreparedSale(reason) ?? Promise.resolve(),
     retryFinalize: () => controller?.retryFinalize() ?? Promise.resolve(),

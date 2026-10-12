@@ -1,10 +1,12 @@
 import type { ApiFailure, Session, Uuid } from "../../../../../docs/contracts/domain.generated";
 import { STAFF_CSRF_COOKIE, STAFF_SESSION_COOKIE } from "../../config/auth";
+import { tryComposeStaffAccessControl } from "../auth/compose-staff-access-control";
 import { parseCookieHeader } from "../auth/cookies";
 import { assertMutationProtection } from "../auth/csrf";
 import { authFailure } from "../auth/errors";
 import { isUuid } from "../auth/ids";
 import type { StaffSessionStore } from "../auth/session-store";
+import { evaluateStaffAccess, type StaffAccessControl } from "../auth/staff-access-control";
 import { resolveCorrelationId } from "../http/correlation";
 import { httpStatusFor } from "../http/status";
 
@@ -36,6 +38,8 @@ export async function guardStaffCommand(input: {
   readonly csrfHeader?: string | null;
   readonly now: Date;
   readonly sessionStore: StaffSessionStore;
+  /** When omitted, composed server access control is used (fail-closed). */
+  readonly accessControl?: StaffAccessControl;
   readonly allowedOrigins: readonly string[];
   readonly requireMutationProtection: boolean;
   readonly idempotencyKeyHeader?: string | null;
@@ -87,6 +91,49 @@ export async function guardStaffCommand(input: {
     return fail(
       headers,
       authFailure("FORBIDDEN", "Create a new password before continuing.", correlation.correlationId),
+    );
+  }
+
+  // Validated-session path must reject durable disabled actors even when a
+  // concurrent sign-in missed the disablement revoke set.
+  const accessControl = input.accessControl ?? tryComposeStaffAccessControl();
+  if (!accessControl) {
+    return fail(
+      headers,
+      authFailure(
+        "INTEGRATION_UNAVAILABLE",
+        "staff access control is unavailable",
+        correlation.correlationId,
+      ),
+    );
+  }
+  const access = await evaluateStaffAccess(accessControl, {
+    organizationId: stored.session.organizationId,
+    actorId: stored.session.actorId,
+  });
+  if (!access.ok) {
+    if (access.reason === "unavailable") {
+      return fail(
+        headers,
+        authFailure(
+          "INTEGRATION_UNAVAILABLE",
+          "staff access control is unavailable",
+          correlation.correlationId,
+        ),
+      );
+    }
+    if (sessionId) {
+      try {
+        await input.sessionStore.revoke(sessionId);
+      } catch {
+        // Authority is still denied below.
+      }
+    }
+    return fail(
+      headers,
+      authFailure("FORBIDDEN", "staff access is disabled", correlation.correlationId, {
+        field: "pos_access",
+      }),
     );
   }
 

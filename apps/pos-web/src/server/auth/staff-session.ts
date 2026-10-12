@@ -11,7 +11,7 @@ import {
 } from "./cookies";
 import { authFailure } from "./errors";
 import type { StaffIdentityVerifier } from "./identity-verifier";
-import type { StaffAccessControl } from "./staff-access-control";
+import { evaluateStaffAccess, type StaffAccessControl } from "./staff-access-control";
 import type { StaffSessionStore } from "./session-store";
 import {
   diagnosticFromVerifier,
@@ -73,18 +73,18 @@ export async function establishStaffSession(
   // Canonical disablement is pos_staff_access_controls. Auth metadata only
   // carries provisioning flags such as must_change_password.
   if (input.accessControl) {
-    const access = await input.accessControl.status({
+    const access = await evaluateStaffAccess(input.accessControl, {
       organizationId: verifyResult.identity.organizationId,
       actorId: verifyResult.identity.actorId,
     });
-    if (access === "unavailable") {
-      return authFailure(
-        "INTEGRATION_UNAVAILABLE",
-        "staff access control is unavailable",
-        input.correlationId,
-      );
-    }
-    if (access === "disabled") {
+    if (!access.ok) {
+      if (access.reason === "unavailable") {
+        return authFailure(
+          "INTEGRATION_UNAVAILABLE",
+          "staff access control is unavailable",
+          input.correlationId,
+        );
+      }
       return authFailure("FORBIDDEN", "staff access is disabled", input.correlationId, { field: "pos_access" });
     }
   }
@@ -107,6 +107,31 @@ export async function establishStaffSession(
       { field: "session_store" },
     );
   }
+
+  // Post-insert recheck closes access-read → disable/revoke → INSERT.
+  // Revoke the just-created row when durable access is no longer active.
+  if (input.accessControl) {
+    const accessAfter = await evaluateStaffAccess(input.accessControl, {
+      organizationId: verifyResult.identity.organizationId,
+      actorId: verifyResult.identity.actorId,
+    });
+    if (!accessAfter.ok) {
+      try {
+        await input.store.revoke(sessionId);
+      } catch {
+        // Issuance is still denied; validated-session paths also recheck access.
+      }
+      if (accessAfter.reason === "unavailable") {
+        return authFailure(
+          "INTEGRATION_UNAVAILABLE",
+          "staff access control is unavailable",
+          input.correlationId,
+        );
+      }
+      return authFailure("FORBIDDEN", "staff access is disabled", input.correlationId, { field: "pos_access" });
+    }
+  }
+
   const secure = input.secureCookies ?? true;
   return {
     ok: true,

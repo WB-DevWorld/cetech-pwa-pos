@@ -1,4 +1,196 @@
-## #105 Admin/Manager control plane — ACTIVE P0
+## COMBINED-CANDIDATE-2026-10-08 — backup-role + profiler repair COMPLETE (WS3 docs)
+
+```text
+human / integration editor: @wbdevworld / WS3
+task: A4-BACKUP-ROLE-AND-PROFILER-04
+status: COMPLETE (Lane1 dump+restore PASS; Lane2 v2.1.5 --all profile PASS)
+starting_review_head: a1d0527382c673a39f7bbe1a9697110884468046
+published_evidence_sha: 28f5788e52fefc85c8f1f5b6797cd5837dd49037 (PR #144)
+product_freeze: a4f3284c35785dbb0efe3843d38084f12911ac15
+preview: dpl_FAaW712WnVBZ9Wr7B8MXCurJEeXW / q2u9baevb
+results: docs/testing/parallel-completion-2026-10-07/A4-BACKUP-ROLE-AND-PROFILER-04-RESULTS.md
+lane1: SET ROLE supabase_read_only_user PASS; pg_dump --role custom 1019335B sha728E86…; restore a4_restore_empty exit0; 50343 links×1
+lane2: profile-command v2.1.5 pin; smoke PASS; --all exit0 rows618; top rocket_init 8.867s (isolated CLI only)
+cash_50343: retained; cap consumed
+forbidden: product edits; further cash; write-capable login; alias/prod
+production_effects: NONE beyond one temporary read_only cli/login-role + private dump/restore
+verdict: NOT READY FOR PRODUCTION
+staff_documentation_impact: NONE
+```
+
+## COMBINED-CANDIDATE-2026-10-08 — recovery/cash/profiling COMPLETE (WS3 docs)
+
+```text
+human / integration editor: @wbdevworld / WS3
+task: A4-RECOVERY-CASH-AND-PROFILING-03
+status: COMPLETE (Lane2 cash PASS; Lane1 dump BLOCKED; Lane3 profiling limits unchanged)
+product_freeze: a4f3284c35785dbb0efe3843d38084f12911ac15
+published_evidence_sha: e5df10e57339cc1e7eebd26c036ba77093d9d259 (PR #144)
+preview: dpl_FAaW712WnVBZ9Wr7B8MXCurJEeXW / q2u9baevb
+owner_authorization: EXPLICIT "GO" "GO" 2026-10-10 (chat)
+results: docs/testing/parallel-completion-2026-10-07/A4-RECOVERY-CASH-AND-PROFILING-03-RESULTS.md
+execution: docs/testing/parallel-completion-2026-10-07/A4-RECOVERY-CASH-AND-PROFILING-03-EXECUTION.md
+lane1: cli/login-role read_only issued (ttl 300s); pooler session :5432 OK; pg_dump DENIED on schemas auth + supabase_migrations; restore NOT RUN
+lane2: cash PASS — txn ac637dda… / sale-50343 / Woo 50343 wc-processing GHS29 / stock 49111 3→2 / claims cash 25
+lane3: nested-init miss; --all WP_CLI\Path fatal (prior tip)
+forbidden: write-capable login; electronic/B/C; further cash without new GO; A+D replay; alias/prod; product source edits
+production_effects: NONE beyond authorized staging cash + private dump attempt
+verdict: NOT READY FOR PRODUCTION
+staff_documentation_impact: NONE
+```
+
+## COMBINED-CANDIDATE-2026-10-08 — recovery/cash/profiling PARKED (superseded)
+
+```text
+human / integration editor: @wbdevworld / WS3
+task: A4-RECOVERY-CASH-AND-PROFILING-03
+status: SUPERSEDED — see COMPLETE block above
+product_freeze: a4f3284c35785dbb0efe3843d38084f12911ac15
+```
+
+## COMBINED-CANDIDATE-2026-10-08 — recovery + quote attribution COMPLETE (WS3 docs)
+
+```text
+human / integration editor: @wbdevworld / WS3
+task: A4-RECOVERY-AND-QUOTE-ATTRIBUTION-02
+status: COMPLETE (publish + pooler/decision + isolated REST inventory + commercial decision; dump NOT RUN)
+product_freeze: a4f3284c35785dbb0efe3843d38084f12911ac15
+published_evidence_sha: 8d8fe1010f18252af48b14af4a6eed3b4802b237 (PR #144; continues with this task's docs commit)
+preview: dpl_FAaW712WnVBZ9Wr7B8MXCurJEeXW / q2u9baevb
+results: docs/testing/parallel-completion-2026-10-07/A4-RECOVERY-AND-QUOTE-ATTRIBUTION-02-RESULTS.md
+lane1: pooler transaction:6543 discovered; cli/login-role NOT ISSUED — decision doc prepared
+lane2: isolated Woo REST inventory 88 callbacks; timed profile BLOCKED (REST already init on WP-CLI load)
+lane3: LANE3-COMMERCIAL-DECISION-A4F3284-CLOSED.md (A/B/C/D choice)
+forbidden: product/schema/bridge edits; force push; write-capable login without GO; Pay/sale; training profile
+production_effects: NONE
+verdict: NOT READY FOR PRODUCTION
+staff_documentation_impact: NONE
+```
+
+## COMBINED-CANDIDATE-2026-10-08 — remaining qualification COMPLETE (WS3 docs)
+
+```text
+human / integration editor: @wbdevworld / WS3
+task: A4-REMAINING-QUALIFICATION-01
+status: COMPLETE (safe lanes + decision sheet; restore BLOCKED)
+product_freeze: a4f3284c35785dbb0efe3843d38084f12911ac15
+accepted_closeout: 033463ec5ef5f2aa580a7c3c412251bcfacab396
+preview: dpl_FAaW712WnVBZ9Wr7B8MXCurJEeXW / q2u9baevb
+published_on_pr144: 8d8fe1010f18252af48b14af4a6eed3b4802b237
+results: docs/testing/parallel-completion-2026-10-07/A4-REMAINING-QUALIFICATION-01-RESULTS.md
+lane1: T-D3b/T-D4c PASS software; journal NOT EXERCISED; T-D4d print dialog PASS software
+lane2: BLOCKED — Management API present but backups=[] and no downloadable restorable export / Direct URI
+lane3: waterfall recorded; 3 quotes median 10107ms bridge~8.8s; #115/#132 OPEN
+lane4: LANE4-BC-COMMERCIAL-DECISION-A4F3284.md (452 sheet marked historical)
+tester_url: https://cetech-pos-staging-q2u9baevb-wbdevworlds-projects.vercel.app
+remaining_tester_owned: device/PWA/scanner/paper
+forbidden: production; A+D replay; new paid orders; shared restore; product edits
+production_effects: NONE
+verdict: NOT READY FOR PRODUCTION
+staff_documentation_impact: NONE
+```
+
+## COMBINED-CANDIDATE-2026-10-08 — remaining qualification lease (closed)
+
+```text
+human / integration editor: @wbdevworld / WS3
+task: A4-REMAINING-QUALIFICATION-01
+product_freeze: a4f3284c35785dbb0efe3843d38084f12911ac15
+accepted_closeout: 033463ec5ef5f2aa580a7c3c412251bcfacab396
+preview: dpl_FAaW712WnVBZ9Wr7B8MXCurJEeXW / q2u9baevb
+staging_db: iegxncvpsyaitkpzywcr
+training_wp: training.cetechbpa.com
+scope: Lane1 exact-build software checks; Lane2 isolated backup/restore; Lane3 timings+#115/#132; Lane4 read-only commercial decision sheet; consolidated results
+allowed:
+  CURRENT-WORK.md
+  docs/testing/parallel-completion-2026-10-07/**
+  docs/staff/** only if staff-visible test instructions must change (declare impact)
+  browser session on q2u9baevb (noncommercial)
+  ≤3 sequential diagnostic quotes (fixture class Woo14985/qty1/customer4/B2B/loc_a1); no Pay/prepare/tender/finalize/order/charge/refund/stock
+  Management API read/export assessment; isolated local restore only
+forbidden: product/schema/bridge source edits; reapply migrations; reinstall bridge; rerun FPM proof; redeploy; alias move; A+D replay; new paid orders; shared/paid/production restore; stock edits; open shift; kill PHP
+production_effects: NONE
+verdict: NOT READY FOR PRODUCTION
+staff_documentation_impact: NONE
+```
+
+## COMBINED-CANDIDATE-2026-10-08 — FPM + tester handoff closeout COMPLETE (WS3)
+
+```text
+human / integration editor: @wbdevworld / WS3
+task: FPM-AND-TESTER-HANDOFF-CLOSEOUT-A4-01
+status: COMPLETE
+continues: STAGING-ROLLOUT-A4F3284-01 (owner approval 2026-10-09T18:15:52Z)
+exact_sha / product freeze: a4f3284c35785dbb0efe3843d38084f12911ac15
+native_fpm_guard_proof: PASS 2026-10-09T22:27:09Z fpm-fcgi pid 26369 fa478ea4… (three synthetic outcomes)
+preview: dpl_FAaW712… / q2u9baevb unchanged
+staff_entrypoints: UPDATED → q2u9baevb + TESTER-ACCEPTANCE-CHECKLIST-a4f3284.md
+receipt: docs/testing/parallel-completion-2026-10-07/STAGING-ROLLOUT-A4F3284-EXECUTION-RECEIPT.md
+remaining_tester_owned: device/PWA/scanner/paper; draft persistence; receipt reload; native print dialog
+forbidden: product source edits; new Preview; alias move; production; A+D
+production_effects: NONE
+verdict: NOT READY FOR PRODUCTION
+staff_documentation_impact: UPDATED
+```
+
+## COMBINED-CANDIDATE-2026-10-08 — controlled staging rollout APPLIED (WS3)
+
+```text
+human / integration editor: @wbdevworld / WS3
+task: STAGING-ROLLOUT-A4F3284-01
+owner_approval: CETECH-POS-WS3-Controlled-Staging-Rollout-a4f3284 — APPROVED 2026-10-09T18:15:52Z ("i appprove")
+owner_reassignment: WS3/Cursor owns execution of this bounded staging rollout
+exact_sha: a4f3284c35785dbb0efe3843d38084f12911ac15
+source_tree: 58d0297dd6fc419bc583c1197fc3c7c95d635242
+bridge_tree: de27630af10885d166401cba4043a02e3b2a4d2b
+ci: 37964935009 SUCCESS
+staging_db: iegxncvpsyaitkpzywcr ONLY
+training_wp: training.cetechbpa.com ONLY
+status: STAGING/TRAINING APPLIED + candidate Preview READY
+hosted_migrations: 20261009214234…20261009214238 (source 20261009130000…20261009160000)
+bridge_live_runtime: fa478ea4… DISK VERIFIED; native FPM guard proof PASS (closeout A4-01)
+preview: dpl_FAaW712WnVBZ9Wr7B8MXCurJEeXW / q2u9baevb / BUILD_ID a4f3284…
+shared_tester: UNCHANGED dpl_nxWGr… / 816e0bb…
+previous_452: retained dpl_F3uXp… (superseded for testing)
+receipt: docs/testing/parallel-completion-2026-10-07/STAGING-ROLLOUT-A4F3284-EXECUTION-RECEIPT.md
+tester_checklist: docs/testing/parallel-completion-2026-10-07/TESTER-ACCEPTANCE-CHECKLIST-a4f3284.md
+remaining: tester device/physical print/PWA/scanner; draft persistence; receipt reload
+authenticated_noncommercial: PASSED software (precise T-D labels in receipt/checklist)
+forbidden: production, main merge, RD-01 re-apply, A+D, shared alias move, new sale/charge
+production_effects: NONE
+verdict: NOT READY FOR PRODUCTION
+staff_documentation_impact: UPDATED (closeout A4-01)
+```
+## DB-SEC-01 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â staging APPLIED AND VERIFIED (RD-01 complete)
+
+Owner authorized staging apply 2026-10-08T15:07:56Z. Hosted version 20261008151307. Do not re-apply. Production apply not authorized. Docs lease only for receipt/mapping updates.
+
+```text
+human / implementing editor: @wbdevworld
+workstream: WS3
+task: DB-SEC-01 / RD-01 receipt
+branch: ws3/combined-candidate-2026-10-08
+status: staging APPLIED AND VERIFIED
+source: #143 c512b106bce1a0efcfd9c2caeddd54ad9e43dccd
+blob: 6936b0e68a5bb3fbd4e08bd4b5f50b08d78bfef5
+source_version: 20261006025100
+hosted_version: 20261008151307
+receipt: docs/testing/parallel-completion-2026-10-07/RD-01-STAGING-EXECUTION-RECEIPT.md
+evidence: docs/workstreams/WS-03-CORE-DATA-INTEGRATION/evidence/DB-SEC-01.md
+allowed:
+  CURRENT-WORK.md
+  docs/testing/parallel-completion-2026-10-07/**
+  docs/workstreams/WS-03-CORE-DATA-INTEGRATION/evidence/DB-SEC-01.md
+forbidden:
+  re-apply #143 / bulk db push
+  production DDL
+  RLS / GRANT TRUNCATE
+  application code
+  production promotion
+staff documentation impact: NONE
+```
+
+## #105 Admin/Manager control plane ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ACTIVE P0
 
 Owner/user explicitly made #105 the next blocking implementation before final R9 closure.
 
@@ -59,14 +251,14 @@ System health is complete on `ws3/admin-105-control-plane` / PR #109. It is a re
 
 Audit browser is complete on `ws3/admin-105-control-plane` / PR #109. It is a bounded read-only view over append-only `pos_admin_audit_events`. Owner, Admin, and Support may read organization-wide events; operational managers may read only events tied to verified managed locations. Raw before/after JSON is not exposed to the browser.
 
-## Temporary senior #105 cashier-boundary cleanup — COMPLETE
+## Temporary senior #105 cashier-boundary cleanup ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â COMPLETE
 
 Owner/user's 2026-09-22 instruction to continue #105 authorizes this bounded task-specific reassignment so step 9 can remove technical/admin/support diagnostics from ordinary cashier surfaces. This does **not** permanently alter `OWNERSHIP.md`. Ben / `@Ben-001-sys` remains the independent reviewer of the frozen #105 head.
 
 ```text
 human / implementing editor: @wbdevworld
 workstream: WS1 surface boundary + bounded WS3 composition
-task: #105 step 9 — remove technical/admin controls from ordinary cashier surfaces
+task: #105 step 9 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â remove technical/admin controls from ordinary cashier surfaces
 branch: ws3/admin-105-control-plane
 starting SHA: 32cae139f60534b631a8dee725f04fb82788db6d
 allowed WS1:
@@ -108,14 +300,14 @@ review:
 
 Cashier diagnostics cleanup is source-complete on `ws3/admin-105-control-plane` / PR #109. Ordinary cashier Settings/System status no longer expose raw build/API/schema/quote diagnostics or repair controls; safe R9 local-recovery and update-safety behavior remains intact. System status is reached from Settings rather than primary cashier navigation.
 
-## Temporary senior #105 source closeout — COMPLETE
+## Temporary senior #105 source closeout ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â COMPLETE
 
 Owner/user's 2026-09-22 instruction to finish #105 authorizes this bounded task-specific reassignment for the remaining source candidate. This does **not** permanently alter `OWNERSHIP.md`. Ben / `@Ben-001-sys` remains the independent reviewer of the frozen #105 head.
 
 ```text
 human / implementing editor: @wbdevworld
 workstream: WS3 control plane + bounded WS1 cashier surfaces
-task: #105 source closeout — return approval continuation, cashier diagnostic boundary, manager register assignment, refund reconciliation, X/Z read, cash correction, close visibility
+task: #105 source closeout ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â return approval continuation, cashier diagnostic boundary, manager register assignment, refund reconciliation, X/Z read, cash correction, close visibility
 branch: ws3/admin-105-control-plane
 starting SHA: ae854d1a1085887c1f379e83eabba9f7164bc0ff
 allowed WS1:
@@ -160,7 +352,7 @@ review:
 
 #105 exact head `054e386fe13360f255fb44fdfc37cec7fcfe4218` passed source review, exact-SHA Preview identity, and staging database acceptance. The final UI/language audit reopened only a bounded Management presentation remediation: missing Staff/Policy layout styles, compact responsive navigation, 44px Management touch targets, operator-facing Management copy, and CI-running Management viewport tests. Business authorization/accounting/return/payment/PWA semantics remain frozen. The staging `pos_admin_control_plane` migration is already applied; production remains untouched. This remediation requires fresh exact-head CI and a new independent Ben review before runtime acceptance resumes. R9 remains paused.
 
-The inherited operational policy includes `returnApprovalRequired` (default false). Return preview resolves it server-side at organization → location → register scope. Staging and production do not fall back to an ephemeral policy store. An operational manager binds an atomic, audited, replay-safe approval. The cashier continues the same stored return; the server matches return id and fingerprint and does not require a pasted approval id. Approval does not refund or change stock. `pos_returns.status` stays `approval_required` until existing return execution advances it.
+The inherited operational policy includes `returnApprovalRequired` (default false). Return preview resolves it server-side at organization ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ location ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ register scope. Staging and production do not fall back to an ephemeral policy store. An operational manager binds an atomic, audited, replay-safe approval. The cashier continues the same stored return; the server matches return id and fingerprint and does not require a pasted approval id. Approval does not refund or change stock. `pos_returns.status` stays `approval_required` until existing return execution advances it.
 
 Manager register assignment can change registers only for operational staff already assigned at a location the manager manages. It cannot change the operational role, add a location, invite, disable, or change Owner/Admin/Support membership. Owner and Admin keep full assignment management.
 
@@ -168,7 +360,7 @@ Cash correction reuses the existing exact-reversal rule: the signed amount is th
 
 Management X report is the live expected-cash view and is not stored. Z report reads the durable closed report and is not recalculated. Shift close controls on the register follow effective policy; the server close command remains the final gate.
 
-## 5PM bounded UX-01 cashier-copy slice — ACTIVE until 2026-09-21 17:00 Africa/Accra
+## 5PM bounded UX-01 cashier-copy slice ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ACTIVE until 2026-09-21 17:00 Africa/Accra
 
 Owner/user explicitly authorizes only this narrow #78 slice for today's release candidate.
 
@@ -196,9 +388,9 @@ forbidden:
 
 # Current work ledger
 
-## SALE-RECOVERY-01 — explicit original-order repair and truthful recovery feedback
+## SALE-RECOVERY-01 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â explicit original-order repair and truthful recovery feedback
 
-Owner report on 2026-10-03: “IT'S NOT RESOLVING”, with the installed-client Needs attention sale-recovery screen. Existing urgent direction requires fixing discovered tester defects while preserving the same tester origin. This is a new bounded WS3 recovery task; the expired receipt-only release exception is not general approval for this task.
+Owner report on 2026-10-03: ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“IT'S NOT RESOLVINGÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â, with the installed-client Needs attention sale-recovery screen. Existing urgent direction requires fixing discovered tester defects while preserving the same tester origin. This is a new bounded WS3 recovery task; the expired receipt-only release exception is not general approval for this task.
 
 ```text
 editor: @wbdevworld / WS3
@@ -244,7 +436,7 @@ staff-documentation impact: YES
 
 Source implementation is complete on the bounded recovery branch, preserving the pinned UI/receipt baseline. The [recovery evidence](docs/testing/sale-recovery-2026-10-03/README.md) records original command/attempt preservation, lost-response handoff, first-write-wins persistence, reservation/payment guards, contributor provenance and verification limits. No live sale repair or staging rollout has occurred. Contributor source leases are released after root import; root retains qualification/handoff only. Final remote head, exact-head CI and bounded freshness observations belong in the PR handoff. Different-human review or an explicit owner exception for this candidate remains pending.
 
-## 5PM emergency senior expansion — ACTIVE until 2026-09-21 17:00 Africa/Accra
+## 5PM emergency senior expansion ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ACTIVE until 2026-09-21 17:00 Africa/Accra
 
 Owner/user explicitly authorizes a bounded same-day expansion so production-MVP usability defects #82, #83 and #84 can be resolved in parallel before the 17:00 deadline. This is a temporary task-specific reassignment only and does **not** permanently alter `OWNERSHIP.md`.
 
@@ -254,7 +446,7 @@ independent reviewer: @Ben-001-sys
 deadline: 2026-09-21 17:00 Africa/Accra
 mode: IMPLEMENT / INTEGRATE / REVIEW-HANDOFF
 authorized issues:
-  #82 Orders → Return items selected-flow visibility/focus/durable handoff
+  #82 Orders ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Return items selected-flow visibility/focus/durable handoff
   #83 Sell customer picker remote-first BFF search
   #84 immutable sale-time customer presentation snapshot
 already integrated:
@@ -288,11 +480,11 @@ review rule:
   each exact candidate must be CI-green and independently reviewed by @Ben-001-sys before integration
 ```
 
-This block explicitly overrides the earlier temporary R9 line `forbidden: #82–#88 implementation` **only for #82, #83 and #84 during this emergency window**. Historical ownership/provenance before this authorization remains historical and must not be rewritten.
+This block explicitly overrides the earlier temporary R9 line `forbidden: #82ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ#88 implementation` **only for #82, #83 and #84 during this emergency window**. Historical ownership/provenance before this authorization remains historical and must not be rewritten.
 
 Updated 2026-09-20. Canonical repo `WB-DevWorld/cetech-pwa-pos`. Historical scheduler detail remains in Git/PR/evidence history. This file controls current assignment and implementation authority.
 
-## Temporary senior R9 reconciliation — ACTIVE
+## Temporary senior R9 reconciliation ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ACTIVE
 
 Senior/user `@wbdevworld` authorizes reconciling accepted protected main plus the unmerged R10 post-merge ledger closeout into existing R9 / PR #63 so the candidate inherits current truth without merging `ws3/r10-prep-close` to protected main first. This does **not** permanently alter `OWNERSHIP.md`. Historical R10 closeout evidence below remains retained.
 
@@ -300,7 +492,7 @@ Senior/user `@wbdevworld` authorizes reconciling accepted protected main plus th
 human: @wbdevworld
 workstream: WS3
 mode: RECONCILE / RUNTIME QUALIFICATION
-task: R9 — PWA recovery, operational close, update safety and genuine installed-client evidence
+task: R9 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â PWA recovery, operational close, update safety and genuine installed-client evidence
 branch: batch/r9-pwa-recovery-operational-close
 PR: #63
 previous R9 head: 5592c29ca5a74ca59d7684ccf1a376ae10b37a13
@@ -317,7 +509,7 @@ allowed:
   directly relevant WS3 CURRENT-WORK/STATUS/HANDOFF/evidence
   PR #63 description/evidence
 forbidden:
-  #82–#88 implementation
+  #82ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ#88 implementation
   REC-01 redesign
   R10 implementation expansion
   Woo pricing authority changes
@@ -333,9 +525,9 @@ Keep PR #63 DRAFT until genuine installed-client / reconnect / multi-tab / opera
 
 Ben / `@Ben-001-sys` submitted CHANGES_REQUESTED on exact head `51c2c9bf0148d04113090565585fad3a4c7c2371`. The current slice is a bounded review-fix of SHA `BUILD_ID` minimum-version deadlock only. Do not start installed-device evidence until Ben confirms the source fix. Do not request Emmanuel.
 
-## Temporary senior R10 Prep reconciliation — MERGED / PREPARATION COMPLETE / CONSUMED INTO R9
+## Temporary senior R10 Prep reconciliation ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â MERGED / PREPARATION COMPLETE / CONSUMED INTO R9
 
-PR #79 squash-merged 2026-09-20T13:11:06Z. Source SHA: `bb35b8790e1370bc1b0aed6f39fc73c92549019a`. Resulting protected main: `c49045dd02c46574af5d341cc65c177116fa7306`. Ben / `@Ben-001-sys` APPROVED that exact head. This is qualification **preparation** only. QA-01 / #29 and REL-01 / #30 remain OPEN. R10 GO/NO-GO remains NO-GO. Production remains unauthorized. Follow-ups #82–#88 remain separate. Next active task is PR #63 R9 reconciliation; do not start it in this closeout. This does **not** permanently alter `OWNERSHIP.md`.
+PR #79 squash-merged 2026-09-20T13:11:06Z. Source SHA: `bb35b8790e1370bc1b0aed6f39fc73c92549019a`. Resulting protected main: `c49045dd02c46574af5d341cc65c177116fa7306`. Ben / `@Ben-001-sys` APPROVED that exact head. This is qualification **preparation** only. QA-01 / #29 and REL-01 / #30 remain OPEN. R10 GO/NO-GO remains NO-GO. Production remains unauthorized. Follow-ups #82ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ#88 remain separate. Next active task is PR #63 R9 reconciliation; do not start it in this closeout. This does **not** permanently alter `OWNERSHIP.md`.
 
 Historical lease (unchanged): Senior/user `@wbdevworld` authorizes reconciling accepted REC-01 main into existing R10 Prep / PR #79 so Ben reviews current main plus the QA/release qualification framework, not obsolete `1399a8fac...`. This does **not** permanently alter `OWNERSHIP.md`. REC-01 application source and CD-01 exact-SHA Preview infrastructure are already on protected main and are inherited here by a zero-overlap two-parent merge.
 
@@ -343,7 +535,7 @@ Historical lease (unchanged): Senior/user `@wbdevworld` authorizes reconciling a
 human: @wbdevworld
 workstream: WS3
 mode: RECONCILE / QUALIFICATION PREPARATION
-task: R10 Prep — reconcile QA/release qualification framework onto accepted REC-01 main
+task: R10 Prep ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â reconcile QA/release qualification framework onto accepted REC-01 main
 branch: ws3/r10-qa-release-preparation
 PR: #79
 previous head: 1399a8fac4c7b4b77fe436ccda1c88893a072101
@@ -357,7 +549,7 @@ allowed:
   PR #79 description/evidence
 forbidden:
   R9 implementation
-  #82–#88 implementation
+  #82ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ#88 implementation
   REC-01 source changes
   Woo commercial behavior changes
   electronic payment execution
@@ -371,9 +563,9 @@ forbidden:
 
 Do not ask Ben to review obsolete `1399a8fac...`. Request review only on the replacement exact head after CI-green qualification. Do not merge PR #79 from this assignment. This historical instruction is closed by the squash merge above.
 
-## Temporary senior REC-01 main-reconciliation — MERGED / CLOSED
+## Temporary senior REC-01 main-reconciliation ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â MERGED / CLOSED
 
-PR #80 merged 2026-09-20T12:27:52Z. Accepted source SHA: `6995e1c2324432e4cba234f6844bcb224e3d7a57`. Resulting protected main: `7c5d6ca0cd93d7aeb5a7a1c97153ca187548c3fb`. REC-01 application acceptance PASS for the behavior actually exercised. Follow-ups #82–#88 are separate and must not reopen REC-01. This does **not** permanently alter `OWNERSHIP.md`.
+PR #80 merged 2026-09-20T12:27:52Z. Accepted source SHA: `6995e1c2324432e4cba234f6844bcb224e3d7a57`. Resulting protected main: `7c5d6ca0cd93d7aeb5a7a1c97153ca187548c3fb`. REC-01 application acceptance PASS for the behavior actually exercised. Follow-ups #82ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ#88 are separate and must not reopen REC-01. This does **not** permanently alter `OWNERSHIP.md`.
 
 Historical lease (unchanged): Senior/user `@wbdevworld` authorizes reconciling merged CD-01 exact-SHA Preview main into existing REC-01 / PR #80 so Ben reviews current main plus REC-01, not obsolete `7e9da309...`. This does **not** permanently alter `OWNERSHIP.md`. CD-01 Preview infrastructure is already on protected main and is inherited here by a zero-overlap two-parent merge.
 
@@ -381,7 +573,7 @@ Historical lease (unchanged): Senior/user `@wbdevworld` authorizes reconciling m
 human: @wbdevworld
 workstream: WS3
 mode: IMPLEMENT / INTEGRATE
-task: REC-01 — reconcile exact-SHA Preview main into immutable receipt snapshots
+task: REC-01 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â reconcile exact-SHA Preview main into immutable receipt snapshots
 branch: ws3/receipt-product-name-sku
 PR: #80
 previous REC-01 head: 7e9da309bddbccdabf41b8ba753351e8697041d9
@@ -407,11 +599,11 @@ forbidden:
 
 Do not ask Ben to review obsolete `7e9da309...`. Request review only on the replacement exact head after CI-green qualification.
 
-## Temporary senior CD-01 exact-SHA Preview authority — MERGED / INHERITED
+## Temporary senior CD-01 exact-SHA Preview authority ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â MERGED / INHERITED
 
 Merged to protected main as `c1f659ea118a885180fe6a543797efa908abf210` (PR #81 squash, 2026-09-19T19:57:06Z). REC-01 / PR #80 is now also merged. Exact-SHA Preview infrastructure is accepted; dispatch remains a later authorized action and is not production promotion. This does **not** permanently alter `OWNERSHIP.md`.
 
-## Temporary senior CD-01 exact-SHA Preview authority — HISTORICAL (merged as c1f659ea)
+## Temporary senior CD-01 exact-SHA Preview authority ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â HISTORICAL (merged as c1f659ea)
 
 Senior/user `@wbdevworld` authorizes this bounded WS3 infrastructure/security extension so REC-01 can be qualified on an immutable Vercel Preview without merging the candidate. This does **not** permanently alter `OWNERSHIP.md`. Authority is task-specific and expires at CD-01 exact-SHA Preview merge/handoff or explicit senior close.
 
@@ -456,7 +648,7 @@ review rule: repository policy remains one independent exact-head APPROVED revie
 
 Do not merge PR #81 from this assignment. Do not dispatch Preview until the replacement head is independently approved. Do not change PR #80 source.
 
-## Temporary senior STG-01 final review-fix — MERGED / CLOSED / HISTORICAL
+## Temporary senior STG-01 final review-fix ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â MERGED / CLOSED / HISTORICAL
 
 STG-01 / PR #77 was accepted onto protected main as `c320be8c5ad41c190200381cd52f853dd95212dc`. This lease is no longer current assignment authority. Later accepted main advances: CD-01 `c1f659ea118a885180fe6a543797efa908abf210`, REC-01 `7c5d6ca0cd93d7aeb5a7a1c97153ca187548c3fb`. Do not reuse.
 
@@ -466,7 +658,7 @@ Historical lease (unchanged): Senior/user `@wbdevworld` authorizes Cursor workin
 human: @wbdevworld
 workstream: WS3 (+ bounded WS2 catalog source-row pagination)
 mode: IMPLEMENT (review-fix)
-task: STG-01 final review-fix — assigned-register selection/persistence + Woo catalog pagination/convergence
+task: STG-01 final review-fix ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â assigned-register selection/persistence + Woo catalog pagination/convergence
 branch: batch/stg-01-staging-runtime-acceptance
 reviewed SHA: 33d3748b525dfea2e4979e58e795516df27aa552
 origin/main: 778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5
@@ -475,15 +667,15 @@ allowed WS2: wordpress/cetech-pos-bridge catalog source-row pagination cursor; t
 forbidden: another contributor branch; UX-02/03/04 reopen; electronic capability; R9/R10/REC-01; pricing/quote engine; payment; refund/restock; customer; unrelated Sell UI; Woo order behavior; frozen-contract churn unless unavoidable; production promotion; merging PR #77; protected main
 ```
 
-## Temporary senior UX-04 review-fix — EXPIRED / CLOSED
+## Temporary senior UX-04 review-fix ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â EXPIRED / CLOSED
 
 Bounded review remediation on existing `ws1/ux-04-operational-workspaces-demo-alignment` from reviewed SHA `b36720093477f38e58f3cfc1132da8aa61887ffe`. Senior/user `@wbdevworld` reauthorized only the minimum existing UX-04 WS1/WS3/WS2 read paths to (1) recover the same payment/sale identity from Needs Attention Check / Recover and (2) stop customer search from replacing the local customer cache, plus truthful name/company/phone search. This does not permanently change `OWNERSHIP.md`. Do not reuse. Do not create another feature branch. Do not mutate PR #77 or `batch/stg-01-staging-runtime-acceptance`. Do not merge main. Do not redesign UX-04. Do not reopen UX-02/UX-03.
 
 ```text
 human: @wbdevworld
-workstream: WS1 (+ bounded WS3 attention recovery wiring; smallest read-only WS2 customer search) — EXPIRED / CLOSED
+workstream: WS1 (+ bounded WS3 attention recovery wiring; smallest read-only WS2 customer search) ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â EXPIRED / CLOSED
 mode: IMPLEMENT (review-fix)
-task: UX-04 final review-fix — attention recovery identity + customer search/cache truth
+task: UX-04 final review-fix ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â attention recovery identity + customer search/cache truth
 branch: ws1/ux-04-operational-workspaces-demo-alignment
 reviewed SHA: b36720093477f38e58f3cfc1132da8aa61887ffe
 base / STG-01: c857b097bca5b4eaaed4a4de0e33826639a91809
@@ -493,15 +685,15 @@ was allowed optional WS2: wordpress/cetech-pos-bridge/includes/class-customers-e
 forbidden: UX-04 redesign; UX-02/UX-03 Sell/payment redesign; Woo order-history subsystem; Woo/B2BKing/WoodMart pricing; frozen contracts; customer/order/payment/refund/stock mutation; PR #77; shared STG-01 batch; protected main; production deploy
 ```
 
-## Temporary senior UX-04 authority — EXPIRED / CLOSED
+## Temporary senior UX-04 authority ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â EXPIRED / CLOSED
 
 Closed on contributor branch `ws1/ux-04-operational-workspaces-demo-alignment` after the UX-04 operational-workspace handoff. Base remained `origin/batch/stg-01-staging-runtime-acceptance` `c857b097bca5b4eaaed4a4de0e33826639a91809` (accepted UX-03-containing STG-01 / PR #77 head). This does not permanently change `OWNERSHIP.md`. Do not reuse. Do not mutate PR #77 or `batch/stg-01-staging-runtime-acceptance`. Do not merge main. Do not deploy production.
 
 ```text
 human: @wbdevworld
-workstream: WS1 (+ bounded WS3 integration; smallest read-only WS2 customer search) — EXPIRED / CLOSED
+workstream: WS1 (+ bounded WS3 integration; smallest read-only WS2 customer search) ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â EXPIRED / CLOSED
 mode: IMPLEMENT (complete)
-task: UX-04 — remaining operational workspaces demo alignment + real runtime
+task: UX-04 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â remaining operational workspaces demo alignment + real runtime
 branch: ws1/ux-04-operational-workspaces-demo-alignment
 start SHA / UX-03-containing STG-01 head: c857b097bca5b4eaaed4a4de0e33826639a91809
 origin/main at close: 778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5
@@ -511,45 +703,45 @@ was allowed optional WS2: wordpress/cetech-pos-bridge/** + tests/bridge/** small
 forbidden (unchanged): UX-02/UX-03 Sell/payment redesign; Woo/B2BKing/WoodMart pricing formulas; frozen-contract edits for UI convenience; order/payment/refund/stock mutation via WS2; PR #77; shared STG-01 batch; protected main; production deploy; VitePOS cutover; Demo controls / fictional production data
 ```
 
-## Temporary senior UX-03 final review-fix — EXPIRED / CLOSED
+## Temporary senior UX-03 final review-fix ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â EXPIRED / CLOSED
 
 Bounded visible ProductCard refresh on `ws1/ux-03-payment-barcode-variable-range` from reviewed SHA `253ef2886ed4c447d911ba11f789375f1e35c66d`. Senior/user `@wbdevworld` reauthorized only the minimum WS1 paths to re-query the current Sell search presentation after `catalogProjectionGeneration` advances, without remounting the workspace or mutating cart/quote/checkout. This does not permanently change `OWNERSHIP.md`. Do not reuse. Do not mutate PR #77 or `batch/stg-01-staging-runtime-acceptance`.
 
 ```text
 human: @wbdevworld
-workstream: WS1 — EXPIRED / CLOSED
+workstream: WS1 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â EXPIRED / CLOSED
 mode: IMPLEMENT (review-fix)
-task: UX-03 final review-fix — refresh visible product price presentation
+task: UX-03 final review-fix ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â refresh visible product price presentation
 branch: ws1/ux-03-payment-barcode-variable-range
 reviewed SHA: 253ef2886ed4c447d911ba11f789375f1e35c66d
 was allowed: apps/pos-web/src/features/sell/**, tests/frontend/**, CURRENT-WORK.md, docs/workstreams/WS-01-FRONTEND-UX/**
 forbidden: payment UX redesign; cancel semantics; Woo/B2BKing/WoodMart pricing; WordPress; frozen contracts; PR #77; shared STG-01 batch; protected main
 ```
 
-## Temporary senior UX-03 review-fix — EXPIRED / CLOSED
+## Temporary senior UX-03 review-fix ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â EXPIRED / CLOSED
 
 Bounded cache-invalidation remediation on `ws1/ux-03-payment-barcode-variable-range` from reviewed SHA `408cbaeaf8389052cc8936d9e3dfefb0c72f4a46`. Senior/user `@wbdevworld` reauthorized only the minimum WS1/WS3 paths to add a local catalog projection generation and clear the Sell price cache when it advances, plus the selected-tender fail-closed handler. This does not permanently change `OWNERSHIP.md`. Do not reuse. Do not mutate PR #77 or `batch/stg-01-staging-runtime-acceptance`.
 
 ```text
 human: @wbdevworld
-workstream: WS1 (+ bounded WS3 local/app wiring) — EXPIRED / CLOSED
+workstream: WS1 (+ bounded WS3 local/app wiring) ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â EXPIRED / CLOSED
 mode: IMPLEMENT (review-fix)
-task: UX-03 review-fix — variable price cache invalidation
+task: UX-03 review-fix ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â variable price cache invalidation
 branch: ws1/ux-03-payment-barcode-variable-range
 reviewed SHA: 408cbaeaf8389052cc8936d9e3dfefb0c72f4a46
 was allowed: apps/pos-web/src/features/sell/**, apps/pos-web/src/app/pos-app.tsx, apps/pos-web/src/local/catalog-sync.ts, apps/pos-web/src/local/index.ts, tests/frontend/**, CURRENT-WORK.md, docs/workstreams/WS-01-FRONTEND-UX/**
 forbidden: payment UX redesign; cancel semantics; Woo/B2BKing/WoodMart pricing; frozen contracts; PR #77; shared STG-01 batch; protected main
 ```
 
-## Temporary senior UX-03 authority — EXPIRED / CLOSED
+## Temporary senior UX-03 authority ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â EXPIRED / CLOSED
 
 Closed on contributor branch `ws1/ux-03-payment-barcode-variable-range` after the UX-03 payment / barcode / variable-range handoff. This does not permanently change `OWNERSHIP.md`. Do not reuse this exception. Do not mutate PR #77 or `batch/stg-01-staging-runtime-acceptance` as part of this closeout.
 
 ```text
 human: @wbdevworld
-workstream: WS1 (+ bounded WS3 integration) — EXPIRED / CLOSED
+workstream: WS1 (+ bounded WS3 integration) ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â EXPIRED / CLOSED
 mode: IMPLEMENT (complete)
-task: UX-03 — payment experience, barcode exception states, variable-product price ranges
+task: UX-03 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â payment experience, barcode exception states, variable-product price ranges
 branch: ws1/ux-03-payment-barcode-variable-range
 start SHA / UX-02 baseline: 04166509c2b9505980338e4baaf630981c00d2e8
 START_FRESHNESS_SNAPSHOT UTC: 2026-09-19T08:59:20Z
@@ -562,20 +754,20 @@ was allowed control-plane: CURRENT-WORK.md, docs/workstreams/WS-01-FRONTEND-UX/*
 forbidden (unchanged): unrelated WS2; Woo/B2BKing/WoodMart pricing formulas; frozen-contract edits for UI convenience; unrelated schema/auth/PWA; production deploy/data; protected main; VitePOS cutover; mutating PR #77 / shared STG-01 batch
 ```
 
-## Temporary senior UX-02 closeout — EXPIRED / CLOSED
+## Temporary senior UX-02 closeout ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â EXPIRED / CLOSED
 
 Closed on `ws1/ux-02-sell-demo-alignment` after the variable-parent advisory-price review remediation. Implementation SHA `6409d4264ad67184d100a3a9c806deebe9236ad9`. This exception is no longer current assignment authority. OWNERSHIP.md is unchanged. Do not treat this as permission for further WS1/WS2/WS3 cross-ownership work.
 
 ## Current authority
 
-- accepted `main`: `c49045dd02c46574af5d341cc65c177116fa7306` — squash-merged `[R10 PREP] QA and release qualification framework` (PR #79). Source SHA `bb35b8790e1370bc1b0aed6f39fc73c92549019a`.
+- accepted `main`: `c49045dd02c46574af5d341cc65c177116fa7306` ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â squash-merged `[R10 PREP] QA and release qualification framework` (PR #79). Source SHA `bb35b8790e1370bc1b0aed6f39fc73c92549019a`.
 - STG-01 accepted: PR #77 merged as `c320be8c5ad41c190200381cd52f853dd95212dc`.
 - exact-SHA Preview infrastructure accepted: PR #81 squash-merged as `c1f659ea118a885180fe6a543797efa908abf210`.
 - REC-01 accepted: source `6995e1c2324432e4cba234f6844bcb224e3d7a57`; resulting main at that time `7c5d6ca0cd93d7aeb5a7a1c97153ca187548c3fb`; application acceptance PASS only for the behavior actually exercised.
 - R10 Prep / PR #79: MERGED / PREPARATION COMPLETE. QA-01 / #29 remains OPEN. REL-01 / #30 remains OPEN. R10 GO/NO-GO remains NO-GO.
 - R10 post-merge ledger closeout `cf78330f2c5f1b9b8d231aad5b7bdc9a24e2d731` is consumed as an R9 ancestry parent. It is not separately merged to protected main.
 - Current active task: PR #63 R9 reconciliation / runtime qualification on `batch/r9-pwa-recovery-operational-close`.
-- Follow-ups #82–#88 remain separate and are not started here.
+- Follow-ups #82ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ#88 remain separate and are not started here.
 - Issue #4 remains OPEN; `pricingParityVerified=false`.
 - Production remains unauthorized.
 - Live electronic payment, real refund/restock and VitePOS cutover remain independently gated.
@@ -584,7 +776,7 @@ Closed on `ws1/ux-02-sell-demo-alignment` after the variable-parent advisory-pri
 human: @wbdevworld
 workstream: WS3
 mode: RECONCILE / RUNTIME QUALIFICATION
-task: R9 — PWA recovery, operational close, update safety and genuine installed-client evidence
+task: R9 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â PWA recovery, operational close, update safety and genuine installed-client evidence
 branch: batch/r9-pwa-recovery-operational-close
 PR: #63
 previous R9 head: 5592c29ca5a74ca59d7684ccf1a376ae10b37a13
@@ -594,7 +786,7 @@ independent reviewer: @Ben-001-sys
 Emmanuel: UNAVAILABLE / NOT A CURRENT REVIEW ACTION
 ```
 
-Do not implement #82–#88. Do not promote production. Keep PR #63 DRAFT until installed-device gates pass.
+Do not implement #82ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ#88. Do not promote production. Keep PR #63 DRAFT until installed-device gates pass.
 
 ## Historical R10 Prep closeout lease (consumed; not current authority)
 
@@ -602,7 +794,7 @@ Do not implement #82–#88. Do not promote production. Keep PR #63 DRAFT until i
 human: @wbdevworld
 workstream: WS3
 mode: CLOSEOUT
-task: R10 Prep — record PR #79 squash-merge and leave R9 / #63 as the next active task
+task: R10 Prep ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â record PR #79 squash-merge and leave R9 / #63 as the next active task
 branch: ws3/r10-prep-close
 merged PR: #79
 source SHA: bb35b8790e1370bc1b0aed6f39fc73c92549019a
@@ -611,7 +803,7 @@ independent reviewer of #79: @Ben-001-sys
 Emmanuel / @Emmanuel-coder-prog: UNAVAILABLE / NOT REQUESTED
 forbidden:
   R9 / PR #63 source edits
-  #82–#88 implementation
+  #82ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ#88 implementation
   production promotion
   live electronic payment
   refund/restock
@@ -624,7 +816,7 @@ This historical closeout did not modify PR #63. It is now consumed as R9 ancestr
 
 ## Historical STG-06 / R8 authority (retained, not current)
 
-- historical accepted `main` at that time: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` — squash-merged `[R8] Safe returns and payment/register states (#69)`.
+- historical accepted `main` at that time: `778348c0bcf2f3cef5280cf6cf7a1d057aa8f9e5` ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â squash-merged `[R8] Safe returns and payment/register states (#69)`.
 - STG-01 candidate observed on `origin/batch/stg-01-staging-runtime-acceptance` at STG-06 freshness cutoff: `a02cd21875d0717adb6694d293b41575302b2415` (forward from previously recorded `4e47a1f793bb8b75f6cf4fa03ee8f66675b4a897` by STG-02 route persistence + docs correction; that contributor branch already started at that SHA).
 - STG-02 route persistence docs-corrected head: `a02cd21875d0717adb6694d293b41575302b2415` on `ws3/stg-02-route-session-persistence`. That STG-06 contributor branch started exactly there.
 - Issue #4 remained OPEN; `pricingParityVerified=false`. Production promotion, live Paystack, real refund/restock and VitePOS deactivation were not authorized.
@@ -634,7 +826,7 @@ This historical closeout did not modify PR #63. It is now consumed as R9 ancestr
 human: @wbdevworld
 workstream: WS3
 mode: REMEDIATE
-task: STG-06 — live quote identity mapping + register authority preservation
+task: STG-06 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â live quote identity mapping + register authority preservation
 branch: ws3/stg-06-quote-identity-register-authority
 start SHA: a02cd21875d0717adb6694d293b41575302b2415
 allowed: apps/pos-web/src/server/**, apps/pos-web/src/core/**, apps/pos-web/src/app/**, apps/pos-web/src/local/**, CURRENT-WORK.md, docs/workstreams/WS-03-CORE-DATA-INTEGRATION/**, docs/integration/evidence/**
@@ -656,32 +848,32 @@ This snapshot records the pre-acceptance STG-01 recovery state. STG-01 / #70, CO
 
 ### WS3 / @wbdevworld
 
-1. **STG-02 / #71 — staff session, CSRF and authoritative register state**
+1. **STG-02 / #71 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â staff session, CSRF and authoritative register state**
    - branch: `ws3/stg-02-session-runtime-composition`
    - remove hard-coded `Staff member` / `shiftOpen=true` authority;
    - establish real transitional staff session through the existing identity abstraction and `/api/pos/v1/session`;
    - preserve exact-origin CSRF and server authorization;
    - drive cashier/register/shift UI from authoritative server state.
 
-2. **STG-04 / #73 — training Woo catalog projection**
+2. **STG-04 / #73 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â training Woo catalog projection**
    - branch: `ws3/stg-04-training-catalog-projection`
    - staging must stop treating `CASHIER_SEED_CATALOG` as operational truth;
    - local/test/demo may retain synthetic fixtures;
    - staging consumes a provider-derived, rebuildable IndexedDB projection;
    - Woo remains commerce truth; quote pricing remains bridge/Woo/B2BKing/WoodMart owned.
 
-3. **STG-06 / #75 — functional staging acceptance gate**
+3. **STG-06 / #75 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â functional staging acceptance gate**
    - branch: `ws3/stg-06-functional-staging-gate`
    - root HTTP smoke remains necessary but is not application acceptance;
    - acceptance must prove real session/CSRF, authoritative register state, real training projection, quote path and authorized synthetic cash-sale trace before #25/#54/#70 can close.
 
-4. **STG-07 / #76 — CD summary audit fix**
+4. **STG-07 / #76 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â CD summary audit fix**
    - branch: `ws3/stg-07-cd-summary-audit-fix`
    - fix Bash backtick command substitution in deployment summary without changing deployment semantics.
 
-### WS2 boundary — task-specific implementation reassignment to @wbdevworld
+### WS2 boundary ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â task-specific implementation reassignment to @wbdevworld
 
-**STG-05 / #74 — training Woo bridge producer/runtime**
+**STG-05 / #74 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â training Woo bridge producer/runtime**
 
 - branch: `ws2/stg-05-training-bridge-runtime`
 - original WS2 owner remains Emmanuel / `@Emmanuel-coder-prog`, but the senior authority explicitly reassigns implementation of this task to `@wbdevworld` for this remediation cycle because Emmanuel currently lacks SSH/repository implementation access.
@@ -707,7 +899,7 @@ Ben publishes exact tested source SHAs + mount instructions. WS3 mounts accepted
 2. STG-05 bridge producer verification/minimal repair (may run in parallel with STG-02; keep separate branch/path ownership).
 3. STG-04 training catalog projection consumes the verified STG-05 producer boundary.
 4. Ben delivers STG-03 + FE-07 source SHAs.
-5. Integration editor imports only declared tested owner/reassigned-owner commits into `batch/stg-01-staging-runtime-acceptance`, preserving source SHA → imported SHA → tested combined SHA provenance.
+5. Integration editor imports only declared tested owner/reassigned-owner commits into `batch/stg-01-staging-runtime-acceptance`, preserving source SHA ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ imported SHA ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ tested combined SHA provenance.
 6. Mount accepted WS1 features in WS3-owned app composition; no accepted route may fall through to the generic R4 placeholder.
 7. Apply STG-07 audit fix.
 8. Implement/run STG-06 functional staging acceptance against the exact immutable Vercel deployment produced from the candidate.
@@ -742,7 +934,7 @@ Semantic conflict: `apps/pos-web/src/app/pos-app.tsx` and `apps/pos-web/src/conf
 - No wildcard origin/CSRF bypass.
 - Do not clear IndexedDB/drafts/journal as a routine recovery or catalog-sync technique.
 
-## Final #105 source remediation — IN SOURCE, NOT RUNTIME-ACCEPTED
+## Final #105 source remediation ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â IN SOURCE, NOT RUNTIME-ACCEPTED
 
 The 2026-09-23 whole-system remediation stays on `ws3/admin-105-control-plane` / PR #109.
 Starting remote head: `b5e70f6edd338428cc5e079db85ec4da45879645`.
@@ -755,7 +947,7 @@ Location lifecycle uses forward migration `20260923140000_pos_admin_topology.sql
 No persistent staging Owner was created. The next controlled runtime action is `docs/runbooks/ADMIN-105-FIRST-OWNER-BOOTSTRAP.md`.
 Screen classification is `docs/workstreams/WS-03-CORE-DATA-INTEGRATION/evidence/ADMIN-105-SCREEN-CAPABILITY-MATRIX.md`.
 Fresh `@Ben-001-sys` review is required for the exact final SHA. Older review does not carry forward.
-## STAFF-QUOTE-132 — Urgent quote latency correction
+## STAFF-QUOTE-132 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Urgent quote latency correction
 
 Owner instruction, 2026-10-02 16:02 UTC: fix discovered defects immediately because testers are waiting, and serve the correction at the existing integration staging alias when they refresh. This bounded runtime task supersedes the earlier documentation-only freeze; it does not authorize production promotion or an integration/main merge.
 
@@ -787,7 +979,7 @@ Paths beginning `src/` or `e2e/` are relative to `apps/pos-web`. The consumer de
 ---
 
 
-## UI-REF-20261003 — owner-authorized UI refinement — REVIEW HANDOFF
+## UI-REF-20261003 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â owner-authorized UI refinement ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â REVIEW HANDOFF
 
 Owner instruction, 2026-10-03 01:39 UTC: implement the UI changes discussed in this chat, with an 80-minute target and parallel agents as needed. This is an explicit bounded WS1 presentation reassignment to the senior/user implementing editor (@wbdevworld), expiring at review handoff. Existing source/reference bytes and commercial workflows remain intact.
 
@@ -805,7 +997,7 @@ Implementation and local production verification are complete. Contributor lease
 
 ---
 
-## RECEIPT-REF-01 — reference receipt layout and bounded settings — REVIEW HANDOFF
+## RECEIPT-REF-01 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â reference receipt layout and bounded settings ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â REVIEW HANDOFF
 
 Owner instructions on 2026-10-03: implement the receipt reference and accepted configuration recommendation; update the existing tester URL after qualification. This authorizes a bounded WS1 receipt/settings presentation reassignment to the senior implementing editor and the necessary WS3 schema, settings, immutable snapshot and print composition changes. It does not transfer general WS1 ownership. Current explicit owner instructions govern this new assignment over historical task prohibitions below.
 
@@ -840,9 +1032,9 @@ Receipt presentation settings remain location-scoped; paper width is a separate 
 
 Receipt source implementation and local combined verification are complete. Final remote candidate/CI/freshness and rollout state are recorded in PR #134. Independent reviewer: @Ben-001-sys (approval pending). The owner subsequently authorized a one-time staging exception, and candidate `37bcc76ac33e3c9eb8bded2c49cb2f319223ae89` plus the additive receipt migration were deployed to the existing tester alias. Normal independent review remains pending; no merge or production promotion occurred. All contributor worktree leases for that task are released after import.
 
-## RECEIPT-TOP-01 — preserve selected paper and start printing at the top
+## RECEIPT-TOP-01 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â preserve selected paper and start printing at the top
 
-Current owner instruction, 2026-10-03: “my same size but it should be at the top.” This is a bounded correction to the receipt release, retaining the existing tester URL and paper/text size. The previous exact receipt source `37bcc76ac33e3c9eb8bded2c49cb2f319223ae89` is already on staging under the recorded owner exception; PR #134 remains open for Ben. No independent approval is implied by deployment.
+Current owner instruction, 2026-10-03: ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“my same size but it should be at the top.ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â This is a bounded correction to the receipt release, retaining the existing tester URL and paper/text size. The previous exact receipt source `37bcc76ac33e3c9eb8bded2c49cb2f319223ae89` is already on staging under the recorded owner exception; PR #134 remains open for Ben. No independent approval is implied by deployment.
 
 ```text
 human / integrating editor: @wbdevworld, WS3
@@ -875,7 +1067,7 @@ forbidden:
   payment, pricing, stock, refunds, PWA recovery or historical snapshot rewrites
   protected main, frozen PR #133, unrelated peer branches, production
 release:
-  owner explicitly instructed “deploy the fixes using the bypass” on 2026-10-03
+  owner explicitly instructed ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“deploy the fixes using the bypassÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â on 2026-10-03
   one-time staging release exception for this exact tested positioning correction
   no fabricated independent review, merge, protection/workflow changes
   normal independent review remains pending with Ben; no blanket future exception
@@ -886,9 +1078,9 @@ staff-documentation impact: YES, top alignment and selected printer paper behavi
 The receipt_render contributor produced local source `e595619e4bd6cf1609ad8e768397d0e1bbbbf5bd` from the pinned equivalent receipt baseline. Its four allowed files were imported without other contributor changes. The contributor lease is released; the root is now the sole integration editor. Local source review found no new runtime blocker. Focused verification passed: 16 unit tests, 9 Chromium tests, focused lint and TypeScript. A negative control using the old helper failed the actual PDF heading-position assertion (~197 pt down), demonstrating that the new tests detect the reported defect rather than only checking DOM position or CSS spelling. Exact remote combined SHA, CI, final freshness and rollout evidence belong in the PR handoff. Physical printer/Safari output remains unverified.
 
 
-## UI-REL-20261003 — combined UI and receipt tester deployment — ACTIVE
+## UI-REL-20261003 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â combined UI and receipt tester deployment ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ACTIVE
 
-Current owner instructions, 2026-10-03 03:04 UTC: “IMPLEMENT THE UI AND RETAIN THE RECEIPT CHANGES”, “DEPLOY THEM TO SAME LINK”, “AS TESTERS”. This explicitly authorizes combined staging qualification and deployment under the previously requested one-time owner release exception. The implementing/integration editor remains @wbdevworld / WS3 with the bounded WS1 UI reassignment. AI review supplies evidence; no independent human approval is asserted.
+Current owner instructions, 2026-10-03 03:04 UTC: ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“IMPLEMENT THE UI AND RETAIN THE RECEIPT CHANGESÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â, ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“DEPLOY THEM TO SAME LINKÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â, ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“AS TESTERSÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â. This explicitly authorizes combined staging qualification and deployment under the previously requested one-time owner release exception. The implementing/integration editor remains @wbdevworld / WS3 with the bounded WS1 UI reassignment. AI review supplies evidence; no independent human approval is asserted.
 
 - Integration branch: `ws3/ui-receipts-testers-2026-10-03`; root is the sole integration editor, using an isolated checkout.
 - UI source: PR #135 / `b8fb4610092dc544e5bba76f920048d170088600`, tree `2ee0f9b23b3b797cb7a40c29c3be5d180c3d5e58`.
@@ -906,7 +1098,7 @@ Current owner instructions, 2026-10-03 03:04 UTC: “IMPLEMENT THE UI AND RETAIN
 Final combined local/remote SHA, exact-head CI results, immutable Preview and alias evidence belong in the combined PR handoff and its release evidence index. The earlier UI task's two-pass cutoff remains historical; this is a new owner-authorized deployment assignment, not an autonomous third freshness pass.
 
 
-## MANAGE-REMEDIATION-01 — current tester management defects — IMPLEMENT / REVIEW HANDOFF
+## MANAGE-REMEDIATION-01 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â current tester management defects ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â IMPLEMENT / REVIEW HANDOFF
 
 Owner report on 2026-10-03 requests receipt settings across locations with local differences, usable staff/access and removal controls, actionable manager return oversight, truthful system status and matching skeletons, and continuation of the unresolved sale investigation. Existing urgent direction is to fix discovered tester defects. This is a new bounded assignment, not reuse of the consumed SALE-RECOVERY-01 release exception.
 
@@ -930,9 +1122,9 @@ Owner report on 2026-10-03 requests receipt settings across locations with local
 The combined source and local qualification are complete; [management remediation evidence](docs/testing/management-remediation-2026-10-03/README.md) records contributor imports, 1,718 unit and 72 browser checks, migration/static-review limits and live diagnostic boundaries. Root retains publication, exact-head CI and two-pass handoff only. Final remote source, Linux/Windows CI, freshness cutoff and any new release decision belong in the draft PR. No live repair, settings/access/lifecycle mutation, migration application or tester alias change has occurred in this assignment.
 
 
-## PERF-SAFETY-20261005 — Phase 2 bounded performance/correctness batch — ACTIVE
+## PERF-SAFETY-20261005 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Phase 2 bounded performance/correctness batch ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ACTIVE
 
-Owner instruction, 2026-10-05: “alright... on to the next phase”, after the Phase-1 technical verdict. This authorizes the report's narrow implementation sequence; it does not authorize production, migrations, release bypass, or tester alias changes.
+Owner instruction, 2026-10-05: ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“alright... on to the next phaseÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â, after the Phase-1 technical verdict. This authorizes the report's narrow implementation sequence; it does not authorize production, migrations, release bypass, or tester alias changes.
 
 - Acting editor/integration lead: @wbdevworld / WS3 senior. Fresh bounded WS1 reassignment: scanner intent preservation only, from original WS1 owner Ben to this owner-requested remediation. Independent human reviewer: @Ben-001-sys; AI reviews are supporting evidence only.
 - Branch/worktree: `ws3/performance-safety-2026-10-05` / `implementation/pos-performance`. Baseline exact deployed source `816e0bb6963aff760609a3c7e4817e603c4ffdf0`; protected main `c49045dd02c46574af5d341cc65c177116fa7306`; integration `1021cd113c783e25030fe9c0bda1be9ddcf5888c`. Start refs fetched/pruned and open PRs/issues reconciled. Tester Preview `dpl_nxWGrSLqaLBGNNN683QjdixNBjF6` remains unchanged.
@@ -947,15 +1139,15 @@ Owner instruction, 2026-10-05: “alright... on to the next phase”, after the 
 - Next candidate: selected-register same-hydration duplicate read elimination, under a separate frozen manifest before its edits. Quote scheduling remains diagnostic-only until measured latency tradeoff is justified.
 - Expiry: this tested review-candidate handoff; no automatic extension to broad optimizations. Final publication requires exactly two bounded freshness observations after checkpoint; stop after Pass 2.
 
-### REGISTER-READ-01 — separate bounded WS3 optimization
+### REGISTER-READ-01 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â separate bounded WS3 optimization
 
 Frozen scope: `docs/testing/performance-2026-10-05/scope-register-read-01.json`, SHA256 73a6183f925a469a8f119555134c84cd37623174ed7fe502694f2511de3e2702. Same freshly reconciled base816e0bb. Contributor `transaction_woo_audit`, isolated worktree, edits only staff-runtime.ts and its test. Root owns evidence/import/publication. Reuse only a successful matching register response from this same hydration; failed/missing/mismatched results retain fallback reads; explicit selection, fresh context/assignment and activeShift authority remain unchanged. Staff documentation impact: NO, internal redundant success-path read only. No database/server/policy/cache/deployment change. Lease expires after exact tested import/handoff.
 
-### REGISTER-REFRESH-GUARD-01 — measured connected reliability defect
+### REGISTER-REFRESH-GUARD-01 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â measured connected reliability defect
 
 Strengthening the duplicate-read regression exposed a delayed activeShift hydration overwriting a newer applied shift; the historical test had not entered the claimed asynchronous barrier. This bounded WS3 correctness fix is recorded separately before edits, rather than silently expanding REGISTER-READ-01. Frozen scope `docs/testing/performance-2026-10-05/scope-register-refresh-guard-01.json`, SHA256 ebb3a9dcf4676f58ef26e98d9d2be395ad916303d6ba147e451ee057752e27d8. Same controller/test contributor and base; recheck existing captured refresh authority after awaited hydration, before state/preference/offline publication. No global applyShift epoch redesign, server/auth-policy change, migration or release. Staff documentation impact NO: existing stale-refresh guarantee is enforced. Acceptance requires original-source negative control, current auth fail-closed behavior and newer-shift preservation.
 
-### Scanner boundary test maintenance — explicit scope extension before edit
+### Scanner boundary test maintenance ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â explicit scope extension before edit
 
 The full native browser suite passes77/77. Full unit has only an obsolete literal scanner-hook assertion (1733/1734 pass). Frozen `scope-scan-test-maintenance.json`, SHA256 c4429877856c675cdcfb9c9c3dfdce25744f5443ab9341a04ffe9762a6075678, adds only `tests/frontend/sell-boundaries.test.ts` to the connected test scope. Root adapts the static assertion to the expanded modal/catalog/transition/checkout/variation gate; no production behavior change or test deletion. This is regression maintenance for SCAN-INTENT-01, not another optimization or #104 implementation.
 
@@ -963,12 +1155,12 @@ The full native browser suite passes77/77. Full unit has only an obsolete litera
 
 Imported register `f194f841` as `b80bd9e`, browser `e0be691f` as `23cda3b`, scanner `9fee56cd` as `e9c92379`. Exact non-overlapping contribution files and production parity independently reviewed; all three contributor editor leases are released. Root is sole remaining integration/docs/publication editor. Full native browser77/77, unit1734/1734 (`TZ=UTC`), typecheck/build and lint pass (five warnings only in untouched paths). Connected literal scanner-boundary assertion was updated under its pre-recorded test scope. Test-generated tracked fixture/HTML changes are restored, not included. Final remote tree/head, exact-head CI and exactly two final freshness observations belong in the PR/final report. No source is merged or live accepted; independent human review remains pending. Tester alias, migrations and production unchanged.
 
-### CI receipt alert locator — bounded test-only gate repair
+### CI receipt alert locator ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â bounded test-only gate repair
 
 Exact head7addddf3 WindowsCI passed; Linuxdatabase/pgTAP/PHP/lint/typecheck/unit/buildpassed, browser76/77passed. Theexisting receipt-shared-settings mismatch test matched both the actual receipt-unavailable alert and Next route announcer. Frozen `scope-ci-alert-locator-01.json`, SHA256 1bb4dbf148778c05265c33ba47ff62ae8340410cbd1d1cc570ee70f4d11adc97, permits onlythat test locator, evidence/ledger andits scopefile. Root narrowsboth scope-denial alerts to intended error text, retains noeditablefields/noSave assertions; zero retries/skips orreceiptproduction changes. This is explicitly recorded beforeedit, a mandatory gate repair underWS3 rather than an unrelated product refactor.
 
 
-## PERF-QUOTE-20261005 — fresh bounded continuation
+## PERF-QUOTE-20261005 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â fresh bounded continuation
 
 Owner instruction, 5 October 2026 at 19:19 UTC: continue the next steps, multiple scoped steps, subagents and thorough qualification.
 
@@ -989,7 +1181,7 @@ The prior PERF-SAFETY-20261005 task is complete as a review candidate: remote `3
 The following files were recorded before product edits and frozen separately under audit/phase3/scopes; actual diff must be a subset of their union. This is not implementation of general #104 enforcement.
 
 1. QUOTE-CONTEXT-01, SHA256 `e724ac1cec77cde8aac63f467069ea9f5f8eac27dfadd57ac2de890d27a7b060`: full commercial request applicability before rendering confirmed price/Pay, including same-cart/revision location/customer changes. Actual mounted baseline exposes stale confirmed eligibility; the full-key prototype fails closed.
-2. QUOTE-DISPATCH-01, SHA256 `7040649a015dd33a9215d8bf2cc4d07cd115e8903d5f7430c7610285cf4a42ac`: bounded 100ms revision dispatch prototype. HELD after benchmark: burst calls20→6–7 and continuous80→10, but worst-phase healthy latest readiness adds about94ms. Live capacity benefit is unproven. No dispatch source implementation/import is currently authorized; preserve prototype evidence for a separate retain/reject decision.
+2. QUOTE-DISPATCH-01, SHA256 `7040649a015dd33a9215d8bf2cc4d07cd115e8903d5f7430c7610285cf4a42ac`: bounded 100ms revision dispatch prototype. HELD after benchmark: burst calls20ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢6ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ7 and continuous80ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢10, but worst-phase healthy latest readiness adds about94ms. Live capacity benefit is unproven. No dispatch source implementation/import is currently authorized; preserve prototype evidence for a separate retain/reject decision.
 3. QUOTE-TIMING-01, SHA256 `98a063b3ed3065d519ab1b249551b4419719ce354f7e19fa2091bda39dd7e6a9`: safe Server-Timing header from existing BFF stage durations. Exact route/formatter/tests only; no extra upstream requests.
 
 Current implementation queue: context guard; safe phase header; connected qualification and handoff. No scheduling delay is introduced while its measured healthy-path tradeoff lacks runtime capacity justification.
@@ -1011,3 +1203,5 @@ Expiry: tested new-batch review handoff. This task has a fresh start and exactly
 Imported QUOTE-CONTEXT-01 `56572b99` as `a3a24b26` and QUOTE-TIMING-01 `3f8f7667` as `87d62b11`; exactly2+4 approved source/test files. Both contributor implementation leases are released; root alone completes documentation, publication and handoff. QUOTE-DISPATCH-01 remains HELD with no implementation files. Native exact-hook comparison passes14/14 scenarios and28/28 candidate checks; baseline fails4 context scenarios. Full production-build browser suite77/77, unit1763/1763 across210 files, build/typecheck/foundation/tooling76 PASS. Lint has zero errors and five existing warnings in untouched files. Known39 unit-generated outputs and12 browser-generated PNGs are preserved externally and restored, not committed. No retries/skips, migration, grants/indexes, Woo/Delivery, dependencies, business writes or production effects.
 
 Independent AI review supports qualification only; different-human review remains required. Exact remote tree/head, Linux/Windows CI, preview identity and exactly two final freshness observations are recorded externally and in the draft PR. The shared tester alias and installed bridge source are not qualified by this local checkpoint. No live transaction speed improvement is claimed. New task leases expire on its tested review-candidate handoff; any further source change requires a new bounded task/scope.
+
+

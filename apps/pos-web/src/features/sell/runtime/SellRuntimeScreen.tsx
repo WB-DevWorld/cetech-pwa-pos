@@ -21,6 +21,7 @@ import type { ReceiptViewModel } from "../state/checkoutSession";
 import type { CashCheckoutScope } from "./cashCheckoutController";
 import type { CartDraft } from "../../../../../../docs/contracts/domain.generated";
 import type { PaymentMethodCapabilities } from "../../../server/payments/method-capabilities";
+import type { ManualMobileMoneyClient } from "../../../app/checkout-client";
 
 export type SellSessionPorts = {
   readonly catalog: CatalogPort;
@@ -46,6 +47,7 @@ export type SellSessionPorts = {
   readonly catalogAvailability?: CatalogAvailability;
   readonly catalogProjectionGeneration?: number;
   readonly paymentMethods?: PaymentMethodCapabilities;
+  readonly manualPayments?: ManualMobileMoneyClient;
   readonly nextSaleCustomer?: CustomerSearchResultView | null;
   readonly onNextSaleCustomerApplied?: (customer: CustomerSearchResultView) => void;
   readonly customerSearch?: (query: string) => Promise<readonly CustomerSearchResultView[]>;
@@ -188,9 +190,13 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
     const methods = ports.paymentMethods;
     return {
       cash: true,
-      mobileMoney: canStartElectronic && methods?.mobileMoney === "configured",
-      card: canStartElectronic && methods?.card === "configured",
+      mobileMoney:
+        canStartElectronic &&
+        methods?.mobileMoney === "configured" &&
+        methods.integratedCheckout === "paystack_test",
+      card: canStartElectronic && methods?.card === "configured" && methods.integratedCheckout === "paystack_test",
       externalElectronic: canStartElectronic && methods?.externalTerminal === "configured",
+      manualMobileMoney: methods?.manualMobileMoney === "enabled",
     };
   }, [ports.paymentMethods, ports.payments?.initialize]);
 
@@ -286,12 +292,11 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
 
   const persist = useCallback(
     (state: SellWorkspaceState) => {
-      setWorkspace(state);
       const draft = workspaceToCartDraft(state, locationId, now().toISOString());
-      void enqueuePersistence(async () => {
+      return enqueuePersistence(async () => {
         await drafts.save(draft);
         await rememberCartId(state.cartId);
-      }).catch(() => undefined);
+      });
     },
     [drafts, enqueuePersistence, locationId, now, rememberCartId],
   );
@@ -304,7 +309,6 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
     ): Promise<void> => {
       const nextDraft = workspaceToCartDraft(next, locationId, now().toISOString());
       await enqueuePersistence(() => ports.replaceActiveCart(previous.cartId, nextDraft));
-      setWorkspace(next);
     },
     [enqueuePersistence, locationId, now, ports],
   );
@@ -402,8 +406,11 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
         onNextSaleCustomerApplied={ports.onNextSaleCustomerApplied}
         onCustomerQueryChange={searchCustomers}
         onWorkspaceChange={persist}
+        onCartDurable={setWorkspace}
         onTransitionCart={transitionActiveCart}
         quote={presentedQuote.quote}
+        quoteCartId={workspace?.cartId}
+        quoteCustomerId={workspace?.selectedCustomer?.id ?? null}
         onRetryQuote={presentedQuote.retry}
         eligibility={presentedQuote.eligibility}
         checkoutReady={cashCheckout.ready}
@@ -504,6 +511,15 @@ export function SellRuntimeScreen(ports: SellSessionPorts) {
         onContactManager={() => {
           void electronic.resolve();
         }}
+        onManualRecorded={(reference) => {
+          cashCheckout.noteManualReference(reference);
+          void cashCheckout.resolvePayment();
+        }}
+        manualClient={ports.manualPayments}
+        onPrepareManual={() => cashCheckout.prepareManualTender()}
+        onManualActivity={(active) => cashCheckout.setManualActivity(active)}
+        onManualRetained={(paymentId) => cashCheckout.retainManualPayment(paymentId)}
+        onReplaceManualConfirmKey={() => cashCheckout.replaceManualConfirmKey()}
       />
       {printReceipt ? (
         <div className="receipt-print-host" aria-hidden="true">

@@ -5,6 +5,8 @@ import { mergeStoredPayment, mergeStoredSale } from "./monotonic";
 import type {
   CommandScopeBinding,
   FaultInjectingCheckoutStore,
+  SaleTenderClaimResult,
+  SaleTenderFamily,
   OutboxEvent,
   PosSaleRecord,
   PrepareOperationDiagnostic,
@@ -73,6 +75,7 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
   const idempotency = new Map<string, IdempotencyRow>();
   const scopeByTransaction = new Map<string, CommandScopeBinding>();
   const chains = new Map<string, Promise<void>>();
+  const tenderClaims = new Map<Uuid, SaleTenderFamily>();
 
   const store: FaultInjectingCheckoutStore = {
     failNextReceiptWrite: false,
@@ -171,6 +174,14 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
         return "shift_required";
       }
       if (movement.kind === "cash_sale" && movement.transactionId) {
+        const tender = await store.claimSaleTender(movement.transactionId, "cash", {
+          organizationId: movement.organizationId ?? shift.organizationId,
+          locationId: shift.locationId,
+          actorId: movement.actorId,
+        });
+        if (tender.kind === "conflict") {
+          return "tender_conflict";
+        }
         const duplicate = movements.some(
           (row) => row.kind === "cash_sale" && row.transactionId === movement.transactionId,
         );
@@ -210,6 +221,73 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
 
     async expectedCash(shiftId) {
       return shifts.get(shiftId)?.expectedCash;
+    },
+
+    async claimSaleTender(transactionId, family, _scope): Promise<SaleTenderClaimResult> {
+      void _scope;
+      const cashMoves = movements.some(
+        (row) => row.kind === "cash_sale" && row.transactionId === transactionId,
+      );
+      const paymentId = paymentsByTx.get(transactionId);
+      const payment = paymentId ? payments.get(paymentId) : undefined;
+      const electronicEvidence = Boolean(
+        payment && payment.tender !== "cash" && payment.status !== "cancelled" && payment.status !== "failed",
+      );
+      const cashEvidence = cashMoves || payment?.tender === "cash";
+      const inferred: SaleTenderFamily | undefined = cashEvidence
+        ? "cash"
+        : electronicEvidence
+          ? "electronic"
+          : tenderClaims.get(transactionId);
+      if (inferred && inferred !== family) {
+        return { kind: "conflict", held: inferred };
+      }
+      if (inferred === family || tenderClaims.get(transactionId) === family) {
+        tenderClaims.set(transactionId, family);
+        return { kind: "held" };
+      }
+      tenderClaims.set(transactionId, family);
+      return { kind: "acquired" };
+    },
+
+    async recordVerifiedCashSale(input) {
+      let appendedId: Uuid | undefined;
+      if (input.movement) {
+        const appended = await store.appendCashMovement(input.movement);
+        if (appended === "ok") {
+          appendedId = input.movement.id;
+        } else if (appended === "duplicate_sale") {
+          /* Unique ledger already durable; continue payment persist. */
+        } else if (appended === "shift_required" || appended === "negative_expected" || appended === "tender_conflict") {
+          return appended;
+        } else {
+          return "negative_expected";
+        }
+      }
+      try {
+        await store.savePayment(input.payment);
+        return "ok";
+      } catch (error) {
+        if (appendedId) {
+          const idx = movements.findIndex((row) => row.id === appendedId);
+          if (idx >= 0) {
+            const [removed] = movements.splice(idx, 1);
+            if (removed) {
+              const shift = shifts.get(removed.shiftId);
+              if (shift && removed.kind !== "opening_float") {
+                shifts.set(removed.shiftId, {
+                  ...shift,
+                  expectedCash: {
+                    minor: (shift.expectedCash?.minor ?? 0) - removed.signedAmount.minor,
+                    currency: shift.openingFloat.currency,
+                  },
+                });
+              }
+            }
+          }
+        }
+        throw error;
+      }
     },
 
     async saveShiftReport(report) {
@@ -368,6 +446,16 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
         store.failNextPaymentWrite = false;
         throw new Error("injected POS payment persistence failure");
       }
+      const sale = sales.get(payment.transactionId);
+      const family = payment.tender === "cash" ? "cash" : "electronic";
+      const tender = await store.claimSaleTender(payment.transactionId, family, {
+        organizationId: sale?.organizationId ?? "org_a",
+        locationId: sale?.locationId ?? "loc_a",
+        actorId: payment.actorId,
+      });
+      if (tender.kind === "conflict") {
+        throw new Error("sale tender family conflict");
+      }
       const existingTx = paymentsByTx.get(payment.transactionId);
       if (existingTx && existingTx !== payment.paymentId) {
         throw new Error("one payment intent per transaction");
@@ -383,6 +471,53 @@ export function createInMemoryCheckoutStore(): FaultInjectingCheckoutStore {
       const merged = mergeStoredPayment(payments.get(payment.paymentId), payment);
       payments.set(merged.paymentId, merged);
       paymentsByTx.set(merged.transactionId, merged.paymentId);
+    },
+
+    async commitManualAttestation(payment) {
+      const existing = payments.get(payment.paymentId);
+      if (!existing || existing.transactionId !== payment.transactionId || existing.provider !== "manual_mobile_money") {
+        return { kind: "rejected" };
+      }
+      if (existing.status === "verified") {
+        return existing.providerReference === payment.providerReference
+          ? { kind: "stored", payment: existing }
+          : { kind: "conflict" };
+      }
+      if (existing.status !== "awaiting_customer") {
+        return { kind: "rejected" };
+      }
+      const refKey = `manual_mobile_money\0${payment.providerReference ?? ""}`;
+      const holder = payment.providerReference ? paymentsByProviderRef.get(refKey) : undefined;
+      if (holder && holder !== payment.paymentId) {
+        return { kind: "conflict" };
+      }
+      if (existing.providerReference) {
+        const oldKey = `manual_mobile_money\0${existing.providerReference}`;
+        if (paymentsByProviderRef.get(oldKey) === existing.paymentId) {
+          paymentsByProviderRef.delete(oldKey);
+        }
+      }
+      const stored = {
+        ...existing,
+        status: "verified" as const,
+        amount: payment.amount,
+        verifiedAt: payment.verifiedAt,
+        verificationSource: payment.verificationSource,
+        providerReference: payment.providerReference,
+        displayReference: payment.displayReference,
+        evidenceId: existing.evidenceId ?? payment.evidenceId,
+        actorId: existing.actorId,
+        manualNetwork: existing.manualNetwork ?? payment.manualNetwork,
+        merchantAccountLabel: existing.merchantAccountLabel ?? payment.merchantAccountLabel,
+        attestationActorId: payment.attestationActorId,
+        attentionReason: payment.attentionReason,
+      };
+      if (payment.providerReference) {
+        paymentsByProviderRef.set(refKey, payment.paymentId);
+      }
+      payments.set(stored.paymentId, stored);
+      paymentsByTx.set(stored.transactionId, stored.paymentId);
+      return { kind: "stored", payment: stored };
     },
 
     async saveProviderEvent(event) {

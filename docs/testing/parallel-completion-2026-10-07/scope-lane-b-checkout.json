@@ -1,0 +1,17 @@
+﻿{
+  "task": "PARALLEL-LANE-B-CHECKOUT",
+  "base": "0e383d84f11573ca89d6533c8cb7c35d79d7b261",
+  "allowed": [
+    "apps/pos-web/src/server/sales/**",
+    "apps/pos-web/src/features/sell/**",
+    "apps/pos-web/src/app/attention*/**",
+    "apps/pos-web/src/local/operation-journal*",
+    "tests/integration/sales/**",
+    "tests/frontend/**",
+    "docs/testing/parallel-completion-2026-10-07/**",
+    "CURRENT-WORK.md"
+  ],
+  "forbidden": ["state machine replacement", "blind retries", "weakening commercial guards", "wordpress/**", "supabase/migrations/**", "production"],
+  "staff_documentation_impact": "DECLARE_IF_AFFECTED",
+  "production_effects": "NONE"
+}

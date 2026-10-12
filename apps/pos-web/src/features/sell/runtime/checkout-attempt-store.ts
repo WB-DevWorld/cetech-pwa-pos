@@ -21,6 +21,12 @@ export type CheckoutAttemptRecord = {
   readonly cancelKey?: string;
   readonly cancelCorrelationId?: string;
   readonly paymentId?: string;
+  readonly tenderKind?: "manual_mobile_money";
+  readonly merchantReference?: string;
+  readonly manualBeginKey?: string;
+  readonly manualBeginCorrelationId?: string;
+  readonly manualConfirmKey?: string;
+  readonly manualConfirmCorrelationId?: string;
   readonly prepared?: PreparedSaleView;
   readonly stage: CheckoutStageView;
   readonly saleCompleted: boolean;

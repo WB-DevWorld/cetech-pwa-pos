@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { CommandContext } from "../../../../../../docs/contracts/domain.generated";
+import { loadPaystackTestPresentation, type ManualMobileMoneyClient } from "../../../app/checkout-client";
 import type { ElectronicPaymentSessionView, ElectronicTenderView } from "../../payments/electronicPaymentView";
 import {
   checkoutCloseRequestsCancel,
@@ -9,6 +11,7 @@ import {
   type CheckoutSessionView,
 } from "../state/checkoutSession";
 import { CashPaymentForm } from "./CashPaymentForm";
+import { ManualMobileMoneyPanel } from "./ManualMobileMoneyPanel";
 import { PaymentWaiting, electronicSessionLocksCheckout, electronicSessionShowsWaiting } from "./PaymentWaiting";
 import { ReceiptPaper } from "./ReceiptPaper";
 import { SellModal } from "./SellModal";
@@ -39,6 +42,12 @@ export function CheckoutDialog({
   electronicInFlight = false,
   onResolveElectronic,
   onContactManager,
+  onManualRecorded,
+  manualClient,
+  onPrepareManual,
+  onManualActivity,
+  onManualRetained,
+  onReplaceManualConfirmKey,
   initialCashReceived,
 }: {
   session: CheckoutSessionView;
@@ -60,10 +69,21 @@ export function CheckoutDialog({
   electronicInFlight?: boolean;
   onResolveElectronic?: () => void;
   onContactManager?: () => void;
+  onManualRecorded?: (reference: string) => void;
+  manualClient?: ManualMobileMoneyClient;
+  onPrepareManual?: () => Promise<{ begin: CommandContext; confirm: CommandContext } | null>;
+  onManualActivity?: (active: boolean) => void;
+  onManualRetained?: (paymentId: string) => void;
+  onReplaceManualConfirmKey?: () => CommandContext | undefined;
   initialCashReceived?: string;
 }) {
   const [cashReceived, setCashReceived] = useState(initialCashReceived ?? "");
   const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualReference, setManualReference] = useState<string | undefined>();
+  const [manualContexts, setManualContexts] = useState<{ begin: CommandContext; confirm: CommandContext } | undefined>();
+  const [presentation, setPresentation] = useState<{ paymentId: string; url: string } | undefined>();
+  const [presentationAttempt, setPresentationAttempt] = useState(0);
   const copy = describeCheckoutStage(session.stage);
   const dismissable = checkoutDismissAllowed(session) && !inFlight;
   const electronicLocked = electronicSessionLocksCheckout(electronicSession);
@@ -72,10 +92,57 @@ export function CheckoutDialog({
   const showCashForm =
     (session.stage === "cash" || session.stage === "cash_failed") && !electronicLocked && !showElectronicWaiting;
   const showChoose =
-    session.stage === "choose_payment" && session.prepared && !showElectronicWaiting && !confirmingCancel;
+    session.stage === "choose_payment" && session.prepared && !showElectronicWaiting && !confirmingCancel && !manualOpen && !session.manualResume;
+  const showManual = Boolean(session.prepared) && (manualOpen || session.manualResume === true);
+  const presentationUrl =
+    presentation && electronicSession && presentation.paymentId === electronicSession.paymentId
+      ? presentation.url
+      : undefined;
+
+  const prepareManualRef = useRef(onPrepareManual);
+  useEffect(() => {
+    prepareManualRef.current = onPrepareManual;
+  });
+  useEffect(() => {
+    if (!showManual) return;
+    let cancelled = false;
+    void prepareManualRef.current?.().then((contexts) => {
+      if (!cancelled && contexts) setManualContexts(contexts);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [showManual]);
+
+  useEffect(() => {
+    const paymentId = electronicSession?.paymentId;
+    const status = electronicSession?.status;
+    const resumable = status === "awaiting_customer" || status === "pending";
+    if (!resumable || !paymentId) return;
+    if (electronicSession?.tender !== "card" && electronicSession?.tender !== "mobile_money") return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      if (!cancelled) {
+        setPresentation((current) => (current?.paymentId === paymentId ? undefined : current));
+      }
+    }, 15_000);
+    void loadPaystackTestPresentation(paymentId).then((url) => {
+      if (cancelled) return;
+      window.clearTimeout(timer);
+      setPresentation((current) => {
+        if (!url) return current?.paymentId === paymentId ? undefined : current;
+        return { paymentId, url };
+      });
+    });
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [electronicSession?.paymentId, electronicSession?.status, electronicSession?.tender, presentationAttempt]);
   const closeRequestsCancel = checkoutCloseRequestsCancel(session.stage) && Boolean(onCancelPreparedSale);
   const closeDisabled =
     inFlight ||
+    session.manualBusy === true ||
     electronicInFlight ||
     electronicLocked ||
     session.stage === "confirming_cash" ||
@@ -115,6 +182,10 @@ export function CheckoutDialog({
     if (id === "cash") {
       onSelectCash?.();
       setCashReceived("");
+      return;
+    }
+    if (id === "manual_mobile_money") {
+      setManualOpen(true);
       return;
     }
     onSelectElectronic?.(id);
@@ -200,10 +271,35 @@ export function CheckoutDialog({
             onConfirm={onConfirmCash}
           />
         ) : null}
+        {showManual && session.prepared ? (
+          <ManualMobileMoneyPanel
+            prepared={session.prepared}
+            busy={busy || session.manualBusy === true}
+            client={manualClient}
+            beginContext={manualContexts?.begin}
+            confirmContext={manualContexts?.confirm}
+            onBack={() => setManualOpen(false)}
+            onActivity={(active) => onManualActivity?.(active)}
+            onRetained={(paymentId) => onManualRetained?.(paymentId)}
+            onReplaceConfirmKey={() => onReplaceManualConfirmKey?.()}
+            onRecorded={(reference) => {
+              setManualReference(reference);
+              setManualOpen(false);
+              onManualRecorded?.(reference);
+            }}
+          />
+        ) : null}
+        {manualReference ? (
+          <p data-manual-mobile-money-reference="">
+            Mobile Money, manual confirmation. Reference {manualReference}. Do not ask for another transfer.
+          </p>
+        ) : null}
         {showElectronicWaiting && electronicSession ? (
           <PaymentWaiting
             session={electronicSession}
             inFlight={busy}
+            presentationUrl={presentationUrl}
+            onRetryPresentation={() => setPresentationAttempt((attempt) => attempt + 1)}
             onResolve={() => onResolveElectronic?.()}
             onReturnToChoices={onBackToPaymentChoice}
             onContactManager={onContactManager}

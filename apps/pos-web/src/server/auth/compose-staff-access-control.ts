@@ -23,3 +23,17 @@ export function composeStaffAccessControl(
   }
   return createMemoryStaffAccessControl();
 }
+
+/**
+ * Fail-closed composition for validated-session paths. Composition failure is
+ * reported as null so callers deny authority instead of treating access as active.
+ */
+export function tryComposeStaffAccessControl(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): StaffAccessControl | null {
+  try {
+    return composeStaffAccessControl(env);
+  } catch {
+    return null;
+  }
+}

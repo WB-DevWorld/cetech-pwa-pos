@@ -51,6 +51,7 @@ export function CartLineRow({
     setError(null);
     if (result.kind === "commit") {
       onQuantityChange(line.lineId, result.quantity);
+      setDraft(line.quantity);
     }
   }
 

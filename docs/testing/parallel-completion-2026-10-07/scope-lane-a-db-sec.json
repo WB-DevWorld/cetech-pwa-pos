@@ -1,0 +1,16 @@
+{
+  "task": "PARALLEL-LANE-A-DB-SEC-02-03",
+  "base": "1d946359382bbf8b2dd561bf28dfabe4ada2f1ee",
+  "allowed": [
+    "supabase/migrations/20261009140000_db_sec_02_03_cash_authz.sql",
+    "docs/testing/parallel-completion-2026-10-07/db-sec-02-direct-cash-correction-probe.sql",
+    "docs/testing/parallel-completion-2026-10-07/db-sec-03-disabled-staff-probe.sql",
+    "docs/testing/parallel-completion-2026-10-07/DB-SEC-02-03-PROBE-STATUS.md",
+    "docs/testing/parallel-completion-2026-10-07/scope-lane-a-db-sec.json",
+    "docs/testing/parallel-completion-2026-10-07/HANDOFF-COMMIT-VALIDATE-PUBLISH-REPAIRS.md",
+    "CURRENT-WORK.md"
+  ],
+  "forbidden": ["hosted DDL", "RD-01 re-apply", "apps/pos-web/**", "wordpress/**", "production", "new tester Preview"],
+  "staff_documentation_impact": "NONE",
+  "production_effects": "NONE"
+}

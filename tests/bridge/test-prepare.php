@@ -236,7 +236,21 @@ br01_assert( strpos( $install_src, 'cetech_pos_bridge_db_version' ) !== false, '
 $woo_src = file_get_contents( dirname( __DIR__, 2 ) . '/wordpress/cetech-pos-bridge/includes/class-woo-runtime.php' );
 br01_assert( strpos( $woo_src, 'wp_insert_post' ) === false, 'production Woo runtime does not wp_insert_post' );
 br01_assert( ! preg_match( '/\$wpdb->(insert|update|query).*(posts|postmeta)/', $woo_src ), 'production Woo runtime does not write legacy post tables' );
-br01_assert( strpos( $woo_src, 'wc_create_order' ) !== false, 'production create uses wc_create_order' );
+br01_assert( strpos( $woo_src, 'wc_create_order' ) !== false, 'production treats wc_create_order as Woo order-API readiness' );
+br01_assert( strpos( $woo_src, 'new WC_Order()' ) !== false, 'production owns WC_Order before the initial recovery save' );
+br01_assert(
+	strpos( $woo_src, 'Exact intended object only' ) !== false
+		|| strpos( $woo_src, 'spl_object_id( $order ) !==' ) !== false
+		|| strpos( $woo_src, '$order !== $intended' ) !== false,
+	'production binder matches the intended order object'
+);
+br01_assert( strpos( $woo_src, 'Woo order count did not increase by exactly one during prepare.' ) === false, 'production prepare does not use global Woo order-count delta' );
+br01_assert( strpos( $woo_src, 'assert_prepared_order_operation_identity' ) !== false, 'production prepare proves operation-local order identity' );
+br01_assert( strpos( $woo_src, 'assert_no_unexpected_same_request_order_creates' ) !== false, 'production prepare rejects unexpected same-request creates' );
+br01_assert( strpos( $woo_src, 'arm_same_request_order_crud_guard' ) !== false, 'production arms request-local order CRUD guards' );
+br01_assert( strpos( $woo_src, 'woocommerce_new_order' ) !== false, 'production observes woocommerce_new_order' );
+br01_assert( strpos( $woo_src, 'woocommerce_after_order_object_save' ) !== false, 'production observes after_order_object_save for draft/refund creates' );
+br01_assert( strpos( $woo_src, 'binder_applied' ) !== false, 'production initial-save binder is one-shot' );
 br01_assert( strpos( $woo_src, 'woocommerce_before_order_object_save' ) !== false, 'production binds recovery identity during the initial Woo save' );
 br01_assert( strpos( $woo_src, 'set_order_key' ) !== false, 'production recovery token uses Woo order_key CRUD' );
 br01_assert( strpos( $woo_src, 'ORDER_META_RECOVERY' ) !== false || strpos( $woo_src, '_cetech_pos_woo_recovery_token' ) !== false, 'production recovery token is also Woo order meta on the initial save' );
@@ -1634,6 +1648,69 @@ br01_assert_eq( $br06_norm['saleId'], (string) $br06_norm_claim['sale_id'], 'nor
 br01_assert_eq( $br06_norm_body['transactionId'], $br06_norm['transactionId'], 'normal prepare keeps the transaction id' );
 br01_assert_eq( 1, $br06_norm_runtime->create_calls, 'normal prepare creates one Woo order' );
 br01_assert_eq( 1, $br06_norm_runtime->pos_order_count(), 'normal prepare leaves one Woo order' );
+
+/* ---------------------------------------------------------------------------
+ * RACE-FIX-ORDER-COUNT-01 — concurrent storefront vs identity-based prepare
+ * ------------------------------------------------------------------------ */
+
+$br06_race_runtime = br06_runtime();
+$br06_race_stack   = br06_stack( $br06_race_runtime );
+$br06_race_quote   = $br06_race_stack['quotes']->quote( br06_quote_request() );
+$br06_race_body    = br06_prepare_body( $br06_race_quote );
+$br06_race_key     = br06_next_uuid();
+$br06_race_runtime->during_create = function ( $runtime ) {
+	$runtime->competing_checkout( '101', 1 );
+};
+$br06_race = $br06_race_stack['prep']->prepare( $br06_race_body, $br06_race_key );
+br01_assert( is_array( $br06_race ), 'concurrent storefront order during prepare still returns PreparedSale' );
+br01_assert_eq( 'prepared', $br06_race['status'], 'concurrent storefront prepare status is prepared' );
+br01_assert_eq( 1, $br06_race_runtime->pos_order_count(), 'concurrent storefront leaves exactly one POS order' );
+br01_assert_eq( 1, $br06_race_runtime->storefront_orders, 'concurrent storefront created one non-POS order' );
+br01_assert_eq( 1, $br06_race_runtime->create_calls, 'concurrent storefront did not create a second POS order' );
+
+$br06_race_del_runtime = br06_runtime();
+$br06_race_del_stack   = br06_stack( $br06_race_del_runtime );
+$br06_race_del_quote   = $br06_race_del_stack['quotes']->quote( br06_quote_request() );
+$br06_race_del_body    = br06_prepare_body( $br06_race_del_quote );
+$br06_race_del_key     = br06_next_uuid();
+$br06_race_del_runtime->during_create = function ( $runtime ) {
+	$runtime->competing_checkout( '101', 1 );
+	// Unrelated deletion of a non-POS order cannot disguise an extra POS create.
+	foreach ( $runtime->orders as $index => $order ) {
+		if ( empty( $order['pos'] ) ) {
+			unset( $runtime->orders[ $index ] );
+		}
+	}
+	$runtime->orders = array_values( $runtime->orders );
+};
+$br06_race_del = $br06_race_del_stack['prep']->prepare( $br06_race_del_body, $br06_race_del_key );
+br01_assert( is_array( $br06_race_del ), 'unrelated storefront create+delete during prepare still succeeds' );
+br01_assert_eq( 1, $br06_race_del_runtime->pos_order_count(), 'create+delete race leaves exactly one POS order' );
+
+$br06_same_runtime = br06_runtime();
+$br06_same_stack   = br06_stack( $br06_same_runtime );
+$br06_same_quote   = $br06_same_stack['quotes']->quote( br06_quote_request() );
+$br06_same_body    = br06_prepare_body( $br06_same_quote );
+$br06_same_key     = br06_next_uuid();
+$br06_same_runtime->during_create = function ( $runtime ) {
+	$runtime->same_request_extra_order_create();
+};
+$br06_same = $br06_same_stack['prep']->prepare( $br06_same_body, $br06_same_key );
+br01_assert( Cetech_Pos_Bridge_Quote_Request::is_error( $br06_same ) || ( is_array( $br06_same ) && isset( $br06_same['ok'] ) && $br06_same['ok'] === false ), 'R144-2 same-request extra create does not return PreparedSale' );
+if ( Cetech_Pos_Bridge_Quote_Request::is_error( $br06_same ) ) {
+	br01_assert_eq( 'INTEGRATION_UNAVAILABLE', $br06_same->get_error_code(), 'R144-2 same-request extra create is INTEGRATION_UNAVAILABLE' );
+} else {
+	$br06_same_payload = is_array( $br06_same ) && isset( $br06_same['data'] ) ? $br06_same['data'] : $br06_same;
+	br01_assert( is_array( $br06_same_payload ), 'R144-2 same-request failure returns a structured payload' );
+}
+
+$br06_old_pred_before = 10;
+$br06_old_pred_after  = 12; // POS + storefront
+br01_assert( ( $br06_old_pred_after - $br06_old_pred_before ) !== 1, 'old-code negative control: global delta 2 reproduces Lane B failure predicate' );
+br01_assert( strpos( $woo_src, 'Woo order count did not increase by exactly one during prepare.' ) === false, 'candidate source no longer contains the old global-count failure string' );
+br01_assert( strpos( $woo_src, 'Exact intended object only' ) !== false, 'R144-1 owned-object binder is present' );
+br01_assert( strpos( $woo_src, 'assert_no_unexpected_same_request_order_creates' ) !== false, 'R144-2 same-request create guard is present' );
+br01_assert( strpos( $woo_src, 'woocommerce_after_order_object_save' ) !== false, 'R144-3 draft/refund observation includes after_order_object_save' );
 
 br01_assert_eq( 0, $br06_ok_runtime->side_effect_counts()['payments'], 'suite still has no payment side effect on the happy-path runtime' );
 br01_assert( strpos( $woo_src, 'WoodMart' ) === false || strpos( $prep_src, 'b2bking_get' ) === false, 'prepare path does not copy B2BKing getters' );

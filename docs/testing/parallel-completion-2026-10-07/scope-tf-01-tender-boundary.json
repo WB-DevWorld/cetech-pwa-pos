@@ -1,0 +1,41 @@
+{
+  "task": "TF-01",
+  "base_sha": "452c446fd0e3821fc3bfdb5de85a01d19a331809",
+  "branch": "ws3/combined-candidate-2026-10-08",
+  "symptom": "Cash ledger can persist while cash payment write fails, then electronic initialize/verify succeeds for the same transaction; concurrent cash/card can leave cash movement + card intent",
+  "allowed": [
+    "apps/pos-web/src/core/checkout/types.ts",
+    "apps/pos-web/src/core/checkout/in-memory-store.ts",
+    "apps/pos-web/src/server/sales/confirm-cash.ts",
+    "apps/pos-web/src/server/payments/initialize-electronic.ts",
+    "apps/pos-web/src/server/payments/resolve-electronic.ts",
+    "apps/pos-web/src/server/sales/supabase-checkout-store.ts",
+    "apps/pos-web/src/server/sales/**/*.test.ts",
+    "apps/pos-web/src/server/payments/**/*.test.ts",
+    "supabase/migrations/*_pos_sale_tender_claim*.sql",
+    "docs/integration/evidence/CORE-05-ACCEPTANCE.md",
+    "supabase/tests/**/*tender*",
+    "docs/testing/parallel-completion-2026-10-07/**",
+    "CURRENT-WORK.md"
+  ],
+  "forbidden": [
+    "Woo quote/order/stock",
+    "hosted DDL apply",
+    "production promotion",
+    "A+D repeat",
+    "RD-01 reapply",
+    "Delivery Engine"
+  ],
+  "schema_proposal": "additive public.pos_sale_tender_claims (transaction_id PK, tender_family cash|electronic) + service_role write; hosted apply separate",
+  "permitted_effects": "NONE on hosted/runtime; local tests only",
+  "protected_invariants": [
+    "transaction id",
+    "idempotency key/hash",
+    "exactly one cash_sale movement",
+    "original provider reference",
+    "verified status monotonicity",
+    "reservation expiry pre-effect",
+    "receipt 50317 / A+D closed"
+  ],
+  "rollback": "revert candidate commits; leave tester Preview 452c446 unchanged until reviewed redeploy"
+}

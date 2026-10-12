@@ -19,12 +19,13 @@ function readCookie(name: string): string | null {
   return null;
 }
 
-async function getJson<T>(path: string, fetchImpl?: typeof fetch): Promise<ApiResult<T>> {
+async function getJson<T>(path: string, fetchImpl?: typeof fetch, signal?: AbortSignal): Promise<ApiResult<T>> {
   const correlation = crypto.randomUUID();
   try {
     const response = await (fetchImpl ?? fetch)(path, {
       method: "GET",
       credentials: "include",
+      signal,
       headers: {
         accept: "application/json",
         "x-correlation-id": correlation,
@@ -48,12 +49,13 @@ async function getJson<T>(path: string, fetchImpl?: typeof fetch): Promise<ApiRe
 
 export async function fetchPaymentMethodCapabilities(
   fetchImpl?: typeof fetch,
+  signal?: AbortSignal,
 ): Promise<ApiResult<PaymentMethodCapabilities>> {
-  return getJson<PaymentMethodCapabilities>("/api/pos/v1/payments/capabilities", fetchImpl);
+  return getJson<PaymentMethodCapabilities>("/api/pos/v1/payments/capabilities", fetchImpl, signal);
 }
 
-export async function fetchStoreHealth(fetchImpl?: typeof fetch): Promise<ApiResult<StoreHealth>> {
-  return getJson<StoreHealth>("/api/pos/v1/health", fetchImpl);
+export async function fetchStoreHealth(fetchImpl?: typeof fetch, signal?: AbortSignal): Promise<ApiResult<StoreHealth>> {
+  return getJson<StoreHealth>("/api/pos/v1/health", fetchImpl, signal);
 }
 
 export type RegisterClosePresentation = {

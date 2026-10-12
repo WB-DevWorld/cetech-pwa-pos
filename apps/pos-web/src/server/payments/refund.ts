@@ -7,6 +7,7 @@ import type { CheckoutStore, StaffActor, StoredCashMovement } from "../../core/c
 import { moneyEqual } from "../../core/checkout/types";
 import { monotonicRefund } from "../../core/returns/aggregate";
 import type { ReturnStore, StoredTenderRefund } from "../../core/returns/types";
+import { isManualMobileMoneyPayment } from "./manual-mobile-money";
 import type { ElectronicRefundProvider, ProviderRefundResolveResult } from "./refund-provider";
 
 export async function refundTender(input: {
@@ -38,6 +39,16 @@ export async function refundTender(input: {
   const expectedChannel = tender.tender === "cash" ? "cash_ledger" : "provider_electronic";
   if (input.request.channel !== expectedChannel) {
     return apiFailure("VALIDATION_ERROR", "refund channel does not match historic tender", input.context.correlationId);
+  }
+  if (input.request.channel !== "cash_ledger") {
+    const payment = await input.checkoutStore.getPayment(input.request.paymentId);
+    if (isManualMobileMoneyPayment(payment)) {
+      return apiFailure(
+        "REQUIRES_ATTENTION",
+        "Manual Mobile Money was confirmed on a merchant receipt. Refund it through external reconciliation. This register will not call Paystack or move the cash drawer.",
+        input.context.correlationId,
+      );
+    }
   }
 
   const hash = await sha256Hex(canonicalJson(input.request));
@@ -258,6 +269,9 @@ async function applyProviderRefund(input: {
   readonly correlationId: string;
 }): Promise<ApiResult<RefundState>> {
   const payment = await input.checkoutStore.getPayment(input.refund.paymentId);
+  if (isManualMobileMoneyPayment(payment)) {
+    return manualRefundAttention(input.returnStore, input.refund, input.correlationId);
+  }
   const created = await input.provider.createRefund({
     refundId: input.refund.refundId,
     paymentId: input.refund.paymentId,
@@ -328,11 +342,26 @@ async function reconcileTenderRefund(input: {
     return { ok: true, data: toRefundState(input.refund), correlationId: input.correlationId };
   }
   const payment = await input.checkoutStore.getPayment(input.refund.paymentId);
+  if (isManualMobileMoneyPayment(payment)) {
+    return manualRefundAttention(input.returnStore, input.refund, input.correlationId);
+  }
   const resolved = await input.provider.resolveRefund({
     refundId: input.refund.refundId,
     providerRefundReference: input.refund.providerRefundReference,
   });
   return persistRefund(input.returnStore, applyProviderResolve(input.refund, resolved, payment?.providerTransactionId), input.correlationId);
+}
+
+function manualRefundAttention(
+  returnStore: ReturnStore,
+  refund: StoredTenderRefund,
+  correlationId: string,
+): Promise<ApiResult<RefundState>> {
+  return persistRefund(returnStore, {
+    ...refund,
+    status: "requires_attention",
+    attentionReason: "Manual Mobile Money stays outside Paystack until an approved refund reconciliation exists. Do not send this refund to Paystack.",
+  }, correlationId);
 }
 
 function applyProviderResolve(

@@ -1,0 +1,103 @@
+{
+  "testedSha": "0e383d84f11573ca89d6533c8cb7c35d79d7b261",
+  "baseUrl": "http://127.0.0.1:3014",
+  "profile": "C:\\Users\\Jane\\AppData\\Local\\Temp\\lane-d-pwa-profile-0e383d84",
+  "surface": "desktop-chromium-persistent-profile",
+  "notClaimed": [
+    "installed-PWA",
+    "cashier-hardware",
+    "production-promotion"
+  ],
+  "steps": [
+    {
+      "name": "navigate-home",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "title": "CETECH POS",
+        "url": "http://127.0.0.1:3014/"
+      }
+    },
+    {
+      "name": "release-policy-no-store",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "cacheControl": "no-store",
+        "bodyKeys": [
+          "ok",
+          "data",
+          "correlationId"
+        ],
+        "latestBuild": "0e383d84f11573ca89d6533c8cb7c35d79d7b261",
+        "recommendedBuild": "0e383d84f11573ca89d6533c8cb7c35d79d7b261",
+        "minimumSupportedBuild": "0e383d84f11573ca89d6533c8cb7c35d79d7b261"
+      }
+    },
+    {
+      "name": "service-worker-registration",
+      "ok": true,
+      "detail": {
+        "supported": true,
+        "registrationCount": 1,
+        "scriptURLs": [
+          "http://127.0.0.1:3014/sw.js?build=0e383d84f11573ca89d6533c8cb7c35d79d7b261"
+        ],
+        "controller": "http://127.0.0.1:3014/sw.js?build=0e383d84f11573ca89d6533c8cb7c35d79d7b261"
+      }
+    },
+    {
+      "name": "reload-preserves-sw-and-idb-namespace",
+      "ok": true,
+      "detail": {
+        "registrationCount": 1,
+        "controller": "http://127.0.0.1:3014/sw.js?build=0e383d84f11573ca89d6533c8cb7c35d79d7b261",
+        "idbNames": [
+          "lane-d-marker-db"
+        ],
+        "markerPresent": true,
+        "storageWiped": false
+      }
+    },
+    {
+      "name": "multi-tab-sw-shared",
+      "ok": true,
+      "detail": {
+        "tab1": {
+          "controller": "http://127.0.0.1:3014/sw.js?build=0e383d84f11573ca89d6533c8cb7c35d79d7b261",
+          "regs": 1
+        },
+        "tab2": {
+          "controller": "http://127.0.0.1:3014/sw.js?build=0e383d84f11573ca89d6533c8cb7c35d79d7b261",
+          "regs": 1,
+          "url": "/sell"
+        }
+      }
+    },
+    {
+      "name": "offline-html-static",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "hasOfflineCopy": true,
+        "bytes": 524
+      }
+    },
+    {
+      "name": "sw-js-no-install-skipWaiting",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "hasActivateMessage": true,
+        "installCallsSkipWaiting": false,
+        "messageHasSkipWaiting": true,
+        "apiUncached": true
+      }
+    }
+  ],
+  "summary": {
+    "allOk": true,
+    "passed": 7,
+    "failed": 0
+  }
+}

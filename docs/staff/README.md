@@ -1,14 +1,22 @@
 # CETECH POS staff documentation
 
-**Current testing documents updated:** 3 October 2026 — management correction candidate.
+> **Current testing round (9 October 2026) — use this only**  
+> POS: https://cetech-pos-staging-q2u9baevb-wbdevworlds-projects.vercel.app  
+> BUILD_ID: `a4f3284c35785dbb0efe3843d38084f12911ac15`  
+> Checklist: [TESTER-ACCEPTANCE-CHECKLIST-a4f3284.md](../testing/parallel-completion-2026-10-07/TESTER-ACCEPTANCE-CHECKLIST-a4f3284.md)  
+> Scope: device / PWA / cache / scanner and existing order **50317** receipt / paper.  
+> **Do not** click Pay, create a new sale, charge, refund, or run a stock experiment.  
+> Older links below (including `git-integration-9578df` and the management-remediation packet) are **historical** for this round.
+
+**Current testing documents updated:** 9 October 2026 — a4f3284 staging candidate handoff.
 
 **Read and understand the current Test Brief first.**
 
 The management candidate is under qualification. Check the brief for the confirmed live build before testing its new controls.
 
-[Open the formatted testing documents](https://github.com/WB-DevWorld/cetech-pwa-pos/tree/ws3/management-remediation-2026-10-03/docs/staff/testing-2026-10-02#readme) — the brief, guide, and workbook.
+[Open the formatted testing documents](https://github.com/WB-DevWorld/cetech-pwa-pos/tree/ws3/management-remediation-2026-10-03/docs/staff/testing-2026-10-02#readme) — historical packet; for **this** round use the a4f3284 checklist above instead.
 
-**[Open the POS for this round](https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app)**
+**[Open the POS for this round](https://cetech-pos-staging-q2u9baevb-wbdevworlds-projects.vercel.app)** — BUILD_ID `a4f3284…` (supersedes the older git-integration link for current testing).
 
 These files are the **canonical staff-facing documentation** for CETECH POS.
 

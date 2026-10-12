@@ -2,6 +2,7 @@ import { sha256Hex } from "../../local/canonical";
 import { toIsoTimestamp } from "../auth/ids";
 import type { CheckoutStore, StoredPayment, StoredProviderEvent } from "../../core/checkout/types";
 import { applyProviderVerification } from "./apply-verification";
+import { isManualMobileMoneyPayment } from "./manual-mobile-money";
 import type { ElectronicPaymentProvider } from "./provider";
 
 export type IngestProviderEventResult = {
@@ -52,8 +53,8 @@ export async function ingestProviderEvent(input: {
   if (saved === "duplicate") {
     return { accepted: true, duplicate: true, payment: local };
   }
-  if (!local || !local.providerReference) {
-    return { accepted: true, duplicate: false };
+  if (!local || !local.providerReference || isManualMobileMoneyPayment(local)) {
+    return { accepted: true, duplicate: false, payment: local };
   }
   const verification = await input.provider.verify(local.providerReference);
   if (!sale) {

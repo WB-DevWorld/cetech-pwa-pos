@@ -77,6 +77,7 @@ export function ReceiptPaper({ receipt, paperWidth = 80, sample = false }: {
         {receipt.tender === "cash" && receipt.cashReceived ? <div className="r-row"><span>Cash received</span><span>{formatMoneyDisplay(receipt.cashReceived)}</span></div> : null}
         {receipt.tender === "cash" && receipt.changeDue ? <div className="r-row"><span>Change</span><span>{formatMoneyDisplay(receipt.changeDue)}</span></div> : null}
         <div className="r-row receipt-payment"><strong>Payment method</strong><strong>{paymentTenderLabel(receipt.tender)}</strong></div>
+        {receipt.merchantReference ? <div className="r-row"><span>Merchant reference</span><span>{receipt.merchantReference}</span></div> : null}
       </section>
       {receipt.transactionId ? <span hidden data-sale-reference={receipt.transactionId} /> : null}
       {presentation.footerMessage ? <footer className="receipt-footer center"><strong>{presentation.footerMessage}</strong></footer> : null}
@@ -156,6 +157,12 @@ function LegacyReceiptPaper({ receipt }: { receipt: ReceiptViewModel }) {
         <span>Payment</span>
         <span>{paymentTenderLabel(receipt.tender)}</span>
       </div>
+      {receipt.merchantReference ? (
+        <div className="r-row">
+          <span>Merchant reference</span>
+          <span>{receipt.merchantReference}</span>
+        </div>
+      ) : null}
       {receipt.cashReceived ? (
         <div className="r-row">
           <span>Cash received</span>

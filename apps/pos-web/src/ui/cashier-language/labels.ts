@@ -68,7 +68,9 @@ export function healthCheckLabel(id: string): string {
       return "Commerce connection";
     case "bridge-contract":
     case "pricing":
-      return "Pricing verification";
+      return "Pricing qualification";
+    case "bridge-dependencies":
+      return "Store services";
     case "payments":
       return "Payments";
     case "internet":
@@ -130,12 +132,21 @@ export function printerCapabilityLabel(label?: string): string {
 }
 
 export function describeHealthCheckMessage(id: string, rawMessage: string, status: string): string {
+  if (id === "bridge-dependencies") {
+    if (status === "healthy") {
+      return "Required store services were detected. That does not prove prices are correct.";
+    }
+    if (status === "degraded") {
+      return "A required store service was not detected. That does not prove prices are wrong or right.";
+    }
+    return "Store service detection was not confirmed.";
+  }
   if (id === "bridge" || id === "commerce" || id === "bridge-contract" || id === "pricing") {
     if (/pricingParityVerified=true/i.test(rawMessage)) {
       return "Verified";
     }
     if (/pricingParityVerified=false/i.test(rawMessage) && (id === "bridge-contract" || id === "pricing")) {
-      return "Pending verification";
+      return "Pricing qualification is still pending. The price on a sale is the quoted price, not this check.";
     }
     if (status === "healthy") {
       return "Connected";

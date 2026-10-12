@@ -1,6 +1,14 @@
 # CETECH POS — Staff Training & User Guide
 
-**Updated for this testing round:** 3 October 2026 — management candidate guidance added.
+> **Current testing round (9 October 2026) — use this only**  
+> POS: https://cetech-pos-staging-q2u9baevb-wbdevworlds-projects.vercel.app  
+> BUILD_ID: `a4f3284c35785dbb0efe3843d38084f12911ac15`  
+> Checklist: [TESTER-ACCEPTANCE-CHECKLIST-a4f3284.md](../testing/parallel-completion-2026-10-07/TESTER-ACCEPTANCE-CHECKLIST-a4f3284.md)  
+> Scope: device / PWA / cache / scanner and existing order **50317** receipt / paper.  
+> **Do not** click Pay, create a new sale, charge, refund, or run a stock experiment.  
+> The older `git-integration-9578df` link and historical candidate notes below are **not** the current round.
+
+**Updated for this testing round:** 9 October 2026 — a4f3284 staging candidate handoff.
 
 **UI refinement candidate — 3 October 2026:** Additional guidance marked **Candidate UI** describes `ws1/ui-refinement-2026-10-03`. Use it only when the coordinator confirms that candidate in the Test Brief. This note does not mean the existing POS link has been updated.
 
@@ -10,9 +18,9 @@
 
 **Read and understand the [current Test Brief](TEST-BRIEF-2026-10-02.md) first.**
 
-**[Open the POS for this round](https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app)**
+**[Open the POS for this round](https://cetech-pos-staging-q2u9baevb-wbdevworlds-projects.vercel.app)** — BUILD_ID `a4f3284…`
 
-Use this same address when opening or installing the POS. If your installed POS already uses it and works, keep using it and preserve your saved work.
+Use this same address when opening or installing the POS. Preserve saved work. Do not treat older shared-tester bookmarks as this build.
 
 **Audience:** Cashiers, managers, owners/admins, and authorized support staff  
 **Language:** Plain operational English  
@@ -223,7 +231,7 @@ In the cart you can normally:
 - see Subtotal, Discount, Tax, and Total;
 - clear/discard a sale when safe.
 
-The cart should show the current working sale only.
+The cart should show the current working sale only. The quantity and customer shown there are the last ones this till has saved on this device. While it says **Saving cart...**, wait. If it says **Couldn't save this cart. Try again.**, select **Try again**. Pay stays unavailable until that saved cart is the one on screen.
 
 A completed cart should no longer remain as an ordinary active cart. Do not clear browser/site storage to fix a cart-count problem; report it.
 
@@ -532,6 +540,15 @@ System status tells staff whether important services are available.
 Use it when something appears unavailable.
 
 Cashier-facing System status should explain what is working or unavailable in ordinary language.
+
+**Refresh status** is always available. The “last checked” time is when the check finished, not when it started. Use it again if one service timed out; you do not need the whole screen to fail first.
+
+Read the rows separately:
+
+- **Store connection** can say Connected when the store answered, even if prices are not fully qualified yet.
+- **Store services** warns when a required store service was not detected. That warning does not prove prices are right or wrong.
+- **Prices** means pricing qualification. Pending qualification is not the same as the price already quoted on the current sale.
+- **Payments** always states cash separately from manually confirmed Mobile Money and from Paystack. Manual Mobile Money means the customer transfers outside the POS and you confirm the merchant receipt; a customer screenshot is not enough, and it does not move the cash drawer. Paystack test checkout can be opened only when that handoff is actually available, and it is not ready for live payments. Credentials without a channel or a usable test payer are not a usable checkout. Live electronic checkout stays blocked in this version. The merchant account on a manual payment is the one saved when the instructions were shown; a later settings change does not move that payment. If the confirmation response is lost, check the same payment instead of asking for another transfer. A Paystack test link belongs only to the payment it was issued for, including when that payment is still being checked. The time on System status is when the response was received. A failed refresh keeps the previous response labelled as last-known.
 
 Detailed engineering/support information belongs in Management/support views.
 

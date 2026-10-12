@@ -498,6 +498,77 @@ export function createBrowserReturnPort(options: BrowserCheckoutOptions = {}): R
   };
 }
 
+export function postStaffPaymentCommand<T>(url: string, body: unknown, idempotencyKey: Uuid): Promise<ApiResult<T>> {
+  return command<T>(url, "POST", { correlationId: crypto.randomUUID(), idempotencyKey }, {}, body);
+}
+
+export type ManualMobileMoneyClient = {
+  begin(transactionId: string, context: CommandContext): Promise<ApiResult<{
+    readonly payment: { readonly paymentId: string; readonly status: string; readonly displayReference?: string };
+    readonly network: string;
+    readonly accountLabel: string;
+  }>>;
+  confirm(
+    body: {
+      readonly transactionId: string;
+      readonly paymentId: string;
+      readonly merchantReference: string;
+      readonly merchantConfirmed: true;
+    },
+    context: CommandContext,
+  ): Promise<ApiResult<{
+    readonly payment: { readonly paymentId: string; readonly status: string; readonly displayReference?: string };
+    readonly network: string;
+    readonly accountLabel: string;
+  }>>;
+};
+
+export function createManualMobileMoneyClient(options: BrowserCheckoutOptions): ManualMobileMoneyClient {
+  const journalMissing = "Local recovery journal is unavailable. Manual Mobile Money was not started.";
+  return {
+    begin(transactionId, context) {
+      if (!options.journal) {
+        return Promise.resolve(unavailable(context.correlationId, journalMissing));
+      }
+      return command(
+        "/api/pos/v1/payments/manual-mobile-money/begin",
+        "POST",
+        context,
+        options,
+        { transactionId },
+        { operation: "payment.initialize", transactionId },
+      );
+    },
+    confirm(body, context) {
+      if (!options.journal) {
+        return Promise.resolve(unavailable(context.correlationId, journalMissing));
+      }
+      return command(
+        "/api/pos/v1/payments/manual-mobile-money/confirm",
+        "POST",
+        context,
+        options,
+        body,
+        { operation: "payment.resolve", transactionId: body.transactionId },
+      );
+    },
+  };
+}
+
+export async function loadPaystackTestPresentation(paymentId: string, fetchImpl: typeof fetch = fetch): Promise<string | undefined> {
+  try {
+    const response = await fetchImpl(`/api/pos/v1/payments/presentation?paymentId=${encodeURIComponent(paymentId)}`, {
+      method: "GET",
+      credentials: "include",
+      headers: { accept: "application/json", "x-correlation-id": crypto.randomUUID() },
+    });
+    const result = (await response.json()) as ApiResult<{ url?: string }>;
+    return result.ok ? result.data.url : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function createBrowserRegisterPort(options: BrowserCheckoutOptions = {}): RegisterPort {
   return {
     get(id): Promise<ApiResult<Register>> {

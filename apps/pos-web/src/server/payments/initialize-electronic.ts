@@ -47,6 +47,14 @@ export async function initializeElectronicPayment(input: {
     if (existing && existing.tender === "cash") {
       return apiFailure("VALIDATION_ERROR", "a verified tender already exists for this sale", context.correlationId);
     }
+    const cashMoves = await store.listCashSales(request.transactionId);
+    if (cashMoves.length > 0) {
+      return apiFailure(
+        "VALIDATION_ERROR",
+        "a cash tender effect already exists for this sale",
+        context.correlationId,
+      );
+    }
 
     const hash = await sha256Hex(canonicalJson(request));
     const claim = await store.claimIdempotency(
@@ -124,6 +132,20 @@ export async function initializeElectronicPayment(input: {
         "the prepared sale reservation has expired or cannot be verified; check this sale before taking payment",
         context.correlationId,
         { field: "pre_effect" },
+      );
+    }
+
+    const tenderClaim = await store.claimSaleTender(request.transactionId, "electronic", {
+      organizationId: sale.organizationId,
+      locationId: sale.locationId,
+      actorId: actor.actorId,
+    });
+    if (tenderClaim.kind === "conflict") {
+      await store.releaseIdempotency(actor.organizationId, "payment.initialize", context.idempotencyKey);
+      return apiFailure(
+        "VALIDATION_ERROR",
+        "a cash tender already claims this sale; electronic payment cannot start",
+        context.correlationId,
       );
     }
 
@@ -225,6 +247,7 @@ export async function initializeElectronicPayment(input: {
       status: "awaiting_customer",
       initializeStatus: "initialized",
       accessCode: remote.accessCode,
+      ...(remote.authorizationUrl ? { authorizationUrl: remote.authorizationUrl } : {}),
       displayReference: remote.displayReference,
     };
     await store.savePayment(awaiting);

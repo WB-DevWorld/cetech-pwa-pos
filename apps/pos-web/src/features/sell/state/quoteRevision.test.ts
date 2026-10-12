@@ -33,6 +33,32 @@ describe("FE-04 revision-safe quote presentation", () => {
     });
   });
 
+  test("the same revision on another cart or customer does not authorize checkout", () => {
+    const otherCart = resolveQuotePresentation({
+      quote: confirmed,
+      eligibility: { allowed: true },
+      cartRevision: confirmed.revision,
+      cartId: "cart-b",
+      quoteCartId: "cart-a",
+      customerId: null,
+      quoteCustomerId: null,
+    });
+    expect(otherCart.quote?.status).toBe("stale");
+    expect(otherCart.eligibility?.allowed).toBe(false);
+
+    const otherCustomer = resolveQuotePresentation({
+      quote: confirmed,
+      eligibility: { allowed: true },
+      cartRevision: confirmed.revision,
+      cartId: "cart-a",
+      quoteCartId: "cart-a",
+      customerId: "customer-b",
+      quoteCustomerId: "customer-a",
+    });
+    expect(otherCustomer.quote?.status).toBe("stale");
+    expect(otherCustomer.eligibility?.allowed).toBe(false);
+  });
+
   test("customer change that advances revision invalidates the prior quote", () => {
     const presented = resolveQuotePresentation({
       quote: confirmed,

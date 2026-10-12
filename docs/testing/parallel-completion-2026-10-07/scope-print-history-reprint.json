@@ -1,0 +1,28 @@
+{
+  "task": "PRINT-HISTORY-REPRINT-01",
+  "human": "@wbdevworld",
+  "workstream": "WS3",
+  "mode": "IMPLEMENT",
+  "branch": "ws3/combined-candidate-2026-10-08",
+  "base": "7d5778fe904792360947d88122050e529587aa51",
+  "allowed": [
+    "apps/pos-web/src/app/pos-app.tsx",
+    "apps/pos-web/src/app/history-receipt-ports.ts",
+    "apps/pos-web/src/app/pos-app.receipt-reprint.test.tsx",
+    "CURRENT-WORK.md",
+    "docs/testing/parallel-completion-2026-10-07/**"
+  ],
+  "forbidden": [
+    "wordpress/**",
+    "supabase/**",
+    "docs/contracts/**",
+    "apps/pos-web/src/core/receipt/**",
+    "apps/pos-web/public/**",
+    "second cash sale",
+    "new f0 Preview exception",
+    "shared alias move",
+    "production promotion"
+  ],
+  "regression": "apps/pos-web/src/app/pos-app.receipt-reprint.test.tsx",
+  "staff_documentation_impact": "NONE"
+}

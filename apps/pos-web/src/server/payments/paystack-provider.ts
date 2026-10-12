@@ -1,5 +1,6 @@
 import type { ElectronicTender } from "../../../../../docs/contracts/domain.generated";
 import { isPaystackTestSecret } from "./config";
+import { allowlistedPaystackUrl } from "./paystack-presentation";
 import { paystackSignatureValid } from "./hmac";
 import type {
   ElectronicPaymentProvider,
@@ -86,7 +87,13 @@ export function createPaystackElectronicPaymentProvider(
         if (!response.ok || record(body).status !== true || !accessCode) {
           return { kind: "failed", retryable: false, message: "provider initialize was rejected" };
         }
-        return { kind: "initialized", accessCode, displayReference: reference };
+        const authorizationUrl = allowlistedPaystackUrl(stringValue(data.authorization_url));
+        return {
+          kind: "initialized",
+          accessCode,
+          displayReference: reference,
+          ...(authorizationUrl ? { authorizationUrl } : {}),
+        };
       } catch (error) {
         if (isTimeout(error)) {
           return { kind: "lost_response" };

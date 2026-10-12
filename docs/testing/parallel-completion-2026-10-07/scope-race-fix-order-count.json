@@ -1,0 +1,40 @@
+﻿{
+  "task": "RACE-FIX-ORDER-COUNT-01",
+  "acting_human": "@wbdevworld",
+  "workstream": "WS3",
+  "bridge_reviewer": "@Emmanuel-coder-prog",
+  "base": "0e383d84f11573ca89d6533c8cb7c35d79d7b261",
+  "branch": "ws3/race-fix-order-count-2026-10-08",
+  "staff_documentation_impact": "NONE",
+  "production_effects": "NONE",
+  "allowed": [
+    "wordpress/cetech-pos-bridge/includes/class-woo-runtime.php",
+    "tests/bridge/fake-woo-runtime.php",
+    "tests/bridge/test-prepare.php",
+    "tests/bridge/test-quote.php",
+    "tests/integration/sales/woo-global-order-count-concurrency.fixture.test.ts",
+    "docs/testing/parallel-completion-2026-10-07/**",
+    "docs/workstreams/WS-02-COMMERCE-BRIDGE/evidence/**",
+    "CURRENT-WORK.md"
+  ],
+  "forbidden": [
+    "global Woo lock",
+    "blind create retries",
+    "deleting safety checks without replacement",
+    "relaxing expected order count",
+    "schema/index changes",
+    "hosted DDL",
+    "bridge install",
+    "training orders",
+    "production promotion",
+    "diagnostic #141 import"
+  ],
+  "invariants": [
+    "durable pre-effect prepare intent",
+    "stable transaction/idempotency/request-hash identity",
+    "recovery token on initial Woo save",
+    "GET resolve zero-write",
+    "fail-closed same-request quote order mutations",
+    "no second order on retry/resolve"
+  ]
+}

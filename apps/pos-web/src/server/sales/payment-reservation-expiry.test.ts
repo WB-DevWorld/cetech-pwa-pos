@@ -147,15 +147,42 @@ describe("expiry never hides payment effects that already exist", () => {
     expect(await store.expectedCash(SHIFT)).toEqual(ghs(2500));
   });
 
-  test("existing cash ledger without POS payment repairs after expiry without another movement", async () => {
+  test("atomic payment write loss leaves no cash movement; repair needs a live reservation", async () => {
     const store = await setup();
-    const save = store.savePayment.bind(store);
-    vi.spyOn(store, "savePayment").mockRejectedValueOnce(new Error("synthetic persist loss"));
+    store.failNextPaymentWrite = true;
     const lost = await cash(store);
     expect(lost).toMatchObject({ ok: true, data: { status: "requires_attention" } });
+    expect(await store.listCashSales(TX)).toHaveLength(0);
+    expect(await store.getPaymentForTransaction(TX)).toBeUndefined();
+    expect(await store.expectedCash(SHIFT)).toEqual(ghs(1000));
+    expect(await cash(store, LATER)).toMatchObject({
+      ok: false,
+      error: { code: "REQUIRES_ATTENTION", details: { field: "pre_effect" } },
+    });
+    expect(await store.listCashSales(TX)).toHaveLength(0);
+    const recovered = await cash(store, NOW, NEXT_KEY);
+    expect(recovered).toMatchObject({ ok: true, data: { status: "verified" } });
+    expect(await store.listCashSales(TX)).toHaveLength(1);
+    expect(await store.expectedCash(SHIFT)).toEqual(ghs(2500));
+  });
+
+  test("orphaned cash ledger without POS payment still repairs after expiry without another movement", async () => {
+    const store = await setup();
+    expect(
+      await store.appendCashMovement({
+        id: "55555555-5555-4555-8555-555555555555",
+        organizationId: "org_a",
+        shiftId: SHIFT,
+        kind: "cash_sale",
+        signedAmount: ghs(1500),
+        actorId: ACTOR.actorId,
+        createdAt: NOW.toISOString(),
+        transactionId: TX,
+        reason: "cash sale",
+      }),
+    ).toBe("ok");
     expect(await store.listCashSales(TX)).toHaveLength(1);
     expect(await store.getPaymentForTransaction(TX)).toBeUndefined();
-    vi.spyOn(store, "savePayment").mockImplementation(save);
     const recovered = await cash(store, LATER);
     expect(recovered).toMatchObject({ ok: true, data: { status: "verified" } });
     expect(await store.listCashSales(TX)).toHaveLength(1);

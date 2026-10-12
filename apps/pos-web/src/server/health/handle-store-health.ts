@@ -11,6 +11,7 @@ import {
   assembleStoreHealth,
   assertPrepOnlyBridgeHealth,
   createSkippedProbe,
+  dependencyHealthCheck,
   detectionMessage,
   mockBridgeHealth,
   withoutClaimedPricingParity,
@@ -81,9 +82,10 @@ export async function handleStoreHealth(input: StoreHealthRequest): Promise<Stor
     message: detectionMessage(bridgeHealth),
     checkedAt: toIsoTimestamp(input.now),
   };
+  const dependencies = dependencyHealthCheck(bridgeHealth, input.now);
 
   const data = assembleStoreHealth({
-    checks: [supabase, bridge, contractCheck],
+    checks: [supabase, bridge, dependencies, contractCheck],
     buildId: input.buildId,
   });
   return {

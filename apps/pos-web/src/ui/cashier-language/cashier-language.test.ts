@@ -109,7 +109,7 @@ describe("labels", () => {
     expect(skuLabel("SKU 14985")).toBe("SKU 14985");
     expect(healthCheckLabel("supabase")).toBe("POS data");
     expect(healthCheckLabel("bridge")).toBe("Commerce connection");
-    expect(healthCheckLabel("bridge-contract")).toBe("Pricing verification");
+    expect(healthCheckLabel("bridge-contract")).toBe("Pricing qualification");
   });
 
   test("catalog rebuild copy uses products language", () => {

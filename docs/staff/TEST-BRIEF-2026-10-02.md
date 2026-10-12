@@ -1,12 +1,20 @@
 # CETECH POS — Staff Test Brief
 
+> **Current testing round (9 October 2026) — use this only**  
+> POS: https://cetech-pos-staging-q2u9baevb-wbdevworlds-projects.vercel.app  
+> BUILD_ID: `a4f3284c35785dbb0efe3843d38084f12911ac15`  
+> Checklist: [TESTER-ACCEPTANCE-CHECKLIST-a4f3284.md](../testing/parallel-completion-2026-10-07/TESTER-ACCEPTANCE-CHECKLIST-a4f3284.md)  
+> Scope: device / PWA / cache / scanner and existing order **50317** receipt / paper.  
+> **Do not** click Pay, create a new sale, charge, refund, or run a stock experiment.  
+> Fresh cash-sale steps elsewhere in this brief / workbook are **not** authorized for this round.
+
 **Issued:** 2 October 2026\
-**Updated:** 3 October 2026 — management correction candidate\
+**Updated:** 9 October 2026 — a4f3284 staging candidate (noncommercial tester handoff)\
 **Use:** The next staff-testing round. Each tester records their actual test date.
 
 ## Open this POS
 
-**[Open the POS for this testing round](https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app)**
+**[Open the POS for this testing round](https://cetech-pos-staging-q2u9baevb-wbdevworlds-projects.vercel.app)** — BUILD_ID `a4f3284c35785dbb0efe3843d38084f12911ac15`
 
 Use this link every time, including when installing the POS on your phone or computer. Start from this brief instead of an old message or bookmark.
 
@@ -127,7 +135,7 @@ You do not need the owner to sit with you. Your completed workbook and evidence 
 
 - Management source candidate: `ws3/management-remediation-2026-10-03`, MANAGE-REMEDIATION-01; awaiting exact-head CI, independent review and a new release decision. This candidate includes three additive operational migrations, which have not been applied to staging.
 - Last verified live application: `51c0664d3ca96c5742ff6a2324a2fdf412dddd3b`, [PR #137](https://github.com/WB-DevWorld/cetech-pwa-pos/pull/137), Preview `dpl_8aKgw7sjgfLgvF4HZCbCcxquaxrD`; exact-head Linux/Windows CI [run 37095621894](https://github.com/WB-DevWorld/cetech-pwa-pos/actions/runs/37095621894) passed. That evidence does not qualify this new management candidate.
-- Accepted test URL: `https://cetech-pos-staging-git-integration-9578df-wbdevworlds-projects.vercel.app`.
+- Accepted test URL for **this** round: `https://cetech-pos-staging-q2u9baevb-wbdevworlds-projects.vercel.app` (BUILD_ID `a4f3284…`). Older `git-integration-9578df` remains historical.
 - The previous SALE-RECOVERY-01 one-time release exception is consumed. No new tester-alias change, migration application, actual sale repair, payment, refund or stock operation has been performed for this candidate.
 - The reported hanging sale remains a live verification item. A proof-gated manager repair surface is source-tested; neither a button nor a green build proves that the live sale recovered. Commerce availability requires a fresh authorized service check.
 - Before declaring this candidate live, record its exact source SHA, both CI jobs, reviewed head, applied migration versions and READY Preview; then verify the same accepted URL serves it. Keep pre-change and post-change tester results separate.
